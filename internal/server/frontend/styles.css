@@ -356,6 +356,160 @@ body {
   box-shadow: 0 8px 25px var(--shadow-color);
 }
 
+/* Items card */
+.items-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--glass-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.items-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+  letter-spacing: -0.02em;
+}
+
+.items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.item-card {
+  background: linear-gradient(135deg, var(--glass-bg), rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-color);
+  border-radius: 0.875rem;
+  padding: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px var(--shadow-color);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.item-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  flex: 1;
+  min-width: 200px;
+}
+
+.item-quantity {
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+  background: var(--glass-bg);
+  padding: 0.25rem 0.75rem;
+  border-radius: 2rem;
+  border: 1px solid var(--border-color);
+}
+
+.item-nutrition {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.nutrition-main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.75rem;
+}
+
+.nutrition-item {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.nutrition-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.nutrition-label {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.nutrition-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.nutrition-additional {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.nutrition-item-small {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 1.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.nutrition-item-small:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.nutrition-label-small {
+  color: var(--text-tertiary);
+}
+
+.nutrition-value-small {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.item-note {
+  color: var(--text-tertiary);
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+}
+
 /* Transcript card */
 .transcript-card {
   background: var(--glass-bg);
@@ -521,7 +675,7 @@ body {
     padding: 1rem;
   }
   
-  .summary-card, .transcript-card {
+  .summary-card, .items-card, .transcript-card {
     padding: 1.5rem;
   }
   
@@ -529,12 +683,25 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   }
   
-  .summary-title {
+  .summary-title, .items-title {
     font-size: 1.5rem;
   }
   
   .transcript-title {
     font-size: 1.25rem;
+  }
+  
+  .item-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .item-name {
+    min-width: unset;
+  }
+  
+  .nutrition-main {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -551,5 +718,13 @@ body {
   
   .summary-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .nutrition-main {
+    grid-template-columns: 1fr;
+  }
+  
+  .nutrition-additional {
+    justify-content: center;
   }
 }
