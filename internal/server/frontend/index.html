@@ -2,54 +2,31 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>noot 🍎 - AI Nutrition Logger</title>
+    <title>noot 🍎</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="theme-toggle">
-      <button id="themeToggle" aria-label="Toggle theme">
-        <span class="theme-icon">🌙</span>
-      </button>
-    </div>
-
     <main>
-      <div class="header">
-        <h1>🍎 noot</h1>
-        <p class="tagline">Just say what you ate</p>
+      <button id="micBtn" class="mic-button" aria-label="Press and hold to record">
+        <span class="mic-icon">🎤</span>
+        <div class="pulse-ring"></div>
+        <div class="pulse-ring pulse-ring-2"></div>
+      </button>
+
+      <div id="status" class="status"></div>
+
+      <div id="result" class="result hidden">
+        <div class="summary">
+          <h2>📊 Summary</h2>
+          <div id="summary-content"></div>
+        </div>
+        
+        <div class="transcript">
+          <h3>What you said</h3>
+          <p id="transcript-text"></p>
+        </div>
       </div>
-
-      <div class="mic-container">
-        <button id="micBtn" class="mic-button" aria-label="Press and hold to record">
-          <div class="mic-inner">
-            <span class="mic-icon">🎤</span>
-            <div class="pulse-ring"></div>
-            <div class="pulse-ring pulse-ring-delay"></div>
-          </div>
-        </button>
-        <p id="hint" class="hint">Press and hold to record your meal</p>
-      </div>
-
-      <section id="status" class="status"></section>
-
-      <section id="result" class="result hidden">
-        <div class="result-card">
-          <h2>📝 What you said</h2>
-          <div class="transcript-container">
-            <p id="transcript" class="transcript"></p>
-          </div>
-        </div>
-
-        <div class="result-card summary-card" id="summary-card">
-          <h2>📊 Nutrition summary</h2>
-          <div id="summary" class="summary-grid"></div>
-        </div>
-
-        <div class="result-card" id="items-card">
-          <h2>🥗 Food items</h2>
-          <div id="items" class="items-grid"></div>
-        </div>
-      </section>
     </main>
 
     <script src="/app.js"></script>
