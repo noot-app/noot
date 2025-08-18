@@ -278,6 +278,9 @@ function displayResults(data) {
 
 // Display comprehensive nutrition summary organized by categories
 function displaySummary(summary) {
+  // Enable scrolling when content is shown
+  document.body.classList.add('content-visible');
+  
   const totals = summary.totals || {};
   const percentDaily = summary.percent_of_daily || {};
   
@@ -410,16 +413,15 @@ function displaySummary(summary) {
         <div class="nutrition-section-grid">
           ${items.map(item => {
             const color = item.warning ? '#ef4444' : getPercentageColor(item.percent);
-            const pieChart = createPieChart(item.percent, color);
+            const showPieChart = item.percent > 0 && !item.note; // Don't show pie chart for items with notes (like natural sugar)
+            const pieChart = showPieChart ? createPieChart(item.percent, color) : '';
             const dailyText = item.note ? item.note : 
                              item.limit ? `of ${item.limit}g limit` : 
                              `${Math.round(item.percent)}% daily`;
             
             return `
               <div class="summary-item ${item.warning ? 'warning' : ''}">
-                <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
-                  ${pieChart}
-                </div>
+                ${showPieChart ? `<div style="display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">${pieChart}</div>` : '<div style="height: 0.5rem;"></div>'}
                 <div class="nutrition-label">${item.label}</div>
                 <div class="nutrition-value">${item.value}${item.unit}</div>
                 <div class="nutrition-daily">${dailyText}</div>
