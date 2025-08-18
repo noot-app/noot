@@ -28,9 +28,13 @@ func Run(ctx context.Context, port string) error {
 	mux.Handle("/", StaticHandler())
 
 	// Chain middleware
+	var base http.Handler = mux
+	if isDevMode() || isDebugMode() {
+		base = corsMiddleware(base)
+	}
 	handler := requestIDMiddleware(
 		loggingMiddleware(
-			recoveryMiddleware(mux),
+			recoveryMiddleware(base),
 		),
 	)
 

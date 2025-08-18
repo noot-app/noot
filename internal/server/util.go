@@ -97,6 +97,8 @@ func guessExtension(mime string) string {
 		return ".mp3"
 	case strings.Contains(l, "wav"):
 		return ".wav"
+	case strings.Contains(l, "m4a") || strings.Contains(l, "mp4") || strings.Contains(l, "aac"):
+		return ".m4a"
 	default:
 		return ".webm"
 	}
