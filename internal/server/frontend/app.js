@@ -2,486 +2,488 @@
 const micBtn = document.getElementById('micBtn');
 const statusEl = document.getElementById('status');
 const resultEl = document.getElementById('result');
-const transcriptEl = document.getElementById('transcript');
-const itemsEl = document.getElementById('items');
-const summaryEl = document.getElementById('summary');
+const transcriptEl = document.getElementById('transcript-text');
+const summaryEl = document.getElementById('summary-content');
+const staticMic = document.getElementById('staticMic');
+const siriWaves = document.getElementById('siriWaves');
 const themeToggle = document.getElementById('themeToggle');
 
-// Theme Management
+// Theme management
 function initTheme() {
-  const savedTheme = localStorage.getItem('theme');
-  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  const initialTheme = savedTheme || systemTheme;
-  
-  applyTheme(initialTheme);
-  updateThemeIcon(initialTheme);
+  // Check for saved theme preference or default to dark mode
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  setTheme(savedTheme);
 }
 
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
+function setTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
   localStorage.setItem('theme', theme);
 }
 
-function updateThemeIcon(theme) {
-  const icon = themeToggle.querySelector('.theme-icon');
-  icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+function toggleTheme() {
+  const currentTheme = document.body.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  setTheme(newTheme);
 }
 
-function toggleTheme() {
-  const currentTheme = document.documentElement.getAttribute('data-theme');
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  applyTheme(newTheme);
-  updateThemeIcon(newTheme);
-}
+// Audio feedback
+let audioContext;
+let startSound, endSound;
 
 // MediaRecorder Setup
 let mediaRecorder;
 let chunks = [];
 
-async function setupStream() {
+// Demo mode for testing
+const DEMO_MODE = false;
+
+// Initialize audio feedback
+async function initAudioFeedback() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const options = { mimeType: 'audio/webm' };
-    try {
-      mediaRecorder = new MediaRecorder(stream, options);
-    } catch (e) {
-      mediaRecorder = new MediaRecorder(stream);
-    }
-
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunks.push(e.data);
-    };
-
-    mediaRecorder.onstop = async () => {
-      setStatus('🔄 Processing your meal...', 'processing');
-      const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-      chunks = [];
-      
-      try {
-        const fd = new FormData();
-        fd.append('audio', blob, 'audio.webm');
-        const resp = await fetch('/api/ingest', { method: 'POST', body: fd });
-        
-        if (!resp.ok) {
-          const errorData = await resp.json().catch(() => ({ error: 'Unknown error' }));
-          const errorMsg = errorData.error || `Server error (${resp.status})`;
-          throw new Error(errorMsg);
-        }
-        
-        const data = await resp.json();
-        renderResult(data);
-        setStatus('✅ Done! Here\'s your nutrition breakdown', 'success');
-        setTimeout(() => setStatus(''), 3000);
-      } catch (err) {
-        setStatus('❌ ' + err.message, 'error');
-        console.error('Request failed:', err);
-      }
-    };
-  } catch (err) {
-    setStatus('❌ Microphone access denied. Please allow microphone access and refresh.', 'error');
-    console.error('Media access error:', err);
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Create simple beep sounds
+    startSound = createBeepSound(800, 0.1); // Higher pitch for start
+    endSound = createBeepSound(400, 0.15);  // Lower pitch for end
+  } catch (error) {
+    console.warn('Audio feedback initialization failed:', error);
   }
 }
 
-// UI Helper Functions
-function setStatus(msg, type = '') {
-  statusEl.textContent = msg;
-  statusEl.className = `status ${type}`;
+// Create beep sound
+function createBeepSound(frequency, duration) {
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+  oscillator.type = 'sine';
+  
+  gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+  gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+  
+  return { oscillator, gainNode, duration };
 }
 
-function renderResult(data) {
-  resultEl.classList.remove('hidden');
+// Play sound
+function playSound(soundConfig) {
+  if (!audioContext || !soundConfig) return;
   
-  // Render transcript
+  try {
+    const { oscillator, gainNode, duration } = createBeepSound(
+      soundConfig === startSound ? 800 : 400,
+      soundConfig === startSound ? 0.1 : 0.15
+    );
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration);
+  } catch (error) {
+    console.warn('Failed to play sound:', error);
+  }
+}
+
+// Demo data for testing
+function getDemoData() {
+  return {
+    transcript: "I had a large chicken Caesar salad with croutons, two slices of whole wheat bread, a cup of strawberries, and a glass of orange juice for lunch.",
+    summary: {
+      totals: {
+        calories: 650,
+        protein_g: 35,
+        total_carbs_g: 45,
+        total_fat_g: 28,
+        dietary_fiber_g: 8,
+        total_sugars_g: 25,
+        vitamin_c_mg: 120,
+        vitamin_d_mcg: 2.5,
+        calcium_mg: 200,
+        iron_mg: 4.2,
+        sodium_mg: 980,
+        potassium_mg: 650
+      },
+      percent_of_daily: {
+        calories: 32,
+        protein: 70,
+        total_carbs: 15,
+        total_fat: 36,
+        dietary_fiber: 29,
+        total_sugars: 28,
+        vitamin_c: 133,
+        vitamin_d: 17,
+        calcium: 20,
+        iron: 23,
+        sodium: 43,
+        potassium: 14
+      }
+    }
+  };
+}
+
+// Initialize MediaRecorder
+async function setupMediaRecorder() {
+  if (DEMO_MODE) {
+    console.log('Running in demo mode');
+    return;
+  }
+  
+  const stream = await navigator.mediaDevices.getUserMedia({ 
+    audio: {
+      channelCount: 1,
+      sampleRate: 44100,
+    } 
+  });
+  
+  mediaRecorder = new MediaRecorder(stream, {
+    mimeType: 'audio/webm;codecs=opus'
+  });
+
+  mediaRecorder.ondataavailable = (event) => {
+    if (event.data.size > 0) {
+      chunks.push(event.data);
+    }
+  };
+
+  mediaRecorder.onstop = async () => {
+    const blob = new Blob(chunks, { type: 'audio/webm' });
+    chunks = [];
+    await sendAudioToAPI(blob);
+  };
+}
+
+// Send audio to API
+async function sendAudioToAPI(audioBlob) {
+  if (DEMO_MODE) {
+    // Simulate API delay and response
+    setStatus('⏳ Processing your meal...');
+    setTimeout(() => {
+      displayResults(getDemoData());
+    }, 2000);
+    return;
+  }
+  
+  try {
+    setStatus('⏳ Processing your meal...');
+    
+    const formData = new FormData();
+    formData.append('audio', audioBlob);
+
+    const response = await fetch('/api/ingest', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    displayResults(data);
+  } catch (error) {
+    console.error('Error:', error);
+    setStatus('❌ Error processing audio. Please try again.');
+  }
+}
+
+// Create pie chart SVG
+function createPieChart(percentage, color = '#3b82f6') {
+  const radius = 16;
+  const circumference = 2 * Math.PI * radius;
+  const progress = Math.min(Math.max(percentage, 0), 100);
+  
+  return `
+    <svg class="pie-chart" viewBox="0 0 40 40">
+      <circle class="pie-bg" cx="20" cy="20" r="${radius}"></circle>
+      <circle 
+        class="pie-fill" 
+        cx="20" 
+        cy="20" 
+        r="${radius}"
+        style="--progress: ${progress}; stroke: ${color}; stroke-dasharray: ${progress} ${100 - progress};"
+      ></circle>
+    </svg>
+  `;
+}
+
+// Get color based on percentage
+function getPercentageColor(percentage) {
+  if (percentage < 25) return '#ef4444'; // red
+  if (percentage < 50) return '#f59e0b'; // amber
+  if (percentage < 75) return '#eab308'; // yellow
+  if (percentage < 100) return '#22c55e'; // green
+  return '#3b82f6'; // blue (over 100%)
+}
+
+// Display results
+function displayResults(data) {
+  setStatus('');
+  
+  // Show transcript
   transcriptEl.textContent = data.transcript || 'No transcript available';
   
-  // Render summary first
-  if (data.summary) {
-    renderSummary(data.summary);
+  // Show summary first (as requested) with enhanced nutrition data
+  if (data.summary && data.summary.totals) {
+    displaySummary(data.summary);
   }
-
-  // Render items below summary
-  renderItems(data.items || []);
+  
+  // Show results section
+  resultEl.classList.remove('hidden');
   
   // Smooth scroll to results
-  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function renderItems(items) {
-  itemsEl.innerHTML = '';
-  
-  items.forEach((item, index) => {
-    const div = document.createElement('div');
-    div.className = 'item';
-    
-    const itemData = item.item || {};
-    const nutrients = itemData.nutrients || {};
-    
-    // Calculate serving amount
-    let servingAmount = getEstimatedServingSize(itemData.name, itemData.quantity, itemData.unit);
-    
-    div.innerHTML = `
-      <div class="item-name">${escapeHtml(itemData.name || 'Unknown item')}</div>
-      <div class="item-serving">
-        <strong>Estimated serving:</strong> <span class="serving-amount">${servingAmount}g</span>
-        ${itemData.quantity != null && itemData.unit ? 
-          ` (from ${num(itemData.quantity)} ${escapeHtml(itemData.unit)})` : 
-          itemData.quantity != null ? 
-            ` (${num(itemData.quantity)} servings)` : ''
-        }
-      </div>
-      ${itemData.brand ? `<div class="item-brand">Brand: ${escapeHtml(itemData.brand)}</div>` : ''}
-      ${Object.keys(nutrients).length > 0 ? `
-        <div class="item-match">Match: Nutrition data provided by AI</div>
-        <div class="item-nutrients">
-          <div class="nutrient-title">Per serving:</div>
-          Cal: ${num(nutrients.calories)} | 
-          P: ${num(nutrients.protein_g)}g | 
-          F: ${num(nutrients.total_fat_g)}g | 
-          C: ${num(nutrients.total_carbs_g)}g | 
-          Fiber: ${num(nutrients.dietary_fiber_g)}g | 
-          Sugar: ${num(nutrients.total_sugars_g)}g
-        </div>
-      ` : `
-        <div class="item-match">Match: No nutrition data available</div>
-      `}
-      ${item.note ? `<div class="item-note">${escapeHtml(item.note)}</div>` : ''}
-    `;
-    
-    itemsEl.appendChild(div);
-  });
-}
-
-// Estimate serving sizes based on common food items
-function getEstimatedServingSize(foodName, quantity, unit) {
-  const name = (foodName || '').toLowerCase();
-  
-  // If we have specific measurements, try to convert
-  if (quantity && unit) {
-    const unitLower = unit.toLowerCase();
-    
-    // Weight conversions
-    if (unitLower.includes('g') || unitLower.includes('gram')) {
-      return Math.round(quantity);
-    }
-    if (unitLower.includes('kg') || unitLower.includes('kilogram')) {
-      return Math.round(quantity * 1000);
-    }
-    if (unitLower.includes('oz') || unitLower.includes('ounce')) {
-      return Math.round(quantity * 28.35);
-    }
-    if (unitLower.includes('lb') || unitLower.includes('pound')) {
-      return Math.round(quantity * 453.592);
-    }
-    
-    // Volume to weight estimates (very approximate)
-    if (unitLower.includes('cup')) {
-      if (name.includes('milk') || name.includes('yogurt')) return Math.round(quantity * 240);
-      if (name.includes('seed') || name.includes('nut')) return Math.round(quantity * 120);
-      if (name.includes('berry') || name.includes('fruit')) return Math.round(quantity * 150);
-      return Math.round(quantity * 100); // Generic cup
-    }
-    if (unitLower.includes('tbsp') || unitLower.includes('tablespoon')) {
-      if (name.includes('seed') || name.includes('nut')) return Math.round(quantity * 12);
-      return Math.round(quantity * 15);
-    }
-    if (unitLower.includes('tsp') || unitLower.includes('teaspoon')) {
-      return Math.round(quantity * 5);
-    }
-  }
-  
-  // Default serving sizes for common foods (in grams)
-  const servingSizes = {
-    'chia seed': 15,
-    'seed': 15,
-    'nut': 30,
-    'almond': 30,
-    'walnut': 30,
-    'yogurt': 170,
-    'milk': 240,
-    'latte': 240,
-    'coffee': 240,
-    'espresso': 30,
-    'berry': 100,
-    'blueberry': 100,
-    'strawberry': 150,
-    'banana': 120,
-    'apple': 180,
-    'orange': 150,
-    'cheese': 30,
-    'bread': 30,
-    'egg': 50,
-    'oat': 40,
-    'cereal': 40,
-    'protein': 30
-  };
-  
-  // Find matching food type
-  for (const [food, size] of Object.entries(servingSizes)) {
-    if (name.includes(food)) {
-      return quantity ? Math.round(size * quantity) : size;
-    }
-  }
-  
-  // Default serving size
-  return quantity ? Math.round(100 * quantity) : 100;
-}
-
-function renderSummary(summary) {
-  const totals = summary.totals || {};
-  const percentDaily = summary.percent_of_daily || {};
-  
-  const summaryData = [
-    { 
-      label: 'Calories', 
-      value: num(totals.calories), 
-      unit: 'kcal', 
-      percent: Math.min(percentDaily['calories'] || 0, 100),
-      color: 'rgba(255, 255, 255, 0.9)'
-    },
-    { 
-      label: 'Protein', 
-      value: num(totals.protein_g), 
-      unit: 'g', 
-      percent: Math.min(percentDaily['protein'] || 0, 100),
-      color: 'rgba(255, 255, 255, 0.9)'
-    },
-    { 
-      label: 'Fat', 
-      value: num(totals.total_fat_g), 
-      unit: 'g', 
-      percent: Math.min(percentDaily['total_fat'] || 0, 100),
-      color: 'rgba(255, 255, 255, 0.9)'
-    },
-    { 
-      label: 'Carbs', 
-      value: num(totals.total_carbs_g), 
-      unit: 'g', 
-      percent: Math.min(percentDaily['total_carbs'] || 0, 100),
-      color: 'rgba(255, 255, 255, 0.9)'
-    },
-    { 
-      label: 'Fiber', 
-      value: num(totals.dietary_fiber_g), 
-      unit: 'g', 
-      percent: Math.min(percentDaily['dietary_fiber'] || 0, 100),
-      color: 'rgba(255, 255, 255, 0.9)'
-    },
-    { 
-      label: 'Sugar', 
-      value: num(totals.total_sugars_g), 
-      unit: 'g', 
-      percent: Math.min(percentDaily['total_sugars'] || 0, 100),
-      color: 'rgba(255, 255, 255, 0.9)'
-    }
-  ];
-  
-  summaryEl.innerHTML = `
-    <div class="summary-grid">
-      ${summaryData.map((item, index) => `
-        <div class="summary-item" data-percent="${item.percent}">
-          <div class="pie-chart-container">
-            <div class="pie-chart">
-              <div class="pie-chart-background"></div>
-              <div class="pie-chart-fill" data-percentage="${item.percent}"></div>
-              <div class="pie-chart-center">${Math.round(item.percent)}%</div>
-            </div>
-          </div>
-          <div class="summary-label">${item.label}</div>
-          <div class="summary-value">${item.value}${item.unit}</div>
-          <div class="summary-percentage">${item.percent}% of daily goal</div>
-        </div>
-      `).join('')}
-    </div>
-  `;
-  
-  // Animate pie charts after a short delay to ensure DOM is ready
   setTimeout(() => {
-    animatePieCharts();
+    resultEl.scrollIntoView({ behavior: 'smooth' });
   }, 100);
 }
 
-function animatePieCharts() {
-  const pieCharts = document.querySelectorAll('.pie-chart-fill');
+// Display comprehensive nutrition summary
+function displaySummary(summary) {
+  const totals = summary.totals || {};
+  const percentDaily = summary.percent_of_daily || {};
   
-  pieCharts.forEach((chart, index) => {
-    const percentage = parseFloat(chart.dataset.percentage);
-    const degrees = (percentage / 100) * 360;
+  // Enhanced nutrition data including vitamins and minerals
+  const nutritionData = [
+    // Macronutrients
+    { 
+      label: 'Calories', 
+      value: formatNumber(totals.calories), 
+      unit: 'kcal', 
+      percent: Math.min(percentDaily['calories'] || 0, 100),
+      category: 'macro'
+    },
+    { 
+      label: 'Protein', 
+      value: formatNumber(totals.protein_g), 
+      unit: 'g', 
+      percent: Math.min(percentDaily['protein'] || 0, 100),
+      category: 'macro'
+    },
+    { 
+      label: 'Carbs', 
+      value: formatNumber(totals.total_carbs_g), 
+      unit: 'g', 
+      percent: Math.min(percentDaily['total_carbs'] || 0, 100),
+      category: 'macro'
+    },
+    { 
+      label: 'Fat', 
+      value: formatNumber(totals.total_fat_g), 
+      unit: 'g', 
+      percent: Math.min(percentDaily['total_fat'] || 0, 100),
+      category: 'macro'
+    },
     
-    // Start animation after staggered delay
-    setTimeout(() => {
-      // Use CSS custom property for smooth animation
-      chart.style.setProperty('--percentage', '0deg');
-      
-      // Trigger animation
-      requestAnimationFrame(() => {
-        chart.style.setProperty('--percentage', `${degrees}deg`);
-      });
-      
-      // Animate the percentage counter in the center
-      const centerElement = chart.parentElement.querySelector('.pie-chart-center');
-      animateCounter(centerElement, 0, Math.round(percentage), 1500);
-      
-    }, index * 200); // Stagger each pie chart by 200ms
-  });
-}
-
-function animateCounter(element, start, end, duration) {
-  const startTime = performance.now();
-  
-  function updateCounter(currentTime) {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min(elapsed / duration, 1);
+    // Fiber and sugars
+    { 
+      label: 'Fiber', 
+      value: formatNumber(totals.dietary_fiber_g), 
+      unit: 'g', 
+      percent: Math.min(percentDaily['dietary_fiber'] || 0, 100),
+      category: 'fiber'
+    },
+    { 
+      label: 'Sugar', 
+      value: formatNumber(totals.total_sugars_g), 
+      unit: 'g', 
+      percent: Math.min(percentDaily['total_sugars'] || 0, 100),
+      category: 'sugar'
+    },
     
-    // Use easing function for smooth animation
-    const easedProgress = easeOutCubic(progress);
-    const current = Math.round(start + (end - start) * easedProgress);
+    // Vitamins (if available in API response)
+    { 
+      label: 'Vitamin C', 
+      value: formatNumber(totals.vitamin_c_mg || 0), 
+      unit: 'mg', 
+      percent: Math.min(percentDaily['vitamin_c'] || 0, 100),
+      category: 'vitamin'
+    },
+    { 
+      label: 'Vitamin D', 
+      value: formatNumber(totals.vitamin_d_mcg || 0), 
+      unit: 'μg', 
+      percent: Math.min(percentDaily['vitamin_d'] || 0, 100),
+      category: 'vitamin'
+    },
     
-    element.textContent = `${current}%`;
-    
-    if (progress < 1) {
-      requestAnimationFrame(updateCounter);
+    // Minerals (if available in API response)
+    { 
+      label: 'Calcium', 
+      value: formatNumber(totals.calcium_mg || 0), 
+      unit: 'mg', 
+      percent: Math.min(percentDaily['calcium'] || 0, 100),
+      category: 'mineral'
+    },
+    { 
+      label: 'Iron', 
+      value: formatNumber(totals.iron_mg || 0), 
+      unit: 'mg', 
+      percent: Math.min(percentDaily['iron'] || 0, 100),
+      category: 'mineral'
+    },
+    { 
+      label: 'Sodium', 
+      value: formatNumber(totals.sodium_mg || 0), 
+      unit: 'mg', 
+      percent: Math.min(percentDaily['sodium'] || 0, 100),
+      category: 'mineral'
+    },
+    { 
+      label: 'Potassium', 
+      value: formatNumber(totals.potassium_mg || 0), 
+      unit: 'mg', 
+      percent: Math.min(percentDaily['potassium'] || 0, 100),
+      category: 'mineral'
     }
-  }
-  
-  requestAnimationFrame(updateCounter);
-}
+  ];
 
-function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3);
-}
+  // Filter out items with no data and create HTML
+  const validNutrients = nutritionData.filter(item => 
+    parseFloat(item.value) > 0 || ['Calories', 'Protein', 'Carbs', 'Fat'].includes(item.label)
+  );
 
-// Enhanced result rendering with staggered animations
-function renderResult(data) {
-  resultEl.classList.remove('hidden');
+  summaryEl.innerHTML = validNutrients.map(item => {
+    const color = getPercentageColor(item.percent);
+    const pieChart = createPieChart(item.percent, color);
+    
+    return `
+      <div class="summary-item">
+        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
+          ${pieChart}
+        </div>
+        <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.25rem;">${item.label}</div>
+        <div style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">${item.value}${item.unit}</div>
+        <div style="font-size: 0.75rem; color: var(--text-tertiary);">${Math.round(item.percent)}% daily</div>
+      </div>
+    `;
+  }).join('');
   
-  // Render transcript
-  transcriptEl.textContent = data.transcript || 'No transcript available';
-  
-  // Render items with animation
-  renderItems(data.items || []);
-  
-  // Render summary with pie charts
-  if (data.summary) {
-    renderSummary(data.summary);
-  }
-  
-  // Add floating animation to cards
+  // Trigger pie chart animations
   setTimeout(() => {
-    addFloatingAnimation();
-  }, 500);
-  
-  // Smooth scroll to results
-  setTimeout(() => {
-    resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const pieCharts = summaryEl.querySelectorAll('.pie-fill');
+    pieCharts.forEach(chart => {
+      chart.style.animationPlayState = 'running';
+    });
   }, 200);
 }
 
-function addFloatingAnimation() {
-  const cards = document.querySelectorAll('.result-card');
-  
-  cards.forEach((card, index) => {
-    // Add subtle floating animation
-    card.style.animation = `float 6s ease-in-out infinite`;
-    card.style.animationDelay = `${index * 0.5}s`;
-  });
+// Set status message
+function setStatus(message) {
+  statusEl.textContent = message;
 }
 
-// Add floating keyframes to CSS via JavaScript (since we can't modify CSS from here)
-function addFloatingKeyframes() {
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-6px); }
-    }
-    
-    @keyframes gentleBob {
-      0%, 100% { transform: translateY(0px) rotateZ(0deg); }
-      25% { transform: translateY(-2px) rotateZ(0.5deg); }
-      75% { transform: translateY(-1px) rotateZ(-0.5deg); }
-    }
-    
-    .summary-item:hover {
-      animation: gentleBob 0.6s ease-in-out;
-    }
-  `;
-  document.head.appendChild(style);
+// Format numbers
+function formatNumber(value) {
+  const num = Number(value ?? 0);
+  if (!isFinite(num)) return '0';
+  return num < 10 ? num.toFixed(1) : num.toFixed(0);
 }
 
 // Recording Functions
-async function startRecording(ev) {
-  ev.preventDefault();
+async function startRecording(event) {
+  event.preventDefault();
   
+  if (DEMO_MODE) {
+    // Demo mode - show recording animation and process demo data
+    // Skip audio feedback in demo mode to avoid issues
+    console.log('Demo mode: Starting recording simulation');
+    micBtn.classList.add('recording');
+    setStatus('🎤 Recording... Release to stop');
+    return;
+  }
+  
+  // Regular mode - only try to setup media recorder if not already done
   if (!mediaRecorder) {
-    try { 
-      await setupStream(); 
-    } catch (e) { 
-      setStatus('❌ Microphone setup failed', 'error');
-      return; 
+    try {
+      await setupMediaRecorder();
+    } catch (error) {
+      console.error('Media setup failed:', error);
+      setStatus('❌ Microphone access denied. Please allow microphone access and refresh.');
+      return;
     }
   }
   
   if (mediaRecorder.state === 'recording') return;
   
+  // Play start sound
+  playSound(startSound);
+  
   chunks = [];
   mediaRecorder.start();
   micBtn.classList.add('recording');
-  setStatus('🎤 Recording... Release to stop', 'processing');
+  setStatus('🎤 Recording... Release to stop');
 }
 
-function stopRecording(ev) {
-  ev.preventDefault();
+function stopRecording(event) {
+  event.preventDefault();
+  
+  if (DEMO_MODE) {
+    // Demo mode - stop recording animation and process demo data
+    console.log('Demo mode: Stopping recording simulation');
+    micBtn.classList.remove('recording');
+    sendAudioToAPI(null); // Will use demo data
+    return;
+  }
   
   if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
   
+  // Play end sound
+  playSound(endSound);
+  
   mediaRecorder.stop();
   micBtn.classList.remove('recording');
-  setStatus('⏳ Processing...', 'processing');
-}
-
-// Utility Functions
-function num(v) {
-  const n = Number(v ?? 0);
-  if (!isFinite(n)) return '0';
-  return n.toFixed(n < 10 ? 1 : 0);
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[c]));
 }
 
 // Event Listeners
-themeToggle.addEventListener('click', toggleTheme);
-
-// Mouse events for mic button
 micBtn.addEventListener('mousedown', startRecording);
 micBtn.addEventListener('mouseup', stopRecording);
 micBtn.addEventListener('mouseleave', stopRecording);
+
+// Theme toggle
+themeToggle.addEventListener('click', toggleTheme);
 
 // Touch events for mobile
 micBtn.addEventListener('touchstart', (e) => {
   e.preventDefault();
   startRecording(e);
 });
+
 micBtn.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  stopRecording(e);
+});
+
+micBtn.addEventListener('touchcancel', (e) => {
   e.preventDefault();
   stopRecording(e);
 });
 
 // Initialize
 (async () => {
-  initTheme();
-  addFloatingKeyframes();
-  try { 
-    await setupStream(); 
-  } catch (e) {
-    console.warn('Initial media setup failed, will try again on first recording');
+  try {
+    // Initialize theme first
+    initTheme();
+    
+    // Only try audio feedback if not in demo mode (to avoid errors in headless environment)
+    if (!DEMO_MODE) {
+      await initAudioFeedback();
+      await setupMediaRecorder();
+    } else {
+      console.log('Running in demo mode - skipping audio setup');
+    }
+    
+    // Show demo message for testing
+    if (DEMO_MODE) {
+      setTimeout(() => {
+        setStatus('👋 Click and hold the button to see a demo');
+      }, 1000);
+    }
+  } catch (error) {
+    console.warn('Initial setup failed:', error);
+    if (DEMO_MODE) {
+      setTimeout(() => {
+        setStatus('👋 Click and hold the button to see a demo');
+      }, 1000);
+    }
   }
 })();
