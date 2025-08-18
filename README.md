@@ -9,26 +9,34 @@ An AI-powered nutrition logging web app. Just say what you ate!
 ## Quick Start
 
 1) **Get API Keys:**
+
    - OpenAI API key from [platform.openai.com](https://platform.openai.com/api-keys)
-   - USDA FDC API key from [fdc.nal.usda.gov/api-key-signup.html](https://fdc.nal.usda.gov/api-key-signup.html)
 
 2) **Configure:**
 
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your API keys
-   ```
+    ```ini
+    # create .env file
 
-3) **Run:**
+    # Required
+    OPENAI_API_KEY=<key>
 
-   ```bash
-   # Build and run
-   script/build --single-target
-   ./bin/noot
-   
-   # Or run directly
-   go run ./cmd/noot
-   ```
+    # Server Configuration
+    PORT=3000
+    ENV=development
+
+    # Logging & Debugging (Enable detailed error reporting)
+    LOG_LEVEL=DEBUG
+    DEBUG=true
+
+    # OpenAI Configuration
+    OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
+    OPENAI_PARSE_MODEL=gpt-4o-mini
+
+    TRANSCRIBE_LANGUAGE=en
+    #OPENAI_TRANSCRIBE_RESPONSE_FORMAT=
+    ```
+
+3) **Run:** The local server can be run with `script/server` (use `--production` for production mode).
 
 4) **Use:**
    - Visit <http://localhost:3000>
