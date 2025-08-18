@@ -22,6 +22,14 @@ const (
 
 var httpClient = &http.Client{Timeout: 60 * time.Second}
 
+func transcriptionPrompt() string {
+	return `The audio is a short dictation of foods and drinks consumed. Preserve exact brand and product names (e.g., "Clover Organic", "Trader Joe's", "Siggi's", "Icelandic skyr", "LaCroix"), coffee drink terms (espresso, latte, macchiato), tea terms (matcha), and ingredient names (goji berries, blueberries, Greek yogurt, European style yogurt). Keep numbers and units (cups, grams, ounces, tbsp) and include standard punctuation. Do not add or infer items that were not spoken. If an item is given without a quantity, assume it is one standard serving size of that item which would make logical sense in the context of the meal. For example, if a user says "I had a banana", assume it is one banana, not a bunch. If they say "I had some eggs", assume it is two eggs, not a dozen. If they say "I had some yogurt", assume it is one standard serving size of yogurt, not a gallon. If they say "I had some coffee", assume it is one standard cup of coffee, not a pot. If the user sayd "I had a lattle" assume it contains two shots of espresso.`
+}
+
+func parseSystemPrompt() string {
+	return `You extract foods and drinks from a freeform meal, snack, or drink description. Return strict JSON with { \"items\": [ { \"name\": string, \"quantity\": number | null, \"unit\": string | null, \"brand\": string | null } ] }.`
+}
+
 func transcribeAudio(ctx context.Context, filePath, _ string) (string, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
@@ -31,11 +39,8 @@ func transcribeAudio(ctx context.Context, filePath, _ string) (string, error) {
 
 	LogDebug("Starting OpenAI transcription", "model", model, "file", filePath)
 
-	// Optional tuning
-	prompt := strings.TrimSpace(os.Getenv("TRANSCRIBE_PROMPT"))
-	if prompt == "" {
-		prompt = defaultTranscriptionPrompt()
-	}
+	prompt := transcriptionPrompt()
+
 	lang := strings.TrimSpace(os.Getenv("TRANSCRIBE_LANGUAGE")) // e.g., "en"
 	respFormat := strings.TrimSpace(os.Getenv("OPENAI_TRANSCRIBE_RESPONSE_FORMAT"))
 
@@ -107,10 +112,6 @@ func transcribeAudio(ctx context.Context, filePath, _ string) (string, error) {
 	return out.Text, nil
 }
 
-func defaultTranscriptionPrompt() string {
-	return `The audio is a short dictation of foods and drinks consumed. Preserve exact brand and product names (e.g., "Clover Organic", "Trader Joe's", "Siggi's", "Icelandic skyr", "LaCroix"), coffee drink terms (espresso, latte, macchiato), tea terms (matcha), and ingredient names (goji berries, blueberries, Greek yogurt, European style yogurt). Keep numbers and units (cups, grams, ounces, tbsp) and include standard punctuation. Do not add or infer items that were not spoken.`
-}
-
 func parseItems(ctx context.Context, transcriptText string) (ParsedItems, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
@@ -120,12 +121,12 @@ func parseItems(ctx context.Context, transcriptText string) (ParsedItems, error)
 
 	LogDebug("Starting OpenAI item parsing", "model", model, "transcript_length", len(transcriptText))
 
-	system := "You extract foods and drinks from a freeform meal description. Return strict JSON with { \"items\": [ { \"name\": string, \"quantity\": number | null, \"unit\": string | null, \"brand\": string | null } ] }."
+	system := parseSystemPrompt()
 	user := "Meal: " + transcriptText
 
 	payload := map[string]any{
 		"model":       model,
-		"temperature": 0.2,
+		"temperature": 0.0, // maybe set to 0.1 or 0.2 if items are being dropped from the json: 0.0 is most deterministic
 		"messages": []map[string]string{
 			{"role": "system", "content": system},
 			{"role": "user", "content": user},
