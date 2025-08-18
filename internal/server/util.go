@@ -102,17 +102,6 @@ func guessExtension(mime string) string {
 	}
 }
 
-func isFinite(f float64) bool {
-	return !((f != f) || (f > 1e308) || (f < -1e308))
-}
-
-func maxFloat(a, b float64) float64 {
-	if b > a {
-		return b
-	}
-	return a
-}
-
 func removeFile(p string) {
 	_ = os.Remove(p)
 }
