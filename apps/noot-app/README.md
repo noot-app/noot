@@ -1,81 +1,120 @@
-# noot Expo App 🍎📱
+# Welcome to your Expo app 👋
 
-React Native + Expo app that replicates the noot web UI for iOS, Android, and Web platforms using the existing Go backend.
+# Noot Nutrition App
+
+A cross-platform React Native app built with Expo for nutrition analysis through voice recording.
 
 ## Features
 
-- **Cross-platform:** Single codebase runs on iOS, Android, and Web
-- **Audio Recording:** Native recording (m4a) on iOS/Android, WebM on Web
-- **Same Backend:** Uses existing `/api/ingest` endpoint
-- **Same UI Flow:** Big mic button → record → upload → render summary + items + transcript
+- 🎙️ **Voice Recording**: Record meal descriptions using your device microphone
+- 🥗 **Nutrition Analysis**: Get detailed nutrition information for your meals
+- 📱 **Cross-Platform**: Works on iOS, Android, and Web
+- 🔄 **Real-time Processing**: Audio is processed and analyzed instantly
 
 ## Quick Start
 
-1. **Set up environment:**
+### Option 1: Use Development Server (Recommended)
+
+From the project root:
+
+```bash
+script/server --development  # Starts both backend + frontend
+```
+
+### Option 2: Manual Setup
+
+1. **Start the backend server**:
    ```bash
-   cp .env.example .env
-   # Edit .env to set EXPO_PUBLIC_API_URL
+   cd ../..  # Go to project root
+   ENV=development go run ./cmd/noot
    ```
 
-2. **Install dependencies:**
+2. **Start the Expo app**:
+   ```bash
+   npm install  # If not already installed
+   npm run web  # For web (http://localhost:8081)
+   npm run ios  # For iOS simulator
+   npm run android  # For Android emulator
+   ```
+
+## Configuration
+
+The app automatically connects to the backend API at `http://localhost:3000`.
+
+For production or different backend URLs, set the `EXPO_PUBLIC_API_URL` environment variable:
+
+```bash
+export EXPO_PUBLIC_API_URL=https://your-backend-url.com
+```
+
+## Development
+
+This is a standard Expo app with TypeScript. Key files:
+
+- `app/(tabs)/index.tsx` - Main nutrition recording screen
+- `app.json` - Expo configuration
+- `package.json` - Dependencies and scripts
+
+## Troubleshooting
+
+If you encounter issues:
+
+1. **Run diagnostics**: `script/troubleshoot` (from project root)
+2. **Clear Metro cache**: `npx expo start --clear`
+3. **Check ports**: Backend (3000), Frontend (8081)
+4. **Permissions**: Allow microphone access when prompted
+
+## Technical Details
+
+- **Framework**: React Native + Expo SDK ~53.0
+- **Audio**: expo-av for recording
+- **Navigation**: Expo Router
+- **Platform**: Web, iOS, Android support
+- **Backend**: Go API server with OpenAI integration
+
+## Get started
+
+1. Install dependencies
+
    ```bash
    npm install
    ```
 
-3. **Start the noot backend in dev mode:**
+2. Start the app
+
    ```bash
-   cd ../..  # Go to repo root
-   ENV=dev go run ./cmd/noot
+   npx expo start
    ```
 
-4. **Run the app:**
-   ```bash
-   # Web (http://localhost:19006)
-   npm run web
-   
-   # iOS simulator
-   npm run ios
-   
-   # Android emulator 
-   npm run android
-   ```
+In the output, you'll find options to open the app in a
 
-## Environment Configuration
+- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
+- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
+- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
-### For Web Development
-```bash
-EXPO_PUBLIC_API_URL=http://localhost:3000
-```
+You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-### For iOS/Android Development
-If your noot backend is running on your development machine, you'll need your local IP:
+## Get a fresh project
+
+When you're ready, run:
 
 ```bash
-# Find your local IP (macOS/Linux)
-ifconfig | grep "inet " | grep -v 127.0.0.1
-
-# Then set the API URL
-EXPO_PUBLIC_API_URL=http://192.168.1.100:3000
+npm run reset-project
 ```
 
-## Development Notes
+This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
-- **CORS:** Backend automatically enables CORS for localhost:19006 and 127.0.0.1:19006 when running in development mode (`ENV=dev` or `DEBUG=true`)
-- **Audio Permissions:** App will request microphone permissions on first recording attempt
-- **File Formats:** Uploads m4a (iOS/Android) or webm (Web) to the backend, which handles both formats
+## Learn more
 
-## Troubleshooting
+To learn more about developing your project with Expo, look at the following resources:
 
-**CORS Errors:**
-- Make sure backend is running with `ENV=dev` or `DEBUG=true`
-- Check that EXPO_PUBLIC_API_URL matches your backend address
+- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
+- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
-**Recording Issues:**
-- Grant microphone permissions when prompted
-- On Web: Ensure you're using HTTPS or localhost (required for getUserMedia)
-- On iOS: Check iOS Simulator → Device → Settings → Privacy → Microphone
+## Join the community
 
-**Network Issues on Mobile:**
-- Ensure your device and computer are on the same WiFi network
-- Use your computer's IP address, not localhost, for EXPO_PUBLIC_API_URL
-- Test the API URL in your mobile browser first to ensure connectivity
+Join our community of developers creating universal apps.
+
+- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
+- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.

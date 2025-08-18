@@ -75,12 +75,34 @@ An AI-powered nutrition logging web app. Just say what you ate!
 
 ## Mobile Apps
 
-The repository also includes a cross-platform React Native + Expo app:
+The repository also includes a cross-platform React Native + Expo app.
+
+### Quick Development Start
+
+For rapid development with both backend and frontend:
+
+```bash
+script/server --development  # Starts both backend + frontend with auto-reload
+```
+
+This single command:
+
+- ✅ Checks prerequisites (Go, Node.js, npm)
+- ✅ Installs frontend dependencies if needed
+- ✅ Starts Go backend with `ENV=development` and CORS enabled on port 3000
+- ✅ Starts Expo web frontend on <http://localhost:8081>
+- ✅ Handles graceful shutdown of both processes with Ctrl+C
+
+**Troubleshooting:** If you encounter issues, run `script/troubleshoot` for diagnostics.
+
+### Manual Development Setup
+
+Alternatively, run each component separately:
 
 ```bash
 cd apps/noot-app
 npm install
-ENV=dev go run ../../cmd/noot  # Start backend with CORS enabled
+ENV=development go run ../../cmd/noot  # Start backend with CORS enabled
 npm run web  # or ios, android
 ```
 

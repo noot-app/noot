@@ -1,0 +1,316 @@
+#!/usr/bin/env bash
+
+# Development server script for noot
+#
+# Usage:
+#   script/server                - Start both backend and frontend in development mode (default)
+#   script/server --development  - Start both backend and frontend in development mode
+#   script/server --production   - Start only the backend Go API server for production
+#   script/server --help         - Show this help message
+#
+# This script starts the Go backend with CORS enabled and the Expo web frontend,
+# handling graceful shutdown of both processes.
+
+set -euo pipefail
+
+source script/env "$@"
+
+# Function to display usage
+usage() {
+  echo -e "${BLUE}📱 Noot Development Server${OFF}"
+  echo ""
+  echo -e "${PURPLE}Usage:${OFF}"
+  echo "  script/server                  Start both backend and frontend in development mode (default)"
+  echo "  script/server --development    Start both backend and frontend in development mode"
+  echo "  script/server --production     Start only the backend Go API server for production"
+  echo "  script/server --help           Show this help message"
+  echo ""
+  echo -e "${PURPLE}Description:${OFF}"
+  echo "  Development mode: Starts the Go backend server with CORS enabled and the Expo React Native web frontend."
+  echo "  Production mode: Starts only the Go backend API server without frontend or CORS."
+  echo ""
+  echo -e "${PURPLE}Requirements:${OFF}"
+  echo "  Development mode:"
+  echo "    - Go toolchain installed"
+  echo "    - Node.js and npm installed"
+  echo "    - Expo CLI installed (npm install -g @expo/cli)"
+  echo "  Production mode:"
+  echo "    - Go toolchain installed"
+  echo ""
+  echo -e "${PURPLE}Troubleshooting:${OFF}"
+  echo "  If you encounter 'EMFILE: too many open files' error:"
+  echo "    ulimit -n 65536"
+  echo ""
+  echo "  If Metro bundler fails to start:"
+  echo "    cd apps/noot-app && npx expo start --clear"
+  echo ""
+  echo "  Check if ports are available:"
+  echo "    lsof -ti:3000  # Backend port"
+  echo "    lsof -ti:8081  # Frontend port"
+  echo ""
+}
+
+# Function to cleanup processes on exit
+cleanup() {
+  echo -e "\n${BLUE}🛑 Shutting down servers...${OFF}"
+  
+  # Kill background jobs if they exist
+  if [[ -n "${BACKEND_PID:-}" ]] && kill -0 "$BACKEND_PID" 2>/dev/null; then
+    echo -e "${BLUE}  Stopping backend server (PID: ${BACKEND_PID})...${OFF}"
+    kill -TERM "$BACKEND_PID" 2>/dev/null || true
+    # Give it 5 seconds to shut down gracefully
+    for i in {1..5}; do
+      if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+        break
+      fi
+      sleep 1
+    done
+    # Force kill if still running
+    if kill -0 "$BACKEND_PID" 2>/dev/null; then
+      kill -KILL "$BACKEND_PID" 2>/dev/null || true
+    fi
+    wait "$BACKEND_PID" 2>/dev/null || true
+  fi
+  
+  if [[ -n "${FRONTEND_PID:-}" ]] && kill -0 "$FRONTEND_PID" 2>/dev/null; then
+    echo -e "${BLUE}  Stopping frontend server (PID: ${FRONTEND_PID})...${OFF}"
+    kill -TERM "$FRONTEND_PID" 2>/dev/null || true
+    # Give it 5 seconds to shut down gracefully
+    for i in {1..5}; do
+      if ! kill -0 "$FRONTEND_PID" 2>/dev/null; then
+        break
+      fi
+      sleep 1
+    done
+    # Force kill if still running
+    if kill -0 "$FRONTEND_PID" 2>/dev/null; then
+      kill -KILL "$FRONTEND_PID" 2>/dev/null || true
+    fi
+    wait "$FRONTEND_PID" 2>/dev/null || true
+  fi
+  
+  echo -e "${GREEN}✅ Servers stopped gracefully${OFF}"
+}
+
+# Function to check if required tools are installed
+check_prerequisites() {
+  local mode="$1"
+  echo -e "${BLUE}🔍 Checking prerequisites...${OFF}"
+  
+  # Check Go (required for both modes)
+  if ! command -v go &> /dev/null; then
+    echo -e "${RED}❌ Go is not installed or not in PATH${OFF}"
+    exit 1
+  fi
+  
+  # Development mode requires additional tools
+  if [[ "$mode" == "development" ]]; then
+    # Check Node.js
+    if ! command -v node &> /dev/null; then
+      echo -e "${RED}❌ Node.js is not installed or not in PATH${OFF}"
+      exit 1
+    fi
+    
+    # Check npm
+    if ! command -v npm &> /dev/null; then
+      echo -e "${RED}❌ npm is not installed or not in PATH${OFF}"
+      exit 1
+    fi
+    
+    # Check if we're in the right directory
+    if [[ ! -d "apps/noot-app" ]]; then
+      echo -e "${RED}❌ apps/noot-app directory not found. Are you running from the project root?${OFF}"
+      exit 1
+    fi
+    
+    # Check if package.json exists
+    if [[ ! -f "apps/noot-app/package.json" ]]; then
+      echo -e "${RED}❌ apps/noot-app/package.json not found${OFF}"
+      exit 1
+    fi
+    
+    # macOS file limit check and adjustment
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      current_limit=$(ulimit -n)
+      recommended_limit=65536
+      
+      if [[ "$current_limit" -lt "$recommended_limit" ]]; then
+        echo -e "${BLUE}  Increasing file descriptor limit for Metro bundler...${OFF}"
+        ulimit -n $recommended_limit 2>/dev/null || {
+          echo -e "${BLUE}  Note: Could not increase file limit automatically. If you encounter 'EMFILE' errors, run:${OFF}"
+          echo -e "${PURPLE}    ulimit -n 65536${OFF}"
+          echo -e "${BLUE}  Or add this to your shell profile (.zshrc, .bashrc, etc.)${OFF}"
+        }
+      fi
+    fi
+  fi
+  
+  echo -e "${GREEN}✅ Prerequisites check passed${OFF}"
+}
+
+# Function to setup npm dependencies
+setup_frontend() {
+  echo -e "${BLUE}📦 Setting up frontend dependencies...${OFF}"
+  
+  cd apps/noot-app
+  
+  # Check if node_modules exists and package-lock.json is newer
+  if [[ ! -d node_modules ]] || [[ package.json -nt node_modules ]]; then
+    echo -e "${BLUE}  Installing npm dependencies...${OFF}"
+    npm install
+  else
+    echo -e "${GREEN}  Dependencies already up to date${OFF}"
+  fi
+  
+  cd ../..
+}
+
+# Function to start the backend server
+start_backend() {
+  local mode="$1"
+  echo -e "${BLUE}🚀 Starting backend server in ${mode} mode...${OFF}"
+  
+  # Start backend with appropriate environment
+  if [[ "$mode" == "development" ]]; then
+    ENV=development go run cmd/noot/main.go &
+  else
+    ENV=production go run cmd/noot/main.go &
+  fi
+  
+  BACKEND_PID=$!
+  
+  echo -e "${GREEN}✅ Backend server started (PID: ${BACKEND_PID})${OFF}"
+  
+  # Wait a moment for backend to initialize
+  sleep 2
+  
+  # Check if backend is still running
+  if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+    echo -e "${RED}❌ Backend server failed to start${OFF}"
+    exit 1
+  fi
+}
+
+# Function to start the frontend server
+start_frontend() {
+  echo -e "${BLUE}🌐 Starting frontend web server...${OFF}"
+  
+  cd apps/noot-app
+  
+  # Start Expo web development server
+  npm run web &
+  FRONTEND_PID=$!
+  
+  cd ../..
+  
+  echo -e "${GREEN}✅ Frontend server started (PID: ${FRONTEND_PID})${OFF}"
+  
+  # Wait a moment for frontend to initialize
+  sleep 3
+  
+  # Check if frontend is still running
+  if ! kill -0 "$FRONTEND_PID" 2>/dev/null; then
+    echo -e "${RED}❌ Frontend server failed to start${OFF}"
+    echo -e "${BLUE}💡 Common fixes:${OFF}"
+    echo -e "${BLUE}  • If you see 'EMFILE: too many open files', run: ulimit -n 65536${OFF}"
+    echo -e "${BLUE}  • Try clearing Metro cache: cd apps/noot-app && npx expo start --clear${OFF}"
+    echo -e "${BLUE}  • Check if port 19006 is already in use: lsof -ti:19006${OFF}"
+    exit 1
+  fi
+}
+
+# Function to monitor processes and wait
+monitor_servers() {
+  local mode="$1"
+  
+  if [[ "$mode" == "development" ]]; then
+    echo -e "${GREEN}🎉 Both servers are running!${OFF}"
+    echo ""
+    echo -e "${PURPLE}📱 Frontend:${OFF} http://localhost:8081"
+    echo -e "${PURPLE}🔧 Backend:${OFF}  http://localhost:3000 (or configured PORT)"
+    echo ""
+    echo -e "${BLUE}Press Ctrl+C to stop both servers${OFF}"
+    echo ""
+    
+    # Wait for either process to exit or for interrupt signal
+    while kill -0 "$BACKEND_PID" 2>/dev/null && kill -0 "$FRONTEND_PID" 2>/dev/null; do
+      sleep 1
+    done
+    
+    # If we get here, one of the processes died
+    if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+      echo -e "${RED}❌ Backend server stopped unexpectedly${OFF}"
+      echo -e "${BLUE}💡 Check backend logs above for error details${OFF}"
+    fi
+    
+    if ! kill -0 "$FRONTEND_PID" 2>/dev/null; then
+      echo -e "${RED}❌ Frontend server stopped unexpectedly${OFF}"
+      echo -e "${BLUE}💡 Common causes:${OFF}"
+      echo -e "${BLUE}  • EMFILE error: Increase file limits with 'ulimit -n 65536'${OFF}"
+      echo -e "${BLUE}  • Port conflict: Check if port 19006 is available${OFF}"
+      echo -e "${BLUE}  • Metro cache issues: Try 'cd apps/noot-app && npx expo start --clear'${OFF}"
+    fi
+  else
+    # Production mode - only backend
+    echo -e "${GREEN}🎉 Backend server is running in production mode!${OFF}"
+    echo ""
+    echo -e "${PURPLE}🔧 Backend API:${OFF} http://localhost:3000 (or configured PORT)"
+    echo ""
+    echo -e "${BLUE}Press Ctrl+C to stop the server${OFF}"
+    echo ""
+    
+    # Wait for backend process to exit or for interrupt signal
+    wait "$BACKEND_PID"
+  fi
+}
+
+# Main function
+main() {
+  local mode="development"  # Default to development mode
+  
+  # Parse arguments
+  case "${1:-}" in
+    --development|"")
+      mode="development"
+      echo -e "${BLUE}🚀 Starting noot development servers...${OFF}"
+      ;;
+    --production)
+      mode="production"
+      echo -e "${BLUE}🚀 Starting noot production server...${OFF}"
+      ;;
+    --help|-h|help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo -e "${RED}❌ Unknown option: ${1:-}${OFF}"
+      echo ""
+      usage
+      exit 1
+      ;;
+  esac
+  
+  # Set up signal handlers for graceful shutdown
+  trap cleanup SIGINT SIGTERM EXIT
+  
+  # Run the setup and start sequence
+  check_prerequisites "$mode"
+  
+  if [[ "$mode" == "development" ]]; then
+    setup_frontend
+    start_backend "$mode"
+    start_frontend
+    monitor_servers "$mode"
+  else
+    # Production mode - only start backend
+    start_backend "$mode"
+    monitor_servers "$mode"
+  fi
+}
+
+# Initialize PID variables
+BACKEND_PID=""
+FRONTEND_PID=""
+
+# Run main function
+main "$@"
