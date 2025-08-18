@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -26,9 +25,11 @@ var httpClient = &http.Client{Timeout: 60 * time.Second}
 func transcribeAudio(ctx context.Context, filePath, _ string) (string, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
-		return "", errors.New("OPENAI_API_KEY not configured")
+		return "", NewAppError("OPENAI_API_KEY not configured", http.StatusInternalServerError, nil)
 	}
 	model := getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
+
+	LogDebug("Starting OpenAI transcription", "model", model, "file", filePath)
 
 	// Optional tuning
 	prompt := strings.TrimSpace(os.Getenv("TRANSCRIBE_PROMPT"))
@@ -54,48 +55,55 @@ func transcribeAudio(ctx context.Context, filePath, _ string) (string, error) {
 
 	fw, err := writer.CreateFormFile("file", filepath.Base(filePath))
 	if err != nil {
-		return "", err
+		return "", NewAppError("Failed to create form file", http.StatusInternalServerError, err)
 	}
 	f, err := os.Open(filePath)
 	if err != nil {
-		return "", err
+		return "", NewAppError("Failed to open audio file", http.StatusInternalServerError, err)
 	}
 	defer f.Close()
 	if _, err = io.Copy(fw, f); err != nil {
-		return "", err
+		return "", NewAppError("Failed to copy audio file", http.StatusInternalServerError, err)
 	}
 	if err := writer.Close(); err != nil {
-		return "", err
+		return "", NewAppError("Failed to close form writer", http.StatusInternalServerError, err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, openAITranscribeURL, body)
 	if err != nil {
-		return "", err
+		return "", NewAppError("Failed to create transcription request", http.StatusInternalServerError, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
+	LogDebug("Sending transcription request to OpenAI")
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", NewAppError("OpenAI transcription request failed", http.StatusInternalServerError, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("OpenAI transcribe error: %s", string(b))
+		LogError("OpenAI transcription error", fmt.Errorf("status=%d body=%s", resp.StatusCode, string(b)))
+		return "", NewAppError("OpenAI transcription failed", http.StatusInternalServerError,
+			fmt.Errorf("OpenAI API error: %d %s", resp.StatusCode, string(b)))
 	}
 
 	if strings.EqualFold(respFormat, "text") {
 		b, _ := io.ReadAll(resp.Body)
-		return string(b), nil
+		result := string(b)
+		LogDebug("Transcription completed", "length", len(result))
+		return result, nil
 	}
 	var out struct {
 		Text string `json:"text"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return "", err
+		return "", NewAppError("Failed to parse transcription response", http.StatusInternalServerError, err)
 	}
+
+	LogDebug("Transcription completed", "length", len(out.Text))
 	return out.Text, nil
 }
 
@@ -106,9 +114,11 @@ func defaultTranscriptionPrompt() string {
 func parseItems(ctx context.Context, transcriptText string) (ParsedItems, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
-		return ParsedItems{}, errors.New("OPENAI_API_KEY not configured")
+		return ParsedItems{}, NewAppError("OPENAI_API_KEY not configured", http.StatusInternalServerError, nil)
 	}
 	model := getenv("OPENAI_PARSE_MODEL", "gpt-4o-mini")
+
+	LogDebug("Starting OpenAI item parsing", "model", model, "transcript_length", len(transcriptText))
 
 	system := "You extract foods and drinks from a freeform meal description. Return strict JSON with { \"items\": [ { \"name\": string, \"quantity\": number | null, \"unit\": string | null, \"brand\": string | null } ] }."
 	user := "Meal: " + transcriptText
@@ -126,19 +136,22 @@ func parseItems(ctx context.Context, transcriptText string) (ParsedItems, error)
 	b, _ := json.Marshal(payload)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, openAIChatURL, bytes.NewReader(b))
 	if err != nil {
-		return ParsedItems{}, err
+		return ParsedItems{}, NewAppError("Failed to create parsing request", http.StatusInternalServerError, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
+	LogDebug("Sending parsing request to OpenAI")
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return ParsedItems{}, err
+		return ParsedItems{}, NewAppError("OpenAI parsing request failed", http.StatusInternalServerError, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
-		return ParsedItems{}, fmt.Errorf("OpenAI chat error: %s", string(body))
+		LogError("OpenAI parsing error", fmt.Errorf("status=%d body=%s", resp.StatusCode, string(body)))
+		return ParsedItems{}, NewAppError("OpenAI parsing failed", http.StatusInternalServerError,
+			fmt.Errorf("OpenAI API error: %d %s", resp.StatusCode, string(body)))
 	}
 
 	var out struct {
@@ -149,14 +162,18 @@ func parseItems(ctx context.Context, transcriptText string) (ParsedItems, error)
 		} `json:"choices"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return ParsedItems{}, err
+		return ParsedItems{}, NewAppError("Failed to parse OpenAI response", http.StatusInternalServerError, err)
 	}
 	content := ""
 	if len(out.Choices) > 0 {
 		content = out.Choices[0].Message.Content
 	}
+
+	LogDebug("OpenAI parsing response received", "content_length", len(content))
+
 	var parsed ParsedItems
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
+		LogWarn("Failed to parse OpenAI JSON response", "content", content, "error", err.Error())
 		parsed = ParsedItems{Items: []Item{}}
 	}
 	// Normalize
@@ -173,6 +190,8 @@ func parseItems(ctx context.Context, transcriptText string) (ParsedItems, error)
 			Brand:    strPtrOrNil(i.Brand),
 		})
 	}
+
+	LogDebug("Item parsing completed", "items_found", len(clean))
 	return ParsedItems{Items: clean}, nil
 }
 

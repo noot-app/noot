@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -36,11 +35,14 @@ type fdcSearchRespFood struct {
 func fdcSearchBestMatch(ctx context.Context, query string) (*fdcSearchRespFood, error) {
 	apiKey := os.Getenv("USDA_FDC_API_KEY")
 	if apiKey == "" {
-		return nil, errors.New("USDA_FDC_API_KEY not configured")
+		return nil, NewAppError("USDA_FDC_API_KEY not configured", http.StatusInternalServerError, nil)
 	}
+
+	LogDebug("Starting FDC search", "query", query)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fdcSearchURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, NewAppError("Failed to create FDC search request", http.StatusInternalServerError, err)
 	}
 	q := req.URL.Query()
 	q.Set("api_key", apiKey)
@@ -54,18 +56,21 @@ func fdcSearchBestMatch(ctx context.Context, query string) (*fdcSearchRespFood, 
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, NewAppError("FDC search request failed", http.StatusInternalServerError, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("FDC search error: %s", string(body))
+		LogError("FDC search error", fmt.Errorf("status=%d body=%s", resp.StatusCode, string(body)))
+		return nil, NewAppError("FDC search failed", http.StatusInternalServerError,
+			fmt.Errorf("FDC API error: %d %s", resp.StatusCode, string(body)))
 	}
 	var out fdcSearchResp
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return nil, err
+		return nil, NewAppError("Failed to parse FDC search response", http.StatusInternalServerError, err)
 	}
 	if len(out.Foods) == 0 {
+		LogDebug("No FDC results found", "query", query)
 		return nil, nil
 	}
 
@@ -85,10 +90,13 @@ func fdcSearchBestMatch(ctx context.Context, query string) (*fdcSearchRespFood, 
 		if f.DataType != nil && strings.Contains(*f.DataType, "Branded") && f.BrandOwner != nil {
 			brand := strings.ToLower(*f.BrandOwner)
 			if brand != "" && strings.Contains(lq, brand) {
+				LogDebug("FDC branded match found", "fdcId", f.FdcID, "description", f.Description, "brand", *f.BrandOwner)
 				return &f, nil
 			}
 		}
 	}
+
+	LogDebug("FDC match found", "fdcId", foods[0].FdcID, "description", foods[0].Description)
 	return &foods[0], nil
 }
 
@@ -126,12 +134,15 @@ type fdcFoodDetail struct {
 func fdcGetFoodDetail(ctx context.Context, fdcID int) (*fdcFoodDetail, error) {
 	apiKey := os.Getenv("USDA_FDC_API_KEY")
 	if apiKey == "" {
-		return nil, errors.New("USDA_FDC_API_KEY not configured")
+		return nil, NewAppError("USDA_FDC_API_KEY not configured", http.StatusInternalServerError, nil)
 	}
+
+	LogDebug("Getting FDC food detail", "fdcId", fdcID)
+
 	url := fdcFoodURL + strconv.Itoa(fdcID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, err
+		return nil, NewAppError("Failed to create FDC detail request", http.StatusInternalServerError, err)
 	}
 	q := req.URL.Query()
 	q.Set("api_key", apiKey)
@@ -139,17 +150,21 @@ func fdcGetFoodDetail(ctx context.Context, fdcID int) (*fdcFoodDetail, error) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, NewAppError("FDC detail request failed", http.StatusInternalServerError, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("FDC food error: %s", string(body))
+		LogError("FDC detail error", fmt.Errorf("status=%d body=%s", resp.StatusCode, string(body)))
+		return nil, NewAppError("FDC food detail failed", http.StatusInternalServerError,
+			fmt.Errorf("FDC API error: %d %s", resp.StatusCode, string(body)))
 	}
 	var out fdcFoodDetail
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return nil, err
+		return nil, NewAppError("Failed to parse FDC detail response", http.StatusInternalServerError, err)
 	}
+
+	LogDebug("FDC food detail retrieved", "fdcId", fdcID, "nutrient_count", len(out.FoodNutrients))
 	return &out, nil
 }
 
@@ -231,4 +246,106 @@ func extractNutrients(food *fdcFoodDetail) *Nutrients {
 		return n
 	}
 	return nil
+}
+
+func resolveItemNutrition(ctx context.Context, item Item) (ItemWithNutrition, error) {
+	// Build query for FDC search
+	query := item.Name
+	if item.Brand != nil && *item.Brand != "" {
+		query = *item.Brand + " " + item.Name
+	}
+
+	LogDebug("Resolving item nutrition", "item", item.Name, "query", query)
+
+	// Search for best match
+	match, err := fdcSearchBestMatch(ctx, query)
+	if err != nil {
+		LogError("FDC search failed", err, "item", item.Name, "query", query)
+		return ItemWithNutrition{Item: item}, err
+	}
+	if match == nil {
+		LogWarn("No FDC match found", "item", item.Name, "query", query)
+		return ItemWithNutrition{
+			Item: item,
+			Note: "No FDC match found",
+		}, nil
+	}
+
+	LogDebug("FDC match found", "item", item.Name, "fdcId", match.FdcID, "description", match.Description)
+
+	// Get detailed nutrition info
+	detail, err := fdcGetFoodDetail(ctx, match.FdcID)
+	if err != nil {
+		LogError("Failed to get nutrition details", err, "item", item.Name, "fdcId", match.FdcID)
+		return ItemWithNutrition{
+			Item: item,
+			FDC: &FDCRef{
+				FDCID:       match.FdcID,
+				Description: match.Description,
+				BrandOwner:  match.BrandOwner,
+				DataType:    match.DataType,
+			},
+			Note: "Failed to get nutrition details: " + err.Error(),
+		}, nil
+	}
+
+	nutrients := extractNutrients(detail)
+	if nutrients != nil {
+		LogDebug("Nutrition extracted", "item", item.Name, "calories", nutrients.EnergyKcal, "protein", nutrients.ProteinG)
+	} else {
+		LogWarn("No nutrition data extracted", "item", item.Name, "fdcId", match.FdcID)
+	}
+
+	return ItemWithNutrition{
+		Item: item,
+		FDC: &FDCRef{
+			FDCID:       match.FdcID,
+			Description: match.Description,
+			BrandOwner:  match.BrandOwner,
+			DataType:    match.DataType,
+		},
+		Nutri: nutrients,
+	}, nil
+}
+
+func summarize(items []ItemWithNutrition) Summary {
+	totals := Nutrients{}
+
+	// Sum up all nutrients
+	for _, item := range items {
+		if item.Nutri != nil {
+			totals.EnergyKcal += item.Nutri.EnergyKcal
+			totals.ProteinG += item.Nutri.ProteinG
+			totals.FatG += item.Nutri.FatG
+			totals.CarbsG += item.Nutri.CarbsG
+			totals.FiberG += item.Nutri.FiberG
+			totals.SugarG += item.Nutri.SugarG
+		}
+	}
+
+	// Daily values for percentage calculation
+	dailyValues := map[string]float64{
+		"energy_kcal": 2000,
+		"protein_g":   50,
+		"fat_g":       78,
+		"carbs_g":     275,
+		"fiber_g":     28,
+		"sugar_g":     50,
+	}
+
+	// Calculate percentages of daily values
+	percentOfDaily := map[string]int{
+		"energy.kcal": int((totals.EnergyKcal / dailyValues["energy_kcal"]) * 100),
+		"protein.g":   int((totals.ProteinG / dailyValues["protein_g"]) * 100),
+		"fat.g":       int((totals.FatG / dailyValues["fat_g"]) * 100),
+		"carbs.g":     int((totals.CarbsG / dailyValues["carbs_g"]) * 100),
+		"fiber.g":     int((totals.FiberG / dailyValues["fiber_g"]) * 100),
+		"sugar.g":     int((totals.SugarG / dailyValues["sugar_g"]) * 100),
+	}
+
+	return Summary{
+		Totals:          totals,
+		PercentOfDaily:  percentOfDaily,
+		DailyValuesUsed: dailyValues,
+	}
 }

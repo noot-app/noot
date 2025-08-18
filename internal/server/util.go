@@ -3,11 +3,13 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 func getenv(key, def string) string {
@@ -17,16 +19,52 @@ func getenv(key, def string) string {
 	return def
 }
 
+// Enhanced error response structure
+type ErrorResponse struct {
+	Error   string    `json:"error"`
+	Code    int       `json:"code"`
+	Time    time.Time `json:"timestamp"`
+	Stack   []string  `json:"stack,omitempty"`
+	TraceID string    `json:"trace_id,omitempty"`
+}
+
 func httpError(w http.ResponseWriter, code int, msg string) {
-	writeJSON(w, code, map[string]string{
-		"error": msg,
-	})
+	httpErrorWithDetails(w, code, msg, nil, "")
+}
+
+func httpErrorWithDetails(w http.ResponseWriter, code int, msg string, stack []string, traceID string) {
+	LogError("HTTP Error", fmt.Errorf("status=%d message=%s", code, msg),
+		"status_code", code, "trace_id", traceID)
+
+	resp := ErrorResponse{
+		Error: msg,
+		Code:  code,
+		Time:  time.Now().UTC(),
+	}
+
+	// Include stack trace in debug/dev mode
+	if (isDebugMode() || isDevMode()) && len(stack) > 0 {
+		resp.Stack = stack
+	}
+
+	if traceID != "" {
+		resp.TraceID = traceID
+	}
+
+	writeJSON(w, code, resp)
+}
+
+func handleAppError(w http.ResponseWriter, err *AppError, traceID string) {
+	httpErrorWithDetails(w, err.StatusCode, err.Message, err.Stack, traceID)
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	_ = json.NewEncoder(w).Encode(v)
+
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		LogError("Failed to encode JSON response", err)
+	}
 }
 
 func saveTempFile(src multipart.File, _ *multipart.FileHeader) (string, string, error) {

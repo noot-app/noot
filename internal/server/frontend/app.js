@@ -29,12 +29,20 @@ async function setupStream() {
       const fd = new FormData();
       fd.append('audio', blob, 'audio.webm');
       const resp = await fetch('/api/ingest', { method: 'POST', body: fd });
-      if (!resp.ok) throw new Error('Server error');
+      
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({ error: 'Unknown error' }));
+        const errorMsg = errorData.error || `Server error (${resp.status})`;
+        const errorDetails = errorData.stack ? '\n\nDetails:\n' + errorData.stack.join('\n') : '';
+        throw new Error(errorMsg + errorDetails);
+      }
+      
       const data = await resp.json();
       renderResult(data);
       setStatus('');
     } catch (err) {
-      setStatus('Failed: ' + err.message);
+      setStatus('❌ Failed: ' + err.message);
+      console.error('Request failed:', err);
     }
   };
 }
