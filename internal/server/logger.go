@@ -11,7 +11,8 @@ import (
 
 var logger *slog.Logger
 
-func init() {
+// InitLogger must be called after environment variables are loaded
+func InitLogger() {
 	setupLogger()
 }
 

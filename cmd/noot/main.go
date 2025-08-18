@@ -14,6 +14,9 @@ func main() {
 	// Optional .env loader
 	server.LoadDotEnv()
 
+	// Initialize logger after env variables are loaded
+	server.InitLogger()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"

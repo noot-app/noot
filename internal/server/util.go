@@ -147,6 +147,9 @@ func loadEnvFile(path string) {
 		}
 		key := strings.TrimSpace(kv[0])
 		val := strings.Trim(strings.TrimSpace(kv[1]), `"'`)
-		_ = os.Setenv(key, val)
+		// Only set if not already set (preserve command line env vars)
+		if os.Getenv(key) == "" {
+			_ = os.Setenv(key, val)
+		}
 	}
 }

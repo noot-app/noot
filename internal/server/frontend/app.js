@@ -109,44 +109,122 @@ function renderResult(data) {
 
 function renderItems(items) {
   itemsEl.innerHTML = '';
+  
   items.forEach((item, index) => {
     const div = document.createElement('div');
     div.className = 'item';
-
+    
     const itemData = item.item || {};
     const fdcData = item.fdc || {};
     const nutrients = item.nutrients || {};
-
-    // Quantity/unit display
-    let quantityStr = '';
-    if (itemData.quantity != null && itemData.unit) {
-      quantityStr = `<span class="item-quantity">${num(itemData.quantity)} ${escapeHtml(itemData.unit)}</span>`;
-    } else if (itemData.quantity != null) {
-      quantityStr = `<span class="item-quantity">${num(itemData.quantity)}</span>`;
-    } else if (itemData.unit) {
-      quantityStr = `<span class="item-quantity">${escapeHtml(itemData.unit)}</span>`;
-    }
-
+    
+    // Calculate serving amount - FDC data is typically per 100g
+    // We'll estimate the serving size based on common portions
+    let servingAmount = getEstimatedServingSize(itemData.name, itemData.quantity, itemData.unit);
+    
     div.innerHTML = `
       <div class="item-name">${escapeHtml(itemData.name || 'Unknown item')}</div>
-      ${quantityStr ? `<div class="item-brand">Amount: ${quantityStr}</div>` : ''}
+      <div class="item-serving">
+        <strong>Estimated serving:</strong> <span class="serving-amount">${servingAmount}g</span>
+        ${itemData.quantity != null && itemData.unit ? 
+          ` (from ${num(itemData.quantity)} ${escapeHtml(itemData.unit)})` : 
+          itemData.quantity != null ? 
+            ` (${num(itemData.quantity)} servings)` : ''
+        }
+      </div>
       ${itemData.brand ? `<div class="item-brand">Brand: ${escapeHtml(itemData.brand)}</div>` : ''}
       <div class="item-match">Match: ${escapeHtml(fdcData.description || 'No match found')}</div>
       ${Object.keys(nutrients).length > 0 ? `
         <div class="item-nutrients">
-          Cal: ${num(nutrients.energy_kcal)} | 
-          P: ${num(nutrients.protein_g)}g | 
-          F: ${num(nutrients.fat_g)}g | 
-          C: ${num(nutrients.carbs_g)}g | 
-          Fiber: ${num(nutrients.fiber_g)}g | 
-          Sugar: ${num(nutrients.sugar_g)}g
+          <div class="nutrient-title">Per ${servingAmount}g:</div>
+          Cal: ${num(nutrients.energy_kcal * (servingAmount / 100))} | 
+          P: ${num(nutrients.protein_g * (servingAmount / 100))}g | 
+          F: ${num(nutrients.fat_g * (servingAmount / 100))}g | 
+          C: ${num(nutrients.carbs_g * (servingAmount / 100))}g | 
+          Fiber: ${num(nutrients.fiber_g * (servingAmount / 100))}g | 
+          Sugar: ${num(nutrients.sugar_g * (servingAmount / 100))}g
         </div>
       ` : ''}
       ${item.note ? `<div class="item-note">${escapeHtml(item.note)}</div>` : ''}
     `;
-
+    
     itemsEl.appendChild(div);
   });
+}
+
+// Estimate serving sizes based on common food items
+function getEstimatedServingSize(foodName, quantity, unit) {
+  const name = (foodName || '').toLowerCase();
+  
+  // If we have specific measurements, try to convert
+  if (quantity && unit) {
+    const unitLower = unit.toLowerCase();
+    
+    // Weight conversions
+    if (unitLower.includes('g') || unitLower.includes('gram')) {
+      return Math.round(quantity);
+    }
+    if (unitLower.includes('kg') || unitLower.includes('kilogram')) {
+      return Math.round(quantity * 1000);
+    }
+    if (unitLower.includes('oz') || unitLower.includes('ounce')) {
+      return Math.round(quantity * 28.35);
+    }
+    if (unitLower.includes('lb') || unitLower.includes('pound')) {
+      return Math.round(quantity * 453.592);
+    }
+    
+    // Volume to weight estimates (very approximate)
+    if (unitLower.includes('cup')) {
+      if (name.includes('milk') || name.includes('yogurt')) return Math.round(quantity * 240);
+      if (name.includes('seed') || name.includes('nut')) return Math.round(quantity * 120);
+      if (name.includes('berry') || name.includes('fruit')) return Math.round(quantity * 150);
+      return Math.round(quantity * 100); // Generic cup
+    }
+    if (unitLower.includes('tbsp') || unitLower.includes('tablespoon')) {
+      if (name.includes('seed') || name.includes('nut')) return Math.round(quantity * 12);
+      return Math.round(quantity * 15);
+    }
+    if (unitLower.includes('tsp') || unitLower.includes('teaspoon')) {
+      return Math.round(quantity * 5);
+    }
+  }
+  
+  // Default serving sizes for common foods (in grams)
+  const servingSizes = {
+    'chia seed': 15,
+    'seed': 15,
+    'nut': 30,
+    'almond': 30,
+    'walnut': 30,
+    'yogurt': 170,
+    'milk': 240,
+    'latte': 240,
+    'coffee': 240,
+    'espresso': 30,
+    'berry': 100,
+    'blueberry': 100,
+    'strawberry': 150,
+    'banana': 120,
+    'apple': 180,
+    'orange': 150,
+    'cheese': 30,
+    'bread': 30,
+    'egg': 50,
+    'oat': 40,
+    'cereal': 40,
+    'protein': 30
+  };
+  
+  // Find matching food type
+  for (const [food, size] of Object.entries(servingSizes)) {
+    if (name.includes(food)) {
+      return quantity ? Math.round(size * quantity) : size;
+    }
+  }
+  
+  // Default serving size
+  return quantity ? Math.round(100 * quantity) : 100;
 }
 
 function renderSummary(summary) {

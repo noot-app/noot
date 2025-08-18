@@ -197,18 +197,6 @@ main {
   flex-direction: column;
   align-items: center;
   margin-bottom: 3rem;
-  animation: micContainerSlideUp 1s ease-out 0.8s backwards;
-}
-
-@keyframes micContainerSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .mic-button {
@@ -224,30 +212,15 @@ main {
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-xl);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
   user-select: none;
-  animation: micButtonFloat 6s ease-in-out infinite;
-}
-
-@keyframes micButtonFloat {
-  0%, 100% { 
-    transform: translateY(0px) scale(1); 
-    box-shadow: var(--shadow-xl);
-  }
-  25% { 
-    transform: translateY(-8px) scale(1.02); 
-    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-  }
-  75% { 
-    transform: translateY(-4px) scale(1.01); 
-    box-shadow: 0 20px 40px -10px rgb(0 0 0 / 0.2);
-  }
 }
 
 .mic-button:hover {
-  transform: scale(1.08) translateY(-5px);
-  box-shadow: 0 30px 60px -12px rgb(0 0 0 / 0.35);
+  transform: scale(1.05);
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
   animation-play-state: paused;
 }
 
@@ -500,8 +473,6 @@ main {
 
 .item:hover {
   box-shadow: var(--shadow-lg);
-  transform: translateY(-4px) scale(1.02);
-  z-index: 2;
 }
 
 .item-name {
@@ -509,6 +480,22 @@ main {
   font-weight: 700;
   color: var(--accent-primary);
   margin-bottom: 0.5rem;
+}
+
+.item-serving {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-primary);
+  border-radius: 0.375rem;
+  border: 2px solid var(--success-color);
+}
+
+.serving-amount {
+  font-weight: 700;
+  color: var(--success-color);
+  font-size: 1.1rem;
 }
 
 .item-brand {
@@ -528,11 +515,18 @@ main {
   font-size: 0.95rem;
   color: var(--accent-secondary);
   font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-  background: var(--bg-tertiary);
-  padding: 0.5rem 0.75rem;
+  background: var(--bg-primary);
+  padding: 0.75rem;
   border-radius: 0.375rem;
   margin-bottom: 0.5rem;
   border: 1px solid var(--accent-secondary);
+}
+
+.nutrient-title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  font-family: inherit;
 }
 
 .item-note {
