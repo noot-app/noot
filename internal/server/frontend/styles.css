@@ -1,4 +1,5 @@
-/* Reset and Base */
+/* Apple-inspired design with Siri-like animations */
+/* Reset and base styles */
 * {
   margin: 0;
   padding: 0;
@@ -6,197 +7,496 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', Helvetica, Arial, sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 70%, #533483 100%);
+  color: #ffffff;
   min-height: 100vh;
   overflow-x: hidden;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
-main {
+/* Main container */
+.main-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   padding: 2rem;
+  position: relative;
 }
 
-/* Microphone Button */
+/* Film grain overlay - fixed */
+.grain-overlay-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.15;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(circle at 25% 25%, #fff 1px, transparent 1px),
+    radial-gradient(circle at 75% 75%, #fff 1px, transparent 1px),
+    radial-gradient(circle at 25% 75%, #fff 1px, transparent 1px),
+    radial-gradient(circle at 75% 25%, #fff 1px, transparent 1px);
+  background-size: 8px 8px, 12px 12px, 6px 6px, 10px 10px;
+  background-position: 0 0, 4px 4px, 2px 2px, 6px 6px;
+  animation: grain 0.2s steps(10) infinite;
+}
+
+/* Film grain overlay for cards */
+.grain-overlay-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.08;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(circle at 25% 25%, #fff 1px, transparent 1px),
+    radial-gradient(circle at 75% 75%, #fff 1px, transparent 1px);
+  background-size: 6px 6px, 9px 9px;
+  background-position: 0 0, 3px 3px;
+  animation: grain 0.3s steps(8) infinite;
+}
+
+/* Microphone button */
 .mic-button {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 192px;
+  height: 192px;
   border: none;
   border-radius: 50%;
-  background: linear-gradient(145deg, #ff6b6b, #ff8e8e);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
   user-select: none;
   margin-bottom: 2rem;
+  background: none;
+  outline: none;
 }
 
 .mic-button:hover {
   transform: scale(1.05);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
 }
 
 .mic-button:active {
   transform: scale(0.95);
 }
 
-.mic-button.recording {
-  background: linear-gradient(145deg, #ff4757, #ff3742);
-  animation: pulse 1.5s infinite;
+.mic-button:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 4px;
 }
 
-.mic-icon {
-  font-size: 4rem;
-  z-index: 3;
+/* Siri container */
+.siri-container {
   position: relative;
-}
-
-/* Pulse Rings */
-.pulse-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   width: 100%;
   height: 100%;
-  border: 3px solid rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Button background */
+.button-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #3b82f6, #8b5cf6);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(59, 130, 246, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.mic-button:hover .button-background {
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.4),
+    0 8px 20px rgba(59, 130, 246, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  background: linear-gradient(145deg, #4f96ff, #9f70fd);
+}
+
+/* Static microphone icon */
+.static-mic {
+  position: relative;
+  z-index: 10;
+  color: #ffffff;
+  transition: opacity 0.3s ease;
+}
+
+.mic-svg {
+  width: 4rem;
+  height: 4rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Siri waves */
+.recording-waves {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.siri-wave {
+  width: 3px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 2px;
+  transform-origin: center bottom;
+}
+
+.siri-wave-1 {
+  height: 12px;
+  animation: siri-wave-1 1.5s ease-in-out infinite;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.siri-wave-2 {
+  height: 8px;
+  margin-left: -2px;
+  animation: siri-wave-2 1.8s ease-in-out infinite 0.2s;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.siri-wave-3 {
+  height: 16px;
+  margin-left: -2px;
+  animation: siri-wave-3 2.1s ease-in-out infinite 0.4s;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.siri-wave-4 {
+  height: 6px;
+  margin-left: -2px;
+  animation: siri-wave-4 1.7s ease-in-out infinite 0.1s;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.siri-wave-5 {
+  height: 10px;
+  margin-left: -2px;
+  animation: siri-wave-5 1.9s ease-in-out infinite 0.3s;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* Pulse rings */
+.pulse-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid rgba(255, 255, 255, 0.6);
   border-radius: 50%;
   opacity: 0;
-  animation: pulse-ring 2s infinite ease-out;
+}
+
+.pulse-ring-1 {
+  animation: siri-pulse 2s infinite ease-out;
 }
 
 .pulse-ring-2 {
-  animation-delay: 1s;
+  animation: siri-pulse 2s infinite ease-out 1s;
 }
 
-@keyframes pulse-ring {
-  0% {
-    transform: translate(-50%, -50%) scale(0.8);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1.8);
+/* Recording state */
+.recording .recording-waves {
+  display: flex !important;
+}
+
+.recording .static-mic {
+  opacity: 0;
+}
+
+.recording .button-background {
+  background: linear-gradient(145deg, #ef4444, #dc2626) !important;
+  animation: recording-pulse 1.5s infinite;
+}
+
+/* Status message */
+.status-message {
+  text-align: center;
+  font-size: 1.125rem;
+  min-height: 2rem;
+  margin-bottom: 2rem;
+  font-weight: 500;
+  color: rgba(147, 197, 253, 0.9);
+  transition: all 0.3s ease;
+  letter-spacing: -0.01em;
+}
+
+/* Result container */
+.result-container {
+  width: 100%;
+  max-width: 56rem;
+  text-align: left;
+}
+
+.result-container.hidden {
+  display: none;
+}
+
+/* Summary card */
+.summary-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.summary-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 10;
+  letter-spacing: -0.02em;
+}
+
+/* Summary grid */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  position: relative;
+  z-index: 10;
+}
+
+/* Summary item */
+.summary-item {
+  position: relative;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+  text-align: center;
+}
+
+.summary-item:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Transcript card */
+.transcript-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border-radius: 1rem;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.transcript-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #ffffff;
+  position: relative;
+  z-index: 10;
+  letter-spacing: -0.01em;
+}
+
+.transcript-text {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: rgba(147, 197, 253, 0.9);
+  position: relative;
+  z-index: 10;
+  letter-spacing: -0.005em;
+}
+
+/* Pie chart styles */
+.pie-chart {
+  width: 40px;
+  height: 40px;
+  transform: rotate(-90deg);
+  margin-bottom: 0.5rem;
+}
+
+.pie-chart circle {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.pie-bg {
+  stroke: rgba(255, 255, 255, 0.2);
+}
+
+.pie-fill {
+  stroke: currentColor;
+  stroke-dasharray: 0 100;
+  animation: pie-fill 2s ease-out forwards;
+  animation-delay: 0.5s;
+}
+
+/* Animations */
+@keyframes siri-pulse {
+  0%, 100% {
+    transform: scale(1);
     opacity: 0;
   }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
 }
 
-@keyframes pulse {
+@keyframes recording-pulse {
   0%, 100% {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.1);
+    transform: scale(1.05);
   }
 }
 
-/* Status Messages */
-.status {
-  text-align: center;
-  font-size: 1.2rem;
-  min-height: 2rem;
-  margin-bottom: 2rem;
-  font-weight: 500;
+@keyframes siri-wave-1 {
+  0%, 100% {
+    height: 12px;
+  }
+  50% {
+    height: 32px;
+  }
 }
 
-/* Results */
-.result {
-  width: 100%;
-  max-width: 600px;
-  text-align: left;
+@keyframes siri-wave-2 {
+  0%, 100% {
+    height: 8px;
+  }
+  50% {
+    height: 24px;
+  }
 }
 
-.result.hidden {
-  display: none;
+@keyframes siri-wave-3 {
+  0%, 100% {
+    height: 16px;
+  }
+  50% {
+    height: 40px;
+  }
 }
 
-.summary, .transcript {
+@keyframes siri-wave-4 {
+  0%, 100% {
+    height: 6px;
+  }
+  50% {
+    height: 18px;
+  }
+}
+
+@keyframes siri-wave-5 {
+  0%, 100% {
+    height: 10px;
+  }
+  50% {
+    height: 28px;
+  }
+}
+
+@keyframes pie-fill {
+  0% {
+    stroke-dasharray: 0 100;
+  }
+  100% {
+    stroke-dasharray: var(--progress) 100;
+  }
+}
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0) }
+  10% { transform: translate(-5%, -10%) }
+  20% { transform: translate(-15%, 5%) }
+  30% { transform: translate(7%, -25%) }
+  40% { transform: translate(-5%, 25%) }
+  50% { transform: translate(-15%, 10%) }
+  60% { transform: translate(15%, 0%) }
+  70% { transform: translate(0%, 15%) }
+  80% { transform: translate(3%, 35%) }
+  90% { transform: translate(-10%, 10%) }
+}
+
+/* Custom scrollbar */
+.result-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.result-container::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
 }
 
-.summary h2 {
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-  color: #fff;
+.result-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
 }
 
-.transcript h3 {
-  margin-bottom: 1rem;
-  font-size: 1.3rem;
-  color: #fff;
+.result-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
-#summary-content {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-}
-
-.summary-item {
-  text-align: center;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.summary-label {
-  font-size: 0.9rem;
-  opacity: 0.8;
-  margin-bottom: 0.5rem;
-}
-
-.summary-value {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-}
-
-.summary-percentage {
-  font-size: 0.8rem;
-  opacity: 0.7;
-}
-
-#transcript-text {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* Responsive */
+/* Responsive design */
 @media (max-width: 768px) {
   .mic-button {
     width: 160px;
     height: 160px;
   }
   
-  .mic-icon {
-    font-size: 3rem;
+  .mic-svg {
+    width: 3rem;
+    height: 3rem;
   }
   
-  main {
+  .main-container {
     padding: 1rem;
   }
   
-  .summary, .transcript {
+  .summary-card, .transcript-card {
     padding: 1.5rem;
   }
   
-  #summary-content {
+  .summary-grid {
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
+  
+  .summary-title {
+    font-size: 1.5rem;
+  }
+  
+  .transcript-title {
+    font-size: 1.25rem;
   }
 }
 
@@ -206,7 +506,12 @@ main {
     height: 140px;
   }
   
-  .mic-icon {
-    font-size: 2.5rem;
+  .mic-svg {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

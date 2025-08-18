@@ -7,28 +7,61 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main>
+    <main class="main-container">
+      <!-- Film grain overlay -->
+      <div class="grain-overlay-fixed"></div>
+      
       <button id="micBtn" class="mic-button" aria-label="Press and hold to record">
-        <span class="mic-icon">🎤</span>
-        <div class="pulse-ring"></div>
-        <div class="pulse-ring pulse-ring-2"></div>
+        <!-- Siri-like wave animation container -->
+        <div id="siriWaves" class="siri-container">
+          <!-- Background circle -->
+          <div class="button-background"></div>
+          
+          <!-- Siri waves (hidden by default, shown when recording) -->
+          <div class="recording-waves">
+            <div class="siri-wave siri-wave-1"></div>
+            <div class="siri-wave siri-wave-2"></div>
+            <div class="siri-wave siri-wave-3"></div>
+            <div class="siri-wave siri-wave-4"></div>
+            <div class="siri-wave siri-wave-5"></div>
+          </div>
+          
+          <!-- Static microphone icon (shown when not recording) -->
+          <div id="staticMic" class="static-mic">
+            <svg class="mic-svg" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+              <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          </div>
+          
+          <!-- Pulse rings -->
+          <div class="pulse-ring pulse-ring-1"></div>
+          <div class="pulse-ring pulse-ring-2"></div>
+        </div>
       </button>
 
-      <div id="status" class="status"></div>
+      <div id="status" class="status-message"></div>
 
-      <div id="result" class="result hidden">
-        <div class="summary">
-          <h2>📊 Summary</h2>
-          <div id="summary-content"></div>
+      <div id="result" class="result-container hidden">
+        <div class="summary-card">
+          <!-- Film grain for glass morphism -->
+          <div class="grain-overlay-card"></div>
+          <h2 class="summary-title">
+            📊 Nutrition Summary
+          </h2>
+          <div id="summary-content" class="summary-grid"></div>
         </div>
         
-        <div class="transcript">
-          <h3>What you said</h3>
-          <p id="transcript-text"></p>
+        <div class="transcript-card">
+          <!-- Film grain for glass morphism -->
+          <div class="grain-overlay-card"></div>
+          <h3 class="transcript-title">What you said</h3>
+          <p id="transcript-text" class="transcript-text"></p>
         </div>
       </div>
     </main>
 
     <script src="/app.js"></script>
   </body>
+</html>
 </html>
