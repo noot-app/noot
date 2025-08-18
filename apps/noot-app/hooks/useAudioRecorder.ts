@@ -49,6 +49,8 @@ export function useAudioRecorder() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const uploadPromiseRef = useRef<Promise<any> | null>(null);
+  const resolveUploadRef = useRef<((value: any) => void) | null>(null);
 
   useEffect(() => {
     const setupWebAudioWrapper = async () => {
@@ -93,7 +95,11 @@ export function useAudioRecorder() {
       mediaRecorder.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         chunksRef.current = [];
-        await uploadRecording(blob);
+        const result = await uploadRecording(blob);
+        if (resolveUploadRef.current) {
+          resolveUploadRef.current(result);
+          resolveUploadRef.current = null;
+        }
       };
 
       mediaRecorderRef.current = mediaRecorder;
@@ -145,10 +151,15 @@ export function useAudioRecorder() {
       setStatus('⏳ Processing...');
       
       if (Platform.OS === 'web') {
-        // Web recording
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-          mediaRecorderRef.current.stop();
-        }
+        // Web recording - create a promise that resolves when upload completes
+        return new Promise((resolve) => {
+          resolveUploadRef.current = resolve;
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+          } else {
+            resolve(null);
+          }
+        });
       } else {
         // Native recording
         devLog('Stopping recording..');
@@ -162,13 +173,15 @@ export function useAudioRecorder() {
           devLog('Recording stopped and stored at', uri);
           
           if (uri) {
-            await uploadRecording(uri);
+            return await uploadRecording(uri);
           }
         }
+        return null;
       }
     } catch (error) {
       devError('Error stopping recording:', error);
       setStatus('❌ Error stopping recording');
+      return null;
     }
   };
 
