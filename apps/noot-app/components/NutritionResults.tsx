@@ -114,7 +114,7 @@ export function NutritionResults({ data }: NutritionResultsProps) {
                 {macro.label}
               </ThemedText>
               <ThemedText style={styles.nutritionValue}>
-                {macro.value}{macro.unit}
+                {`${macro.value}${macro.unit}`}
               </ThemedText>
               <ThemedText type="tertiary" style={styles.nutritionPercent}>
                 {Math.round(macro.percent)}% daily
@@ -184,7 +184,7 @@ export function NutritionResults({ data }: NutritionResultsProps) {
                 {item.label}
               </ThemedText>
               <ThemedText style={styles.nutritionValue}>
-                {item.value}{item.unit}
+                {`${item.value}${item.unit}`}
               </ThemedText>
               <ThemedText type="tertiary" style={styles.nutritionPercent}>
                 {item.note}
@@ -251,7 +251,7 @@ export function NutritionResults({ data }: NutritionResultsProps) {
                 {nutrient.label}
               </ThemedText>
               <ThemedText style={styles.nutritionValue}>
-                {nutrient.value}{nutrient.unit}
+                {`${nutrient.value}${nutrient.unit}`}
               </ThemedText>
               <ThemedText type="tertiary" style={styles.nutritionPercent}>
                 {Math.round(nutrient.percent)}% daily
@@ -305,7 +305,7 @@ export function NutritionResults({ data }: NutritionResultsProps) {
                       ].map((n, i) => (
                         <View key={i} style={[styles.keyNutrientItem, { backgroundColor: colors.glassBg }]}>
                           <ThemedText type="tertiary" style={styles.keyNutrientLabel}>{n.label}</ThemedText>
-                          <ThemedText style={styles.keyNutrientValue}>{formatNumber(n.value)}{n.unit}</ThemedText>
+                          <ThemedText style={styles.keyNutrientValue}>{`${formatNumber(n.value)}${n.unit}`}</ThemedText>
                         </View>
                       ))}
                     </View>
