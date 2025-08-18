@@ -86,6 +86,3 @@ An AI-powered nutrition logging web app. Just say what you ate!
 - Single binary web server with embedded frontend assets
 - OpenAI gpt-4o-mini-transcribe for speech-to-text
 - OpenAI gpt-4o-mini for meal parsing
-- USDA FoodData Central API for nutrition data
-- Go stdlib only (no external dependencies)
-- Hermetic CI/CD with vendored modules
