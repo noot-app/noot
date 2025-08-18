@@ -27,7 +27,7 @@ func transcriptionPrompt() string {
 }
 
 func parseSystemPrompt() string {
-	return `You extract foods and drinks from a freeform meal description and provide complete nutrition information for each item. Return strict JSON with the following structure:
+	return `Extract food and drink items from a meal description. Return simple JSON:
 
 {
   "items": [
@@ -35,63 +35,16 @@ func parseSystemPrompt() string {
       "name": string,
       "quantity": number | null,
       "unit": string | null,
-      "brand": string | null,
-      "nutrients": {
-        "calories": number,
-        "protein_g": number,
-        "total_fat_g": number,
-        "saturated_fat_g": number,
-        "trans_fat_g": number,
-        "cholesterol_mg": number,
-        "sodium_mg": number,
-        "total_carbs_g": number,
-        "dietary_fiber_g": number,
-        "total_sugars_g": number,
-        "added_sugars_g": number,
-        "vitamin_a_mcg": number,
-        "vitamin_c_mg": number,
-        "vitamin_d_mcg": number,
-        "vitamin_e_mg": number,
-        "vitamin_k_mcg": number,
-        "thiamine_mg": number,
-        "riboflavin_mg": number,
-        "niacin_mg": number,
-        "vitamin_b6_mg": number,
-        "folate_mcg": number,
-        "vitamin_b12_mcg": number,
-        "calcium_mg": number,
-        "iron_mg": number,
-        "magnesium_mg": number,
-        "phosphorus_mg": number,
-        "potassium_mg": number,
-        "zinc_mg": number,
-        "copper_mg": number,
-        "manganese_mg": number,
-        "selenium_mcg": number
-      }
+      "brand": string | null
     }
   ]
 }
 
-IMPORTANT INSTRUCTIONS:
-1. INFER SERVING SIZES: If quantity is not specified, assume reasonable standard serving sizes based on context:
-   - Yogurt: 1 cup (245g)
-   - Banana: 1 medium (118g)  
-   - Eggs: 2 large eggs (100g)
-   - Coffee: 1 cup (240ml)
-   - Latte: 12oz with 2 shots espresso
-   - Apple: 1 medium (182g)
-   - Bread slice: 1 slice (28g)
-   - Chicken breast: 3.5oz (100g)
-   - Rice: 1 cup cooked (158g)
-
-2. NUTRITION DATA ACCURACY: Provide accurate nutrition data per serving. Use your knowledge of food composition databases, USDA data, and nutrition labels. For branded items, use known nutrition facts when possible.
-
-3. HANDLE COMPLEX ITEMS: For prepared foods, estimate based on typical recipes and ingredients. For restaurant items, use available nutrition information or estimate based on similar items.
-
-4. ZERO VALUES: Use 0 for nutrients that are truly absent (like vitamin B12 in plants), but provide realistic non-zero values for nutrients that are typically present even in small amounts.
-
-5. BRANDED VS GENERIC: Prioritize branded nutrition data when brand is specified, otherwise use generic USDA-style data for the food type.`
+Rules:
+1. If no quantity given, infer reasonable serving size (e.g., "banana" = 1 banana, "eggs" = 2 eggs)
+2. Preserve exact brand names when mentioned (e.g., "Trader Joe's", "Siggi's")
+3. Use standard units (cup, oz, g, ml, piece, slice, etc.)
+4. Focus on accurate food identification`
 }
 
 func transcribeAudio(ctx context.Context, filePath, _ string) (string, error) {
@@ -177,6 +130,11 @@ func transcribeAudio(ctx context.Context, filePath, _ string) (string, error) {
 }
 
 func parseItems(ctx context.Context, transcriptText string) (ParsedItems, error) {
+	startTime := time.Now()
+	defer func() {
+		LogDebug("OpenAI parsing total time", "duration_ms", time.Since(startTime).Milliseconds())
+	}()
+
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		return ParsedItems{}, NewAppError("OPENAI_API_KEY not configured", http.StatusInternalServerError, nil)
@@ -250,11 +208,11 @@ func parseItems(ctx context.Context, transcriptText string) (ParsedItems, error)
 			continue
 		}
 		clean = append(clean, Item{
-			Name:      name,
-			Quantity:  i.Quantity,
-			Unit:      strPtrOrNil(i.Unit),
-			Brand:     strPtrOrNil(i.Brand),
-			Nutrients: i.Nutrients, // Include nutrition data
+			Name:     name,
+			Quantity: i.Quantity,
+			Unit:     strPtrOrNil(i.Unit),
+			Brand:    strPtrOrNil(i.Brand),
+			// Nutrients will be added in separate enrichment step
 		})
 	}
 

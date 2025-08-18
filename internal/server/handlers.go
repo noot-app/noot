@@ -60,19 +60,24 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	LogDebug("Transcription completed", "transcript_length", len(transcript), "request_id", requestID)
 
-	// 2) Parse items with complete nutrition via Chat Completions
-	LogDebug("Starting item parsing with nutrition", "request_id", requestID)
+	// 2) Parse items (food identification only - fast!)
+	LogDebug("Starting item parsing (identification only)", "request_id", requestID)
 	parsed, err := parseItems(ctx, transcript)
 	if err != nil {
 		appErr := NewAppError("Parsing failed", http.StatusInternalServerError, err)
 		handleAppError(w, appErr, requestID)
 		return
 	}
-	LogDebug("Item parsing with nutrition completed", "item_count", len(parsed.Items), "request_id", requestID)
+	LogDebug("Item parsing completed", "item_count", len(parsed.Items), "request_id", requestID)
 
-	// 3) Convert to ItemWithNutrition format for response
+	// 3) Enrich with nutrition data (separate step for performance)
+	LogDebug("Starting nutrition enrichment", "request_id", requestID)
+	enrichedItems := enrichItemsWithNutrition(ctx, parsed.Items)
+	LogDebug("Nutrition enrichment completed", "request_id", requestID)
+
+	// 4) Convert to ItemWithNutrition format for response
 	var itemsWith []ItemWithNutrition
-	for _, it := range parsed.Items {
+	for _, it := range enrichedItems {
 		iw := ItemWithNutrition{
 			Item: it,
 		}
@@ -82,12 +87,12 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 		itemsWith = append(itemsWith, iw)
 	}
 
-	// 4) Summarize
+	// 5) Summarize
 	summary := summarize(itemsWith)
 
 	resp := map[string]any{
 		"transcript":  transcript,
-		"parsedItems": parsed.Items,
+		"parsedItems": enrichedItems, // Use enriched items
 		"items":       itemsWith,
 		"summary":     summary,
 		"request_id":  requestID,
