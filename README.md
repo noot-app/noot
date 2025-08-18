@@ -73,6 +73,19 @@ An AI-powered nutrition logging web app. Just say what you ate!
 - **Lint:** `script/lint`  
 - **Build:** `script/build` (or `script/build --single-target` for faster iteration)
 
+## Mobile Apps
+
+The repository also includes a cross-platform React Native + Expo app:
+
+```bash
+cd apps/noot-app
+npm install
+ENV=dev go run ../../cmd/noot  # Start backend with CORS enabled
+npm run web  # or ios, android
+```
+
+See [apps/noot-app/README.md](apps/noot-app/README.md) for detailed setup instructions.
+
 ## Technical Details
 
 - Single binary web server with embedded frontend assets
@@ -81,3 +94,4 @@ An AI-powered nutrition logging web app. Just say what you ate!
 - USDA FoodData Central API for nutrition data
 - Go stdlib only (no external dependencies)
 - Hermetic CI/CD with vendored modules
+- React Native + Expo app for iOS/Android/Web with same backend
