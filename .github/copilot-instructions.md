@@ -31,3 +31,7 @@ This is a Go based repository that is a minimal web app to log meals by voice. T
 7. When writing unit tests, always strive for 100% code coverage where it makes sense. Try to consider edge cases as well.
 8. Always strive to keep the codebase clean and maintainable. Avoid unnecessary complexity and always consider the long-term maintainability of the code.
 9. Always strive for the highest level of code coverage with unit tests where possible.
+
+## Helpful Tips
+
+- Since you are an AI, you cannot run, view, and interact with the API/Webapp UI very well. For this reason, simply ensuring that tests pass and builds succeed is sufficient for you to verify that the code changes are correct.

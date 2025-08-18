@@ -8,6 +8,8 @@ const itemsEl = document.getElementById('items-content');
 const staticMic = document.getElementById('staticMic');
 const siriWaves = document.getElementById('siriWaves');
 const themeToggle = document.getElementById('themeToggle');
+const devBanner = document.getElementById('dev-banner');
+const simulateBtn = document.getElementById('simulate-btn');
 
 // Theme management
 function initTheme() {
@@ -35,8 +37,11 @@ let startSound, endSound;
 let mediaRecorder;
 let chunks = [];
 
-// Demo mode for testing
-const DEMO_MODE = false;
+// Development mode detection - check if we're on localhost or have dev indicator
+const isDevelopmentMode = window.location.hostname === 'localhost' || 
+                         window.location.hostname === '127.0.0.1' ||
+                         window.location.port === '8080' ||
+                         document.body.hasAttribute('data-dev-mode');
 
 // Initialize audio feedback
 async function initAudioFeedback() {
@@ -86,120 +91,61 @@ function playSound(soundConfig) {
   }
 }
 
-// Demo data for testing
-function getDemoData() {
+// Load simulation data from JSON file
+async function loadSimulationData() {
+  try {
+    const response = await fetch('/simulation-data.json');
+    if (!response.ok) {
+      throw new Error(`Failed to load simulation data: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error loading simulation data:', error);
+    // Fallback to minimal data if JSON fails to load
+    return {
+      transcript: "For breakfast I had Bob's Red Mill organic rolled oats, Greek yogurt, honey, goji berries, cacao nibs, and Trader Joe's dried blueberries.",
+      items: []
+    };
+  }
+}
+
+// Generate simulation response with calculated totals
+async function getSimulationData() {
+  const data = await loadSimulationData();
+  
+  if (data.items.length === 0) {
+    return data; // Return fallback data as-is
+  }
+
+  // Calculate totals from individual items
+  const totals = data.items.reduce((sum, item) => {
+    const nutrients = item.nutrients;
+    Object.keys(nutrients).forEach(key => {
+      sum[key] = (sum[key] || 0) + nutrients[key];
+    });
+    return sum;
+  }, {});
+
+  // Convert items to the expected format
+  const formattedItems = data.items.map(item => ({
+    item: item
+  }));
+
   return {
-    transcript: "I had a large chicken Caesar salad with croutons, two slices of whole wheat bread, a cup of strawberries, and a glass of orange juice for lunch.",
-    items: [
-      {
-        item: {
-          name: "Large chicken Caesar salad with croutons",
-          quantity: 1,
-          unit: "serving",
-          nutrients: {
-            calories: 320,
-            protein_g: 25,
-            total_carbs_g: 15,
-            total_fat_g: 18,
-            dietary_fiber_g: 3,
-            total_sugars_g: 4,
-            vitamin_c_mg: 8,
-            calcium_mg: 80,
-            iron_mg: 2.1,
-            sodium_mg: 680,
-            potassium_mg: 180
-          }
-        }
-      },
-      {
-        item: {
-          name: "Whole wheat bread",
-          quantity: 2,
-          unit: "slices",
-          nutrients: {
-            calories: 160,
-            protein_g: 6,
-            total_carbs_g: 24,
-            total_fat_g: 3,
-            dietary_fiber_g: 4,
-            total_sugars_g: 2,
-            vitamin_c_mg: 0,
-            calcium_mg: 60,
-            iron_mg: 1.8,
-            sodium_mg: 240,
-            potassium_mg: 120
-          }
-        }
-      },
-      {
-        item: {
-          name: "Fresh strawberries",
-          quantity: 1,
-          unit: "cup",
-          nutrients: {
-            calories: 50,
-            protein_g: 1,
-            total_carbs_g: 12,
-            total_fat_g: 0.5,
-            dietary_fiber_g: 3,
-            total_sugars_g: 7,
-            vitamin_c_mg: 85,
-            calcium_mg: 20,
-            iron_mg: 0.4,
-            sodium_mg: 2,
-            potassium_mg: 150
-          }
-        }
-      },
-      {
-        item: {
-          name: "Orange juice",
-          quantity: 8,
-          unit: "fl oz",
-          nutrients: {
-            calories: 120,
-            protein_g: 2,
-            total_carbs_g: 28,
-            total_fat_g: 0.5,
-            dietary_fiber_g: 0,
-            total_sugars_g: 21,
-            vitamin_c_mg: 124,
-            calcium_mg: 40,
-            iron_mg: 0.5,
-            sodium_mg: 5,
-            potassium_mg: 450
-          }
-        }
-      }
-    ],
+    transcript: data.transcript,
+    items: formattedItems,
     summary: {
-      totals: {
-        calories: 650,
-        protein_g: 35,
-        total_carbs_g: 45,
-        total_fat_g: 28,
-        dietary_fiber_g: 8,
-        total_sugars_g: 25,
-        vitamin_c_mg: 120,
-        vitamin_d_mcg: 2.5,
-        calcium_mg: 200,
-        iron_mg: 4.2,
-        sodium_mg: 980,
-        potassium_mg: 650
-      },
+      totals: totals,
       percent_of_daily: {
-        calories: 32,
-        protein: 70,
-        total_carbs: 15,
-        total_fat: 36,
-        dietary_fiber: 29,
-        total_sugars: 28,
-        vitamin_c: 133,
-        vitamin_d: 17,
-        calcium: 20,
-        iron: 23,
-        sodium: 43,
-        potassium: 14
+        calories: Math.round((totals.calories / 2000) * 100),
+        protein: Math.round((totals.protein_g / 50) * 100),
+        total_carbs: Math.round((totals.total_carbs_g / 300) * 100),
+        total_fat: Math.round((totals.total_fat_g / 65) * 100),
+        dietary_fiber: Math.round((totals.dietary_fiber_g / 25) * 100),
+        sodium: Math.round((totals.sodium_mg / 2300) * 100),
+        calcium: Math.round((totals.calcium_mg / 1000) * 100),
+        iron: Math.round((totals.iron_mg / 18) * 100),
+        potassium: Math.round((totals.potassium_mg / 3500) * 100)
       }
     }
   };
@@ -207,9 +153,9 @@ function getDemoData() {
 
 // Initialize MediaRecorder
 async function setupMediaRecorder() {
-  if (DEMO_MODE) {
-    console.log('Running in demo mode');
-    return;
+  // Skip audio setup in development mode only if we're explicitly simulating
+  if (isDevelopmentMode) {
+    console.log('Running in development mode - audio setup available');
   }
   
   const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -238,17 +184,8 @@ async function setupMediaRecorder() {
 
 // Send audio to API
 async function sendAudioToAPI(audioBlob) {
-  if (DEMO_MODE) {
-    // Simulate API delay and response
-    setStatus('⏳ Processing your meal...');
-    setTimeout(() => {
-      displayResults(getDemoData());
-    }, 2000);
-    return;
-  }
-  
   try {
-    setStatus('⏳ Processing your meal...');
+    setStatus('⏳ Processing...');
     
     const formData = new FormData();
     formData.append('audio', audioBlob);
@@ -267,6 +204,20 @@ async function sendAudioToAPI(audioBlob) {
   } catch (error) {
     console.error('Error:', error);
     setStatus('❌ Error processing audio. Please try again.');
+  }
+}
+
+// Simulate API response with predefined data
+async function simulateResponse() {
+  setStatus('🔬 Simulating...');
+  try {
+    const data = await getSimulationData();
+    setTimeout(() => {
+      displayResults(data);
+    }, 1000);
+  } catch (error) {
+    console.error('Simulation failed:', error);
+    setStatus('❌ Simulation failed. Please try again.');
   }
 }
 
@@ -325,14 +276,22 @@ function displayResults(data) {
   }, 100);
 }
 
-// Display comprehensive nutrition summary
+// Display comprehensive nutrition summary organized by categories
 function displaySummary(summary) {
   const totals = summary.totals || {};
   const percentDaily = summary.percent_of_daily || {};
   
-  // Enhanced nutrition data including vitamins and minerals
-  const nutritionData = [
-    // Macronutrients
+  // Calculate sugar percentages based on WHO/FDA guidelines
+  const totalSugarsG = totals.total_sugars_g || 0;
+  const addedSugarsG = totals.added_sugars_g || 0;
+  const naturalSugarsG = Math.max(0, totalSugarsG - addedSugarsG);
+  
+  // Added sugar limit: 50g for 2000-calorie diet (10% of calories)
+  const addedSugarLimit = 50; 
+  const addedSugarPercent = Math.min((addedSugarsG / addedSugarLimit) * 100, 100);
+  
+  // Macronutrients section
+  const macros = [
     { 
       label: 'Calories', 
       value: formatNumber(totals.calories), 
@@ -360,25 +319,43 @@ function displaySummary(summary) {
       unit: 'g', 
       percent: Math.min(percentDaily['total_fat'] || 0, 100),
       category: 'macro'
+    }
+  ];
+  
+  // Sugar breakdown section
+  const sugarBreakdown = [
+    { 
+      label: 'Added Sugar', 
+      value: formatNumber(addedSugarsG), 
+      unit: 'g', 
+      percent: addedSugarPercent,
+      limit: addedSugarLimit,
+      category: 'sugar',
+      warning: addedSugarPercent > 80
     },
-    
-    // Fiber and sugars
+    { 
+      label: 'Natural Sugar', 
+      value: formatNumber(naturalSugarsG), 
+      unit: 'g', 
+      percent: 0, // No daily limit for natural sugars
+      category: 'sugar',
+      note: 'from fruits & dairy'
+    }
+  ].filter(item => parseFloat(item.value) > 0);
+  
+  // Fiber section
+  const fiber = [
     { 
       label: 'Fiber', 
       value: formatNumber(totals.dietary_fiber_g), 
       unit: 'g', 
       percent: Math.min(percentDaily['dietary_fiber'] || 0, 100),
       category: 'fiber'
-    },
-    { 
-      label: 'Sugar', 
-      value: formatNumber(totals.total_sugars_g), 
-      unit: 'g', 
-      percent: Math.min(percentDaily['total_sugars'] || 0, 100),
-      category: 'sugar'
-    },
-    
-    // Vitamins (if available in API response)
+    }
+  ].filter(item => parseFloat(item.value) > 0);
+  
+  // Vitamins & Minerals section
+  const vitaminsAndMinerals = [
     { 
       label: 'Vitamin C', 
       value: formatNumber(totals.vitamin_c_mg || 0), 
@@ -393,8 +370,6 @@ function displaySummary(summary) {
       percent: Math.min(percentDaily['vitamin_d'] || 0, 100),
       category: 'vitamin'
     },
-    
-    // Minerals (if available in API response)
     { 
       label: 'Calcium', 
       value: formatNumber(totals.calcium_mg || 0), 
@@ -423,28 +398,47 @@ function displaySummary(summary) {
       percent: Math.min(percentDaily['potassium'] || 0, 100),
       category: 'mineral'
     }
-  ];
+  ].filter(item => parseFloat(item.value) > 0);
 
-  // Filter out items with no data and create HTML
-  const validNutrients = nutritionData.filter(item => 
-    parseFloat(item.value) > 0 || ['Calories', 'Protein', 'Carbs', 'Fat'].includes(item.label)
-  );
-
-  summaryEl.innerHTML = validNutrients.map(item => {
-    const color = getPercentageColor(item.percent);
-    const pieChart = createPieChart(item.percent, color);
+  // Create sections HTML
+  const createSection = (title, items, emoji) => {
+    if (items.length === 0) return '';
     
     return `
-      <div class="summary-item">
-        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
-          ${pieChart}
+      <div class="nutrition-section">
+        <h3 class="nutrition-section-title">${emoji} ${title}</h3>
+        <div class="nutrition-section-grid">
+          ${items.map(item => {
+            const color = item.warning ? '#ef4444' : getPercentageColor(item.percent);
+            const pieChart = createPieChart(item.percent, color);
+            const dailyText = item.note ? item.note : 
+                             item.limit ? `of ${item.limit}g limit` : 
+                             `${Math.round(item.percent)}% daily`;
+            
+            return `
+              <div class="summary-item ${item.warning ? 'warning' : ''}">
+                <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
+                  ${pieChart}
+                </div>
+                <div class="nutrition-label">${item.label}</div>
+                <div class="nutrition-value">${item.value}${item.unit}</div>
+                <div class="nutrition-daily">${dailyText}</div>
+              </div>
+            `;
+          }).join('')}
         </div>
-        <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.25rem;">${item.label}</div>
-        <div style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">${item.value}${item.unit}</div>
-        <div style="font-size: 0.75rem; color: var(--text-tertiary);">${Math.round(item.percent)}% daily</div>
       </div>
     `;
-  }).join('');
+  };
+
+  summaryEl.innerHTML = `
+    <div class="nutrition-summary">
+      ${createSection('Macronutrients', macros, '⚡')}
+      ${createSection('Sugar Breakdown', sugarBreakdown, '🍯')}
+      ${createSection('Fiber', fiber, '🌾')}
+      ${createSection('Vitamins & Minerals', vitaminsAndMinerals, '💊')}
+    </div>
+  `;
   
   // Trigger pie chart animations
   setTimeout(() => {
@@ -551,15 +545,6 @@ function formatNumber(value) {
 async function startRecording(event) {
   event.preventDefault();
   
-  if (DEMO_MODE) {
-    // Demo mode - show recording animation and process demo data
-    // Skip audio feedback in demo mode to avoid issues
-    console.log('Demo mode: Starting recording simulation');
-    micBtn.classList.add('recording');
-    setStatus('🎤 Recording... Release to stop');
-    return;
-  }
-  
   // Regular mode - only try to setup media recorder if not already done
   if (!mediaRecorder) {
     try {
@@ -585,14 +570,6 @@ async function startRecording(event) {
 function stopRecording(event) {
   event.preventDefault();
   
-  if (DEMO_MODE) {
-    // Demo mode - stop recording animation and process demo data
-    console.log('Demo mode: Stopping recording simulation');
-    micBtn.classList.remove('recording');
-    sendAudioToAPI(null); // Will use demo data
-    return;
-  }
-  
   if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
   
   // Play end sound
@@ -609,6 +586,11 @@ micBtn.addEventListener('mouseleave', stopRecording);
 
 // Theme toggle
 themeToggle.addEventListener('click', toggleTheme);
+
+// Simulate button (development mode only)
+if (simulateBtn) {
+  simulateBtn.addEventListener('click', simulateResponse);
+}
 
 // Touch events for mobile
 micBtn.addEventListener('touchstart', (e) => {
@@ -632,26 +614,23 @@ micBtn.addEventListener('touchcancel', (e) => {
     // Initialize theme first
     initTheme();
     
-    // Only try audio feedback if not in demo mode (to avoid errors in headless environment)
-    if (!DEMO_MODE) {
-      await initAudioFeedback();
-      await setupMediaRecorder();
-    } else {
-      console.log('Running in demo mode - skipping audio setup');
+    // Show development banner if in development mode
+    if (isDevelopmentMode) {
+      devBanner.classList.remove('hidden');
+      document.body.classList.add('dev-mode-active');
+      console.log('Running in development mode');
     }
     
-    // Show demo message for testing
-    if (DEMO_MODE) {
-      setTimeout(() => {
-        setStatus('👋 Click and hold the button to see a demo');
-      }, 1000);
-    }
+    // Setup audio feedback and media recorder
+    await initAudioFeedback();
+    await setupMediaRecorder();
+    
   } catch (error) {
     console.warn('Initial setup failed:', error);
-    if (DEMO_MODE) {
-      setTimeout(() => {
-        setStatus('👋 Click and hold the button to see a demo');
-      }, 1000);
+    // Still show development banner even if audio setup fails
+    if (isDevelopmentMode) {
+      devBanner.classList.remove('hidden');
+      document.body.classList.add('dev-mode-active');
     }
   }
 })();
