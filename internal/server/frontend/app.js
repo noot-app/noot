@@ -214,7 +214,7 @@ async function simulateResponse() {
     const data = await getSimulationData();
     setTimeout(() => {
       displayResults(data);
-    }, 1000);
+    }, 500); // Simulate processing delay
   } catch (error) {
     console.error('Simulation failed:', error);
     setStatus('❌ Simulation failed. Please try again.');
