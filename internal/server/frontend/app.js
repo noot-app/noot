@@ -6,6 +6,25 @@ const transcriptEl = document.getElementById('transcript-text');
 const summaryEl = document.getElementById('summary-content');
 const staticMic = document.getElementById('staticMic');
 const siriWaves = document.getElementById('siriWaves');
+const themeToggle = document.getElementById('themeToggle');
+
+// Theme management
+function initTheme() {
+  // Check for saved theme preference or default to dark mode
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  setTheme(savedTheme);
+}
+
+function setTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+}
+
+function toggleTheme() {
+  const currentTheme = document.body.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  setTheme(newTheme);
+}
 
 // Audio feedback
 let audioContext;
@@ -332,9 +351,9 @@ function displaySummary(summary) {
         <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
           ${pieChart}
         </div>
-        <div style="font-size: 0.875rem; color: rgba(147, 197, 253, 0.8); margin-bottom: 0.25rem;">${item.label}</div>
-        <div style="font-size: 1.125rem; font-weight: 700; color: #ffffff; margin-bottom: 0.25rem;">${item.value}${item.unit}</div>
-        <div style="font-size: 0.75rem; color: rgba(147, 197, 253, 0.6);">${Math.round(item.percent)}% daily</div>
+        <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.25rem;">${item.label}</div>
+        <div style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">${item.value}${item.unit}</div>
+        <div style="font-size: 0.75rem; color: var(--text-tertiary);">${Math.round(item.percent)}% daily</div>
       </div>
     `;
   }).join('');
@@ -366,12 +385,14 @@ async function startRecording(event) {
   
   if (DEMO_MODE) {
     // Demo mode - show recording animation and process demo data
-    playSound(startSound);
+    // Skip audio feedback in demo mode to avoid issues
+    console.log('Demo mode: Starting recording simulation');
     micBtn.classList.add('recording');
     setStatus('🎤 Recording... Release to stop');
     return;
   }
   
+  // Regular mode - only try to setup media recorder if not already done
   if (!mediaRecorder) {
     try {
       await setupMediaRecorder();
@@ -398,7 +419,7 @@ function stopRecording(event) {
   
   if (DEMO_MODE) {
     // Demo mode - stop recording animation and process demo data
-    playSound(endSound);
+    console.log('Demo mode: Stopping recording simulation');
     micBtn.classList.remove('recording');
     sendAudioToAPI(null); // Will use demo data
     return;
@@ -417,6 +438,9 @@ function stopRecording(event) {
 micBtn.addEventListener('mousedown', startRecording);
 micBtn.addEventListener('mouseup', stopRecording);
 micBtn.addEventListener('mouseleave', stopRecording);
+
+// Theme toggle
+themeToggle.addEventListener('click', toggleTheme);
 
 // Touch events for mobile
 micBtn.addEventListener('touchstart', (e) => {
@@ -437,18 +461,29 @@ micBtn.addEventListener('touchcancel', (e) => {
 // Initialize
 (async () => {
   try {
-    await initAudioFeedback();
+    // Initialize theme first
+    initTheme();
+    
+    // Only try audio feedback if not in demo mode (to avoid errors in headless environment)
     if (!DEMO_MODE) {
+      await initAudioFeedback();
       await setupMediaRecorder();
+    } else {
+      console.log('Running in demo mode - skipping audio setup');
     }
     
-    // Show demo in 3 seconds for testing
+    // Show demo message for testing
     if (DEMO_MODE) {
       setTimeout(() => {
         setStatus('👋 Click and hold the button to see a demo');
       }, 1000);
     }
   } catch (error) {
-    console.warn('Initial setup failed, will try again on first recording');
+    console.warn('Initial setup failed:', error);
+    if (DEMO_MODE) {
+      setTimeout(() => {
+        setStatus('👋 Click and hold the button to see a demo');
+      }, 1000);
+    }
   }
 })();
