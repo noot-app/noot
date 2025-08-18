@@ -6,6 +6,7 @@ import { Platform, Alert } from 'react-native';
 import { Audio } from 'expo-av';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const isDev = __DEV__;
 
 interface MediaRecorderOptions {
   mimeType: string;
@@ -17,6 +18,25 @@ declare global {
       new (stream: MediaStream, options?: MediaRecorderOptions): MediaRecorder;
       isTypeSupported(mimeType: string): boolean;
     };
+  }
+}
+
+// Development-only logging function
+function devLog(...args: any[]) {
+  if (isDev) {
+    console.log(...args);
+  }
+}
+
+function devError(...args: any[]) {
+  if (isDev) {
+    console.error(...args);
+  }
+}
+
+function devWarn(...args: any[]) {
+  if (isDev) {
+    console.warn(...args);
   }
 }
 
@@ -78,7 +98,7 @@ export function useAudioRecorder() {
 
       mediaRecorderRef.current = mediaRecorder;
     } catch (error) {
-      console.error('Web audio setup failed:', error);
+      devError('Web audio setup failed:', error);
       setStatus('❌ Microphone access denied. Please allow microphone access and refresh.');
     }
   };
@@ -99,22 +119,22 @@ export function useAudioRecorder() {
         }
       } else {
         // Native recording using expo-av
-        console.log('Requesting permissions..');
+        devLog('Requesting permissions..');
         await Audio.requestPermissionsAsync();
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: true,
           playsInSilentModeIOS: true,
         });
 
-        console.log('Starting recording..');
+        devLog('Starting recording..');
         const { recording } = await Audio.Recording.createAsync(
           Audio.RecordingOptionsPresets.HIGH_QUALITY
         );
         setRecording(recording);
-        console.log('Recording started');
+        devLog('Recording started');
       }
     } catch (err) {
-      console.error('Failed to start recording', err);
+      devError('Failed to start recording', err);
       Alert.alert('Error', 'Failed to start recording');
       setStatus('❌ Failed to start recording');
     }
@@ -131,7 +151,7 @@ export function useAudioRecorder() {
         }
       } else {
         // Native recording
-        console.log('Stopping recording..');
+        devLog('Stopping recording..');
         setRecording(null);
         if (recording) {
           await recording.stopAndUnloadAsync();
@@ -139,7 +159,7 @@ export function useAudioRecorder() {
             allowsRecordingIOS: false,
           });
           const uri = recording.getURI();
-          console.log('Recording stopped and stored at', uri);
+          devLog('Recording stopped and stored at', uri);
           
           if (uri) {
             await uploadRecording(uri);
@@ -147,14 +167,14 @@ export function useAudioRecorder() {
         }
       }
     } catch (error) {
-      console.error('Error stopping recording:', error);
+      devError('Error stopping recording:', error);
       setStatus('❌ Error stopping recording');
     }
   };
 
   const uploadRecording = async (audioData: string | Blob) => {
     try {
-      console.log('Starting upload:', { 
+      devLog('Starting upload:', { 
         platform: Platform.OS,
         apiUrl: API_URL,
         audioType: audioData instanceof Blob ? `Blob(${audioData.size})` : 'URI'
@@ -179,39 +199,45 @@ export function useAudioRecorder() {
 
       // Test backend connectivity first
       try {
-        console.log('Testing backend connection...');
+        devLog('Testing backend connection...');
         const healthResponse = await fetch(`${API_URL}/api/health`, { 
           method: 'GET',
-          mode: 'cors'
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/json',
+          },
         });
-        console.log('Backend health check:', healthResponse.ok, healthResponse.status);
+        devLog('Backend health check:', healthResponse.ok, healthResponse.status);
+        if (!healthResponse.ok) {
+          throw new Error(`Health check failed: ${healthResponse.status}`);
+        }
       } catch (healthError) {
-        console.error('Backend health check failed:', healthError);
-        throw new Error('Cannot reach backend server. Make sure it\'s running.');
+        devError('Backend health check failed:', healthError);
+        throw new Error('Cannot reach backend server. Make sure it\'s running on port 3000.');
       }
 
-      console.log('Making upload request...');
+      devLog('Making upload request...');
       const response = await fetch(`${API_URL}/api/ingest`, {
         method: 'POST',
         mode: 'cors',
         body: formData,
-        // Don't set Content-Type header - let the browser/fetch set it automatically
+        // Don't set Content-Type header - let the browser/fetch set it automatically for multipart/form-data
       });
 
-      console.log('Upload response:', response.status, response.ok);
+      devLog('Upload response:', response.status, response.ok, response.statusText);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Upload successful:', data);
+        devLog('Upload successful:', data);
         setStatus('');
         return data;
       } else {
         const errorText = await response.text();
-        console.error('Upload failed:', response.status, errorText);
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        devError('Upload failed:', response.status, response.statusText, errorText);
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
-      console.error('Error uploading recording:', error);
+      devError('Error uploading recording:', error);
       
       let errorMessage = 'Failed to process recording. Please try again.';
       if (error instanceof Error) {

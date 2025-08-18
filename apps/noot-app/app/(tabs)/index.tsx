@@ -1,12 +1,12 @@
 /**
  * Main noot nutrition app screen matching the original web frontend design
- * with Apple-inspired aesthetics, Siri-like microphone, and comprehensive theming
+ * with Apple-inspired aesthetics, animated microphone, and comprehensive theming
  */
 import React, { useState } from 'react';
 import { View, StyleSheet, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedBackground, ThemedText } from '@/components/ThemedComponents';
-import { SiriMicrophone } from '@/components/SiriMicrophone';
+import { MicrophoneButton } from '@/components/MicrophoneButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NutritionResults } from '@/components/NutritionResults';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
@@ -61,9 +61,9 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Siri Microphone Button */}
+          {/* Microphone Button */}
           <View style={styles.microphoneContainer}>
-            <SiriMicrophone
+            <MicrophoneButton
               recording={recording}
               uploading={uploading}
               onPressIn={handleStartRecording}

@@ -41,11 +41,24 @@ script/server --development  # Starts both backend + frontend
 
 The app automatically connects to the backend API at `http://localhost:3000`.
 
-For production or different backend URLs, set the `EXPO_PUBLIC_API_URL` environment variable:
+### Custom Backend URL
+
+To connect to a different backend server, create a `.env` file in the app directory:
 
 ```bash
-export EXPO_PUBLIC_API_URL=https://your-backend-url.com
+# .env file (create this if needed)
+EXPO_PUBLIC_API_URL=http://your-backend-server:3000
 ```
+
+Or set the environment variable when starting:
+
+```bash
+EXPO_PUBLIC_API_URL=https://your-production-backend.com npm run web
+```
+
+### Available Environment Variables
+
+- `EXPO_PUBLIC_API_URL` - Backend API URL (default: `http://localhost:3000`)
 
 ## Development
 

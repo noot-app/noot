@@ -206,12 +206,7 @@ const styles = StyleSheet.create({
   },
   gradientButton: {
     borderRadius: 96, // Half of 192px button size
-    shadowOffset: {
-      width: 0,
-      height: 20,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 40,
+    boxShadow: '0px 20px 40px rgba(0, 0, 0, 0.1)',
     elevation: 8,
   },
   gradientButtonPressed: {
@@ -226,12 +221,7 @@ const styles = StyleSheet.create({
     borderRadius: 96,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.2)',
   },
   backgroundGradient: {
     flex: 1,

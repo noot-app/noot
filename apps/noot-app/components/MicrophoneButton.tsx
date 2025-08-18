@@ -1,5 +1,5 @@
 /**
- * Siri-like microphone button with wave animations matching the original design
+ * Animated microphone button with wave animations matching the original design
  */
 import React, { useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GradientButton } from './ThemedComponents';
 import { Colors } from '@/constants/Colors';
 
-interface SiriMicrophoneProps {
+interface MicrophoneButtonProps {
   recording: boolean;
   uploading: boolean;
   onPressIn: () => void;
@@ -15,16 +15,16 @@ interface SiriMicrophoneProps {
   disabled?: boolean;
 }
 
-export function SiriMicrophone({ 
+export function MicrophoneButton({ 
   recording, 
   uploading, 
   onPressIn, 
   onPressOut, 
   disabled 
-}: SiriMicrophoneProps) {
+}: MicrophoneButtonProps) {
   const commonColors = Colors.common;
   
-  // Animation refs for Siri waves
+  // Animation refs for audio waves
   const wave1 = useRef(new Animated.Value(12)).current;
   const wave2 = useRef(new Animated.Value(8)).current;
   const wave3 = useRef(new Animated.Value(16)).current;
@@ -138,7 +138,7 @@ export function SiriMicrophone({
         recording={recording}
         style={styles.button}
       >
-        {/* Siri waves (only visible when recording) */}
+        {/* Audio waves (only visible when recording) */}
         {recording && (
           <View style={styles.wavesContainer}>
             <Animated.View style={[styles.wave, { height: wave1, backgroundColor: 'rgba(255, 255, 255, 0.95)' }]} />
@@ -205,8 +205,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   micIcon: {
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadow: '0px 2px 4px rgba(0, 0, 0, 0.3)',
   },
 });
