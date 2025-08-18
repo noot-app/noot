@@ -109,17 +109,27 @@ function renderResult(data) {
 
 function renderItems(items) {
   itemsEl.innerHTML = '';
-  
   items.forEach((item, index) => {
     const div = document.createElement('div');
     div.className = 'item';
-    
+
     const itemData = item.item || {};
     const fdcData = item.fdc || {};
     const nutrients = item.nutrients || {};
-    
+
+    // Quantity/unit display
+    let quantityStr = '';
+    if (itemData.quantity != null && itemData.unit) {
+      quantityStr = `<span class="item-quantity">${num(itemData.quantity)} ${escapeHtml(itemData.unit)}</span>`;
+    } else if (itemData.quantity != null) {
+      quantityStr = `<span class="item-quantity">${num(itemData.quantity)}</span>`;
+    } else if (itemData.unit) {
+      quantityStr = `<span class="item-quantity">${escapeHtml(itemData.unit)}</span>`;
+    }
+
     div.innerHTML = `
       <div class="item-name">${escapeHtml(itemData.name || 'Unknown item')}</div>
+      ${quantityStr ? `<div class="item-brand">Amount: ${quantityStr}</div>` : ''}
       ${itemData.brand ? `<div class="item-brand">Brand: ${escapeHtml(itemData.brand)}</div>` : ''}
       <div class="item-match">Match: ${escapeHtml(fdcData.description || 'No match found')}</div>
       ${Object.keys(nutrients).length > 0 ? `
@@ -134,7 +144,7 @@ function renderItems(items) {
       ` : ''}
       ${item.note ? `<div class="item-note">${escapeHtml(item.note)}</div>` : ''}
     `;
-    
+
     itemsEl.appendChild(div);
   });
 }
@@ -144,25 +154,181 @@ function renderSummary(summary) {
   const percentDaily = summary.percent_of_daily || {};
   
   const summaryData = [
-    { label: 'Calories', value: num(totals.energy_kcal), unit: 'kcal', percent: percentDaily['energy.kcal'] },
-    { label: 'Protein', value: num(totals.protein_g), unit: 'g', percent: percentDaily['protein.g'] },
-    { label: 'Fat', value: num(totals.fat_g), unit: 'g', percent: percentDaily['fat.g'] },
-    { label: 'Carbs', value: num(totals.carbs_g), unit: 'g', percent: percentDaily['carbs.g'] },
-    { label: 'Fiber', value: num(totals.fiber_g), unit: 'g', percent: percentDaily['fiber.g'] },
-    { label: 'Sugar', value: num(totals.sugar_g), unit: 'g', percent: percentDaily['sugar.g'] }
+    { 
+      label: 'Calories', 
+      value: num(totals.energy_kcal), 
+      unit: 'kcal', 
+      percent: Math.min(percentDaily['energy.kcal'] || 0, 100),
+      color: 'rgba(255, 255, 255, 0.9)'
+    },
+    { 
+      label: 'Protein', 
+      value: num(totals.protein_g), 
+      unit: 'g', 
+      percent: Math.min(percentDaily['protein.g'] || 0, 100),
+      color: 'rgba(255, 255, 255, 0.9)'
+    },
+    { 
+      label: 'Fat', 
+      value: num(totals.fat_g), 
+      unit: 'g', 
+      percent: Math.min(percentDaily['fat.g'] || 0, 100),
+      color: 'rgba(255, 255, 255, 0.9)'
+    },
+    { 
+      label: 'Carbs', 
+      value: num(totals.carbs_g), 
+      unit: 'g', 
+      percent: Math.min(percentDaily['carbs.g'] || 0, 100),
+      color: 'rgba(255, 255, 255, 0.9)'
+    },
+    { 
+      label: 'Fiber', 
+      value: num(totals.fiber_g), 
+      unit: 'g', 
+      percent: Math.min(percentDaily['fiber.g'] || 0, 100),
+      color: 'rgba(255, 255, 255, 0.9)'
+    },
+    { 
+      label: 'Sugar', 
+      value: num(totals.sugar_g), 
+      unit: 'g', 
+      percent: Math.min(percentDaily['sugar.g'] || 0, 100),
+      color: 'rgba(255, 255, 255, 0.9)'
+    }
   ];
   
   summaryEl.innerHTML = `
     <div class="summary-grid">
-      ${summaryData.map(item => `
-        <div class="summary-item">
+      ${summaryData.map((item, index) => `
+        <div class="summary-item" data-percent="${item.percent}">
+          <div class="pie-chart-container">
+            <div class="pie-chart">
+              <div class="pie-chart-background"></div>
+              <div class="pie-chart-fill" data-percentage="${item.percent}"></div>
+              <div class="pie-chart-center">${Math.round(item.percent)}%</div>
+            </div>
+          </div>
           <div class="summary-label">${item.label}</div>
           <div class="summary-value">${item.value}${item.unit}</div>
-          <div class="summary-percentage">${item.percent || 0}% daily</div>
+          <div class="summary-percentage">${item.percent}% of daily goal</div>
         </div>
       `).join('')}
     </div>
   `;
+  
+  // Animate pie charts after a short delay to ensure DOM is ready
+  setTimeout(() => {
+    animatePieCharts();
+  }, 100);
+}
+
+function animatePieCharts() {
+  const pieCharts = document.querySelectorAll('.pie-chart-fill');
+  
+  pieCharts.forEach((chart, index) => {
+    const percentage = parseFloat(chart.dataset.percentage);
+    const degrees = (percentage / 100) * 360;
+    
+    // Start animation after staggered delay
+    setTimeout(() => {
+      // Use CSS custom property for smooth animation
+      chart.style.setProperty('--percentage', '0deg');
+      
+      // Trigger animation
+      requestAnimationFrame(() => {
+        chart.style.setProperty('--percentage', `${degrees}deg`);
+      });
+      
+      // Animate the percentage counter in the center
+      const centerElement = chart.parentElement.querySelector('.pie-chart-center');
+      animateCounter(centerElement, 0, Math.round(percentage), 1500);
+      
+    }, index * 200); // Stagger each pie chart by 200ms
+  });
+}
+
+function animateCounter(element, start, end, duration) {
+  const startTime = performance.now();
+  
+  function updateCounter(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Use easing function for smooth animation
+    const easedProgress = easeOutCubic(progress);
+    const current = Math.round(start + (end - start) * easedProgress);
+    
+    element.textContent = `${current}%`;
+    
+    if (progress < 1) {
+      requestAnimationFrame(updateCounter);
+    }
+  }
+  
+  requestAnimationFrame(updateCounter);
+}
+
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+// Enhanced result rendering with staggered animations
+function renderResult(data) {
+  resultEl.classList.remove('hidden');
+  
+  // Render transcript
+  transcriptEl.textContent = data.transcript || 'No transcript available';
+  
+  // Render items with animation
+  renderItems(data.items || []);
+  
+  // Render summary with pie charts
+  if (data.summary) {
+    renderSummary(data.summary);
+  }
+  
+  // Add floating animation to cards
+  setTimeout(() => {
+    addFloatingAnimation();
+  }, 500);
+  
+  // Smooth scroll to results
+  setTimeout(() => {
+    resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 200);
+}
+
+function addFloatingAnimation() {
+  const cards = document.querySelectorAll('.result-card');
+  
+  cards.forEach((card, index) => {
+    // Add subtle floating animation
+    card.style.animation = `float 6s ease-in-out infinite`;
+    card.style.animationDelay = `${index * 0.5}s`;
+  });
+}
+
+// Add floating keyframes to CSS via JavaScript (since we can't modify CSS from here)
+function addFloatingKeyframes() {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    
+    @keyframes gentleBob {
+      0%, 100% { transform: translateY(0px) rotateZ(0deg); }
+      25% { transform: translateY(-2px) rotateZ(0.5deg); }
+      75% { transform: translateY(-1px) rotateZ(-0.5deg); }
+    }
+    
+    .summary-item:hover {
+      animation: gentleBob 0.6s ease-in-out;
+    }
+  `;
+  document.head.appendChild(style);
 }
 
 // Recording Functions
@@ -234,6 +400,7 @@ micBtn.addEventListener('touchend', (e) => {
 // Initialize
 (async () => {
   initTheme();
+  addFloatingKeyframes();
   try { 
     await setupStream(); 
   } catch (e) {
