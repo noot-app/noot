@@ -95,13 +95,13 @@ function renderResult(data) {
   // Render transcript
   transcriptEl.textContent = data.transcript || 'No transcript available';
   
-  // Render items
-  renderItems(data.items || []);
-  
-  // Render summary
+  // Render summary first
   if (data.summary) {
     renderSummary(data.summary);
   }
+
+  // Render items below summary
+  renderItems(data.items || []);
   
   // Smooth scroll to results
   resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -241,7 +241,7 @@ function renderSummary(summary) {
     },
     { 
       label: 'Protein', 
-      value: num(totals.protein), 
+      value: num(totals.protein_g), 
       unit: 'g', 
       percent: Math.min(percentDaily['protein'] || 0, 100),
       color: 'rgba(255, 255, 255, 0.9)'
