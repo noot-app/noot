@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AI Nutrition PoC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Just say what you ate</h1>
+      <button id="micBtn" class="mic">🎤 Hold to record</button>
+      <p id="hint">Press and hold the mic, speak, then release.</p>
+
+      <section id="status"></section>
+
+      <section id="result" class="hidden">
+        <h2>Result</h2>
+        <div><strong>Transcript:</strong> <span id="transcript"></span></div>
+        <div id="items"></div>
+        <div id="summary"></div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
