@@ -60,35 +60,27 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	LogDebug("Transcription completed", "transcript_length", len(transcript), "request_id", requestID)
 
-	// 2) Parse items via Chat Completions
-	LogDebug("Starting item parsing", "request_id", requestID)
+	// 2) Parse items with complete nutrition via Chat Completions
+	LogDebug("Starting item parsing with nutrition", "request_id", requestID)
 	parsed, err := parseItems(ctx, transcript)
 	if err != nil {
 		appErr := NewAppError("Parsing failed", http.StatusInternalServerError, err)
 		handleAppError(w, appErr, requestID)
 		return
 	}
-	LogDebug("Item parsing completed", "item_count", len(parsed.Items), "request_id", requestID)
+	LogDebug("Item parsing with nutrition completed", "item_count", len(parsed.Items), "request_id", requestID)
 
-	// 3) Resolve FDC and nutrients per item (sequential for simplicity)
-	LogDebug("Starting nutrition lookup", "request_id", requestID)
+	// 3) Convert to ItemWithNutrition format for response
 	var itemsWith []ItemWithNutrition
-	for i, it := range parsed.Items {
-		LogDebug("Looking up nutrition", "item", it.Name, "index", i, "request_id", requestID)
-
-		iw, err := resolveItemNutrition(ctx, it)
-		if err != nil {
-			LogWarn("Nutrition lookup failed", "item", it.Name, "error", err.Error(), "request_id", requestID)
-			iw = ItemWithNutrition{
-				Item:  it,
-				Note:  "Error: " + err.Error(),
-				Nutri: nil,
-				FDC:   nil,
-			}
+	for _, it := range parsed.Items {
+		iw := ItemWithNutrition{
+			Item: it,
+		}
+		if it.Nutrients == nil {
+			iw.Note = "Nutrition data unavailable"
 		}
 		itemsWith = append(itemsWith, iw)
 	}
-	LogDebug("Nutrition lookup completed", "request_id", requestID)
 
 	// 4) Summarize
 	summary := summarize(itemsWith)
@@ -104,7 +96,7 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	LogInfo("Ingest request completed successfully",
 		"transcript_length", len(transcript),
 		"items_count", len(itemsWith),
-		"total_calories", summary.Totals.EnergyKcal,
+		"total_calories", summary.Totals.Calories,
 		"request_id", requestID,
 	)
 

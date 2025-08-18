@@ -115,11 +115,9 @@ function renderItems(items) {
     div.className = 'item';
     
     const itemData = item.item || {};
-    const fdcData = item.fdc || {};
-    const nutrients = item.nutrients || {};
+    const nutrients = itemData.nutrients || {};
     
-    // Calculate serving amount - FDC data is typically per 100g
-    // We'll estimate the serving size based on common portions
+    // Calculate serving amount
     let servingAmount = getEstimatedServingSize(itemData.name, itemData.quantity, itemData.unit);
     
     div.innerHTML = `
@@ -133,18 +131,20 @@ function renderItems(items) {
         }
       </div>
       ${itemData.brand ? `<div class="item-brand">Brand: ${escapeHtml(itemData.brand)}</div>` : ''}
-      <div class="item-match">Match: ${escapeHtml(fdcData.description || 'No match found')}</div>
       ${Object.keys(nutrients).length > 0 ? `
+        <div class="item-match">Match: Nutrition data provided by AI</div>
         <div class="item-nutrients">
-          <div class="nutrient-title">Per ${servingAmount}g:</div>
-          Cal: ${num(nutrients.energy_kcal * (servingAmount / 100))} | 
-          P: ${num(nutrients.protein_g * (servingAmount / 100))}g | 
-          F: ${num(nutrients.fat_g * (servingAmount / 100))}g | 
-          C: ${num(nutrients.carbs_g * (servingAmount / 100))}g | 
-          Fiber: ${num(nutrients.fiber_g * (servingAmount / 100))}g | 
-          Sugar: ${num(nutrients.sugar_g * (servingAmount / 100))}g
+          <div class="nutrient-title">Per serving:</div>
+          Cal: ${num(nutrients.calories)} | 
+          P: ${num(nutrients.protein_g)}g | 
+          F: ${num(nutrients.total_fat_g)}g | 
+          C: ${num(nutrients.total_carbs_g)}g | 
+          Fiber: ${num(nutrients.dietary_fiber_g)}g | 
+          Sugar: ${num(nutrients.total_sugars_g)}g
         </div>
-      ` : ''}
+      ` : `
+        <div class="item-match">Match: No nutrition data available</div>
+      `}
       ${item.note ? `<div class="item-note">${escapeHtml(item.note)}</div>` : ''}
     `;
     
@@ -234,44 +234,44 @@ function renderSummary(summary) {
   const summaryData = [
     { 
       label: 'Calories', 
-      value: num(totals.energy_kcal), 
+      value: num(totals.calories), 
       unit: 'kcal', 
-      percent: Math.min(percentDaily['energy.kcal'] || 0, 100),
+      percent: Math.min(percentDaily['calories'] || 0, 100),
       color: 'rgba(255, 255, 255, 0.9)'
     },
     { 
       label: 'Protein', 
-      value: num(totals.protein_g), 
+      value: num(totals.protein), 
       unit: 'g', 
-      percent: Math.min(percentDaily['protein.g'] || 0, 100),
+      percent: Math.min(percentDaily['protein'] || 0, 100),
       color: 'rgba(255, 255, 255, 0.9)'
     },
     { 
       label: 'Fat', 
-      value: num(totals.fat_g), 
+      value: num(totals.total_fat_g), 
       unit: 'g', 
-      percent: Math.min(percentDaily['fat.g'] || 0, 100),
+      percent: Math.min(percentDaily['total_fat'] || 0, 100),
       color: 'rgba(255, 255, 255, 0.9)'
     },
     { 
       label: 'Carbs', 
-      value: num(totals.carbs_g), 
+      value: num(totals.total_carbs_g), 
       unit: 'g', 
-      percent: Math.min(percentDaily['carbs.g'] || 0, 100),
+      percent: Math.min(percentDaily['total_carbs'] || 0, 100),
       color: 'rgba(255, 255, 255, 0.9)'
     },
     { 
       label: 'Fiber', 
-      value: num(totals.fiber_g), 
+      value: num(totals.dietary_fiber_g), 
       unit: 'g', 
-      percent: Math.min(percentDaily['fiber.g'] || 0, 100),
+      percent: Math.min(percentDaily['dietary_fiber'] || 0, 100),
       color: 'rgba(255, 255, 255, 0.9)'
     },
     { 
       label: 'Sugar', 
-      value: num(totals.sugar_g), 
+      value: num(totals.total_sugars_g), 
       unit: 'g', 
-      percent: Math.min(percentDaily['sugar.g'] || 0, 100),
+      percent: Math.min(percentDaily['total_sugars'] || 0, 100),
       color: 'rgba(255, 255, 255, 0.9)'
     }
   ];
