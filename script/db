@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+DB_PATH="${DATABASE_PATH:-./noot.db}"
+
+function usage() {
+    echo "Usage: $0 {reset|seed|dump}"
+    echo ""
+    echo "Commands:"
+    echo "  reset    Drop all tables and re-run migrations"
+    echo "  seed     Add development seed data (monalisa user + sample meals)"
+    echo "  dump     Show database content in human-readable format"
+    echo ""
+    echo "Environment Variables:"
+    echo "  DATABASE_PATH    Path to SQLite database file (default: ./noot.db)"
+    exit 1
+}
+
+function db_reset() {
+    echo -e "${BLUE}🔄 Resetting database: ${DB_PATH}${OFF}"
+    
+    # Remove the database file to start fresh
+    if [[ -f "$DB_PATH" ]]; then
+        rm "$DB_PATH"
+        echo "Removed existing database file"
+    fi
+    
+    echo "Database reset complete"
+}
+
+function db_seed() {
+    echo -e "${BLUE}🌱 Seeding database: ${DB_PATH}${OFF}"
+    
+    # Use go run directly from the current project
+    DATABASE_PATH="$DB_PATH" go run -C . internal/storage/cmd/seed/main.go
+    
+    echo -e "${GREEN}✅ Database seeded successfully${OFF}"
+}
+
+function db_dump() {
+    echo -e "${BLUE}📊 Database content: ${DB_PATH}${OFF}"
+    
+    if [[ ! -f "$DB_PATH" ]]; then
+        echo "Database file not found: $DB_PATH"
+        exit 1
+    fi
+    
+    echo ""
+    echo "=== Users ==="
+    sqlite3 "$DB_PATH" "SELECT id, provider, subject, email, datetime(created_at, 'localtime') as created_at FROM users ORDER BY id;"
+    
+    echo ""
+    echo "=== Meals ==="
+    sqlite3 "$DB_PATH" "SELECT id, user_id, transcript, total_calories, total_protein_g, total_carbs_g, datetime(created_at, 'localtime') as created_at FROM meals ORDER BY created_at DESC;"
+    
+    echo ""
+    echo "=== Stats ==="
+    sqlite3 "$DB_PATH" "SELECT 'Users: ' || COUNT(*) FROM users UNION ALL SELECT 'Meals: ' || COUNT(*) FROM meals;"
+}
+
+# Main command dispatch
+case "${1:-}" in
+    reset)
+        db_reset
+        ;;
+    seed)
+        db_seed
+        ;;
+    dump)
+        db_dump
+        ;;
+    *)
+        usage
+        ;;
+esac

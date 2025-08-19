@@ -160,7 +160,7 @@ func TestTranscribeAudio_MissingAPIKey(t *testing.T) {
 }
 
 func TestParseItems_MissingAPIKey(t *testing.T) {
-	// Initialize logger  
+	// Initialize logger
 	InitLogger()
 
 	originalKey := os.Getenv("OPENAI_API_KEY")

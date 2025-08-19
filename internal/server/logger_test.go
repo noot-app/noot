@@ -18,7 +18,7 @@ func TestInitLogger(t *testing.T) {
 	assert.NotPanics(t, func() {
 		InitLogger()
 	})
-	
+
 	// Test that logger is set after initialization
 	assert.NotNil(t, logger)
 }
@@ -33,8 +33,8 @@ func TestGetLogLevel(t *testing.T) {
 		{"INFO", "INFO", "INFO"},
 		{"WARN", "WARN", "WARN"},
 		{"ERROR", "ERROR", "ERROR"},
-		{"invalid", "INVALID", "INFO"}, // defaults to INFO
-		{"empty", "", "INFO"},          // defaults to INFO
+		{"invalid", "INVALID", "INFO"},  // defaults to INFO
+		{"empty", "", "INFO"},           // defaults to INFO
 		{"lowercase", "debug", "DEBUG"}, // should be uppercase
 	}
 
@@ -111,7 +111,7 @@ func TestIsDevMode(t *testing.T) {
 		{"dev", "dev", true},
 		{"development", "development", true},
 		{"local", "local", true},
-		{"Dev", "Dev", true},        // case insensitive
+		{"Dev", "Dev", true},                 // case insensitive
 		{"DEVELOPMENT", "DEVELOPMENT", true}, // case insensitive
 		{"production", "production", false},
 		{"prod", "prod", false},
@@ -139,7 +139,7 @@ func TestIsDevMode(t *testing.T) {
 			// Clear both ENV vars first
 			os.Unsetenv("ENV")
 			os.Unsetenv("ENVIRONMENT")
-			
+
 			if tt.env != "" {
 				os.Setenv("ENV", tt.env)
 			}
@@ -288,7 +288,7 @@ func TestNewAppError(t *testing.T) {
 func TestCaptureStack(t *testing.T) {
 	stack := captureStack(1)
 	assert.NotEmpty(t, stack)
-	
+
 	// Should contain this test function
 	found := false
 	for _, frame := range stack {
@@ -306,7 +306,7 @@ func TestLogHelpers(t *testing.T) {
 
 	// These tests mainly ensure the functions don't panic
 	// In a real test environment, you might capture log output
-	
+
 	t.Run("LogInfo", func(t *testing.T) {
 		assert.NotPanics(t, func() {
 			LogInfo("test info", "key", "value")
@@ -335,7 +335,7 @@ func TestLogHelpers(t *testing.T) {
 func TestHandleAppError(t *testing.T) {
 	// Initialize logger
 	InitLogger()
-	
+
 	// Set debug mode to test stack inclusion
 	originalDebug := os.Getenv("DEBUG")
 	os.Setenv("DEBUG", "true")
@@ -355,11 +355,11 @@ func TestHandleAppError(t *testing.T) {
 
 	assert.Equal(t, 422, w.Code)
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, "test app error", response["error"])
 	assert.Equal(t, float64(422), response["code"])
 	assert.Equal(t, "trace456", response["trace_id"])

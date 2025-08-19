@@ -8,7 +8,7 @@ import (
 
 func TestTranscriptionPrompt(t *testing.T) {
 	prompt := transcriptionPrompt()
-	
+
 	assert.NotEmpty(t, prompt)
 	assert.Contains(t, prompt, "audio")
 	assert.Contains(t, prompt, "foods")
@@ -19,7 +19,7 @@ func TestTranscriptionPrompt(t *testing.T) {
 
 func TestParseSystemPrompt(t *testing.T) {
 	prompt := parseSystemPrompt()
-	
+
 	assert.NotEmpty(t, prompt)
 	assert.Contains(t, prompt, "JSON")
 	assert.Contains(t, prompt, "nutrition")
@@ -66,7 +66,7 @@ func TestStrPtrOrNil(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := strPtrOrNil(tt.input)
-			
+
 			if tt.expected == nil {
 				assert.Nil(t, result)
 			} else {

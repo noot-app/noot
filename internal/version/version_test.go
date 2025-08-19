@@ -8,7 +8,7 @@ import (
 
 func TestGet(t *testing.T) {
 	info := Get()
-	
+
 	// Test that we get back the expected structure
 	assert.Equal(t, "dev", info.Tag)
 	assert.Equal(t, "unknown", info.Commit)
@@ -52,14 +52,14 @@ func TestGetCommitShort(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Save original commit value
 			originalCommit := commit
-			
+
 			// Set test value
 			commit = tt.originalCommit
-			
+
 			// Test
 			result := GetCommitShort()
 			assert.Equal(t, tt.expected, result)
-			
+
 			// Restore original value
 			commit = originalCommit
 		})

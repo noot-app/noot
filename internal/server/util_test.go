@@ -262,18 +262,18 @@ func TestGetenv(t *testing.T) {
 func TestHttpError(t *testing.T) {
 	// Initialize logger for test
 	InitLogger()
-	
+
 	w := httptest.NewRecorder()
-	
+
 	httpError(w, http.StatusBadRequest, "test error")
-	
+
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, "test error", response["error"])
 	assert.Equal(t, float64(400), response["code"])
 	assert.NotNil(t, response["timestamp"])
@@ -282,7 +282,7 @@ func TestHttpError(t *testing.T) {
 func TestHttpErrorWithDetails(t *testing.T) {
 	// Initialize logger for test
 	InitLogger()
-	
+
 	// Set debug mode to ensure stack trace is included
 	originalDebug := os.Getenv("DEBUG")
 	os.Setenv("DEBUG", "true")
@@ -293,25 +293,25 @@ func TestHttpErrorWithDetails(t *testing.T) {
 			os.Setenv("DEBUG", originalDebug)
 		}
 	}()
-	
+
 	w := httptest.NewRecorder()
 	stack := []string{"line1", "line2"}
 	traceID := "trace123"
-	
+
 	httpErrorWithDetails(w, http.StatusInternalServerError, "detailed error", stack, traceID)
-	
+
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, "detailed error", response["error"])
 	assert.Equal(t, float64(500), response["code"])
 	assert.Equal(t, "trace123", response["trace_id"])
 	assert.NotNil(t, response["timestamp"])
-	
+
 	// Check if stack is included
 	if stack, exists := response["stack"]; exists && stack != nil {
 		stackSlice := stack.([]interface{})
@@ -324,29 +324,29 @@ func TestHttpErrorWithDetails(t *testing.T) {
 func TestWriteJSON(t *testing.T) {
 	w := httptest.NewRecorder()
 	data := map[string]string{"message": "test"}
-	
+
 	writeJSON(w, http.StatusCreated, data)
-	
+
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
-	
+
 	var response map[string]string
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, "test", response["message"])
 }
 
 func TestWriteJSON_InvalidData(t *testing.T) {
 	w := httptest.NewRecorder()
-	
+
 	// Create data that will fail JSON marshaling (channel can't be marshaled)
 	data := map[string]interface{}{
 		"invalid": make(chan int),
 	}
-	
+
 	writeJSON(w, http.StatusOK, data)
-	
+
 	// Should still write the status code
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
@@ -358,14 +358,14 @@ func TestRemoveFile(t *testing.T) {
 	require.NoError(t, err)
 	tmpPath := tmpFile.Name()
 	tmpFile.Close()
-	
+
 	// Verify file exists
 	_, err = os.Stat(tmpPath)
 	assert.NoError(t, err)
-	
+
 	// Remove file
 	removeFile(tmpPath)
-	
+
 	// Verify file is gone
 	_, err = os.Stat(tmpPath)
 	assert.True(t, os.IsNotExist(err))
@@ -382,7 +382,7 @@ func TestLoadDotEnv(t *testing.T) {
 	// Create a temporary .env file
 	tmpDir := t.TempDir()
 	envFile := filepath.Join(tmpDir, ".env")
-	
+
 	envContent := `# This is a comment
 TEST_KEY1=value1
 TEST_KEY2="quoted value"
@@ -392,30 +392,30 @@ EMPTY_KEY=
 
 # Another comment
 OVERRIDE_KEY=override_value`
-	
+
 	err := os.WriteFile(envFile, []byte(envContent), 0644)
 	require.NoError(t, err)
-	
+
 	// Save current directory and change to temp directory
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer os.Chdir(originalDir)
-	
+
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
-	
+
 	// Clear test env vars
 	testKeys := []string{"TEST_KEY1", "TEST_KEY2", "TEST_KEY3", "TEST_KEY4", "EMPTY_KEY", "OVERRIDE_KEY"}
 	for _, key := range testKeys {
 		os.Unsetenv(key)
 	}
-	
+
 	// Set one key that should not be overridden
 	os.Setenv("OVERRIDE_KEY", "original_value")
-	
+
 	// Load .env file
 	LoadDotEnv()
-	
+
 	// Test loaded values
 	assert.Equal(t, "value1", os.Getenv("TEST_KEY1"))
 	assert.Equal(t, "quoted value", os.Getenv("TEST_KEY2"))
@@ -423,7 +423,7 @@ OVERRIDE_KEY=override_value`
 	assert.Equal(t, "spaced value", os.Getenv("TEST_KEY4"))
 	assert.Equal(t, "", os.Getenv("EMPTY_KEY"))
 	assert.Equal(t, "original_value", os.Getenv("OVERRIDE_KEY")) // Should not be overridden
-	
+
 	// Clean up
 	for _, key := range testKeys {
 		os.Unsetenv(key)
@@ -436,10 +436,10 @@ func TestLoadDotEnv_NoFile(t *testing.T) {
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer os.Chdir(originalDir)
-	
+
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
-	
+
 	assert.NotPanics(t, func() {
 		LoadDotEnv()
 	})
@@ -537,12 +537,12 @@ func TestSummarize(t *testing.T) {
 	// Test daily value percentages (using standard daily values)
 	assert.NotNil(t, summary.PercentOfDaily)
 	assert.NotNil(t, summary.DailyValuesUsed)
-	
+
 	// Check that daily values are set (using actual values from function)
 	assert.Equal(t, 2000.0, summary.DailyValuesUsed["calories"])
 	assert.Equal(t, 50.0, summary.DailyValuesUsed["protein_g"])
 	assert.Equal(t, 78.0, summary.DailyValuesUsed["total_fat_g"])
-	
+
 	// Check percentage calculations (using actual daily values)
 	caloriePercent := 205.0 / 2000.0 * 100.0
 	expectedCaloriePercent := int(caloriePercent)
@@ -551,9 +551,9 @@ func TestSummarize(t *testing.T) {
 
 func TestSummarize_EmptyItems(t *testing.T) {
 	items := []ItemWithNutrition{}
-	
+
 	summary := summarize(items)
-	
+
 	assert.Equal(t, 0.0, summary.Totals.Calories)
 	assert.Equal(t, 0.0, summary.Totals.Protein)
 	assert.NotNil(t, summary.PercentOfDaily)
@@ -569,9 +569,9 @@ func TestSummarize_NilNutrients(t *testing.T) {
 			},
 		},
 	}
-	
+
 	summary := summarize(items)
-	
+
 	assert.Equal(t, 0.0, summary.Totals.Calories)
 	assert.Equal(t, 0.0, summary.Totals.Protein)
 }
