@@ -110,7 +110,7 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 	now := time.Now().UTC()
 	user.ID = generateULID()
 	user.CreatedAt = now
-	
+
 	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email, now)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
@@ -122,7 +122,7 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 // GetUser retrieves a user by ID
 func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
 	query := `SELECT id, provider, subject, email, created_at FROM users WHERE id = ?`
-	
+
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, id).
 		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.CreatedAt)
@@ -139,7 +139,7 @@ func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
 // GetUserBySubject retrieves a user by provider and subject
 func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject string) (*User, error) {
 	query := `SELECT id, provider, subject, email, created_at FROM users WHERE provider = ? AND subject = ?`
-	
+
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, provider, subject).
 		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.CreatedAt)
@@ -163,7 +163,7 @@ func (s *SQLiteStore) CreateMeal(ctx context.Context, meal *Meal) error {
 	now := time.Now().UTC()
 	meal.ID = generateULID()
 	meal.CreatedAt = now
-	
+
 	_, err := s.db.ExecContext(ctx, query,
 		meal.ID, meal.UserID, meal.Transcript, meal.ItemsJSON,
 		meal.TotalCalories, meal.TotalProtein, meal.TotalFat,
@@ -181,12 +181,12 @@ func (s *SQLiteStore) GetMeal(ctx context.Context, id string) (*Meal, error) {
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
 		FROM meals WHERE id = ?`
-	
+
 	meal := &Meal{}
 	err := s.db.QueryRowContext(ctx, query, id).
 		Scan(&meal.ID, &meal.UserID, &meal.Transcript, &meal.ItemsJSON,
-			 &meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
-			 &meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
+			&meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
+			&meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Meal not found
@@ -205,7 +205,7 @@ func (s *SQLiteStore) GetMealsByUser(ctx context.Context, userID string, limit, 
 		FROM meals WHERE user_id = ?
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
-	
+
 	rows, err := s.db.QueryContext(ctx, query, userID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query meals: %w", err)
@@ -216,8 +216,8 @@ func (s *SQLiteStore) GetMealsByUser(ctx context.Context, userID string, limit, 
 	for rows.Next() {
 		meal := &Meal{}
 		err := rows.Scan(&meal.ID, &meal.UserID, &meal.Transcript, &meal.ItemsJSON,
-						 &meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
-						 &meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
+			&meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
+			&meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan meal: %w", err)
 		}
@@ -238,7 +238,7 @@ func (s *SQLiteStore) GetMealsByUserSince(ctx context.Context, userID string, si
 			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
 		FROM meals WHERE user_id = ? AND created_at >= ?
 		ORDER BY created_at DESC`
-	
+
 	rows, err := s.db.QueryContext(ctx, query, userID, since)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query meals since: %w", err)
@@ -249,8 +249,8 @@ func (s *SQLiteStore) GetMealsByUserSince(ctx context.Context, userID string, si
 	for rows.Next() {
 		meal := &Meal{}
 		err := rows.Scan(&meal.ID, &meal.UserID, &meal.Transcript, &meal.ItemsJSON,
-						 &meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
-						 &meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
+			&meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
+			&meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan meal: %w", err)
 		}
@@ -269,7 +269,7 @@ func (s *SQLiteStore) Seed() error {
 	ctx := context.Background()
 
 	// Check if user already exists
-	user, err := s.GetUserBySubject(ctx, "github", "monalisa")
+	user, err := s.GetUserBySubject(ctx, "email", "monalisa")
 	if err != nil {
 		return fmt.Errorf("failed to check for existing user: %w", err)
 	}
@@ -277,9 +277,9 @@ func (s *SQLiteStore) Seed() error {
 	// Create monalisa user if it doesn't exist
 	if user == nil {
 		user = &User{
-			Provider: "github",
+			Provider: "email",
 			Subject:  "monalisa",
-			Email:    "monalisa@github.com",
+			Email:    "monalisa@birki.io",
 		}
 		if err := s.CreateUser(ctx, user); err != nil {
 			return fmt.Errorf("failed to create seed user: %w", err)
@@ -396,7 +396,7 @@ func (s *SQLiteStore) GetItemFromCache(ctx context.Context, normalizedName, norm
 			   zinc_mg_per_100g, copper_mg_per_100g, manganese_mg_per_100g, selenium_mcg_per_100g,
 			   fetched_at, expires_at, created_at, updated_at
 		FROM items_cache WHERE normalized_name = ? AND normalized_brand = ?`
-	
+
 	item := &ItemCache{}
 	err := s.db.QueryRowContext(ctx, query, normalizedName, normalizedBrand).Scan(
 		&item.ID, &item.NormalizedName, &item.NormalizedBrand, &item.DisplayName, &item.DisplayBrand,
@@ -423,7 +423,7 @@ func (s *SQLiteStore) GetItemFromCache(ctx context.Context, normalizedName, norm
 // UpsertItemCache inserts or updates an item in the cache
 func (s *SQLiteStore) UpsertItemCache(ctx context.Context, item *ItemCache) error {
 	now := time.Now().UTC()
-	
+
 	// Check if item exists
 	existing, err := s.GetItemFromCache(ctx, item.NormalizedName, item.NormalizedBrand)
 	if err != nil {
@@ -533,8 +533,8 @@ func (s *SQLiteStore) CreateItemAlias(ctx context.Context, alias *ItemAlias) err
 	now := time.Now().UTC()
 	alias.ID = generateULID()
 	alias.CreatedAt = now
-	
-	_, err := s.db.ExecContext(ctx, query, alias.ID, alias.AliasName, alias.AliasBrand, 
+
+	_, err := s.db.ExecContext(ctx, query, alias.ID, alias.AliasName, alias.AliasBrand,
 		alias.CanonicalName, alias.CanonicalBrand, now)
 	if err != nil {
 		return fmt.Errorf("failed to create item alias: %w", err)
@@ -546,7 +546,7 @@ func (s *SQLiteStore) CreateItemAlias(ctx context.Context, alias *ItemAlias) err
 // GetCanonicalName retrieves canonical name and brand for an alias
 func (s *SQLiteStore) GetCanonicalName(ctx context.Context, aliasName, aliasBrand string) (canonicalName, canonicalBrand string, err error) {
 	query := `SELECT canonical_name, canonical_brand FROM item_aliases WHERE alias_name = ? AND alias_brand = ?`
-	
+
 	err = s.db.QueryRowContext(ctx, query, aliasName, aliasBrand).
 		Scan(&canonicalName, &canonicalBrand)
 	if err != nil {

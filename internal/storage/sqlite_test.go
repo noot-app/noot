@@ -14,7 +14,7 @@ func TestSQLiteStore(t *testing.T) {
 	// Create temp database file
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
-	
+
 	store, err := NewSQLiteStore(dbPath)
 	require.NoError(t, err)
 	defer store.Close()
@@ -126,7 +126,7 @@ func TestSQLiteStore(t *testing.T) {
 		retrieved, err := store.GetMealsByUser(ctx, user.ID, 10, 0)
 		require.NoError(t, err)
 		assert.Len(t, retrieved, 2)
-		
+
 		// Meals should be ordered by created_at DESC
 		assert.Equal(t, "Lunch", retrieved[0].Transcript)
 		assert.Equal(t, "Breakfast", retrieved[1].Transcript)
@@ -185,10 +185,10 @@ func TestSQLiteStore(t *testing.T) {
 		require.NoError(t, err)
 
 		// Check that monalisa user was created
-		user, err := store.GetUserBySubject(ctx, "github", "monalisa")
+		user, err := store.GetUserBySubject(ctx, "email", "monalisa")
 		require.NoError(t, err)
 		require.NotNil(t, user)
-		assert.Equal(t, "monalisa@github.com", user.Email)
+		assert.Equal(t, "monalisa@birki.io", user.Email)
 
 		// Check that sample meals were created
 		meals, err := store.GetMealsByUser(ctx, user.ID, 10, 0)
@@ -230,19 +230,19 @@ func TestSQLiteStore(t *testing.T) {
 		// Create and upsert an item to cache
 		now := time.Now().UTC()
 		cacheItem := &ItemCache{
-			NormalizedName:  "apple",
-			NormalizedBrand: "generic",
-			DisplayName:     "Apple",
-			DisplayBrand:    "Generic",
-			CaloriesPer100g: 52,
-			ProteinGPer100g: 0.3,
-			TotalFatGPer100g: 0.2,
-			TotalCarbsGPer100g: 14,
+			NormalizedName:       "apple",
+			NormalizedBrand:      "generic",
+			DisplayName:          "Apple",
+			DisplayBrand:         "Generic",
+			CaloriesPer100g:      52,
+			ProteinGPer100g:      0.3,
+			TotalFatGPer100g:     0.2,
+			TotalCarbsGPer100g:   14,
 			DietaryFiberGPer100g: 2.4,
-			SodiumMgPer100g: 1,
-			VitaminCMgPer100g: 4.6,
-			FetchedAt: now,
-			ExpiresAt: now.AddDate(0, 0, 30),
+			SodiumMgPer100g:      1,
+			VitaminCMgPer100g:    4.6,
+			FetchedAt:            now,
+			ExpiresAt:            now.AddDate(0, 0, 30),
 		}
 
 		err = store.UpsertItemCache(ctx, cacheItem)
@@ -260,7 +260,7 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Equal(t, float64(4.6), retrieved.VitaminCMgPer100g)
 
 		// Test updating the same item (upsert existing)
-		cacheItem.CaloriesPer100g = 55 // Updated calorie value
+		cacheItem.CaloriesPer100g = 55    // Updated calorie value
 		cacheItem.VitaminCMgPer100g = 5.0 // Updated vitamin C value
 		err = store.UpsertItemCache(ctx, cacheItem)
 		require.NoError(t, err)
@@ -275,12 +275,12 @@ func TestSQLiteStore(t *testing.T) {
 
 		// Test refresh cache functionality
 		refreshedItem := &ItemCache{
-			DisplayName:     "Fresh Apple",
-			DisplayBrand:    "Organic",
-			CaloriesPer100g: 58,
-			ProteinGPer100g: 0.4,
-			TotalFatGPer100g: 0.1,
-			TotalCarbsGPer100g: 15,
+			DisplayName:          "Fresh Apple",
+			DisplayBrand:         "Organic",
+			CaloriesPer100g:      58,
+			ProteinGPer100g:      0.4,
+			TotalFatGPer100g:     0.1,
+			TotalCarbsGPer100g:   15,
 			DietaryFiberGPer100g: 2.8,
 		}
 		err = store.RefreshItemCache(ctx, "apple", "generic", refreshedItem)
