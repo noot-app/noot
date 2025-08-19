@@ -203,7 +203,7 @@
         </div>
 
         <!-- Daily Breakdown (for week view) -->
-        {#if currentView === 'week' && summaryData.daily_breakdown && summaryData.daily_breakdown.length > 0}
+        {#if currentView === 'week' && summaryData.summary.daily_breakdown && summaryData.summary.daily_breakdown.length > 0}
           <div class="card bg-base-200 shadow-xl">
             <div class="card-body">
               <h2 class="card-title mb-4">Daily Breakdown</h2>
@@ -219,17 +219,48 @@
                     </tr>
                   </thead>
                   <tbody>
-                    {#each summaryData.daily_breakdown as day}
+                    {#each summaryData.summary.daily_breakdown as day}
                       <tr>
                         <td>{new Date(day.date).toLocaleDateString()}</td>
                         <td>{day.calories}</td>
-                        <td>{formatWeight(convertNutrientValue(day.protein), currentUnits)}</td>
-                        <td>{formatWeight(convertNutrientValue(day.carbs), currentUnits)}</td>
-                        <td>{formatWeight(convertNutrientValue(day.fat), currentUnits)}</td>
+                        <td>{formatWeight(convertNutrientValue(day.protein_g), currentUnits)}</td>
+                        <td>{formatWeight(convertNutrientValue(day.total_carbs_g), currentUnits)}</td>
+                        <td>{formatWeight(convertNutrientValue(day.total_fat_g), currentUnits)}</td>
                       </tr>
                     {/each}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        {/if}
+
+        <!-- Today's Details (for today view) -->
+        {#if currentView === 'today' && summaryData.summary.daily_breakdown && summaryData.summary.daily_breakdown.length > 0}
+          <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title mb-4">Today's Summary</h2>
+              <div class="stats stats-vertical lg:stats-horizontal shadow w-full">
+                <div class="stat">
+                  <div class="stat-title">Meals Logged</div>
+                  <div class="stat-value text-lg">{summaryData.summary.consumption_count}</div>
+                  <div class="stat-desc">Today</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-title">Avg per Meal</div>
+                  <div class="stat-value text-lg">{Math.round(summaryData.summary.total_calories / summaryData.summary.consumption_count)}</div>
+                  <div class="stat-desc">Calories</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-title">Fiber</div>
+                  <div class="stat-value text-lg">{formatWeight(convertNutrientValue(summaryData.summary.total_fiber_g || 0), currentUnits)}</div>
+                  <div class="stat-desc">Total</div>
+                </div>
+                <div class="stat">
+                  <div class="stat-title">Sodium</div>
+                  <div class="stat-value text-lg">{summaryData.summary.total_sodium_mg || 0} mg</div>
+                  <div class="stat-desc">Total</div>
+                </div>
               </div>
             </div>
           </div>
@@ -264,7 +295,7 @@
         {/if}
 
         <!-- No Data State -->
-        {#if (!summaryData.total_calories || summaryData.total_calories === 0) && !summaryData.recent_consumptions?.length}
+        {#if (!summaryData.summary.total_calories || summaryData.summary.total_calories === 0) && !summaryData.recent_consumptions?.length}
           <div class="text-center py-12">
             <div class="text-6xl mb-4">🍽️</div>
             <h3 class="text-2xl font-bold mb-2">No data for {currentView === 'today' ? 'today' : 'this week'}</h3>
