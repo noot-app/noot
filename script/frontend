@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+function usage() {
+    echo "Usage: $0 [--no-open]"
+    echo ""
+    echo "Options:"
+    echo "  --no-open  Start the frontend without automatically opening the browser"
+    echo ""
+    echo "Starts the SvelteKit development server for the frontend web app."
+    echo "By default, opens the browser automatically."
+    exit 1
+}
+
+# Parse command line arguments
+OPEN_BROWSER=true
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --no-open)
+      OPEN_BROWSER=false
+      shift
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      echo -e "${RED}❌ Unknown option: $1${OFF}"
+      usage
+      ;;
+  esac
+done
+
+echo -e "${BLUE}🎨 Starting frontend development server...${OFF}"
+
+# Check if web app exists
+if [[ ! -d "apps/web" || ! -f "apps/web/package.json" ]]; then
+  echo -e "${RED}❌ Web app not found (apps/web/package.json missing)${OFF}"
+  echo -e "${YELLOW}ℹ️  Make sure you have the SvelteKit app in apps/web/${OFF}"
+  exit 1
+fi
+
+# Check if npm is available
+if ! command -v npm &> /dev/null; then
+  echo -e "${RED}❌ npm not found${OFF}"
+  echo -e "${YELLOW}ℹ️  Please install Node.js and npm to run the frontend${OFF}"
+  exit 1
+fi
+
+# Store current directory
+ORIGINAL_DIR=$(pwd)
+
+# Safely enter the web directory
+cd "apps/web" || {
+  echo -e "${RED}❌ Failed to enter apps/web directory${OFF}"
+  exit 1
+}
+
+# Check if node_modules exists, suggest bootstrap if not
+if [[ ! -d "node_modules" ]]; then
+  echo -e "${YELLOW}⚠️  node_modules not found${OFF}"
+  echo -e "${YELLOW}ℹ️  Run 'script/bootstrap' to install dependencies first${OFF}"
+  cd "${ORIGINAL_DIR}"
+  exit 1
+fi
+
+echo -e "${BLUE}📦 Starting SvelteKit dev server...${OFF}"
+echo -e "${BLUE}🌐 Server will be available at: http://localhost:3000${OFF}"
+echo ""
+
+# Build the npm command
+if [[ "${OPEN_BROWSER}" == "true" ]]; then
+  # Use npm run dev with --open flag
+  npm run dev -- --open
+else
+  # Use npm run dev without --open flag
+  npm run dev
+fi
+
+# Note: This cleanup code won't run during normal dev server operation
+# since npm run dev keeps running. It's here for safety in case of early exit.
+cd "${ORIGINAL_DIR}" || {
+  echo -e "${RED}❌ Failed to return to original directory${OFF}"
+  exit 1
+}

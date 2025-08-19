@@ -15,11 +15,17 @@ An AI-powered nutrition logging web app. Just say what you ate!
 
 ### Backend (Go API)
 
-1) **Get API Keys:**
+1) **Setup Dependencies:**
+
+    ```bash
+    script/bootstrap
+    ```
+
+2) **Get API Keys:**
 
    - OpenAI API key from [platform.openai.com](https://platform.openai.com/api-keys)
 
-2) **Configure:**
+3) **Configure:**
 
     ```ini
     # create .env file
@@ -53,33 +59,32 @@ An AI-powered nutrition logging web app. Just say what you ate!
     DEV_DB_SEED=true           # Enable database seeding in development (optional)
     ```
 
-3) **Run the API:** `PORT=3001 script/server` (use `--production` for production mode).
+4) **Run the API:** `PORT=3001 script/server` (use `--production` for production mode).
 
 ### Frontend (SvelteKit)
 
-1) **Navigate to the web app:**
+1) **Setup Dependencies:**
+
     ```bash
-    cd apps/web
+    script/bootstrap
     ```
 
-2) **Install dependencies:**
+2) **Run the web app:**
+
     ```bash
-    npm install
+    script/frontend
     ```
 
-3) **Configure environment:** Copy `.env.example` to `.env.local` and adjust if needed:
+    Or to start without opening the browser:
+
     ```bash
-    cp .env.example .env.local
+    script/frontend --no-open
     ```
 
-4) **Run the web app:** 
-    ```bash
-    npm run dev
-    ```
+3) **Use:**
 
-5) **Use:**
-   - Visit <http://localhost:3000> (SvelteKit frontend)
-   - API runs on <http://localhost:3001> (Go backend)
+   - Visit [http://localhost:3000](http://localhost:3000) (SvelteKit frontend)
+   - API runs on [http://localhost:3001](http://localhost:3001) (Go backend)
    - Press the microphone button on the record page
    - Say what you consumed (e.g., "I had a latte with organic whole milk and Greek yogurt with blueberries")
    - See your nutrition summary with client-side unit conversion (grams ↔ ounces)
@@ -105,11 +110,13 @@ An AI-powered nutrition logging web app. Just say what you ate!
 - **Lint:** `script/lint`  
 - **Build:** `script/build` (or `script/build --single-target` for faster iteration)
 - **Dev Server:** `PORT=3001 script/server` (optionally pass in `--clean` to reset and re-seed the local database)
-- **API Docs:** Visit `http://localhost:3001/api/v1/docs` when running in development mode
+- **API Docs:** Visit [http://localhost:3001/api/v1/docs](http://localhost:3001/api/v1/docs) when running in development mode
 
-### Frontend (SvelteKit)
+### Frontend (SvelteKit Site)
 
-- **Dev Server:** `cd apps/web && npm run dev` (runs on port 3000)
+- **Dev Server:** `script/frontend` (runs on port 3000 and opens browser)
+- **Dev Server (no browser):** `script/frontend --no-open`
+- **Manual Dev:** `cd apps/web && npm run dev` (alternative manual approach)
 - **Build:** `cd apps/web && npm run build`
 - **Type Check:** `cd apps/web && npm run check`
 - **Generate API Types:** `cd apps/web && npm run generate:api` (regenerates types from OpenAPI spec)
@@ -132,6 +139,7 @@ The API follows OpenAPI `3.0.3` specification:
 ## Technical Details
 
 ### Backend
+
 - SQLite database with automatic migrations for consumption storage
 - OpenAI gpt-4o-mini-transcribe for speech-to-text
 - OpenAI gpt-4o-mini for consumption parsing with complete nutrition data
@@ -140,6 +148,7 @@ The API follows OpenAPI `3.0.3` specification:
 - CORS middleware for cross-origin requests from frontend
 
 ### Frontend
+
 - SvelteKit with TypeScript
 - DaisyUI with custom "noot" theme for styling
 - openapi-fetch for type-safe API calls
@@ -148,8 +157,9 @@ The API follows OpenAPI `3.0.3` specification:
 - Responsive design with mobile-friendly recording interface
 
 ### Architecture
-- **Frontend**: SvelteKit (http://localhost:3000)
-- **Backend**: Go API server (http://localhost:3001)
+
+- **Frontend**: SvelteKit ([http://localhost:3000](http://localhost:3000))
+- **Backend**: Go API server ([http://localhost:3001](http://localhost:3001))
 - **Database**: SQLite with automatic migrations
 - **Audio Processing**: OpenAI Whisper via API
 - **Nutrition Data**: OpenAI GPT-4o-mini with structured JSON responses
