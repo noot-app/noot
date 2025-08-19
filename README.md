@@ -1,5 +1,10 @@
 # noot 🍎
 
+[![build](https://github.com/GrantBirki/noot/actions/workflows/build.yml/badge.svg)](https://github.com/GrantBirki/noot/actions/workflows/build.yml)
+[![lint](https://github.com/GrantBirki/noot/actions/workflows/lint.yml/badge.svg)](https://github.com/GrantBirki/noot/actions/workflows/lint.yml)
+[![test](https://github.com/GrantBirki/noot/actions/workflows/test.yml/badge.svg)](https://github.com/GrantBirki/noot/actions/workflows/test.yml)
+[![types](https://github.com/GrantBirki/noot/actions/workflows/types.yml/badge.svg)](https://github.com/GrantBirki/noot/actions/workflows/types.yml)
+
 An AI-powered nutrition logging web app. Just say what you ate!
 
 - Press and hold the mic button, speak your consumption.
@@ -53,9 +58,14 @@ An AI-powered nutrition logging web app. Just say what you ate!
 
 ## API Endpoints
 
-- `GET /` — Static frontend (embedded)
-- `POST /api/consumption` — Multipart form with `audio` field (webm/opus/mp3/wav)
-- `GET /api/consumptions` — View stored consumptions (development mode only)
+### v1 API
+
+- `GET /api/v1/health` — Health check with server status
+- `POST /api/v1/consumption` — Multipart form with `audio` field (webm/opus/mp3/wav)
+- `GET /api/v1/consumptions` — View stored consumptions (development mode only)
+- `GET /api/v1/nutrition-summary` — Get nutrition summary with date range parameters (development mode only)
+- `GET /api/v1/docs` — Interactive API documentation via Swagger UI (development mode only)
+- `GET /api/v1/openapi.yaml` — OpenAPI 3.0.3 specification (development mode only)
 
 ## Development
 
@@ -63,6 +73,15 @@ An AI-powered nutrition logging web app. Just say what you ate!
 - **Lint:** `script/lint`  
 - **Build:** `script/build` (or `script/build --single-target` for faster iteration)
 - **Dev Server:** `script/server` (optionally pass in `--clean` to reset and re-seed the local database)
+- **API Docs:** Visit `http://localhost:3000/api/v1/docs` when running in development mode
+
+### API Development
+
+The API follows OpenAPI `3.0.3` specification:
+
+- **Specification:** `/api/v1/openapi.yaml`
+- **Documentation:** `/api/v1/docs` (Swagger UI, development only)
+- **Generate Types:** `script/validate-types` (requires oapi-codegen via the go toolchain - vendored in this project)
 
 ### Database Management
 

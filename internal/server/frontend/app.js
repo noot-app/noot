@@ -204,7 +204,7 @@ async function sendAudioToAPI(audioBlob) {
     const formData = new FormData();
     formData.append('audio', audioBlob);
 
-    const response = await fetch('/api/consumption', {
+    const response = await fetch('/api/v1/consumption', {
       method: 'POST',
       body: formData
     });
@@ -716,7 +716,7 @@ async function loadNutritionSummary() {
       const startUTC = startOfLocalDay.toISOString();
       const endUTC = endOfLocalDay.toISOString();
       
-      url = `/api/nutrition-summary?start=${encodeURIComponent(startUTC)}&end=${encodeURIComponent(endUTC)}`;
+      url = `/api/v1/nutrition-summary?start=${encodeURIComponent(startUTC)}&end=${encodeURIComponent(endUTC)}`;
     } else {
       // For week view, calculate 7 days back from today in local timezone
       const today = new Date();
@@ -729,7 +729,7 @@ async function loadNutritionSummary() {
       const startUTC = startOfWeek.toISOString();
       const endUTC = endOfToday.toISOString();
       
-      url = `/api/nutrition-summary?start=${encodeURIComponent(startUTC)}&end=${encodeURIComponent(endUTC)}`;
+      url = `/api/v1/nutrition-summary?start=${encodeURIComponent(startUTC)}&end=${encodeURIComponent(endUTC)}`;
     }
     console.log('Fetching:', url);
     

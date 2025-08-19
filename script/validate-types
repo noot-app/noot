@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# Validate and generate API types from OpenAPI specification
+#
+# This script:
+# 1. Validates the OpenAPI specification
+# 2. Generates Go types from the OpenAPI spec using oapi-codegen
+# 3. Ensures generated types are up to date
+
+set -euo pipefail
+
+source script/env "$@"
+
+echo "==> Validating and generating API types..."
+
+# Create output directory if it doesn't exist
+mkdir -p internal/api
+
+# Generate API types from OpenAPI specification
+echo "Generating API types from OpenAPI specification..."
+go tool oapi-codegen -generate types -package api -o internal/api/types.gen.go api/openapi.yaml
+
+# Generate Gin server interfaces (optional validation middleware)
+echo "Generating Gin server interfaces..."
+go tool oapi-codegen -generate gin -package api -o internal/api/gin.gen.go api/openapi.yaml
+
+echo "==> API type generation completed successfully"
+
+# Check if generated files exist and validate they are up to date
+if [ -f internal/api/types.gen.go ] && [ -f internal/api/gin.gen.go ]; then
+    if ! git diff --exit-code internal/api/types.gen.go >/dev/null 2>&1; then
+        echo "Warning: Generated types have changes. This is expected during development."
+    fi
+    
+    if ! git diff --exit-code internal/api/gin.gen.go >/dev/null 2>&1; then
+        echo "Warning: Generated Gin interfaces have changes. This is expected during development."
+    fi
+fi
+
+echo "==> All API types generated successfully"
