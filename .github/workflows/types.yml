@@ -26,6 +26,5 @@ jobs:
       - name: bootstrap
         run: script/bootstrap
 
-        # TODO
-      - name: types
+      - name: validate API types
         run: script/validate-types
