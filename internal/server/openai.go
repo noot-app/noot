@@ -25,7 +25,7 @@ const (
 var httpClient = &http.Client{Timeout: 60 * time.Second}
 
 func transcriptionPrompt() string {
-	return `The audio is a short dictation of foods and drinks consumed. Preserve exact brand and product names (e.g., "Clover Organic", "Trader Joe's", "Siggi's", "Icelandic skyr", "LaCroix"), coffee drink terms (espresso, latte, macchiato), tea terms (matcha), and ingredient names (goji berries, blueberries, Greek yogurt, European style yogurt). Keep numbers and units (cups, grams, ounces, tbsp) and include standard punctuation. Do not add or infer items that were not spoken. If an item is given without a quantity, assume it is one standard serving size of that item which would make logical sense in the context of the meal. For example, if a user says "I had a banana", assume it is one banana, not a bunch. If they say "I had some eggs", assume it is two eggs, not a dozen. If they say "I had some yogurt", assume it is one standard serving size of yogurt, not a gallon. If they say "I had some coffee", assume it is one standard cup of coffee, not a pot. If the user sayd "I had a lattle" assume it contains two shots of espresso.`
+	return `The audio is a short dictation of foods and drinks consumed. Preserve exact brand and product names (e.g., "Clover Organic", "Trader Joe's", "Siggi's", "Icelandic skyr", "LaCroix"), coffee drink terms (espresso, latte, macchiato), tea terms (matcha), and ingredient names (goji berries, blueberries, Greek yogurt, European style yogurt). Keep numbers and units (cups, grams, ounces, tbsp) and include standard punctuation. Do not add or infer items that were not spoken. If an item is given without a quantity, assume it is one standard serving size of that item which would make logical sense in the context of the meal. For example, if a user says "I had a banana", assume it is one banana, not a bunch. If they say "I had some eggs", assume it is two eggs, not a dozen. If they say "I had some yogurt", assume it is one standard serving size of yogurt, not a gallon. If they say "I had some coffee", assume it is one standard cup of coffee, not a pot. If the user says "I had a latte" assume it contains two shots of espresso.`
 }
 
 func parseItemsSystemPrompt() string {
@@ -49,13 +49,13 @@ IMPORTANT INSTRUCTIONS:
    - Banana: 1 medium (118g)  
    - Eggs: 2 large eggs (100g)
    - Coffee: 1 cup (240ml)
-   - Latte: 12oz with 2 shots espresso
+   - Latte: 10oz with 2 shots espresso using standard 20g shots
    - Apple: 1 medium (182g)
    - Bread slice: 1 slice (28g)
    - Chicken breast: 3.5oz (100g)
    - Rice: 1 cup cooked (158g)
 
-3. PRESERVE BRANDS: Keep exact brand and product names (e.g., "Clover Organic", "Trader Joe's", "Siggi's").
+3. PRESERVE BRANDS: Keep exact brand and product names (e.g., "Clover Sonoma", "Trader Joe's", "Siggi's", "KFC", "Starbucks").
 4. NORMALIZE UNITS: Use standard units (g, mg, ml, cups, tbsp, etc.).
 5. DO NOT ADD NUTRITION DATA: Only extract item identification, not nutrition information.`
 }
