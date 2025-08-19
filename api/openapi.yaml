@@ -1,0 +1,638 @@
+openapi: 3.0.3
+info:
+  title: Noot API
+  description: AI-powered nutrition logging API
+  version: "1.0"
+  contact:
+    name: Grant Birkinbine
+    url: https://github.com/GrantBirki/noot
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+paths:
+  /consumption:
+    post:
+      summary: Log a consumption via audio
+      description: Upload an audio file of spoken consumption data to be transcribed, parsed, and analyzed for nutrition information
+      operationId: createConsumption
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                  description: Audio file (webm, opus, mp3, wav)
+              required:
+                - audio
+      responses:
+        '200':
+          description: Successful consumption analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsumptionResponse'
+        '400':
+          description: Bad request (invalid multipart form, no audio file, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      summary: Health check
+      description: Get the health status of the API
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /consumptions:
+    get:
+      summary: List consumptions (development only)
+      description: Get a list of stored consumptions for the default user
+      operationId: getConsumptions
+      responses:
+        '200':
+          description: List of consumptions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsumptionsResponse'
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /nutrition-summary:
+    get:
+      summary: Get nutrition summary (development only)
+      description: Get aggregated nutrition data over a time period
+      operationId: getNutritionSummary
+      parameters:
+        - name: start
+          in: query
+          description: Start date (RFC3339 format)
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          description: End date (RFC3339 format)
+          schema:
+            type: string
+            format: date-time
+        - name: days
+          in: query
+          description: Number of days to look back from today
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+      responses:
+        '200':
+          description: Nutrition summary data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NutritionSummaryResponse'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied (subscription limitation)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - code
+        - timestamp
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: integer
+          description: HTTP status code
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the error occurred
+        stack:
+          type: array
+          items:
+            type: string
+          description: Stack trace (only in debug mode)
+        trace_id:
+          type: string
+          description: Request trace ID
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - version
+      properties:
+        status:
+          type: string
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+          example: "dev"
+
+    ConsumptionResponse:
+      type: object
+      required:
+        - transcript
+        - parsedItems
+        - items
+        - summary
+        - request_id
+      properties:
+        transcript:
+          type: string
+          description: Transcribed text from audio
+        parsedItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+          description: Items parsed from transcript (without nutrition data)
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemWithNutrition'
+          description: Items with complete nutrition information
+        summary:
+          $ref: '#/components/schemas/Summary'
+        request_id:
+          type: string
+          description: Request identifier for tracking
+
+    ConsumptionsResponse:
+      type: object
+      required:
+        - consumptions
+        - user
+        - count
+      properties:
+        consumptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Consumption'
+        user:
+          $ref: '#/components/schemas/User'
+        count:
+          type: integer
+          description: Number of consumptions returned
+
+    NutritionSummaryResponse:
+      type: object
+      required:
+        - summary
+        - user
+        - days
+        - date_range
+      properties:
+        summary:
+          $ref: '#/components/schemas/NutritionSummary'
+        user:
+          $ref: '#/components/schemas/User'
+        days:
+          type: integer
+          description: Number of days in the summary
+        date_range:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time
+
+    Item:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Name of the food item
+        quantity:
+          type: number
+          nullable: true
+          description: Quantity consumed
+        unit:
+          type: string
+          nullable: true
+          description: Unit of measurement
+        brand:
+          type: string
+          nullable: true
+          description: Brand name
+        nutrients:
+          $ref: '#/components/schemas/CompleteNutrient'
+
+    ItemWithNutrition:
+      type: object
+      required:
+        - item
+      properties:
+        item:
+          $ref: '#/components/schemas/Item'
+        note:
+          type: string
+          description: Additional note (e.g., if nutrition data unavailable)
+
+    CompleteNutrient:
+      type: object
+      required:
+        - calories
+        - protein_g
+        - total_fat_g
+        - saturated_fat_g
+        - trans_fat_g
+        - cholesterol_mg
+        - sodium_mg
+        - total_carbs_g
+        - dietary_fiber_g
+        - total_sugars_g
+        - added_sugars_g
+        - vitamin_a_mcg
+        - vitamin_c_mg
+        - vitamin_d_mcg
+        - vitamin_e_mg
+        - vitamin_k_mcg
+        - thiamine_mg
+        - riboflavin_mg
+        - niacin_mg
+        - vitamin_b6_mg
+        - folate_mcg
+        - vitamin_b12_mcg
+        - calcium_mg
+        - iron_mg
+        - magnesium_mg
+        - phosphorus_mg
+        - potassium_mg
+        - zinc_mg
+        - copper_mg
+        - manganese_mg
+        - selenium_mcg
+      properties:
+        calories:
+          type: number
+          description: Calories per serving
+        protein_g:
+          type: number
+          description: Protein in grams
+        total_fat_g:
+          type: number
+          description: Total fat in grams
+        saturated_fat_g:
+          type: number
+          description: Saturated fat in grams
+        trans_fat_g:
+          type: number
+          description: Trans fat in grams
+        cholesterol_mg:
+          type: number
+          description: Cholesterol in milligrams
+        sodium_mg:
+          type: number
+          description: Sodium in milligrams
+        total_carbs_g:
+          type: number
+          description: Total carbohydrates in grams
+        dietary_fiber_g:
+          type: number
+          description: Dietary fiber in grams
+        total_sugars_g:
+          type: number
+          description: Total sugars in grams
+        added_sugars_g:
+          type: number
+          description: Added sugars in grams
+        vitamin_a_mcg:
+          type: number
+          description: Vitamin A in micrograms
+        vitamin_c_mg:
+          type: number
+          description: Vitamin C in milligrams
+        vitamin_d_mcg:
+          type: number
+          description: Vitamin D in micrograms
+        vitamin_e_mg:
+          type: number
+          description: Vitamin E in milligrams
+        vitamin_k_mcg:
+          type: number
+          description: Vitamin K in micrograms
+        thiamine_mg:
+          type: number
+          description: Thiamine (B1) in milligrams
+        riboflavin_mg:
+          type: number
+          description: Riboflavin (B2) in milligrams
+        niacin_mg:
+          type: number
+          description: Niacin (B3) in milligrams
+        vitamin_b6_mg:
+          type: number
+          description: Vitamin B6 in milligrams
+        folate_mcg:
+          type: number
+          description: Folate in micrograms
+        vitamin_b12_mcg:
+          type: number
+          description: Vitamin B12 in micrograms
+        calcium_mg:
+          type: number
+          description: Calcium in milligrams
+        iron_mg:
+          type: number
+          description: Iron in milligrams
+        magnesium_mg:
+          type: number
+          description: Magnesium in milligrams
+        phosphorus_mg:
+          type: number
+          description: Phosphorus in milligrams
+        potassium_mg:
+          type: number
+          description: Potassium in milligrams
+        zinc_mg:
+          type: number
+          description: Zinc in milligrams
+        copper_mg:
+          type: number
+          description: Copper in milligrams
+        manganese_mg:
+          type: number
+          description: Manganese in milligrams
+        selenium_mcg:
+          type: number
+          description: Selenium in micrograms
+
+    Summary:
+      type: object
+      required:
+        - totals
+        - percent_of_daily
+        - daily_values
+      properties:
+        totals:
+          $ref: '#/components/schemas/CompleteNutrient'
+        percent_of_daily:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Percentage of daily values for each nutrient
+        daily_values:
+          type: object
+          additionalProperties:
+            type: number
+          description: Daily value amounts used for calculations
+
+    User:
+      type: object
+      required:
+        - id
+        - provider
+        - subject
+        - email
+        - subscription_tier
+        - created_at
+      properties:
+        id:
+          type: string
+          description: User ID
+        provider:
+          type: string
+          description: Authentication provider
+        subject:
+          type: string
+          description: Provider-specific user identifier
+        email:
+          type: string
+          description: User email address
+        subscription_tier:
+          type: string
+          enum: [free, pro]
+          description: User subscription level
+        created_at:
+          type: string
+          format: date-time
+          description: User creation timestamp
+
+    Consumption:
+      type: object
+      required:
+        - id
+        - user_id
+        - transcript
+        - items
+        - summary
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Consumption ID
+        user_id:
+          type: string
+          description: User ID who logged this consumption
+        transcript:
+          type: string
+          description: Original transcribed text
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemWithNutrition'
+        summary:
+          $ref: '#/components/schemas/Summary'
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when consumption was logged
+
+    NutritionSummary:
+      type: object
+      required:
+        - user_id
+        - start_date
+        - end_date
+        - consumption_count
+        - total_calories
+        - total_protein_g
+        - total_fat_g
+        - total_carbs_g
+        - total_fiber_g
+        - total_sodium_mg
+        - avg_calories_per_day
+        - avg_protein_per_day
+        - avg_fat_per_day
+        - avg_carbs_per_day
+        - avg_fiber_per_day
+        - avg_sodium_per_day
+        - daily_breakdown
+      properties:
+        user_id:
+          type: string
+          description: User ID
+        start_date:
+          type: string
+          format: date-time
+          description: Start date of the summary period
+        end_date:
+          type: string
+          format: date-time
+          description: End date of the summary period
+        consumption_count:
+          type: integer
+          description: Total number of consumptions in the period
+        total_calories:
+          type: number
+          description: Total calories consumed
+        total_protein_g:
+          type: number
+          description: Total protein in grams
+        total_fat_g:
+          type: number
+          description: Total fat in grams
+        total_carbs_g:
+          type: number
+          description: Total carbohydrates in grams
+        total_fiber_g:
+          type: number
+          description: Total fiber in grams
+        total_sodium_mg:
+          type: number
+          description: Total sodium in milligrams
+        avg_calories_per_day:
+          type: number
+          description: Average calories per day
+        avg_protein_per_day:
+          type: number
+          description: Average protein per day in grams
+        avg_fat_per_day:
+          type: number
+          description: Average fat per day in grams
+        avg_carbs_per_day:
+          type: number
+          description: Average carbs per day in grams
+        avg_fiber_per_day:
+          type: number
+          description: Average fiber per day in grams
+        avg_sodium_per_day:
+          type: number
+          description: Average sodium per day in milligrams
+        daily_breakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailySummary'
+          description: Daily nutrition breakdown
+
+    DailySummary:
+      type: object
+      required:
+        - date
+        - consumption_count
+        - calories
+        - protein_g
+        - total_fat_g
+        - total_carbs_g
+        - fiber_g
+        - sodium_mg
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: Date for this daily summary
+        consumption_count:
+          type: integer
+          description: Number of consumptions on this date
+        calories:
+          type: number
+          description: Total calories for the day
+        protein_g:
+          type: number
+          description: Total protein in grams for the day
+        total_fat_g:
+          type: number
+          description: Total fat in grams for the day
+        total_carbs_g:
+          type: number
+          description: Total carbohydrates in grams for the day
+        fiber_g:
+          type: number
+          description: Total fiber in grams for the day
+        sodium_mg:
+          type: number
+          description: Total sodium in milligrams for the day

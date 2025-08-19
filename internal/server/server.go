@@ -57,12 +57,23 @@ func Run(ctx context.Context, port string) error {
 
 	mux := http.NewServeMux()
 
-	// API
+	// API v1 routes
+	mux.HandleFunc("/api/v1/consumption", ingestHandler)
+	mux.HandleFunc("/api/v1/health", healthHandler)
+
+	// Legacy API routes
 	mux.HandleFunc("/api/consumption", ingestHandler) // Renamed from /api/ingest
 	mux.HandleFunc("/api/health", healthHandler)
 
-	// Development-only consumptions API
+	// Development-only API
 	if env == "development" {
+		// v1 routes
+		mux.HandleFunc("/api/v1/consumptions", consumptionsHandler)
+		mux.HandleFunc("/api/v1/nutrition-summary", nutritionSummaryHandler)
+		mux.HandleFunc("/api/v1/docs", swaggerUIHandler)
+		mux.HandleFunc("/api/v1/openapi.yaml", openAPISpecHandler)
+		
+		// Legacy routes
 		mux.HandleFunc("/api/consumptions", consumptionsHandler)
 		mux.HandleFunc("/api/nutrition-summary", nutritionSummaryHandler)
 	}
