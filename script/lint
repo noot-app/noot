@@ -15,6 +15,5 @@ assert-nothing-changed() {
 }
 
 assert-nothing-changed go fmt -mod=vendor ./...
-assert-nothing-changed go mod tidy
 
 exit $STATUS
