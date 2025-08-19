@@ -20,6 +20,15 @@ func getenv(key, def string) string {
 	return def
 }
 
+func getenvInt(key string, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil {
+			return parsed
+		}
+	}
+	return def
+}
+
 // Enhanced error response structure
 type ErrorResponse struct {
 	Error   string    `json:"error"`

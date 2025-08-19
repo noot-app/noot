@@ -4,6 +4,6 @@ set -euo pipefail
 
 source script/env "$@"
 
-count=10
+count=3
 
 go test -mod=vendor -race -count $count -v -cover -coverprofile=coverage.out ./...

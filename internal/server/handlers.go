@@ -1,10 +1,7 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -55,9 +52,12 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
+	// Create nutrition service
+	nutritionService := NewNutritionService(store)
+
 	// 1) Transcribe
 	LogDebug("Starting transcription", "request_id", requestID)
-	transcript, err := transcribeAudio(ctx, tmpPath, mimeType)
+	transcript, err := nutritionService.TranscribeAudio(ctx, tmpPath, mimeType)
 	if err != nil {
 		appErr := NewAppError("Transcription failed", http.StatusInternalServerError, err)
 		handleAppError(w, appErr, requestID)
@@ -67,7 +67,7 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 2) Parse items (phase 1: extract items without nutrition)
 	LogDebug("Starting item parsing (items only)", "request_id", requestID)
-	parsed, err := parseItems(ctx, transcript)
+	parsed, err := nutritionService.ParseItems(ctx, transcript)
 	if err != nil {
 		appErr := NewAppError("Item parsing failed", http.StatusInternalServerError, err)
 		handleAppError(w, appErr, requestID)
@@ -75,19 +75,19 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	LogDebug("Item parsing completed", "item_count", len(parsed.Items), "request_id", requestID)
 
-	// 3) Hydrate nutrition (phase 2: add nutrition data using cache + OpenAI)
+	// 3) Hydrate nutrition (phase 2: add nutrition data using cache + AI)
 	LogDebug("Starting nutrition hydration", "request_id", requestID)
 	var hydratedItems []Item
 	if store != nil {
-		hydratedItems, err = hydrateNutrition(ctx, parsed.Items, store)
+		hydratedItems, err = nutritionService.HydrateNutrition(ctx, parsed.Items)
 		if err != nil {
 			appErr := NewAppError("Nutrition hydration failed", http.StatusInternalServerError, err)
 			handleAppError(w, appErr, requestID)
 			return
 		}
 	} else {
-		// No store available - hydrate without cache (direct OpenAI calls)
-		hydratedItems, err = hydrateNutritionWithoutCache(ctx, parsed.Items)
+		// No store available - hydrate without cache (direct AI calls)
+		hydratedItems, err = nutritionService.HydrateNutritionWithoutCache(ctx, parsed.Items)
 		if err != nil {
 			appErr := NewAppError("Nutrition hydration failed", http.StatusInternalServerError, err)
 			handleAppError(w, appErr, requestID)
@@ -113,9 +113,9 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 6) Save consumption to database if store is available
 	if store != nil {
-		// For now, use a default user (monalisa) if no authentication
+		// For now, use the default user if no authentication
 		// In the future, this would come from authentication middleware
-		user, err := store.GetUserBySubject(ctx, "email", "monalisa")
+		user, err := getDefaultUser(ctx, store)
 		if err != nil {
 			LogError("Failed to get user for consumption storage", err)
 		} else if user != nil {
@@ -160,8 +160,8 @@ func consumptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For now, get consumptions for the default user (monalisa)
-	user, err := store.GetUserBySubject(r.Context(), "email", "monalisa")
+	// For now, get consumptions for the default user
+	user, err := getDefaultUser(r.Context(), store)
 	if err != nil {
 		httpError(w, http.StatusInternalServerError, "Failed to get user")
 		return
@@ -174,8 +174,8 @@ func consumptionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get recent consumptions (last 50)
-	consumptions, err := store.GetConsumptionsByUser(r.Context(), user.ID, 50, 0)
+	// Get recent consumptions
+	consumptions, err := store.GetConsumptionsByUser(r.Context(), user.ID, MaxConsumptions, 0)
 	if err != nil {
 		httpError(w, http.StatusInternalServerError, "Failed to get consumptions")
 		return
@@ -201,8 +201,8 @@ func nutritionSummaryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For now, get summary for the default user (monalisa)
-	user, err := store.GetUserBySubject(r.Context(), "email", "monalisa")
+	// Get the default user
+	user, err := getDefaultUser(r.Context(), store)
 	if err != nil {
 		httpError(w, http.StatusInternalServerError, "Failed to get user")
 		return
@@ -212,73 +212,33 @@ func nutritionSummaryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse query parameters - support both direct date range and timeWindow approach
-	startParam := r.URL.Query().Get("start")
-	endParam := r.URL.Query().Get("end")
-
-	var startTime, endTime time.Time
-	var days int
-
-	if startParam != "" && endParam != "" {
-		// Direct date range provided by client (already in UTC)
-		var err error
-		startTime, err = time.Parse(time.RFC3339, startParam)
-		if err != nil {
-			httpError(w, http.StatusBadRequest, "Invalid start date format")
-			return
+	// Parse date range parameters
+	dateParams, err := parseDateRangeParams(r)
+	if err != nil {
+		if appErr, ok := err.(*AppError); ok {
+			handleAppError(w, appErr, getRequestID(r.Context()))
+		} else {
+			httpError(w, http.StatusBadRequest, "Invalid date parameters")
 		}
-
-		endTime, err = time.Parse(time.RFC3339, endParam)
-		if err != nil {
-			httpError(w, http.StatusBadRequest, "Invalid end date format")
-			return
-		}
-
-		// Calculate days for subscription validation
-		days = int(endTime.Sub(startTime).Hours()/24) + 1
-	} else {
-		// Fall back to legacy timeWindow approach
-		timeWindow := r.URL.Query().Get("timeWindow")
-		days = 7 // default to week view
-
-		switch timeWindow {
-		case "today":
-			days = 1
-		case "week":
-			days = 7
-		default:
-			// Also check for legacy "days" parameter
-			dayStr := r.URL.Query().Get("days")
-			if dayStr != "" {
-				if parsedDays, err := strconv.Atoi(dayStr); err == nil && parsedDays > 0 {
-					days = parsedDays
-				}
-			}
-		}
-
-		// Calculate date range using server UTC time (legacy behavior)
-		endTime = time.Now().UTC()
-		startTime = endTime.AddDate(0, 0, -days+1)
-
-		// For proper date range queries, set times to beginning/end of day
-		startTime = time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, time.UTC)
-		endTime = time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 23, 59, 59, 999999999, time.UTC)
-	}
-
-	// Enforce subscription tier restrictions
-	if days > 1 && strings.ToLower(user.SubscriptionTier) != "pro" {
-		httpError(w, http.StatusForbidden, "Week view requires pro subscription")
 		return
 	}
 
-	// Performance limit: maximum 7 days
-	if days > 7 {
-		days = 7
+	// Validate subscription access
+	if err := validateSubscriptionAccess(user, dateParams.Days); err != nil {
+		if appErr, ok := err.(*AppError); ok {
+			handleAppError(w, appErr, getRequestID(r.Context()))
+		} else {
+			httpError(w, http.StatusForbidden, "Access denied")
+		}
+		return
 	}
 
-	summary, err := store.GetNutritionSummary(r.Context(), user.ID, startTime, endTime)
+	// Apply performance limit
+	dateParams.Days = applyDaysLimit(dateParams.Days)
+
+	summary, err := store.GetNutritionSummary(r.Context(), user.ID, dateParams.StartTime, dateParams.EndTime)
 	if err != nil {
-		appErr := NewAppError(fmt.Sprintf("Failed to get nutrition summary: %v", err), http.StatusInternalServerError, err)
+		appErr := NewAppError("Failed to get nutrition summary", http.StatusInternalServerError, err)
 		handleAppError(w, appErr, getRequestID(r.Context()))
 		return
 	}
@@ -286,10 +246,10 @@ func nutritionSummaryHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"summary": summary,
 		"user":    user,
-		"days":    days,
+		"days":    dateParams.Days,
 		"date_range": map[string]string{
-			"start": startTime.Format(time.RFC3339),
-			"end":   endTime.Format(time.RFC3339),
+			"start": dateParams.StartTime.Format(time.RFC3339),
+			"end":   dateParams.EndTime.Format(time.RFC3339),
 		},
 	})
 }

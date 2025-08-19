@@ -204,7 +204,7 @@ async function sendAudioToAPI(audioBlob) {
     const formData = new FormData();
     formData.append('audio', audioBlob);
 
-    const response = await fetch('/api/ingest', {
+    const response = await fetch('/api/consumption', {
       method: 'POST',
       body: formData
     });
@@ -771,7 +771,7 @@ function displayNutritionSummary(data) {
   console.log('Displaying nutrition summary:', summary);
   
   // Update overview stats
-  document.getElementById('totalMeals').textContent = summary.meal_count || 0;
+  document.getElementById('totalConsumptions').textContent = summary.consumption_count || 0;
   document.getElementById('totalCalories').textContent = Math.round(summary.total_calories || 0);
   document.getElementById('avgCalories').textContent = Math.round(summary.avg_calories_per_day || 0);
   

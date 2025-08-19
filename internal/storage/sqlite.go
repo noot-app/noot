@@ -90,7 +90,7 @@ func (s *SQLiteStore) Migrate() error {
 // Reset drops all tables and re-applies migrations
 func (s *SQLiteStore) Reset() error {
 	// Drop tables in reverse dependency order
-	tables := []string{"item_aliases", "items_cache", "meals", "users"}
+	tables := GetDropTableOrder()
 	for _, table := range tables {
 		if _, err := s.db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s", table)); err != nil {
 			return fmt.Errorf("failed to drop table %s: %w", table, err)
@@ -113,7 +113,7 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 
 	// Set default subscription tier if not provided
 	if user.SubscriptionTier == "" {
-		user.SubscriptionTier = "free"
+		user.SubscriptionTier = SubscriptionTierFree
 	}
 
 	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email, user.SubscriptionTier, now)
@@ -372,18 +372,18 @@ func (s *SQLiteStore) Seed() error {
 	ctx := context.Background()
 
 	// Check if user already exists
-	user, err := s.GetUserBySubject(ctx, "email", "monalisa")
+	user, err := s.GetUserBySubject(ctx, DefaultSeedProvider, DefaultSeedSubject)
 	if err != nil {
 		return fmt.Errorf("failed to check for existing user: %w", err)
 	}
 
-	// Create monalisa user if it doesn't exist
+	// Create default seed user if it doesn't exist
 	if user == nil {
 		user = &User{
-			Provider:         "email",
-			Subject:          "monalisa",
-			Email:            "monalisa@birki.io",
-			SubscriptionTier: "pro", // Give the seed user pro access
+			Provider:         DefaultSeedProvider,
+			Subject:          DefaultSeedSubject,
+			Email:            DefaultSeedEmail,
+			SubscriptionTier: SubscriptionTierPro, // Give the seed user pro access
 		}
 		if err := s.CreateUser(ctx, user); err != nil {
 			return fmt.Errorf("failed to create seed user: %w", err)

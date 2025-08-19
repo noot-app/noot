@@ -14,115 +14,39 @@ import (
 	"time"
 )
 
-const (
-	openAIBaseURL       = "https://api.openai.com/v1"
-	openAITranscribeURL = openAIBaseURL + "/audio/transcriptions"
-	openAIChatURL       = openAIBaseURL + "/chat/completions"
-)
-
-var httpClient = &http.Client{Timeout: 60 * time.Second}
-
-func transcriptionPrompt() string {
-	return `The audio is a short dictation of foods and drinks consumed. Preserve exact brand and product names (e.g., "Clover Organic", "Trader Joe's", "Siggi's", "Icelandic skyr", "LaCroix"), coffee drink terms (espresso, latte, macchiato), tea terms (matcha), and ingredient names (goji berries, blueberries, Greek yogurt, European style yogurt). Keep numbers and units (cups, grams, ounces, tbsp) and include standard punctuation. Do not add or infer items that were not spoken. If an item is given without a quantity, assume it is one standard serving size of that item which would make logical sense in the context of the consumption. For example, if a user says "I had a banana", assume it is one banana, not a bunch. If they say "I had some eggs", assume it is two eggs, not a dozen. If they say "I had some yogurt", assume it is one standard serving size of yogurt, not a gallon. If they say "I had some coffee", assume it is one standard cup of coffee, not a pot. If the user says "I had a latte" assume it contains two shots of espresso.`
+// OpenAIProvider implements the AIProvider interface using OpenAI's API
+type OpenAIProvider struct {
+	config     AIProviderConfig
+	httpClient *http.Client
 }
 
-func parseItemsSystemPrompt() string {
-	return `You extract individual food and drink items from a freeform meal, snack, beverage, or consumption description. Return strict JSON with the following structure:
-
-{
-  "items": [
-    {
-      "name": string,
-      "quantity": number | null,
-      "unit": string | null,
-      "brand": string | null
-    }
-  ]
-}
-
-IMPORTANT INSTRUCTIONS:
-1. EXTRACT INDIVIDUAL ITEMS: Separate each distinct food or drink item mentioned.
-2. INFER SERVING SIZES: If quantity is not specified, assume reasonable standard serving sizes based on context:
-   - Yogurt: 1 cup (245g)
-   - Banana: 1 medium (118g)  
-   - Eggs: 2 large eggs (100g)
-   - Coffee: 1 cup (240ml)
-   - Latte: 10oz with 2 shots espresso using standard 20g shots
-   - Apple: 1 medium (182g)
-   - Bread slice: 1 slice (28g)
-   - Chicken breast: 3.5oz (100g)
-   - Rice: 1 cup cooked (158g)
-
-3. PRESERVE BRANDS: Keep exact brand and product names (e.g., "Clover Sonoma", "Trader Joe's", "Siggi's", "KFC", "Starbucks").
-4. NORMALIZE UNITS: Use standard units (g, mg, ml, cups, tbsp, etc.).
-5. DO NOT ADD NUTRITION DATA: Only extract item identification, not nutrition information.`
-}
-
-func nutritionSystemPrompt() string {
-	return `You provide complete nutrition information for a single food item. Return strict JSON with the following structure:
-
-{
-  "nutrients": {
-    "calories": number,
-    "protein_g": number,
-    "total_fat_g": number,
-    "saturated_fat_g": number,
-    "trans_fat_g": number,
-    "cholesterol_mg": number,
-    "sodium_mg": number,
-    "total_carbs_g": number,
-    "dietary_fiber_g": number,
-    "total_sugars_g": number,
-    "added_sugars_g": number,
-    "vitamin_a_mcg": number,
-    "vitamin_c_mg": number,
-    "vitamin_d_mcg": number,
-    "vitamin_e_mg": number,
-    "vitamin_k_mcg": number,
-    "thiamine_mg": number,
-    "riboflavin_mg": number,
-    "niacin_mg": number,
-    "vitamin_b6_mg": number,
-    "folate_mcg": number,
-    "vitamin_b12_mcg": number,
-    "calcium_mg": number,
-    "iron_mg": number,
-    "magnesium_mg": number,
-    "phosphorus_mg": number,
-    "potassium_mg": number,
-    "zinc_mg": number,
-    "copper_mg": number,
-    "manganese_mg": number,
-    "selenium_mcg": number
-  }
-}
-
-IMPORTANT INSTRUCTIONS:
-1. NUTRITION DATA ACCURACY: Provide accurate nutrition data per serving for the specified quantity and unit. Use your knowledge of food composition databases, USDA data, and nutrition labels.
-2. HANDLE COMPLEX ITEMS: For prepared foods, estimate based on typical recipes and ingredients. For restaurant items, use available nutrition information or estimate based on similar items.
-3. ZERO VALUES: Use 0 for nutrients that are truly absent (like vitamin B12 in plants), but provide realistic non-zero values for nutrients that are typically present even in small amounts.
-4. BRANDED VS GENERIC: Prioritize branded nutrition data when brand is specified, otherwise use generic USDA-style data for the food type.
-5. QUANTITY-ADJUSTED: Provide nutrition values for the exact quantity/unit specified, not per 100g.`
-}
-
-func transcribeAudio(ctx context.Context, filePath, _ string) (string, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return "", NewAppError("OPENAI_API_KEY not configured", http.StatusInternalServerError, nil)
+// NewOpenAIProvider creates a new OpenAI provider
+func NewOpenAIProvider(config AIProviderConfig) *OpenAIProvider {
+	timeout := time.Duration(config.Timeout) * time.Second
+	if timeout <= 0 {
+		timeout = 60 * time.Second
 	}
-	model := getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe")
 
-	LogDebug("Starting OpenAI transcription", "model", model, "file", filePath)
+	return &OpenAIProvider{
+		config: config,
+		httpClient: &http.Client{
+			Timeout: timeout,
+		},
+	}
+}
 
-	prompt := transcriptionPrompt()
+// TranscribeAudio implements AIProvider.TranscribeAudio
+func (p *OpenAIProvider) TranscribeAudio(ctx context.Context, filePath, mimeType string) (string, error) {
+	LogDebug("Starting OpenAI transcription", "model", p.config.TranscribeModel, "file", filePath)
 
+	prompt := p.transcriptionPrompt()
 	lang := strings.TrimSpace(os.Getenv("TRANSCRIBE_LANGUAGE")) // e.g., "en"
 	respFormat := strings.TrimSpace(os.Getenv("OPENAI_TRANSCRIBE_RESPONSE_FORMAT"))
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	_ = writer.WriteField("model", model)
+	_ = writer.WriteField("model", p.config.TranscribeModel)
 	if prompt != "" {
 		_ = writer.WriteField("prompt", prompt)
 	}
@@ -149,15 +73,16 @@ func transcribeAudio(ctx context.Context, filePath, _ string) (string, error) {
 		return "", NewAppError("Failed to close form writer", http.StatusInternalServerError, err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, openAITranscribeURL, body)
+	url := p.config.BaseURL + "/audio/transcriptions"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
 	if err != nil {
 		return "", NewAppError("Failed to create transcription request", http.StatusInternalServerError, err)
 	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	LogDebug("Sending transcription request to OpenAI")
-	resp, err := httpClient.Do(req)
+	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return "", NewAppError("OpenAI transcription request failed", http.StatusInternalServerError, err)
 	}
@@ -176,6 +101,7 @@ func transcribeAudio(ctx context.Context, filePath, _ string) (string, error) {
 		LogDebug("Transcription completed", "length", len(result))
 		return result, nil
 	}
+
 	var out struct {
 		Text string `json:"text"`
 	}
@@ -187,20 +113,15 @@ func transcribeAudio(ctx context.Context, filePath, _ string) (string, error) {
 	return out.Text, nil
 }
 
-func parseItems(ctx context.Context, transcriptText string) (ParsedItems, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return ParsedItems{}, NewAppError("OPENAI_API_KEY not configured", http.StatusInternalServerError, nil)
-	}
-	model := getenv("OPENAI_PARSE_MODEL", "gpt-4o-mini")
+// ParseItems implements AIProvider.ParseItems
+func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) (ParsedItems, error) {
+	LogDebug("Starting OpenAI item parsing", "model", p.config.ParseModel, "transcript_length", len(transcriptText))
 
-	LogDebug("Starting OpenAI item parsing (items only)", "model", model, "transcript_length", len(transcriptText))
-
-	system := parseItemsSystemPrompt()
+	system := p.parseItemsSystemPrompt()
 	user := "Meal: " + transcriptText
 
 	payload := map[string]any{
-		"model":       model,
+		"model":       p.config.ParseModel,
 		"temperature": 0.0, // deterministic for item parsing
 		"messages": []map[string]string{
 			{"role": "system", "content": system},
@@ -210,19 +131,21 @@ func parseItems(ctx context.Context, transcriptText string) (ParsedItems, error)
 	}
 
 	b, _ := json.Marshal(payload)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, openAIChatURL, bytes.NewReader(b))
+	url := p.config.BaseURL + "/chat/completions"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {
 		return ParsedItems{}, NewAppError("Failed to create parsing request", http.StatusInternalServerError, err)
 	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	LogDebug("Sending item parsing request to OpenAI")
-	resp, err := httpClient.Do(req)
+	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return ParsedItems{}, NewAppError("OpenAI parsing request failed", http.StatusInternalServerError, err)
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
 		LogError("OpenAI parsing error", fmt.Errorf("status=%d body=%s", resp.StatusCode, string(body)))
@@ -274,15 +197,9 @@ func parseItems(ctx context.Context, transcriptText string) (ParsedItems, error)
 	return ParsedItems{Items: clean}, nil
 }
 
-// getNutritionFromOpenAI gets nutrition data for a single item from OpenAI
-func getNutritionFromOpenAI(ctx context.Context, item Item) (CompleteNutrient, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return CompleteNutrient{}, NewAppError("OPENAI_API_KEY not configured", http.StatusInternalServerError, nil)
-	}
-	model := getenv("OPENAI_PARSE_MODEL", "gpt-4o-mini")
-
-	system := nutritionSystemPrompt()
+// GetNutrition implements AIProvider.GetNutrition
+func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteNutrient, error) {
+	system := p.nutritionSystemPrompt()
 
 	// Build user message with item details
 	var userMsg strings.Builder
@@ -300,7 +217,7 @@ func getNutritionFromOpenAI(ctx context.Context, item Item) (CompleteNutrient, e
 	}
 
 	payload := map[string]any{
-		"model":       model,
+		"model":       p.config.ParseModel,
 		"temperature": 0.1, // slightly higher for nutrition estimates
 		"messages": []map[string]string{
 			{"role": "system", "content": system},
@@ -310,14 +227,15 @@ func getNutritionFromOpenAI(ctx context.Context, item Item) (CompleteNutrient, e
 	}
 
 	b, _ := json.Marshal(payload)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, openAIChatURL, bytes.NewReader(b))
+	url := p.config.BaseURL + "/chat/completions"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {
 		return CompleteNutrient{}, NewAppError("Failed to create nutrition request", http.StatusInternalServerError, err)
 	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := httpClient.Do(req)
+	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return CompleteNutrient{}, NewAppError("OpenAI nutrition request failed", http.StatusInternalServerError, err)
 	}
@@ -357,14 +275,87 @@ func getNutritionFromOpenAI(ctx context.Context, item Item) (CompleteNutrient, e
 	return result.Nutrients, nil
 }
 
-// strPtrOrNil returns a trimmed string pointer or nil if empty
-func strPtrOrNil(s *string) *string {
-	if s == nil {
-		return nil
-	}
-	v := strings.TrimSpace(*s)
-	if v == "" {
-		return nil
-	}
-	return &v
+// Private helper methods for prompts
+
+func (p *OpenAIProvider) transcriptionPrompt() string {
+	return `The audio is a short dictation of foods and drinks consumed. Preserve exact brand and product names (e.g., "Clover Organic", "Trader Joe's", "Siggi's", "Icelandic skyr", "LaCroix"), coffee drink terms (espresso, latte, macchiato), tea terms (matcha), and ingredient names (goji berries, blueberries, Greek yogurt, European style yogurt). Keep numbers and units (cups, grams, ounces, tbsp) and include standard punctuation. Do not add or infer items that were not spoken. If an item is given without a quantity, assume it is one standard serving size of that item which would make logical sense in the context of the consumption. For example, if a user says "I had a banana", assume it is one banana, not a bunch. If they say "I had some eggs", assume it is two eggs, not a dozen. If they say "I had some yogurt", assume it is one standard serving size of yogurt, not a gallon. If they say "I had some coffee", assume it is one standard cup of coffee, not a pot. If the user says "I had a latte" assume it contains two shots of espresso.`
+}
+
+func (p *OpenAIProvider) parseItemsSystemPrompt() string {
+	return `You extract individual food and drink items from a freeform meal, snack, beverage, or consumption description. Return strict JSON with the following structure:
+
+{
+  "items": [
+    {
+      "name": string,
+      "quantity": number | null,
+      "unit": string | null,
+      "brand": string | null
+    }
+  ]
+}
+
+IMPORTANT INSTRUCTIONS:
+1. EXTRACT INDIVIDUAL ITEMS: Separate each distinct food or drink item mentioned.
+2. INFER SERVING SIZES: If quantity is not specified, assume reasonable standard serving sizes based on context:
+   - Yogurt: 1 cup (245g)
+   - Banana: 1 medium (118g)  
+   - Eggs: 2 large eggs (100g)
+   - Coffee: 1 cup (240ml)
+   - Latte: 10oz with 2 shots espresso using standard 20g shots
+   - Apple: 1 medium (182g)
+   - Bread slice: 1 slice (28g)
+   - Chicken breast: 3.5oz (100g)
+   - Rice: 1 cup cooked (158g)
+
+3. PRESERVE BRANDS: Keep exact brand and product names (e.g., "Clover Sonoma", "Trader Joe's", "Siggi's", "KFC", "Starbucks").
+4. NORMALIZE UNITS: Use standard units (g, mg, ml, cups, tbsp, etc.).
+5. DO NOT ADD NUTRITION DATA: Only extract item identification, not nutrition information.`
+}
+
+func (p *OpenAIProvider) nutritionSystemPrompt() string {
+	return `You provide complete nutrition information for a single food item. Return strict JSON with the following structure:
+
+{
+  "nutrients": {
+    "calories": number,
+    "protein_g": number,
+    "total_fat_g": number,
+    "saturated_fat_g": number,
+    "trans_fat_g": number,
+    "cholesterol_mg": number,
+    "sodium_mg": number,
+    "total_carbs_g": number,
+    "dietary_fiber_g": number,
+    "total_sugars_g": number,
+    "added_sugars_g": number,
+    "vitamin_a_mcg": number,
+    "vitamin_c_mg": number,
+    "vitamin_d_mcg": number,
+    "vitamin_e_mg": number,
+    "vitamin_k_mcg": number,
+    "thiamine_mg": number,
+    "riboflavin_mg": number,
+    "niacin_mg": number,
+    "vitamin_b6_mg": number,
+    "folate_mcg": number,
+    "vitamin_b12_mcg": number,
+    "calcium_mg": number,
+    "iron_mg": number,
+    "magnesium_mg": number,
+    "phosphorus_mg": number,
+    "potassium_mg": number,
+    "zinc_mg": number,
+    "copper_mg": number,
+    "manganese_mg": number,
+    "selenium_mcg": number
+  }
+}
+
+IMPORTANT INSTRUCTIONS:
+1. NUTRITION DATA ACCURACY: Provide accurate nutrition data per serving for the specified quantity and unit. Use your knowledge of food composition databases, USDA data, and nutrition labels.
+2. HANDLE COMPLEX ITEMS: For prepared foods, estimate based on typical recipes and ingredients. For restaurant items, use available nutrition information or estimate based on similar items.
+3. ZERO VALUES: Use 0 for nutrients that are truly absent (like vitamin B12 in plants), but provide realistic non-zero values for nutrients that are typically present even in small amounts.
+4. BRANDED VS GENERIC: Prioritize branded nutrition data when brand is specified, otherwise use generic USDA-style data for the food type.
+5. QUANTITY-ADJUSTED: Provide nutrition values for the exact quantity/unit specified, not per 100g.`
 }
