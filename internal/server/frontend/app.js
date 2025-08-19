@@ -204,7 +204,7 @@ async function sendAudioToAPI(audioBlob) {
     const formData = new FormData();
     formData.append('audio', audioBlob);
 
-    const response = await fetch('/api/ingest', {
+    const response = await fetch('/api/consumption', {
       method: 'POST',
       body: formData
     });
