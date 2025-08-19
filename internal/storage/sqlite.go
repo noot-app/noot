@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"embed"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 
@@ -18,6 +20,11 @@ var migrationFiles embed.FS
 // SQLiteStore implements the Store interface using SQLite
 type SQLiteStore struct {
 	db *sql.DB
+}
+
+// generateULID generates a new ULID string
+func generateULID() string {
+	return ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader).String()
 }
 
 // NewSQLiteStore creates a new SQLite-based store
@@ -94,13 +101,14 @@ func (s *SQLiteStore) Reset() error {
 // CreateUser creates a new user
 func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 	query := `
-		INSERT INTO users (provider, subject, email, created_at)
-		VALUES (?, ?, ?, ?)
-		RETURNING id, created_at`
+		INSERT INTO users (id, provider, subject, email, created_at)
+		VALUES (?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
-	err := s.db.QueryRowContext(ctx, query, user.Provider, user.Subject, user.Email, now).
-		Scan(&user.ID, &user.CreatedAt)
+	user.ID = generateULID()
+	user.CreatedAt = now
+	
+	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email, now)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -109,7 +117,7 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 }
 
 // GetUser retrieves a user by ID
-func (s *SQLiteStore) GetUser(ctx context.Context, id int64) (*User, error) {
+func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
 	query := `SELECT id, provider, subject, email, created_at FROM users WHERE id = ?`
 	
 	user := &User{}
@@ -145,17 +153,18 @@ func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject st
 // CreateMeal creates a new meal
 func (s *SQLiteStore) CreateMeal(ctx context.Context, meal *Meal) error {
 	query := `
-		INSERT INTO meals (user_id, transcript, items_json, total_calories, total_protein_g, 
+		INSERT INTO meals (id, user_id, transcript, items_json, total_calories, total_protein_g, 
 						  total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		RETURNING id, created_at`
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
-	err := s.db.QueryRowContext(ctx, query,
-		meal.UserID, meal.Transcript, meal.ItemsJSON,
+	meal.ID = generateULID()
+	meal.CreatedAt = now
+	
+	_, err := s.db.ExecContext(ctx, query,
+		meal.ID, meal.UserID, meal.Transcript, meal.ItemsJSON,
 		meal.TotalCalories, meal.TotalProtein, meal.TotalFat,
-		meal.TotalCarbs, meal.TotalFiber, meal.TotalSodium, now).
-		Scan(&meal.ID, &meal.CreatedAt)
+		meal.TotalCarbs, meal.TotalFiber, meal.TotalSodium, now)
 	if err != nil {
 		return fmt.Errorf("failed to create meal: %w", err)
 	}
@@ -164,7 +173,7 @@ func (s *SQLiteStore) CreateMeal(ctx context.Context, meal *Meal) error {
 }
 
 // GetMeal retrieves a meal by ID
-func (s *SQLiteStore) GetMeal(ctx context.Context, id int64) (*Meal, error) {
+func (s *SQLiteStore) GetMeal(ctx context.Context, id string) (*Meal, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
@@ -186,7 +195,7 @@ func (s *SQLiteStore) GetMeal(ctx context.Context, id int64) (*Meal, error) {
 }
 
 // GetMealsByUser retrieves meals for a user with pagination
-func (s *SQLiteStore) GetMealsByUser(ctx context.Context, userID int64, limit, offset int) ([]*Meal, error) {
+func (s *SQLiteStore) GetMealsByUser(ctx context.Context, userID string, limit, offset int) ([]*Meal, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
@@ -220,7 +229,7 @@ func (s *SQLiteStore) GetMealsByUser(ctx context.Context, userID int64, limit, o
 }
 
 // GetMealsByUserSince retrieves meals for a user since a specific time
-func (s *SQLiteStore) GetMealsByUserSince(ctx context.Context, userID int64, since time.Time) ([]*Meal, error) {
+func (s *SQLiteStore) GetMealsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Meal, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
