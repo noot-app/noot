@@ -214,24 +214,24 @@
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="stat">
                   <div class="stat-title">Calories</div>
-                  <div class="stat-value text-lg">{result.summary.total_calories}</div>
+                  <div class="stat-value text-lg">{result.summary.totals.calories}</div>
                 </div>
                 <div class="stat">
                   <div class="stat-title">Protein</div>
                   <div class="stat-value text-lg">
-                    {formatWeight(convertNutrientValue(result.summary.total_protein), currentUnits)}
+                    {formatWeight(convertNutrientValue(result.summary.totals.protein_g), currentUnits)}
                   </div>
                 </div>
                 <div class="stat">
                   <div class="stat-title">Carbs</div>
                   <div class="stat-value text-lg">
-                    {formatWeight(convertNutrientValue(result.summary.total_carbs), currentUnits)}
+                    {formatWeight(convertNutrientValue(result.summary.totals.total_carbs_g), currentUnits)}
                   </div>
                 </div>
                 <div class="stat">
                   <div class="stat-title">Fat</div>
                   <div class="stat-value text-lg">
-                    {formatWeight(convertNutrientValue(result.summary.total_fat), currentUnits)}
+                    {formatWeight(convertNutrientValue(result.summary.totals.total_fat_g), currentUnits)}
                   </div>
                 </div>
               </div>
@@ -248,18 +248,18 @@
                 {#each result.items as item}
                   <div class="card bg-base-100 shadow">
                     <div class="card-body p-4">
-                      <h3 class="text-lg font-semibold">{item.food_item}</h3>
-                      {#if item.quantity && item.unit}
+                      <h3 class="text-lg font-semibold">{item.item.name}</h3>
+                      {#if item.item.quantity && item.item.unit}
                         <p class="text-sm text-base-content/70">
-                          {item.quantity} {item.unit}
+                          {item.item.quantity} {item.item.unit}
                         </p>
                       {/if}
-                      {#if item.nutrition}
+                      {#if item.item.nutrients}
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-2">
-                          <span>Cal: {item.nutrition.calories}</span>
-                          <span>Pro: {formatWeight(convertNutrientValue(item.nutrition.protein), currentUnits)}</span>
-                          <span>Carb: {formatWeight(convertNutrientValue(item.nutrition.carbohydrates), currentUnits)}</span>
-                          <span>Fat: {formatWeight(convertNutrientValue(item.nutrition.fat), currentUnits)}</span>
+                          <span>Cal: {item.item.nutrients.calories}</span>
+                          <span>Pro: {formatWeight(convertNutrientValue(item.item.nutrients.protein_g), currentUnits)}</span>
+                          <span>Carb: {formatWeight(convertNutrientValue(item.item.nutrients.total_carbs_g), currentUnits)}</span>
+                          <span>Fat: {formatWeight(convertNutrientValue(item.item.nutrients.total_fat_g), currentUnits)}</span>
                         </div>
                       {/if}
                     </div>

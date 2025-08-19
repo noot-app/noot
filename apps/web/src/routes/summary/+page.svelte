@@ -158,7 +158,7 @@
               </svg>
             </div>
             <div class="stat-title">Total Calories</div>
-            <div class="stat-value text-primary">{summaryData.total_calories || 0}</div>
+            <div class="stat-value text-primary">{summaryData.summary.total_calories || 0}</div>
             <div class="stat-desc">{currentView === 'today' ? 'Today' : 'This week'}</div>
           </div>
 
@@ -170,7 +170,7 @@
             </div>
             <div class="stat-title">Protein</div>
             <div class="stat-value text-secondary">
-              {formatWeight(convertNutrientValue(summaryData.total_protein || 0), currentUnits)}
+              {formatWeight(convertNutrientValue(summaryData.summary.total_protein_g || 0), currentUnits)}
             </div>
             <div class="stat-desc">Essential for muscle</div>
           </div>
@@ -183,7 +183,7 @@
             </div>
             <div class="stat-title">Carbohydrates</div>
             <div class="stat-value text-accent">
-              {formatWeight(convertNutrientValue(summaryData.total_carbs || 0), currentUnits)}
+              {formatWeight(convertNutrientValue(summaryData.summary.total_carbs_g || 0), currentUnits)}
             </div>
             <div class="stat-desc">Energy source</div>
           </div>
@@ -196,7 +196,7 @@
             </div>
             <div class="stat-title">Fat</div>
             <div class="stat-value text-warning">
-              {formatWeight(convertNutrientValue(summaryData.total_fat || 0), currentUnits)}
+              {formatWeight(convertNutrientValue(summaryData.summary.total_fat_g || 0), currentUnits)}
             </div>
             <div class="stat-desc">Healthy fats</div>
           </div>
