@@ -136,7 +136,7 @@ func TestValidateSubscriptionAccess(t *testing.T) {
 			name:        "case insensitive pro user",
 			user:        &storage.User{SubscriptionTier: "PRO"},
 			days:        7,
-			expectError: true, // Should fail because we compare with exact match
+			expectError: false, // Should pass because validation is case-insensitive
 		},
 	}
 
