@@ -72,7 +72,7 @@ func Run(ctx context.Context, port string) error {
 		mux.HandleFunc("/api/v1/nutrition-summary", WrapHandler(v1NutritionSummaryHandler))
 		mux.HandleFunc("/api/v1/docs", WrapHandler(v1SwaggerUIHandler))
 		mux.HandleFunc("/api/v1/openapi.yaml", WrapHandler(v1OpenAPISpecHandler))
-		
+
 		// Legacy routes
 		mux.HandleFunc("/api/consumptions", consumptionsHandler)
 		mux.HandleFunc("/api/nutrition-summary", nutritionSummaryHandler)

@@ -25,46 +25,46 @@ type HealthResponse struct {
 
 // Item represents a food item
 type Item struct {
-	Name      string             `json:"name"`
-	Quantity  *float64           `json:"quantity,omitempty"`
-	Unit      *string            `json:"unit,omitempty"`
-	Brand     *string            `json:"brand,omitempty"`
-	Nutrients *CompleteNutrient  `json:"nutrients,omitempty"`
+	Name      string            `json:"name"`
+	Quantity  *float64          `json:"quantity,omitempty"`
+	Unit      *string           `json:"unit,omitempty"`
+	Brand     *string           `json:"brand,omitempty"`
+	Nutrients *CompleteNutrient `json:"nutrients,omitempty"`
 }
 
 // CompleteNutrient contains nutrition information
 type CompleteNutrient struct {
-	Calories       float64 `json:"calories"`
-	ProteinG       float64 `json:"protein_g"`
-	TotalFatG      float64 `json:"total_fat_g"`
-	SaturatedFatG  float64 `json:"saturated_fat_g"`
-	TransFatG      float64 `json:"trans_fat_g"`
-	CholesterolMg  float64 `json:"cholesterol_mg"`
-	SodiumMg       float64 `json:"sodium_mg"`
-	TotalCarbsG    float64 `json:"total_carbs_g"`
-	DietaryFiberG  float64 `json:"dietary_fiber_g"`
-	TotalSugarsG   float64 `json:"total_sugars_g"`
-	AddedSugarsG   float64 `json:"added_sugars_g"`
-	VitaminAMcg    float64 `json:"vitamin_a_mcg"`
-	VitaminCMg     float64 `json:"vitamin_c_mg"`
-	VitaminDMcg    float64 `json:"vitamin_d_mcg"`
-	VitaminEMg     float64 `json:"vitamin_e_mg"`
-	VitaminKMcg    float64 `json:"vitamin_k_mcg"`
-	ThiamineMg     float64 `json:"thiamine_mg"`
-	RiboflavinMg   float64 `json:"riboflavin_mg"`
-	NiacinMg       float64 `json:"niacin_mg"`
-	VitaminB6Mg    float64 `json:"vitamin_b6_mg"`
-	FolateMcg      float64 `json:"folate_mcg"`
-	VitaminB12Mcg  float64 `json:"vitamin_b12_mcg"`
-	CalciumMg      float64 `json:"calcium_mg"`
-	IronMg         float64 `json:"iron_mg"`
-	MagnesiumMg    float64 `json:"magnesium_mg"`
-	PhosphorusMg   float64 `json:"phosphorus_mg"`
-	PotassiumMg    float64 `json:"potassium_mg"`
-	ZincMg         float64 `json:"zinc_mg"`
-	CopperMg       float64 `json:"copper_mg"`
-	ManganeseMg    float64 `json:"manganese_mg"`
-	SeleniumMcg    float64 `json:"selenium_mcg"`
+	Calories      float64 `json:"calories"`
+	ProteinG      float64 `json:"protein_g"`
+	TotalFatG     float64 `json:"total_fat_g"`
+	SaturatedFatG float64 `json:"saturated_fat_g"`
+	TransFatG     float64 `json:"trans_fat_g"`
+	CholesterolMg float64 `json:"cholesterol_mg"`
+	SodiumMg      float64 `json:"sodium_mg"`
+	TotalCarbsG   float64 `json:"total_carbs_g"`
+	DietaryFiberG float64 `json:"dietary_fiber_g"`
+	TotalSugarsG  float64 `json:"total_sugars_g"`
+	AddedSugarsG  float64 `json:"added_sugars_g"`
+	VitaminAMcg   float64 `json:"vitamin_a_mcg"`
+	VitaminCMg    float64 `json:"vitamin_c_mg"`
+	VitaminDMcg   float64 `json:"vitamin_d_mcg"`
+	VitaminEMg    float64 `json:"vitamin_e_mg"`
+	VitaminKMcg   float64 `json:"vitamin_k_mcg"`
+	ThiamineMg    float64 `json:"thiamine_mg"`
+	RiboflavinMg  float64 `json:"riboflavin_mg"`
+	NiacinMg      float64 `json:"niacin_mg"`
+	VitaminB6Mg   float64 `json:"vitamin_b6_mg"`
+	FolateMcg     float64 `json:"folate_mcg"`
+	VitaminB12Mcg float64 `json:"vitamin_b12_mcg"`
+	CalciumMg     float64 `json:"calcium_mg"`
+	IronMg        float64 `json:"iron_mg"`
+	MagnesiumMg   float64 `json:"magnesium_mg"`
+	PhosphorusMg  float64 `json:"phosphorus_mg"`
+	PotassiumMg   float64 `json:"potassium_mg"`
+	ZincMg        float64 `json:"zinc_mg"`
+	CopperMg      float64 `json:"copper_mg"`
+	ManganeseMg   float64 `json:"manganese_mg"`
+	SeleniumMcg   float64 `json:"selenium_mcg"`
 }
 
 // ItemWithNutrition represents an item with optional nutrition note
@@ -75,18 +75,18 @@ type ItemWithNutrition struct {
 
 // Summary contains nutrition summary data
 type Summary struct {
-	Totals          CompleteNutrient   `json:"totals"`
-	PercentOfDaily  map[string]int     `json:"percent_of_daily"`
-	DailyValues     map[string]float64 `json:"daily_values"`
+	Totals         CompleteNutrient   `json:"totals"`
+	PercentOfDaily map[string]int     `json:"percent_of_daily"`
+	DailyValues    map[string]float64 `json:"daily_values"`
 }
 
 // ConsumptionResponse defines the response for consumption endpoint
 type ConsumptionResponse struct {
-	Transcript   string               `json:"transcript"`
-	ParsedItems  []Item               `json:"parsedItems"`
-	Items        []ItemWithNutrition  `json:"items"`
-	Summary      Summary              `json:"summary"`
-	RequestID    string               `json:"request_id"`
+	Transcript  string              `json:"transcript"`
+	ParsedItems []Item              `json:"parsedItems"`
+	Items       []ItemWithNutrition `json:"items"`
+	Summary     Summary             `json:"summary"`
+	RequestID   string              `json:"request_id"`
 }
 
 // User represents a user
@@ -101,12 +101,12 @@ type User struct {
 
 // Consumption represents a logged consumption
 type Consumption struct {
-	ID        string               `json:"id"`
-	UserID    string               `json:"user_id"`
+	ID         string              `json:"id"`
+	UserID     string              `json:"user_id"`
 	Transcript string              `json:"transcript"`
-	Items     []ItemWithNutrition  `json:"items"`
-	Summary   Summary              `json:"summary"`
-	CreatedAt time.Time            `json:"created_at"`
+	Items      []ItemWithNutrition `json:"items"`
+	Summary    Summary             `json:"summary"`
+	CreatedAt  time.Time           `json:"created_at"`
 }
 
 // ConsumptionsResponse defines the response for consumptions list endpoint
@@ -130,23 +130,23 @@ type DailySummary struct {
 
 // NutritionSummary represents aggregated nutrition data
 type NutritionSummary struct {
-	UserID              string         `json:"user_id"`
-	StartDate           time.Time      `json:"start_date"`
-	EndDate             time.Time      `json:"end_date"`
-	ConsumptionCount    int            `json:"consumption_count"`
-	TotalCalories       float64        `json:"total_calories"`
-	TotalProteinG       float64        `json:"total_protein_g"`
-	TotalFatG           float64        `json:"total_fat_g"`
-	TotalCarbsG         float64        `json:"total_carbs_g"`
-	TotalFiberG         float64        `json:"total_fiber_g"`
-	TotalSodiumMg       float64        `json:"total_sodium_mg"`
-	AvgCaloriesPerDay   float64        `json:"avg_calories_per_day"`
-	AvgProteinPerDay    float64        `json:"avg_protein_per_day"`
-	AvgFatPerDay        float64        `json:"avg_fat_per_day"`
-	AvgCarbsPerDay      float64        `json:"avg_carbs_per_day"`
-	AvgFiberPerDay      float64        `json:"avg_fiber_per_day"`
-	AvgSodiumPerDay     float64        `json:"avg_sodium_per_day"`
-	DailyBreakdown      []DailySummary `json:"daily_breakdown"`
+	UserID            string         `json:"user_id"`
+	StartDate         time.Time      `json:"start_date"`
+	EndDate           time.Time      `json:"end_date"`
+	ConsumptionCount  int            `json:"consumption_count"`
+	TotalCalories     float64        `json:"total_calories"`
+	TotalProteinG     float64        `json:"total_protein_g"`
+	TotalFatG         float64        `json:"total_fat_g"`
+	TotalCarbsG       float64        `json:"total_carbs_g"`
+	TotalFiberG       float64        `json:"total_fiber_g"`
+	TotalSodiumMg     float64        `json:"total_sodium_mg"`
+	AvgCaloriesPerDay float64        `json:"avg_calories_per_day"`
+	AvgProteinPerDay  float64        `json:"avg_protein_per_day"`
+	AvgFatPerDay      float64        `json:"avg_fat_per_day"`
+	AvgCarbsPerDay    float64        `json:"avg_carbs_per_day"`
+	AvgFiberPerDay    float64        `json:"avg_fiber_per_day"`
+	AvgSodiumPerDay   float64        `json:"avg_sodium_per_day"`
+	DailyBreakdown    []DailySummary `json:"daily_breakdown"`
 }
 
 // NutritionSummaryResponse defines the response for nutrition summary endpoint

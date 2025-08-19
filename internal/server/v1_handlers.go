@@ -66,7 +66,7 @@ func v1SwaggerUIHandler(c *Context) {
     </script>
 </body>
 </html>`
-	
+
 	c.HTML(http.StatusOK, html)
 }
 
