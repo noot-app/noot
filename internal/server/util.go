@@ -1,13 +1,14 @@
 package server
 
 import (
-	"bytes"
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -67,22 +68,83 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 	}
 }
 
-func saveTempFile(src multipart.File, _ *multipart.FileHeader) (string, string, error) {
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, src); err != nil {
-		return "", "", err
+func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, string, error) {
+	// Get max upload size from environment, default to 100MB
+	maxBytes := int64(100 * 1024 * 1024) // 100MB default
+	if maxBytesStr := os.Getenv("MAX_UPLOAD_BYTES"); maxBytesStr != "" {
+		if parsed, err := strconv.ParseInt(maxBytesStr, 10, 64); err == nil && parsed > 0 {
+			maxBytes = parsed
+		}
 	}
-	b := buf.Bytes()
-	mime := http.DetectContentType(b)
+
+	// Create a buffered reader to peek at the first 512 bytes for MIME detection
+	reader := bufio.NewReader(src)
+
+	// Peek up to 512 bytes to determine MIME type
+	peekBytes := make([]byte, 512)
+	n, err := reader.Read(peekBytes)
+	if err != nil && err != io.EOF {
+		return "", "", fmt.Errorf("failed to read file header: %w", err)
+	}
+
+	// Determine MIME type from the peeked bytes
+	mime := http.DetectContentType(peekBytes[:n])
 	ext := guessExtension(mime)
+
+	// Create temp file with appropriate extension
 	tmpFile, err := os.CreateTemp("", "audio-*"+ext)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to create temp file: %w", err)
 	}
-	defer tmpFile.Close()
-	if _, err := tmpFile.Write(b); err != nil {
-		return "", "", err
+
+	var cleanupFile = func() {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
 	}
+
+	// Write the peeked bytes first
+	bytesWritten := int64(0)
+	if n > 0 {
+		written, err := tmpFile.Write(peekBytes[:n])
+		if err != nil {
+			cleanupFile()
+			return "", "", fmt.Errorf("failed to write peeked bytes to temp file: %w", err)
+		}
+		bytesWritten = int64(written)
+	}
+
+	// Stream the remainder using io.Copy with size limit
+	remainingBytes := maxBytes - bytesWritten
+	if remainingBytes <= 0 {
+		cleanupFile()
+		return "", "", fmt.Errorf("file exceeds maximum upload size of %d bytes", maxBytes)
+	}
+
+	limitedReader := io.LimitReader(reader, remainingBytes)
+	copied, err := io.Copy(tmpFile, limitedReader)
+	if err != nil {
+		cleanupFile()
+		return "", "", fmt.Errorf("failed to stream file to temp file: %w", err)
+	}
+
+	bytesWritten += copied
+
+	// Check if we hit the limit (which means the file was too large)
+	if copied == remainingBytes {
+		// Try to read one more byte to see if there's more data
+		var oneByte [1]byte
+		if extraRead, err := reader.Read(oneByte[:]); err == nil && extraRead > 0 {
+			cleanupFile()
+			return "", "", fmt.Errorf("file exceeds maximum upload size of %d bytes", maxBytes)
+		}
+	}
+
+	// Close the file (but keep it on disk)
+	if err := tmpFile.Close(); err != nil {
+		os.Remove(tmpFile.Name())
+		return "", "", fmt.Errorf("failed to close temp file: %w", err)
+	}
+
 	return tmpFile.Name(), mime, nil
 }
 
@@ -94,6 +156,8 @@ func guessExtension(mime string) string {
 	case strings.Contains(l, "ogg"):
 		return ".ogg"
 	case strings.Contains(l, "mp3"):
+		return ".mp3"
+	case strings.Contains(l, "mpeg"):
 		return ".mp3"
 	case strings.Contains(l, "wav"):
 		return ".wav"

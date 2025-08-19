@@ -34,6 +34,9 @@ An AI-powered nutrition logging web app. Just say what you ate!
 
     TRANSCRIBE_LANGUAGE=en
     #OPENAI_TRANSCRIBE_RESPONSE_FORMAT=
+
+    # Upload Configuration
+    MAX_UPLOAD_BYTES=104857600  # Maximum upload size in bytes (default: 100MB)
     ```
 
 3) **Run:** The local server can be run with `script/server` (use `--production` for production mode).
@@ -80,9 +83,18 @@ An AI-powered nutrition logging web app. Just say what you ate!
 - **Test:** `script/test`
 - **Lint:** `script/lint`  
 - **Build:** `script/build` (or `script/build --single-target` for faster iteration)
+- **Dev Server:** `script/server` (starts with development-friendly caching)
 
 ## Technical Details
 
 - Single binary web server with embedded frontend assets
 - OpenAI gpt-4o-mini-transcribe for speech-to-text
 - OpenAI gpt-4o-mini for meal parsing
+- Audio uploads are streamed to temporary files to avoid memory spikes
+
+### Caching Strategy
+
+- **Development mode (`ENV=development`):** Very short cache times (1 second) for immediate updates during development
+- **Production mode:** Long-lived caching with git commit-based cache busting
+  - Static assets (CSS/JS/images): 1 year cache with version parameters (`?v=abc1234`)
+  - HTML files: no-cache to ensure timely updates
