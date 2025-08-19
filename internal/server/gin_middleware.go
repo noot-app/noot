@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -87,6 +88,36 @@ func RecoveryMiddleware() gin.HandlerFunc {
 func StoreMiddleware(store storage.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set("store", store)
+		c.Next()
+	}
+}
+
+// CORSMiddleware adds CORS headers for development
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get allowed origins from environment variable, default to localhost:3000 for development
+		allowedOrigins := getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+		origins := strings.Split(allowedOrigins, ",")
+
+		origin := c.Request.Header.Get("Origin")
+
+		// Check if the origin is in the allowed list
+		for _, allowedOrigin := range origins {
+			if strings.TrimSpace(allowedOrigin) == origin {
+				c.Header("Access-Control-Allow-Origin", origin)
+				break
+			}
+		}
+
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Header("Access-Control-Allow-Credentials", "true")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
 		c.Next()
 	}
 }

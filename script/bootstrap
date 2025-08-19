@@ -20,4 +20,34 @@ fi
 # This avoids touching the network or the module cache.
 go list -mod=vendor -deps ./... > /dev/null
 
+# Install npm dependencies for the web app if it exists
+if [[ -d "apps/web" && -f "apps/web/package.json" ]]; then
+  echo -e "${BLUE}📦 Installing npm dependencies for web app...${OFF}"
+  
+  # Store current directory
+  ORIGINAL_DIR=$(pwd)
+  
+  # Safely enter the web directory
+  cd "apps/web" || {
+    echo -e "${RED}❌ Failed to enter apps/web directory${OFF}"
+    exit 1
+  }
+  
+  # Install npm dependencies
+  if command -v npm &> /dev/null; then
+    npm install
+    echo -e "${GREEN}✅ npm dependencies installed successfully${OFF}"
+  else
+    echo -e "${YELLOW}⚠️  npm not found, skipping web app dependency installation${OFF}"
+  fi
+  
+  # Return to original directory
+  cd "${ORIGINAL_DIR}" || {
+    echo -e "${RED}❌ Failed to return to original directory${OFF}"
+    exit 1
+  }
+else
+  echo -e "${YELLOW}ℹ️  No web app found (apps/web/package.json), skipping npm install${OFF}"
+fi
+
 echo -e "${GREEN}✅ Bootstrap complete!${OFF}"
