@@ -47,7 +47,7 @@ func Run(ctx context.Context, port string) error {
 
 	mux := http.NewServeMux()
 
-	// API  
+	// API
 	mux.HandleFunc("/api/consumption", ingestHandler) // Renamed from /api/ingest
 	mux.HandleFunc("/api/health", healthHandler)
 
