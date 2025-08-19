@@ -12,11 +12,11 @@ type Store interface {
 	GetUser(ctx context.Context, id string) (*User, error)
 	GetUserBySubject(ctx context.Context, provider, subject string) (*User, error)
 
-	// Meal operations
-	CreateMeal(ctx context.Context, meal *Meal) error
-	GetMeal(ctx context.Context, id string) (*Meal, error)
-	GetMealsByUser(ctx context.Context, userID string, limit, offset int) ([]*Meal, error)
-	GetMealsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Meal, error)
+	// Consumption operations
+	CreateConsumption(ctx context.Context, consumption *Consumption) error
+	GetConsumption(ctx context.Context, id string) (*Consumption, error)
+	GetConsumptionsByUser(ctx context.Context, userID string, limit, offset int) ([]*Consumption, error)
+	GetConsumptionsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Consumption, error)
 	GetNutritionSummary(ctx context.Context, userID string, start, end time.Time) (*NutritionSummary, error)
 
 	// Item cache operations (soft TTL)
@@ -46,8 +46,8 @@ type User struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
-// Meal represents a logged meal with nutrition data
-type Meal struct {
+// Consumption represents a logged consumption with nutrition data
+type Consumption struct {
 	ID            string    `json:"id"`
 	UserID        string    `json:"user_id"`
 	Transcript    string    `json:"transcript"`
@@ -119,10 +119,10 @@ type ItemAlias struct {
 
 // NutritionSummary represents aggregated nutrition data over a time period
 type NutritionSummary struct {
-	UserID    string    `json:"user_id"`
-	StartDate time.Time `json:"start_date"`
-	EndDate   time.Time `json:"end_date"`
-	MealCount int       `json:"meal_count"`
+	UserID           string    `json:"user_id"`
+	StartDate        time.Time `json:"start_date"`
+	EndDate          time.Time `json:"end_date"`
+	ConsumptionCount int       `json:"consumption_count"`
 
 	// Totals for the time period
 	TotalCalories float64 `json:"total_calories"`
@@ -146,12 +146,12 @@ type NutritionSummary struct {
 
 // DailySummary represents nutrition data for a single day
 type DailySummary struct {
-	Date      time.Time `json:"date"`
-	MealCount int       `json:"meal_count"`
-	Calories  float64   `json:"calories"`
-	Protein   float64   `json:"protein_g"`
-	Fat       float64   `json:"total_fat_g"`
-	Carbs     float64   `json:"total_carbs_g"`
-	Fiber     float64   `json:"fiber_g"`
-	Sodium    float64   `json:"sodium_mg"`
+	Date             time.Time `json:"date"`
+	ConsumptionCount int       `json:"consumption_count"`
+	Calories         float64   `json:"calories"`
+	Protein          float64   `json:"protein_g"`
+	Fat              float64   `json:"total_fat_g"`
+	Carbs            float64   `json:"total_carbs_g"`
+	Fiber            float64   `json:"fiber_g"`
+	Sodium           float64   `json:"sodium_mg"`
 }
