@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"embed"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 
@@ -35,6 +37,11 @@ func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 
 	store := &SQLiteStore{db: db}
 	return store, nil
+}
+
+// generateULID creates a new ULID string
+func generateULID() string {
+	return ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader).String()
 }
 
 // Close closes the database connection
@@ -80,7 +87,7 @@ func (s *SQLiteStore) Migrate() error {
 // Reset drops all tables and re-applies migrations
 func (s *SQLiteStore) Reset() error {
 	// Drop tables in reverse dependency order
-	tables := []string{"meals", "users"}
+	tables := []string{"item_aliases", "items_cache", "meals", "users"}
 	for _, table := range tables {
 		if _, err := s.db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s", table)); err != nil {
 			return fmt.Errorf("failed to drop table %s: %w", table, err)
@@ -93,14 +100,12 @@ func (s *SQLiteStore) Reset() error {
 
 // CreateUser creates a new user
 func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
-	query := `
-		INSERT INTO users (provider, subject, email, created_at)
-		VALUES (?, ?, ?, ?)
-		RETURNING id, created_at`
-
+	user.ID = generateULID()
 	now := time.Now().UTC()
-	err := s.db.QueryRowContext(ctx, query, user.Provider, user.Subject, user.Email, now).
-		Scan(&user.ID, &user.CreatedAt)
+	user.CreatedAt = now
+
+	query := `INSERT INTO users (id, provider, subject, email, created_at) VALUES (?, ?, ?, ?, ?)`
+	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email, now)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -109,9 +114,9 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 }
 
 // GetUser retrieves a user by ID
-func (s *SQLiteStore) GetUser(ctx context.Context, id int64) (*User, error) {
+func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
 	query := `SELECT id, provider, subject, email, created_at FROM users WHERE id = ?`
-	
+
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, id).
 		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.CreatedAt)
@@ -128,7 +133,7 @@ func (s *SQLiteStore) GetUser(ctx context.Context, id int64) (*User, error) {
 // GetUserBySubject retrieves a user by provider and subject
 func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject string) (*User, error) {
 	query := `SELECT id, provider, subject, email, created_at FROM users WHERE provider = ? AND subject = ?`
-	
+
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, provider, subject).
 		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.CreatedAt)
@@ -144,18 +149,19 @@ func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject st
 
 // CreateMeal creates a new meal
 func (s *SQLiteStore) CreateMeal(ctx context.Context, meal *Meal) error {
-	query := `
-		INSERT INTO meals (user_id, transcript, items_json, total_calories, total_protein_g, 
-						  total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		RETURNING id, created_at`
-
+	meal.ID = generateULID()
 	now := time.Now().UTC()
-	err := s.db.QueryRowContext(ctx, query,
+	meal.CreatedAt = now
+
+	query := `
+		INSERT INTO meals (id, user_id, transcript, items_json, total_calories, total_protein_g, 
+						  total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+	_, err := s.db.ExecContext(ctx, query, meal.ID,
 		meal.UserID, meal.Transcript, meal.ItemsJSON,
 		meal.TotalCalories, meal.TotalProtein, meal.TotalFat,
-		meal.TotalCarbs, meal.TotalFiber, meal.TotalSodium, now).
-		Scan(&meal.ID, &meal.CreatedAt)
+		meal.TotalCarbs, meal.TotalFiber, meal.TotalSodium, now)
 	if err != nil {
 		return fmt.Errorf("failed to create meal: %w", err)
 	}
@@ -164,17 +170,17 @@ func (s *SQLiteStore) CreateMeal(ctx context.Context, meal *Meal) error {
 }
 
 // GetMeal retrieves a meal by ID
-func (s *SQLiteStore) GetMeal(ctx context.Context, id int64) (*Meal, error) {
+func (s *SQLiteStore) GetMeal(ctx context.Context, id string) (*Meal, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
 		FROM meals WHERE id = ?`
-	
+
 	meal := &Meal{}
 	err := s.db.QueryRowContext(ctx, query, id).
 		Scan(&meal.ID, &meal.UserID, &meal.Transcript, &meal.ItemsJSON,
-			 &meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
-			 &meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
+			&meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
+			&meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Meal not found
@@ -186,14 +192,14 @@ func (s *SQLiteStore) GetMeal(ctx context.Context, id int64) (*Meal, error) {
 }
 
 // GetMealsByUser retrieves meals for a user with pagination
-func (s *SQLiteStore) GetMealsByUser(ctx context.Context, userID int64, limit, offset int) ([]*Meal, error) {
+func (s *SQLiteStore) GetMealsByUser(ctx context.Context, userID string, limit, offset int) ([]*Meal, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
 		FROM meals WHERE user_id = ?
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
-	
+
 	rows, err := s.db.QueryContext(ctx, query, userID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query meals: %w", err)
@@ -204,8 +210,8 @@ func (s *SQLiteStore) GetMealsByUser(ctx context.Context, userID int64, limit, o
 	for rows.Next() {
 		meal := &Meal{}
 		err := rows.Scan(&meal.ID, &meal.UserID, &meal.Transcript, &meal.ItemsJSON,
-						 &meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
-						 &meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
+			&meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
+			&meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan meal: %w", err)
 		}
@@ -220,13 +226,13 @@ func (s *SQLiteStore) GetMealsByUser(ctx context.Context, userID int64, limit, o
 }
 
 // GetMealsByUserSince retrieves meals for a user since a specific time
-func (s *SQLiteStore) GetMealsByUserSince(ctx context.Context, userID int64, since time.Time) ([]*Meal, error) {
+func (s *SQLiteStore) GetMealsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Meal, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
 		FROM meals WHERE user_id = ? AND created_at >= ?
 		ORDER BY created_at DESC`
-	
+
 	rows, err := s.db.QueryContext(ctx, query, userID, since)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query meals since: %w", err)
@@ -237,8 +243,8 @@ func (s *SQLiteStore) GetMealsByUserSince(ctx context.Context, userID int64, sin
 	for rows.Next() {
 		meal := &Meal{}
 		err := rows.Scan(&meal.ID, &meal.UserID, &meal.Transcript, &meal.ItemsJSON,
-						 &meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
-						 &meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
+			&meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
+			&meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan meal: %w", err)
 		}
@@ -365,6 +371,90 @@ func (s *SQLiteStore) Seed() error {
 				return fmt.Errorf("failed to update meal timestamp: %w", err)
 			}
 		}
+	}
+
+	return nil
+}
+
+// DeleteUserCascade deletes a user and all their meals (app-level cascade)
+func (s *SQLiteStore) DeleteUserCascade(ctx context.Context, id string) error {
+	// Start a transaction for consistency
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Delete all meals for the user first
+	_, err = tx.ExecContext(ctx, "DELETE FROM meals WHERE user_id = ?", id)
+	if err != nil {
+		return fmt.Errorf("failed to delete user meals: %w", err)
+	}
+
+	// Delete the user
+	result, err := tx.ExecContext(ctx, "DELETE FROM users WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return tx.Commit()
+}
+
+// GetCachedItem retrieves a cached item, refreshing if expired
+func (s *SQLiteStore) GetCachedItem(ctx context.Context, normalizedName, normalizedBrand string) (*CachedItem, error) {
+	query := `SELECT id, normalized_name, normalized_brand, original_name, original_brand, 
+					 nutrient_data_json, fetched_at, expires_at 
+			  FROM items_cache 
+			  WHERE normalized_name = ? AND normalized_brand = ?`
+
+	item := &CachedItem{}
+	err := s.db.QueryRowContext(ctx, query, normalizedName, normalizedBrand).
+		Scan(&item.ID, &item.NormalizedName, &item.NormalizedBrand, &item.OriginalName,
+			&item.OriginalBrand, &item.NutrientDataJSON, &item.FetchedAt, &item.ExpiresAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Item not found
+		}
+		return nil, fmt.Errorf("failed to get cached item: %w", err)
+	}
+
+	return item, nil
+}
+
+// UpsertCachedItem creates or updates a cached item with fresh TTL
+func (s *SQLiteStore) UpsertCachedItem(ctx context.Context, item *CachedItem) error {
+	now := time.Now().UTC()
+
+	if item.ID == "" {
+		item.ID = generateULID()
+	}
+
+	item.FetchedAt = now
+	item.ExpiresAt = now.Add(30 * 24 * time.Hour) // 30-day TTL
+
+	query := `INSERT INTO items_cache (id, normalized_name, normalized_brand, original_name, 
+									  original_brand, nutrient_data_json, fetched_at, expires_at)
+			  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			  ON CONFLICT(normalized_name, normalized_brand) DO UPDATE SET
+				  original_name = excluded.original_name,
+				  original_brand = excluded.original_brand,
+				  nutrient_data_json = excluded.nutrient_data_json,
+				  fetched_at = excluded.fetched_at,
+				  expires_at = excluded.expires_at`
+
+	_, err := s.db.ExecContext(ctx, query, item.ID, item.NormalizedName, item.NormalizedBrand,
+		item.OriginalName, item.OriginalBrand, item.NutrientDataJSON, item.FetchedAt, item.ExpiresAt)
+	if err != nil {
+		return fmt.Errorf("failed to upsert cached item: %w", err)
 	}
 
 	return nil

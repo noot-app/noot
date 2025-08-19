@@ -14,7 +14,7 @@ func TestSQLiteStore(t *testing.T) {
 	// Create temp database file
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
-	
+
 	store, err := NewSQLiteStore(dbPath)
 	require.NoError(t, err)
 	defer store.Close()
@@ -126,7 +126,7 @@ func TestSQLiteStore(t *testing.T) {
 		retrieved, err := store.GetMealsByUser(ctx, user.ID, 10, 0)
 		require.NoError(t, err)
 		assert.Len(t, retrieved, 2)
-		
+
 		// Meals should be ordered by created_at DESC
 		assert.Equal(t, "Lunch", retrieved[0].Transcript)
 		assert.Equal(t, "Breakfast", retrieved[1].Transcript)
@@ -206,12 +206,12 @@ func TestSQLiteStore(t *testing.T) {
 
 	t.Run("NonExistentRecords", func(t *testing.T) {
 		// Test getting non-existent user
-		user, err := store.GetUser(ctx, 99999)
+		user, err := store.GetUser(ctx, "non-existent-ulid")
 		require.NoError(t, err)
 		assert.Nil(t, user)
 
 		// Test getting non-existent meal
-		meal, err := store.GetMeal(ctx, 99999)
+		meal, err := store.GetMeal(ctx, "non-existent-ulid")
 		require.NoError(t, err)
 		assert.Nil(t, meal)
 
@@ -219,5 +219,108 @@ func TestSQLiteStore(t *testing.T) {
 		userBySubject, err := store.GetUserBySubject(ctx, "nonexistent", "nonexistent")
 		require.NoError(t, err)
 		assert.Nil(t, userBySubject)
+	})
+
+	t.Run("CacheOperations", func(t *testing.T) {
+		// Test creating and retrieving cached item
+		item := &CachedItem{
+			NormalizedName:   "apple_organic",
+			NormalizedBrand:  "generic",
+			OriginalName:     "Organic Apple",
+			OriginalBrand:    "Generic",
+			NutrientDataJSON: `{"calories": 95, "protein_g": 0.5}`,
+		}
+
+		// Create cached item
+		err := store.UpsertCachedItem(ctx, item)
+		require.NoError(t, err)
+		assert.NotZero(t, item.ID)
+		assert.False(t, item.FetchedAt.IsZero())
+		assert.False(t, item.ExpiresAt.IsZero())
+		assert.True(t, item.ExpiresAt.After(item.FetchedAt))
+
+		// Get cached item
+		retrieved, err := store.GetCachedItem(ctx, "apple_organic", "generic")
+		require.NoError(t, err)
+		require.NotNil(t, retrieved)
+		assert.Equal(t, item.NormalizedName, retrieved.NormalizedName)
+		assert.Equal(t, item.NormalizedBrand, retrieved.NormalizedBrand)
+		assert.Equal(t, item.OriginalName, retrieved.OriginalName)
+		assert.Equal(t, item.NutrientDataJSON, retrieved.NutrientDataJSON)
+
+		// Update cached item (upsert)
+		item.OriginalName = "Updated Organic Apple"
+		item.NutrientDataJSON = `{"calories": 100, "protein_g": 0.6}`
+		err = store.UpsertCachedItem(ctx, item)
+		require.NoError(t, err)
+
+		// Verify update
+		updated, err := store.GetCachedItem(ctx, "apple_organic", "generic")
+		require.NoError(t, err)
+		require.NotNil(t, updated)
+		assert.Equal(t, "Updated Organic Apple", updated.OriginalName)
+		assert.Equal(t, `{"calories": 100, "protein_g": 0.6}`, updated.NutrientDataJSON)
+
+		// Test non-existent cache item
+		notFound, err := store.GetCachedItem(ctx, "nonexistent", "brand")
+		require.NoError(t, err)
+		assert.Nil(t, notFound)
+	})
+
+	t.Run("DeleteUserCascade", func(t *testing.T) {
+		// Create a user
+		user := &User{
+			Provider: "github",
+			Subject:  "deleteme",
+			Email:    "delete@example.com",
+		}
+		err := store.CreateUser(ctx, user)
+		require.NoError(t, err)
+
+		// Create some meals for the user
+		meal1 := &Meal{
+			UserID:        user.ID,
+			Transcript:    "Meal 1",
+			ItemsJSON:     `[{"name":"item1"}]`,
+			TotalCalories: 100,
+		}
+		meal2 := &Meal{
+			UserID:        user.ID,
+			Transcript:    "Meal 2",
+			ItemsJSON:     `[{"name":"item2"}]`,
+			TotalCalories: 200,
+		}
+		err = store.CreateMeal(ctx, meal1)
+		require.NoError(t, err)
+		err = store.CreateMeal(ctx, meal2)
+		require.NoError(t, err)
+
+		// Verify user and meals exist
+		retrievedUser, err := store.GetUser(ctx, user.ID)
+		require.NoError(t, err)
+		require.NotNil(t, retrievedUser)
+
+		meals, err := store.GetMealsByUser(ctx, user.ID, 10, 0)
+		require.NoError(t, err)
+		assert.Len(t, meals, 2)
+
+		// Delete user cascade
+		err = store.DeleteUserCascade(ctx, user.ID)
+		require.NoError(t, err)
+
+		// Verify user is deleted
+		deletedUser, err := store.GetUser(ctx, user.ID)
+		require.NoError(t, err)
+		assert.Nil(t, deletedUser)
+
+		// Verify meals are deleted
+		mealsAfterDelete, err := store.GetMealsByUser(ctx, user.ID, 10, 0)
+		require.NoError(t, err)
+		assert.Empty(t, mealsAfterDelete)
+
+		// Test deleting non-existent user
+		err = store.DeleteUserCascade(ctx, "non-existent-id")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "user not found")
 	})
 }
