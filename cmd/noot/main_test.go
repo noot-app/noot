@@ -11,7 +11,7 @@ func TestMain_Integration(t *testing.T) {
 	// This is a basic integration test to ensure main doesn't panic on startup
 	// We can't easily test the full main function without starting a server
 	// but we can test that the basic setup works
-	
+
 	// Set required environment variables for basic functionality
 	originalPort := os.Getenv("PORT")
 	defer func() {
@@ -42,7 +42,7 @@ func TestMain_Integration(t *testing.T) {
 func TestEnvironmentSetup(t *testing.T) {
 	// Test that environment variables can be set/read properly
 	// This tests the basic environment handling that main() relies on
-	
+
 	tests := []struct {
 		name     string
 		envVar   string

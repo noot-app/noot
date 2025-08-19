@@ -35,7 +35,7 @@ func TestHealthHandler(t *testing.T) {
 
 			if tt.expectedCode == http.StatusOK {
 				assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
-				
+
 				// Check response body contains expected fields
 				body := w.Body.String()
 				assert.Contains(t, body, "status")
@@ -137,7 +137,7 @@ func TestRequestIDMiddleware(t *testing.T) {
 	})
 
 	middleware := requestIDMiddleware(handler)
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
 
@@ -182,7 +182,7 @@ func TestRecoveryMiddleware(t *testing.T) {
 		})
 
 		middleware := recoveryMiddleware(handler)
-		
+
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
@@ -198,7 +198,7 @@ func TestRecoveryMiddleware(t *testing.T) {
 		})
 
 		middleware := recoveryMiddleware(handler)
-		
+
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
@@ -209,7 +209,7 @@ func TestRecoveryMiddleware(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
-		
+
 		// Should contain error response
 		body := w.Body.String()
 		assert.Contains(t, body, "Internal server error")
@@ -225,7 +225,7 @@ func TestMiddlewareChaining(t *testing.T) {
 		// Check that request ID is available (from requestIDMiddleware)
 		requestID := getRequestID(r.Context())
 		assert.NotEmpty(t, requestID)
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("success"))
 	})
