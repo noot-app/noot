@@ -18,6 +18,15 @@ type Store interface {
 	GetMealsByUser(ctx context.Context, userID string, limit, offset int) ([]*Meal, error)
 	GetMealsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Meal, error)
 
+	// Item cache operations (soft TTL)
+	GetItemFromCache(ctx context.Context, normalizedName, normalizedBrand string) (*ItemCache, error)
+	UpsertItemCache(ctx context.Context, item *ItemCache) error
+	RefreshItemCache(ctx context.Context, normalizedName, normalizedBrand string, item *ItemCache) error
+
+	// Item alias operations
+	CreateItemAlias(ctx context.Context, alias *ItemAlias) error
+	GetCanonicalName(ctx context.Context, aliasName, aliasBrand string) (canonicalName, canonicalBrand string, err error)
+
 	// Database lifecycle
 	Close() error
 	Migrate() error

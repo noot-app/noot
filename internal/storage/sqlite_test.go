@@ -206,12 +206,12 @@ func TestSQLiteStore(t *testing.T) {
 
 	t.Run("NonExistentRecords", func(t *testing.T) {
 		// Test getting non-existent user
-		user, err := store.GetUser(ctx, 99999)
+		user, err := store.GetUser(ctx, "01JAPP9999XXXXXXXXXXXXXX") // Non-existent ULID
 		require.NoError(t, err)
 		assert.Nil(t, user)
 
 		// Test getting non-existent meal
-		meal, err := store.GetMeal(ctx, 99999)
+		meal, err := store.GetMeal(ctx, "01JAPP9999XXXXXXXXXXXXXX") // Non-existent ULID
 		require.NoError(t, err)
 		assert.Nil(t, meal)
 
@@ -219,5 +219,119 @@ func TestSQLiteStore(t *testing.T) {
 		userBySubject, err := store.GetUserBySubject(ctx, "nonexistent", "nonexistent")
 		require.NoError(t, err)
 		assert.Nil(t, userBySubject)
+	})
+
+	t.Run("ItemCacheOperations", func(t *testing.T) {
+		// Test getting non-existent item from cache
+		item, err := store.GetItemFromCache(ctx, "apple", "generic")
+		require.NoError(t, err)
+		assert.Nil(t, item)
+
+		// Create and upsert an item to cache
+		now := time.Now().UTC()
+		cacheItem := &ItemCache{
+			NormalizedName:  "apple",
+			NormalizedBrand: "generic",
+			DisplayName:     "Apple",
+			DisplayBrand:    "Generic",
+			CaloriesPer100g: 52,
+			ProteinGPer100g: 0.3,
+			TotalFatGPer100g: 0.2,
+			TotalCarbsGPer100g: 14,
+			DietaryFiberGPer100g: 2.4,
+			SodiumMgPer100g: 1,
+			VitaminCMgPer100g: 4.6,
+			FetchedAt: now,
+			ExpiresAt: now.AddDate(0, 0, 30),
+		}
+
+		err = store.UpsertItemCache(ctx, cacheItem)
+		require.NoError(t, err)
+		assert.NotEmpty(t, cacheItem.ID)
+
+		// Retrieve the item from cache
+		retrieved, err := store.GetItemFromCache(ctx, "apple", "generic")
+		require.NoError(t, err)
+		require.NotNil(t, retrieved)
+		assert.Equal(t, "Apple", retrieved.DisplayName)
+		assert.Equal(t, "Generic", retrieved.DisplayBrand)
+		assert.Equal(t, float64(52), retrieved.CaloriesPer100g)
+		assert.Equal(t, float64(0.3), retrieved.ProteinGPer100g)
+		assert.Equal(t, float64(4.6), retrieved.VitaminCMgPer100g)
+
+		// Test updating the same item (upsert existing)
+		cacheItem.CaloriesPer100g = 55 // Updated calorie value
+		cacheItem.VitaminCMgPer100g = 5.0 // Updated vitamin C value
+		err = store.UpsertItemCache(ctx, cacheItem)
+		require.NoError(t, err)
+
+		// Retrieve updated item
+		updated, err := store.GetItemFromCache(ctx, "apple", "generic")
+		require.NoError(t, err)
+		require.NotNil(t, updated)
+		assert.Equal(t, float64(55), updated.CaloriesPer100g)
+		assert.Equal(t, float64(5.0), updated.VitaminCMgPer100g)
+		assert.Equal(t, retrieved.ID, updated.ID) // Same ID for update
+
+		// Test refresh cache functionality
+		refreshedItem := &ItemCache{
+			DisplayName:     "Fresh Apple",
+			DisplayBrand:    "Organic",
+			CaloriesPer100g: 58,
+			ProteinGPer100g: 0.4,
+			TotalFatGPer100g: 0.1,
+			TotalCarbsGPer100g: 15,
+			DietaryFiberGPer100g: 2.8,
+		}
+		err = store.RefreshItemCache(ctx, "apple", "generic", refreshedItem)
+		require.NoError(t, err)
+
+		refreshed, err := store.GetItemFromCache(ctx, "apple", "generic")
+		require.NoError(t, err)
+		require.NotNil(t, refreshed)
+		assert.Equal(t, "Fresh Apple", refreshed.DisplayName)
+		assert.Equal(t, "Organic", refreshed.DisplayBrand)
+		assert.Equal(t, float64(58), refreshed.CaloriesPer100g)
+	})
+
+	t.Run("ItemAliasOperations", func(t *testing.T) {
+		// Test getting canonical name for non-existent alias
+		canonical, brand, err := store.GetCanonicalName(ctx, "tomato", "")
+		require.NoError(t, err)
+		assert.Equal(t, "tomato", canonical) // Returns original if no alias found
+		assert.Equal(t, "", brand)
+
+		// Create an item alias
+		alias := &ItemAlias{
+			AliasName:      "tomato",
+			AliasBrand:     "",
+			CanonicalName:  "roma_tomato",
+			CanonicalBrand: "fresh",
+		}
+		err = store.CreateItemAlias(ctx, alias)
+		require.NoError(t, err)
+		assert.NotEmpty(t, alias.ID)
+		assert.False(t, alias.CreatedAt.IsZero())
+
+		// Test retrieving canonical name
+		canonical, brand, err = store.GetCanonicalName(ctx, "tomato", "")
+		require.NoError(t, err)
+		assert.Equal(t, "roma_tomato", canonical)
+		assert.Equal(t, "fresh", brand)
+
+		// Test another alias
+		alias2 := &ItemAlias{
+			AliasName:      "cherry_tomatoes",
+			AliasBrand:     "organic",
+			CanonicalName:  "cherry_tomato",
+			CanonicalBrand: "organic",
+		}
+		err = store.CreateItemAlias(ctx, alias2)
+		require.NoError(t, err)
+
+		canonical2, brand2, err := store.GetCanonicalName(ctx, "cherry_tomatoes", "organic")
+		require.NoError(t, err)
+		assert.Equal(t, "cherry_tomato", canonical2)
+		assert.Equal(t, "organic", brand2)
 	})
 }

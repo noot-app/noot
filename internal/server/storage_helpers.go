@@ -7,7 +7,7 @@ import (
 )
 
 // itemWithNutritionToMeal converts server response data to a meal record
-func itemWithNutritionToMeal(userID int64, transcript string, items []ItemWithNutrition, summary Summary) *storage.Meal {
+func itemWithNutritionToMeal(userID string, transcript string, items []ItemWithNutrition, summary Summary) *storage.Meal {
 	// Serialize items to JSON
 	itemsJSON, _ := json.Marshal(items)
 
