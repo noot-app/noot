@@ -11,6 +11,20 @@ const themeToggle = document.getElementById('themeToggle');
 const devBanner = document.getElementById('dev-banner');
 const simulateBtn = document.getElementById('simulate-btn');
 
+// Navigation elements
+const navRecord = document.getElementById('navRecord');
+const navSummary = document.getElementById('navSummary');
+const recordView = document.getElementById('recordView');
+const summaryView = document.getElementById('summaryView');
+
+// Summary view elements
+const day1Btn = document.getElementById('day1Btn');
+const day7Btn = document.getElementById('day7Btn');
+const summaryLoading = document.getElementById('summaryLoading');
+const summaryError = document.getElementById('summaryError');
+const summaryData = document.getElementById('summaryData');
+const retryBtn = document.getElementById('retryBtn');
+
 // Theme management
 function initTheme() {
   // Check for saved theme preference or default to dark mode
@@ -627,6 +641,9 @@ micBtn.addEventListener('touchcancel', (e) => {
     await initAudioFeedback();
     await setupMediaRecorder();
     
+    // Initialize navigation
+    initNavigation();
+    
   } catch (error) {
     console.warn('Initial setup failed:', error);
     // Still show development banner even if audio setup fails
@@ -636,3 +653,227 @@ micBtn.addEventListener('touchcancel', (e) => {
     }
   }
 })();
+
+// Navigation Functions
+function initNavigation() {
+  // Navigation button event listeners
+  navRecord.addEventListener('click', () => switchView('record'));
+  navSummary.addEventListener('click', () => switchView('summary'));
+  
+  // Time selector buttons
+  day1Btn.addEventListener('click', () => selectTimeRange(1));
+  day7Btn.addEventListener('click', () => selectTimeRange(7));
+  
+  // Retry button
+  retryBtn.addEventListener('click', loadNutritionSummary);
+}
+
+function switchView(viewName) {
+  // Update nav buttons
+  document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`nav${viewName.charAt(0).toUpperCase() + viewName.slice(1)}`).classList.add('active');
+  
+  // Update views
+  document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+  document.getElementById(`${viewName}View`).classList.add('active');
+  
+  // Load nutrition summary when switching to summary view
+  if (viewName === 'summary') {
+    loadNutritionSummary();
+  }
+}
+
+let currentDays = 1;
+
+function selectTimeRange(days) {
+  currentDays = days;
+  
+  // Update time selector buttons
+  document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`day${days}Btn`).classList.add('active');
+  
+  // Reload summary data
+  loadNutritionSummary();
+}
+
+// Nutrition Summary Functions
+async function loadNutritionSummary() {
+  console.log('Loading nutrition summary for', currentDays, 'days');
+  showLoading();
+  hideError();
+  hideSummaryData();
+  
+  try {
+    // Calculate date range in user's local timezone, then convert to UTC for the API
+    let url;
+    if (currentDays === 1) {
+      // Calculate today in user's local timezone
+      const today = new Date();
+      const startOfLocalDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+      const endOfLocalDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      
+      // Convert to UTC ISO strings
+      const startUTC = startOfLocalDay.toISOString();
+      const endUTC = endOfLocalDay.toISOString();
+      
+      url = `/api/nutrition-summary?start=${encodeURIComponent(startUTC)}&end=${encodeURIComponent(endUTC)}`;
+    } else {
+      // For week view, calculate 7 days back from today in local timezone
+      const today = new Date();
+      const weekAgo = new Date(today.getTime() - (6 * 24 * 60 * 60 * 1000)); // 6 days ago + today = 7 days
+      
+      const startOfWeek = new Date(weekAgo.getFullYear(), weekAgo.getMonth(), weekAgo.getDate(), 0, 0, 0);
+      const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      
+      // Convert to UTC ISO strings
+      const startUTC = startOfWeek.toISOString();
+      const endUTC = endOfToday.toISOString();
+      
+      url = `/api/nutrition-summary?start=${encodeURIComponent(startUTC)}&end=${encodeURIComponent(endUTC)}`;
+    }
+    console.log('Fetching:', url);
+    
+    const response = await fetch(url);
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      
+      if (response.status === 403) {
+        throw new Error('Week view requires pro subscription');
+      }
+      
+      // Try to parse error JSON if possible
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      } catch (parseError) {
+        throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+      }
+    }
+    
+    const data = await response.json();
+    console.log('Nutrition summary data:', data);
+    displayNutritionSummary(data);
+    
+  } catch (error) {
+    console.error('Failed to load nutrition summary:', error);
+    showError(error.message || 'Failed to load nutrition summary. Please try again.');
+  } finally {
+    hideLoading();
+  }
+}
+
+function displayNutritionSummary(data) {
+  const { summary } = data;
+  
+  console.log('Displaying nutrition summary:', summary);
+  
+  // Update overview stats
+  document.getElementById('totalMeals').textContent = summary.meal_count || 0;
+  document.getElementById('totalCalories').textContent = Math.round(summary.total_calories || 0);
+  document.getElementById('avgCalories').textContent = Math.round(summary.avg_calories_per_day || 0);
+  
+  // Update macro values
+  document.getElementById('totalProtein').textContent = `${Math.round(summary.total_protein_g || 0)}g`;
+  document.getElementById('totalCarbs').textContent = `${Math.round(summary.total_carbs_g || 0)}g`;
+  document.getElementById('totalFat').textContent = `${Math.round(summary.total_fat_g || 0)}g`;
+  document.getElementById('totalFiber').textContent = `${Math.round(summary.total_fiber_g || 0)}g`;
+  
+  // Update progress bars (simple percentage based on rough daily values)
+  const proteinTarget = 150; // 150g protein target
+  const carbsTarget = 300;   // 300g carbs target  
+  const fatTarget = 100;     // 100g fat target
+  const fiberTarget = 35;    // 35g fiber target
+  
+  updateProgressBar('proteinProgress', (summary.total_protein_g || 0) / proteinTarget * 100);
+  updateProgressBar('carbsProgress', (summary.total_carbs_g || 0) / carbsTarget * 100);
+  updateProgressBar('fatProgress', (summary.total_fat_g || 0) / fatTarget * 100);
+  updateProgressBar('fiberProgress', (summary.total_fiber_g || 0) / fiberTarget * 100);
+  
+  // Display daily chart - handle null/empty daily_breakdown
+  const dailyBreakdown = summary.daily_breakdown || [];
+  console.log('Daily breakdown:', dailyBreakdown);
+  displayDailyChart(dailyBreakdown);
+  
+  showSummaryData();
+}
+
+function updateProgressBar(elementId, percentage) {
+  const element = document.getElementById(elementId);
+  element.style.width = `${Math.min(percentage, 100)}%`;
+}
+
+function displayDailyChart(dailyData) {
+  const canvas = document.getElementById('dailyChart');
+  const ctx = canvas.getContext('2d');
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  if (!dailyData || dailyData.length === 0) {
+    // Show "no data" message
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text-secondary');
+    ctx.font = '16px -apple-system, system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('No data available', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+  
+  // Simple bar chart
+  const barWidth = canvas.width / dailyData.length - 20;
+  const maxCalories = Math.max(...dailyData.map(d => d.calories));
+  const barMaxHeight = canvas.height - 60;
+  
+  dailyData.forEach((day, index) => {
+    const barHeight = (day.calories / maxCalories) * barMaxHeight;
+    const x = index * (barWidth + 20) + 10;
+    const y = canvas.height - barHeight - 30;
+    
+    // Draw bar
+    const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
+    gradient.addColorStop(0, '#3b82f6');
+    gradient.addColorStop(1, '#8b5cf6');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, barWidth, barHeight);
+    
+    // Draw date label
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text-secondary');
+    ctx.font = '12px -apple-system, system-ui';
+    ctx.textAlign = 'center';
+    const dateLabel = new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    ctx.fillText(dateLabel, x + barWidth / 2, canvas.height - 10);
+    
+    // Draw calorie value
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text-primary');
+    ctx.font = 'bold 12px -apple-system, system-ui';
+    ctx.fillText(Math.round(day.calories), x + barWidth / 2, y - 5);
+  });
+}
+
+function showLoading() {
+  summaryLoading.classList.remove('hidden');
+}
+
+function hideLoading() {
+  summaryLoading.classList.add('hidden');
+}
+
+function showError(message) {
+  summaryError.querySelector('.error-message').textContent = message;
+  summaryError.classList.remove('hidden');
+}
+
+function hideError() {
+  summaryError.classList.add('hidden');
+}
+
+function showSummaryData() {
+  summaryData.classList.remove('hidden');
+}
+
+function hideSummaryData() {
+  summaryData.classList.add('hidden');
+}

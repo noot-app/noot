@@ -390,7 +390,7 @@ func (s *SQLiteStore) Seed() error {
 		}
 	}
 
-	// Sample meal data with realistic nutrition
+	// Sample meal data with realistic nutrition - dates relative to today
 	sampleMeals := []struct {
 		transcript    string
 		itemsJSON     string
@@ -411,7 +411,7 @@ func (s *SQLiteStore) Seed() error {
 			totalCarbs:    32,
 			totalFiber:    1.8,
 			totalSodium:   216,
-			daysAgo:       1,
+			daysAgo:       0, // Today
 		},
 		{
 			transcript:    "I had a chicken salad sandwich with avocado and an apple",
@@ -422,7 +422,7 @@ func (s *SQLiteStore) Seed() error {
 			totalCarbs:    62,
 			totalFiber:    14,
 			totalSodium:   658,
-			daysAgo:       2,
+			daysAgo:       1, // Yesterday
 		},
 		{
 			transcript:    "I had oatmeal with banana and walnuts for breakfast",
@@ -433,7 +433,40 @@ func (s *SQLiteStore) Seed() error {
 			totalCarbs:    57,
 			totalFiber:    9.1,
 			totalSodium:   4,
-			daysAgo:       3,
+			daysAgo:       2, // 2 days ago
+		},
+		{
+			transcript:    "I had salmon with quinoa and roasted vegetables",
+			itemsJSON:     `[{"name":"salmon fillet","quantity":1,"unit":"fillet","nutrients":{"calories":280,"protein_g":39,"total_fat_g":12,"total_carbs_g":0,"dietary_fiber_g":0,"sodium_mg":85}},{"name":"quinoa","quantity":0.5,"unit":"cup","nutrients":{"calories":110,"protein_g":4,"total_fat_g":1.8,"total_carbs_g":20,"dietary_fiber_g":2.5,"sodium_mg":7}},{"name":"roasted vegetables","quantity":1,"unit":"cup","nutrients":{"calories":80,"protein_g":3,"total_fat_g":3,"total_carbs_g":12,"dietary_fiber_g":4,"sodium_mg":250}}]`,
+			totalCalories: 470,
+			totalProtein:  46,
+			totalFat:      16.8,
+			totalCarbs:    32,
+			totalFiber:    6.5,
+			totalSodium:   342,
+			daysAgo:       3, // 3 days ago
+		},
+		{
+			transcript:    "I had a protein smoothie with spinach and berries after workout",
+			itemsJSON:     `[{"name":"protein powder","quantity":1,"unit":"scoop","nutrients":{"calories":120,"protein_g":25,"total_fat_g":1,"total_carbs_g":3,"dietary_fiber_g":1,"sodium_mg":180}},{"name":"spinach","quantity":1,"unit":"cup","nutrients":{"calories":7,"protein_g":0.9,"total_fat_g":0.1,"total_carbs_g":1.1,"dietary_fiber_g":0.7,"sodium_mg":24}},{"name":"mixed berries","quantity":1,"unit":"cup","nutrients":{"calories":70,"protein_g":1,"total_fat_g":0.5,"total_carbs_g":17,"dietary_fiber_g":6,"sodium_mg":1}},{"name":"almond milk","quantity":1,"unit":"cup","nutrients":{"calories":40,"protein_g":1,"total_fat_g":3,"total_carbs_g":2,"dietary_fiber_g":1,"sodium_mg":170}}]`,
+			totalCalories: 237,
+			totalProtein:  27.9,
+			totalFat:      4.6,
+			totalCarbs:    23.1,
+			totalFiber:    8.7,
+			totalSodium:   375,
+			daysAgo:       4, // 4 days ago
+		},
+		{
+			transcript:    "I had pasta with marinara sauce and grilled chicken breast",
+			itemsJSON:     `[{"name":"pasta","quantity":2,"unit":"oz","nutrients":{"calories":200,"protein_g":7,"total_fat_g":1,"total_carbs_g":42,"dietary_fiber_g":2,"sodium_mg":0}},{"name":"marinara sauce","quantity":0.5,"unit":"cup","nutrients":{"calories":35,"protein_g":2,"total_fat_g":0,"total_carbs_g":8,"dietary_fiber_g":2,"sodium_mg":430}},{"name":"grilled chicken breast","quantity":4,"unit":"oz","nutrients":{"calories":185,"protein_g":35,"total_fat_g":4,"total_carbs_g":0,"dietary_fiber_g":0,"sodium_mg":84}}]`,
+			totalCalories: 420,
+			totalProtein:  44,
+			totalFat:      5,
+			totalCarbs:    50,
+			totalFiber:    4,
+			totalSodium:   514,
+			daysAgo:       5, // 5 days ago
 		},
 	}
 

@@ -212,14 +212,57 @@ func nutritionSummaryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse query parameters
-	dayStr := r.URL.Query().Get("days")
-	days := 7 // default to week view
+	// Parse query parameters - support both direct date range and timeWindow approach
+	startParam := r.URL.Query().Get("start")
+	endParam := r.URL.Query().Get("end")
 
-	if dayStr != "" {
-		if parsedDays, err := strconv.Atoi(dayStr); err == nil && parsedDays > 0 {
-			days = parsedDays
+	var startTime, endTime time.Time
+	var days int
+
+	if startParam != "" && endParam != "" {
+		// Direct date range provided by client (already in UTC)
+		var err error
+		startTime, err = time.Parse(time.RFC3339, startParam)
+		if err != nil {
+			httpError(w, http.StatusBadRequest, "Invalid start date format")
+			return
 		}
+
+		endTime, err = time.Parse(time.RFC3339, endParam)
+		if err != nil {
+			httpError(w, http.StatusBadRequest, "Invalid end date format")
+			return
+		}
+
+		// Calculate days for subscription validation
+		days = int(endTime.Sub(startTime).Hours()/24) + 1
+	} else {
+		// Fall back to legacy timeWindow approach
+		timeWindow := r.URL.Query().Get("timeWindow")
+		days = 7 // default to week view
+
+		switch timeWindow {
+		case "today":
+			days = 1
+		case "week":
+			days = 7
+		default:
+			// Also check for legacy "days" parameter
+			dayStr := r.URL.Query().Get("days")
+			if dayStr != "" {
+				if parsedDays, err := strconv.Atoi(dayStr); err == nil && parsedDays > 0 {
+					days = parsedDays
+				}
+			}
+		}
+
+		// Calculate date range using server UTC time (legacy behavior)
+		endTime = time.Now().UTC()
+		startTime = endTime.AddDate(0, 0, -days+1)
+
+		// For proper date range queries, set times to beginning/end of day
+		startTime = time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, time.UTC)
+		endTime = time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 23, 59, 59, 999999999, time.UTC)
 	}
 
 	// Enforce subscription tier restrictions
@@ -232,10 +275,6 @@ func nutritionSummaryHandler(w http.ResponseWriter, r *http.Request) {
 	if days > 7 {
 		days = 7
 	}
-
-	// Calculate date range
-	endTime := time.Now().UTC()
-	startTime := endTime.AddDate(0, 0, -days+1) // Include today
 
 	summary, err := store.GetNutritionSummary(r.Context(), user.ID, startTime, endTime)
 	if err != nil {
