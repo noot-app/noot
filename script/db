@@ -11,7 +11,7 @@ function usage() {
     echo ""
     echo "Commands:"
     echo "  reset    Drop all tables and re-run migrations"
-    echo "  seed     Add development seed data (monalisa user + sample meals)"
+    echo "  seed     Add development seed data (monalisa user + sample consumptions)"
     echo "  dump     Show database content in human-readable format"
     echo ""
     echo "Environment Variables:"
@@ -53,12 +53,12 @@ function db_dump() {
     sqlite3 "$DB_PATH" "SELECT id, provider, subject, email, datetime(created_at, 'localtime') as created_at FROM users ORDER BY id;"
     
     echo ""
-    echo "=== Meals ==="
-    sqlite3 "$DB_PATH" "SELECT id, user_id, transcript, total_calories, total_protein_g, total_carbs_g, datetime(created_at, 'localtime') as created_at FROM meals ORDER BY created_at DESC;"
+    echo "=== Consumptions ==="
+    sqlite3 "$DB_PATH" "SELECT id, user_id, transcript, total_calories, total_protein_g, total_carbs_g, datetime(created_at, 'localtime') as created_at FROM consumptions ORDER BY created_at DESC;"
     
     echo ""
     echo "=== Stats ==="
-    sqlite3 "$DB_PATH" "SELECT 'Users: ' || COUNT(*) FROM users UNION ALL SELECT 'Meals: ' || COUNT(*) FROM meals;"
+    sqlite3 "$DB_PATH" "SELECT 'Users: ' || COUNT(*) FROM users UNION ALL SELECT 'Consumptions: ' || COUNT(*) FROM consumptions;"
 }
 
 # Main command dispatch

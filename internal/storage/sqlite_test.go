@@ -53,7 +53,7 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Equal(t, user.ID, bySubject.ID)
 	})
 
-	t.Run("CreateAndGetMeal", func(t *testing.T) {
+	t.Run("CreateAndGetConsumption", func(t *testing.T) {
 		// Create a user first
 		user := &User{
 			Provider: "github",
@@ -63,8 +63,8 @@ func TestSQLiteStore(t *testing.T) {
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
 
-		// Create meal
-		meal := &Meal{
+		// Create consumption
+		consumption := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "I had an apple and a banana",
 			ItemsJSON:     `[{"name":"apple","quantity":1,"unit":"medium"},{"name":"banana","quantity":1,"unit":"medium"}]`,
@@ -76,22 +76,22 @@ func TestSQLiteStore(t *testing.T) {
 			TotalSodium:   2,
 		}
 
-		err = store.CreateMeal(ctx, meal)
+		err = store.CreateConsumption(ctx, consumption)
 		require.NoError(t, err)
-		assert.NotZero(t, meal.ID)
-		assert.False(t, meal.CreatedAt.IsZero())
+		assert.NotZero(t, consumption.ID)
+		assert.False(t, consumption.CreatedAt.IsZero())
 
-		// Get meal by ID
-		retrieved, err := store.GetMeal(ctx, meal.ID)
+		// Get consumption by ID
+		retrieved, err := store.GetConsumption(ctx, consumption.ID)
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.Equal(t, meal.UserID, retrieved.UserID)
-		assert.Equal(t, meal.Transcript, retrieved.Transcript)
-		assert.Equal(t, meal.ItemsJSON, retrieved.ItemsJSON)
-		assert.Equal(t, meal.TotalCalories, retrieved.TotalCalories)
+		assert.Equal(t, consumption.UserID, retrieved.UserID)
+		assert.Equal(t, consumption.Transcript, retrieved.Transcript)
+		assert.Equal(t, consumption.ItemsJSON, retrieved.ItemsJSON)
+		assert.Equal(t, consumption.TotalCalories, retrieved.TotalCalories)
 	})
 
-	t.Run("GetMealsByUser", func(t *testing.T) {
+	t.Run("GetConsumptionsByUser", func(t *testing.T) {
 		// Create a user
 		user := &User{
 			Provider: "github",
@@ -101,8 +101,8 @@ func TestSQLiteStore(t *testing.T) {
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
 
-		// Create multiple meals
-		meals := []*Meal{
+		// Create multiple consumptions
+		consumptions := []*Consumption{
 			{
 				UserID:        user.ID,
 				Transcript:    "Breakfast",
@@ -117,13 +117,13 @@ func TestSQLiteStore(t *testing.T) {
 			},
 		}
 
-		for _, meal := range meals {
-			err := store.CreateMeal(ctx, meal)
+		for _, consumption := range consumptions {
+			err := store.CreateConsumption(ctx, consumption)
 			require.NoError(t, err)
 		}
 
-		// Get meals for user
-		retrieved, err := store.GetMealsByUser(ctx, user.ID, 10, 0)
+		// Get consumptions for user
+		retrieved, err := store.GetConsumptionsByUser(ctx, user.ID, 10, 0)
 		require.NoError(t, err)
 		assert.Len(t, retrieved, 2)
 
@@ -132,7 +132,7 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Equal(t, "Breakfast", retrieved[1].Transcript)
 	})
 
-	t.Run("GetMealsByUserSince", func(t *testing.T) {
+	t.Run("GetConsumptionsByUserSince", func(t *testing.T) {
 		// Create a user
 		user := &User{
 			Provider: "github",
@@ -142,37 +142,37 @@ func TestSQLiteStore(t *testing.T) {
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
 
-		// Create meals with different timestamps
-		oldMeal := &Meal{
+		// Create consumptions with different timestamps
+		oldConsumption := &Consumption{
 			UserID:        user.ID,
-			Transcript:    "Old meal",
+			Transcript:    "Old consumption",
 			ItemsJSON:     `[{"name":"old","quantity":1}]`,
 			TotalCalories: 100,
 		}
-		err = store.CreateMeal(ctx, oldMeal)
+		err = store.CreateConsumption(ctx, oldConsumption)
 		require.NoError(t, err)
 
-		// Update the old meal to have a past timestamp
+		// Update the old consumption to have a past timestamp
 		pastTime := time.Now().Add(-2 * time.Hour)
-		_, err = store.db.Exec("UPDATE meals SET created_at = ? WHERE id = ?", pastTime, oldMeal.ID)
+		_, err = store.db.Exec("UPDATE consumptions SET created_at = ? WHERE id = ?", pastTime, oldConsumption.ID)
 		require.NoError(t, err)
 
-		// Create a recent meal
-		recentMeal := &Meal{
+		// Create a recent consumption
+		recentConsumption := &Consumption{
 			UserID:        user.ID,
-			Transcript:    "Recent meal",
+			Transcript:    "Recent consumption",
 			ItemsJSON:     `[{"name":"recent","quantity":1}]`,
 			TotalCalories: 200,
 		}
-		err = store.CreateMeal(ctx, recentMeal)
+		err = store.CreateConsumption(ctx, recentConsumption)
 		require.NoError(t, err)
 
-		// Get meals since 1 hour ago
+		// Get consumptions since 1 hour ago
 		since := time.Now().Add(-1 * time.Hour)
-		retrieved, err := store.GetMealsByUserSince(ctx, user.ID, since)
+		retrieved, err := store.GetConsumptionsByUserSince(ctx, user.ID, since)
 		require.NoError(t, err)
 		assert.Len(t, retrieved, 1)
-		assert.Equal(t, "Recent meal", retrieved[0].Transcript)
+		assert.Equal(t, "Recent consumption", retrieved[0].Transcript)
 	})
 
 	t.Run("Seed", func(t *testing.T) {
@@ -190,18 +190,18 @@ func TestSQLiteStore(t *testing.T) {
 		require.NotNil(t, user)
 		assert.Equal(t, "monalisa@birki.io", user.Email)
 
-		// Check that sample meals were created
-		meals, err := store.GetMealsByUser(ctx, user.ID, 10, 0)
+		// Check that sample consumptions were created
+		consumptions, err := store.GetConsumptionsByUser(ctx, user.ID, 10, 0)
 		require.NoError(t, err)
-		assert.GreaterOrEqual(t, len(meals), 3) // Should have at least 3 sample meals
+		assert.GreaterOrEqual(t, len(consumptions), 3) // Should have at least 3 sample consumptions
 
 		// Run seed again to ensure it doesn't create duplicates
 		err = store.Seed()
 		require.NoError(t, err)
 
-		mealsAfterSecondSeed, err := store.GetMealsByUser(ctx, user.ID, 10, 0)
+		consumptionsAfterSecondSeed, err := store.GetConsumptionsByUser(ctx, user.ID, 10, 0)
 		require.NoError(t, err)
-		assert.Equal(t, len(meals), len(mealsAfterSecondSeed))
+		assert.Equal(t, len(consumptions), len(consumptionsAfterSecondSeed))
 	})
 
 	t.Run("NonExistentRecords", func(t *testing.T) {
@@ -210,10 +210,10 @@ func TestSQLiteStore(t *testing.T) {
 		require.NoError(t, err)
 		assert.Nil(t, user)
 
-		// Test getting non-existent meal
-		meal, err := store.GetMeal(ctx, "01JAPP9999XXXXXXXXXXXXXX") // Non-existent ULID
+		// Test getting non-existent consumption
+		consumption, err := store.GetConsumption(ctx, "01JAPP9999XXXXXXXXXXXXXX") // Non-existent ULID
 		require.NoError(t, err)
-		assert.Nil(t, meal)
+		assert.Nil(t, consumption)
 
 		// Test getting user by non-existent subject
 		userBySubject, err := store.GetUserBySubject(ctx, "nonexistent", "nonexistent")
@@ -366,8 +366,8 @@ func TestSQLiteStore(t *testing.T) {
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
 
-		// Create meals with nutrition data
-		meal1 := &Meal{
+		// Create consumptions with nutrition data
+		meal1 := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Breakfast",
 			ItemsJSON:     `[{"name":"oatmeal","quantity":1,"unit":"cup"}]`,
@@ -378,10 +378,10 @@ func TestSQLiteStore(t *testing.T) {
 			TotalFiber:    8,
 			TotalSodium:   100,
 		}
-		err = store.CreateMeal(ctx, meal1)
+		err = store.CreateConsumption(ctx, meal1)
 		require.NoError(t, err)
 
-		meal2 := &Meal{
+		meal2 := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Lunch",
 			ItemsJSON:     `[{"name":"sandwich","quantity":1,"unit":"sandwich"}]`,
@@ -392,7 +392,7 @@ func TestSQLiteStore(t *testing.T) {
 			TotalFiber:    5,
 			TotalSodium:   800,
 		}
-		err = store.CreateMeal(ctx, meal2)
+		err = store.CreateConsumption(ctx, meal2)
 		require.NoError(t, err)
 
 		// Get nutrition summary for the last 7 days
@@ -404,7 +404,7 @@ func TestSQLiteStore(t *testing.T) {
 		require.NotNil(t, summary)
 
 		// Check totals
-		assert.Equal(t, 2, summary.MealCount)
+		assert.Equal(t, 2, summary.ConsumptionCount)
 		assert.Equal(t, float64(800), summary.TotalCalories)
 		assert.Equal(t, float64(35), summary.TotalProtein)
 		assert.Equal(t, float64(25), summary.TotalFat)
@@ -414,10 +414,10 @@ func TestSQLiteStore(t *testing.T) {
 
 		// Check daily breakdown is populated
 		assert.NotEmpty(t, summary.DailyBreakdown)
-		assert.Equal(t, 1, len(summary.DailyBreakdown)) // All meals on same day
+		assert.Equal(t, 1, len(summary.DailyBreakdown)) // All consumptions on same day
 
 		dailySummary := summary.DailyBreakdown[0]
-		assert.Equal(t, 2, dailySummary.MealCount)
+		assert.Equal(t, 2, dailySummary.ConsumptionCount)
 		assert.Equal(t, float64(800), dailySummary.Calories)
 	})
 }

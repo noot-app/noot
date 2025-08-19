@@ -2,7 +2,7 @@
 
 An AI-powered nutrition logging web app. Just say what you ate!
 
-- Press and hold the mic button, speak your meal.
+- Press and hold the mic button, speak your consumption.
 - Backend (Go) transcribes with OpenAI, parses items, fetches nutrients from USDA FDC.
 - Returns a simple macro summary with calories, protein, carbs, fiber, etc.
 
@@ -48,14 +48,14 @@ An AI-powered nutrition logging web app. Just say what you ate!
 4) **Use:**
    - Visit <http://localhost:3000>
    - Press and hold the mic button
-   - Say your meal (e.g., "I had a latte with organic whole milk and Greek yogurt with blueberries")
+   - Say what you consumed (e.g., "I had a latte with organic whole milk and Greek yogurt with blueberries")
    - Release and see your nutrition summary
 
 ## API Endpoints
 
 - `GET /` — Static frontend (embedded)
-- `POST /api/ingest` — Multipart form with `audio` field (webm/opus/mp3/wav)
-- `GET /api/meals` — View stored meals (development mode only)
+- `POST /api/consumption` — Multipart form with `audio` field (webm/opus/mp3/wav)
+- `GET /api/consumptions` — View stored consumptions (development mode only)
 
 ## Example Response
 
@@ -93,14 +93,14 @@ An AI-powered nutrition logging web app. Just say what you ate!
 ### Database Management
 
 - **Reset:** `script/db reset` — Drop all tables and start fresh
-- **Seed:** `script/db seed` — Add development data (monalisa user + sample meals)
+- **Seed:** `script/db seed` — Add development data (monalisa user + sample consumptions)
 - **Dump:** `script/db dump` — View database contents in human-readable format
 
 ## Technical Details
 
 - Single binary web server with embedded frontend assets
-- SQLite database with automatic migrations for meal storage
+- SQLite database with automatic migrations for consumption storage
 - OpenAI gpt-4o-mini-transcribe for speech-to-text
-- OpenAI gpt-4o-mini for meal parsing with complete nutrition data
+- OpenAI gpt-4o-mini for consumption parsing with complete nutrition data
 - Audio uploads are streamed to temporary files to avoid memory spikes
-- Development seeding with realistic meal data for testing
+- Development seeding with realistic consumption data for testing

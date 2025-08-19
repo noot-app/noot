@@ -158,115 +158,115 @@ func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject st
 	return user, nil
 }
 
-// CreateMeal creates a new meal
-func (s *SQLiteStore) CreateMeal(ctx context.Context, meal *Meal) error {
+// CreateConsumption creates a new consumption
+func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consumption) error {
 	query := `
-		INSERT INTO meals (id, user_id, transcript, items_json, total_calories, total_protein_g, 
+		INSERT INTO consumptions (id, user_id, transcript, items_json, total_calories, total_protein_g, 
 						  total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
-	meal.ID = generateULID()
-	meal.CreatedAt = now
+	consumption.ID = generateULID()
+	consumption.CreatedAt = now
 
 	_, err := s.db.ExecContext(ctx, query,
-		meal.ID, meal.UserID, meal.Transcript, meal.ItemsJSON,
-		meal.TotalCalories, meal.TotalProtein, meal.TotalFat,
-		meal.TotalCarbs, meal.TotalFiber, meal.TotalSodium, now)
+		consumption.ID, consumption.UserID, consumption.Transcript, consumption.ItemsJSON,
+		consumption.TotalCalories, consumption.TotalProtein, consumption.TotalFat,
+		consumption.TotalCarbs, consumption.TotalFiber, consumption.TotalSodium, now)
 	if err != nil {
-		return fmt.Errorf("failed to create meal: %w", err)
+		return fmt.Errorf("failed to create consumption: %w", err)
 	}
 
 	return nil
 }
 
-// GetMeal retrieves a meal by ID
-func (s *SQLiteStore) GetMeal(ctx context.Context, id string) (*Meal, error) {
+// GetConsumption retrieves a consumption by ID
+func (s *SQLiteStore) GetConsumption(ctx context.Context, id string) (*Consumption, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
-		FROM meals WHERE id = ?`
+		FROM consumptions WHERE id = ?`
 
-	meal := &Meal{}
+	consumption := &Consumption{}
 	err := s.db.QueryRowContext(ctx, query, id).
-		Scan(&meal.ID, &meal.UserID, &meal.Transcript, &meal.ItemsJSON,
-			&meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
-			&meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
+		Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
+			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
+			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium, &consumption.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil // Meal not found
+			return nil, nil // Consumption not found
 		}
-		return nil, fmt.Errorf("failed to get meal: %w", err)
+		return nil, fmt.Errorf("failed to get consumption: %w", err)
 	}
 
-	return meal, nil
+	return consumption, nil
 }
 
-// GetMealsByUser retrieves meals for a user with pagination
-func (s *SQLiteStore) GetMealsByUser(ctx context.Context, userID string, limit, offset int) ([]*Meal, error) {
+// GetConsumptionsByUser retrieves consumptions for a user with pagination
+func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, limit, offset int) ([]*Consumption, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
-		FROM meals WHERE user_id = ?
+		FROM consumptions WHERE user_id = ?
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
 
 	rows, err := s.db.QueryContext(ctx, query, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query meals: %w", err)
+		return nil, fmt.Errorf("failed to query consumptions: %w", err)
 	}
 	defer rows.Close()
 
-	var meals []*Meal
+	var consumptions []*Consumption
 	for rows.Next() {
-		meal := &Meal{}
-		err := rows.Scan(&meal.ID, &meal.UserID, &meal.Transcript, &meal.ItemsJSON,
-			&meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
-			&meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
+		consumption := &Consumption{}
+		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
+			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
+			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium, &consumption.CreatedAt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan meal: %w", err)
+			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
-		meals = append(meals, meal)
+		consumptions = append(consumptions, consumption)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating meals: %w", err)
+		return nil, fmt.Errorf("error iterating consumptions: %w", err)
 	}
 
-	return meals, nil
+	return consumptions, nil
 }
 
-// GetMealsByUserSince retrieves meals for a user since a specific time
-func (s *SQLiteStore) GetMealsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Meal, error) {
+// GetConsumptionsByUserSince retrieves consumptions for a user since a specific time
+func (s *SQLiteStore) GetConsumptionsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Consumption, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
-		FROM meals WHERE user_id = ? AND created_at >= ?
+		FROM consumptions WHERE user_id = ? AND created_at >= ?
 		ORDER BY created_at DESC`
 
 	rows, err := s.db.QueryContext(ctx, query, userID, since)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query meals since: %w", err)
+		return nil, fmt.Errorf("failed to query consumptions since: %w", err)
 	}
 	defer rows.Close()
 
-	var meals []*Meal
+	var consumptions []*Consumption
 	for rows.Next() {
-		meal := &Meal{}
-		err := rows.Scan(&meal.ID, &meal.UserID, &meal.Transcript, &meal.ItemsJSON,
-			&meal.TotalCalories, &meal.TotalProtein, &meal.TotalFat,
-			&meal.TotalCarbs, &meal.TotalFiber, &meal.TotalSodium, &meal.CreatedAt)
+		consumption := &Consumption{}
+		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
+			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
+			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium, &consumption.CreatedAt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan meal: %w", err)
+			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
-		meals = append(meals, meal)
+		consumptions = append(consumptions, consumption)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating meals: %w", err)
+		return nil, fmt.Errorf("error iterating consumptions: %w", err)
 	}
 
-	return meals, nil
+	return consumptions, nil
 }
 
 // GetNutritionSummary retrieves aggregated nutrition data for a user over a time period
@@ -274,19 +274,19 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 	// First get the overall totals
 	totalQuery := `
 		SELECT 
-			COUNT(*) as meal_count,
+			COUNT(*) as consumption_count,
 			COALESCE(SUM(total_calories), 0) as total_calories,
 			COALESCE(SUM(total_protein_g), 0) as total_protein,
 			COALESCE(SUM(total_fat_g), 0) as total_fat,
 			COALESCE(SUM(total_carbs_g), 0) as total_carbs,
 			COALESCE(SUM(total_fiber_g), 0) as total_fiber,
 			COALESCE(SUM(total_sodium_mg), 0) as total_sodium
-		FROM meals 
+		FROM consumptions 
 		WHERE user_id = ? AND created_at >= ? AND created_at <= ?`
 
 	var summary NutritionSummary
 	err := s.db.QueryRowContext(ctx, totalQuery, userID, start, end).Scan(
-		&summary.MealCount,
+		&summary.ConsumptionCount,
 		&summary.TotalCalories,
 		&summary.TotalProtein,
 		&summary.TotalFat,
@@ -321,14 +321,14 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 	dailyQuery := `
 		SELECT 
 			substr(created_at, 1, 10) as date,
-			COUNT(*) as meal_count,
+			COUNT(*) as consumption_count,
 			COALESCE(SUM(total_calories), 0) as calories,
 			COALESCE(SUM(total_protein_g), 0) as protein,
 			COALESCE(SUM(total_fat_g), 0) as fat,
 			COALESCE(SUM(total_carbs_g), 0) as carbs,
 			COALESCE(SUM(total_fiber_g), 0) as fiber,
 			COALESCE(SUM(total_sodium_mg), 0) as sodium
-		FROM meals 
+		FROM consumptions 
 		WHERE user_id = ? AND created_at >= ? AND created_at <= ?
 		GROUP BY substr(created_at, 1, 10)
 		ORDER BY date ASC`
@@ -344,7 +344,7 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 		var daily DailySummary
 		var dateStr string
 
-		err := rows.Scan(&dateStr, &daily.MealCount, &daily.Calories,
+		err := rows.Scan(&dateStr, &daily.ConsumptionCount, &daily.Calories,
 			&daily.Protein, &daily.Fat, &daily.Carbs, &daily.Fiber, &daily.Sodium)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan daily summary: %w", err)
@@ -390,8 +390,8 @@ func (s *SQLiteStore) Seed() error {
 		}
 	}
 
-	// Sample meal data with realistic nutrition - dates relative to today
-	sampleMeals := []struct {
+	// Sample consumption data with realistic nutrition - dates relative to today
+	sampleConsumptions := []struct {
 		transcript    string
 		itemsJSON     string
 		totalCalories float64
@@ -470,17 +470,17 @@ func (s *SQLiteStore) Seed() error {
 		},
 	}
 
-	// Create sample meals with different timestamps
-	for _, sample := range sampleMeals {
-		// Check if similar meal already exists for this user (avoid duplicates)
-		existingMeals, err := s.GetMealsByUser(ctx, user.ID, 10, 0)
+	// Create sample consumptions with different timestamps
+	for _, sample := range sampleConsumptions {
+		// Check if similar consumption already exists for this user (avoid duplicates)
+		existingConsumptions, err := s.GetConsumptionsByUser(ctx, user.ID, 10, 0)
 		if err != nil {
-			return fmt.Errorf("failed to check existing meals: %w", err)
+			return fmt.Errorf("failed to check existing consumptions: %w", err)
 		}
 
-		// Skip if a meal with same transcript already exists
+		// Skip if a consumption with same transcript already exists
 		exists := false
-		for _, existing := range existingMeals {
+		for _, existing := range existingConsumptions {
 			if existing.Transcript == sample.transcript {
 				exists = true
 				break
@@ -490,7 +490,7 @@ func (s *SQLiteStore) Seed() error {
 			continue
 		}
 
-		meal := &Meal{
+		consumption := &Consumption{
 			UserID:        user.ID,
 			Transcript:    sample.transcript,
 			ItemsJSON:     sample.itemsJSON,
@@ -502,16 +502,16 @@ func (s *SQLiteStore) Seed() error {
 			TotalSodium:   sample.totalSodium,
 		}
 
-		if err := s.CreateMeal(ctx, meal); err != nil {
-			return fmt.Errorf("failed to create seed meal: %w", err)
+		if err := s.CreateConsumption(ctx, consumption); err != nil {
+			return fmt.Errorf("failed to create seed consumption: %w", err)
 		}
 
 		// Update the created_at timestamp to simulate different days
 		if sample.daysAgo > 0 {
 			pastTime := time.Now().UTC().AddDate(0, 0, -sample.daysAgo)
-			updateQuery := `UPDATE meals SET created_at = ? WHERE id = ?`
-			if _, err := s.db.Exec(updateQuery, pastTime, meal.ID); err != nil {
-				return fmt.Errorf("failed to update meal timestamp: %w", err)
+			updateQuery := `UPDATE consumptions SET created_at = ? WHERE id = ?`
+			if _, err := s.db.Exec(updateQuery, pastTime, consumption.ID); err != nil {
+				return fmt.Errorf("failed to update consumption timestamp: %w", err)
 			}
 		}
 	}

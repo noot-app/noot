@@ -111,20 +111,20 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	// 5) Summarize
 	summary := summarize(itemsWith)
 
-	// 6) Save meal to database if store is available
+	// 6) Save consumption to database if store is available
 	if store != nil {
 		// For now, use a default user (monalisa) if no authentication
 		// In the future, this would come from authentication middleware
 		user, err := store.GetUserBySubject(ctx, "email", "monalisa")
 		if err != nil {
-			LogError("Failed to get user for meal storage", err)
+			LogError("Failed to get user for consumption storage", err)
 		} else if user != nil {
-			meal := itemWithNutritionToMeal(user.ID, transcript, itemsWith, summary)
-			if err := store.CreateMeal(ctx, meal); err != nil {
-				LogError("Failed to save meal to database", err)
+			consumption := itemWithNutritionToConsumption(user.ID, transcript, itemsWith, summary)
+			if err := store.CreateConsumption(ctx, consumption); err != nil {
+				LogError("Failed to save consumption to database", err)
 				// Don't fail the request if storage fails
 			} else {
-				LogInfo("Meal saved to database", "meal_id", meal.ID, "user_id", user.ID, "request_id", requestID)
+				LogInfo("Consumption saved to database", "consumption_id", consumption.ID, "user_id", user.ID, "request_id", requestID)
 			}
 		}
 	}
@@ -147,8 +147,8 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// GET /api/meals - Development only endpoint to view stored meals
-func mealsHandler(w http.ResponseWriter, r *http.Request) {
+// GET /api/consumptions - Development only endpoint to view stored consumptions
+func consumptionsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		httpError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
@@ -160,7 +160,7 @@ func mealsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For now, get meals for the default user (monalisa)
+	// For now, get consumptions for the default user (monalisa)
 	user, err := store.GetUserBySubject(r.Context(), "email", "monalisa")
 	if err != nil {
 		httpError(w, http.StatusInternalServerError, "Failed to get user")
@@ -168,23 +168,23 @@ func mealsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if user == nil {
 		writeJSON(w, http.StatusOK, map[string]any{
-			"meals": []interface{}{},
-			"user":  nil,
+			"consumptions": []interface{}{},
+			"user":         nil,
 		})
 		return
 	}
 
-	// Get recent meals (last 50)
-	meals, err := store.GetMealsByUser(r.Context(), user.ID, 50, 0)
+	// Get recent consumptions (last 50)
+	consumptions, err := store.GetConsumptionsByUser(r.Context(), user.ID, 50, 0)
 	if err != nil {
-		httpError(w, http.StatusInternalServerError, "Failed to get meals")
+		httpError(w, http.StatusInternalServerError, "Failed to get consumptions")
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"meals": meals,
-		"user":  user,
-		"count": len(meals),
+		"consumptions": consumptions,
+		"user":         user,
+		"count":        len(consumptions),
 	})
 }
 

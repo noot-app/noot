@@ -6,12 +6,12 @@ import (
 	"github.com/grantbirki/noot/internal/storage"
 )
 
-// itemWithNutritionToMeal converts server response data to a meal record
-func itemWithNutritionToMeal(userID string, transcript string, items []ItemWithNutrition, summary Summary) *storage.Meal {
+// itemWithNutritionToConsumption converts server response data to a consumption record
+func itemWithNutritionToConsumption(userID string, transcript string, items []ItemWithNutrition, summary Summary) *storage.Consumption {
 	// Serialize items to JSON
 	itemsJSON, _ := json.Marshal(items)
 
-	return &storage.Meal{
+	return &storage.Consumption{
 		UserID:        userID,
 		Transcript:    transcript,
 		ItemsJSON:     string(itemsJSON),
