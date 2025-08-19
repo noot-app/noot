@@ -7,6 +7,7 @@ import (
 // POST /api/ingest
 func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	requestID := getRequestID(r.Context())
+	store := getStore(r.Context())
 
 	if r.Method != http.MethodPost {
 		httpError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -85,6 +86,24 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	// 4) Summarize
 	summary := summarize(itemsWith)
 
+	// 5) Save meal to database if store is available
+	if store != nil {
+		// For now, use a default user (monalisa) if no authentication
+		// In the future, this would come from authentication middleware
+		user, err := store.GetUserBySubject(ctx, "github", "monalisa")
+		if err != nil {
+			LogError("Failed to get user for meal storage", err)
+		} else if user != nil {
+			meal := itemWithNutritionToMeal(user.ID, transcript, itemsWith, summary)
+			if err := store.CreateMeal(ctx, meal); err != nil {
+				LogError("Failed to save meal to database", err)
+				// Don't fail the request if storage fails
+			} else {
+				LogInfo("Meal saved to database", "meal_id", meal.ID, "user_id", user.ID, "request_id", requestID)
+			}
+		}
+	}
+
 	resp := map[string]any{
 		"transcript":  transcript,
 		"parsedItems": parsed.Items,
@@ -101,4 +120,45 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	)
 
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// GET /api/meals - Development only endpoint to view stored meals
+func mealsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		httpError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	store := getStore(r.Context())
+	if store == nil {
+		httpError(w, http.StatusInternalServerError, "Storage not available")
+		return
+	}
+
+	// For now, get meals for the default user (monalisa)
+	user, err := store.GetUserBySubject(r.Context(), "github", "monalisa")
+	if err != nil {
+		httpError(w, http.StatusInternalServerError, "Failed to get user")
+		return
+	}
+	if user == nil {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"meals": []interface{}{},
+			"user":  nil,
+		})
+		return
+	}
+
+	// Get recent meals (last 50)
+	meals, err := store.GetMealsByUser(r.Context(), user.ID, 50, 0)
+	if err != nil {
+		httpError(w, http.StatusInternalServerError, "Failed to get meals")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"meals": meals,
+		"user":  user,
+		"count": len(meals),
+	})
 }

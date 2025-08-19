@@ -32,3 +32,8 @@ tmp/
 /noot
 /noot.exe
 bin/
+
+# Database files
+*.db
+*.db-journal
+*.db-wal

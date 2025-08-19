@@ -6,7 +6,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/grantbirki/noot/internal/storage"
 )
 
 // Define custom context key types to avoid collisions
@@ -14,23 +17,54 @@ type contextKey string
 
 const (
 	requestIDKey contextKey = "request_id"
+	storeKey     contextKey = "store"
 )
 
 // Run configures routes and starts the HTTP server
 func Run(ctx context.Context, port string) error {
+	// Initialize storage
+	dbPath := getenv("DATABASE_PATH", "./noot.db")
+	store, err := storage.NewSQLiteStore(dbPath)
+	if err != nil {
+		return fmt.Errorf("failed to initialize storage: %w", err)
+	}
+	defer store.Close()
+
+	// Run migrations
+	if err := store.Migrate(); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	// Run seeding in development
+	env := strings.ToLower(getenv("ENV", "production"))
+	devSeed := strings.ToLower(getenv("DEV_DB_SEED", "false")) == "true"
+	if env == "development" || devSeed {
+		if err := store.Seed(); err != nil {
+			LogError("Failed to seed database", err)
+			// Don't fail startup on seed error, just log it
+		}
+	}
+
 	mux := http.NewServeMux()
 
 	// API
 	mux.HandleFunc("/api/ingest", ingestHandler)
 	mux.HandleFunc("/api/health", healthHandler)
 
+	// Development-only meals API
+	if env == "development" {
+		mux.HandleFunc("/api/meals", mealsHandler)
+	}
+
 	// Static frontend (embedded)
 	mux.Handle("/", StaticHandler())
 
-	// Chain middleware
+	// Chain middleware with store injection
 	handler := requestIDMiddleware(
 		loggingMiddleware(
-			recoveryMiddleware(mux),
+			recoveryMiddleware(
+				storeMiddleware(store, mux),
+			),
 		),
 	)
 
@@ -172,4 +206,18 @@ func getRequestID(ctx context.Context) string {
 		return id
 	}
 	return ""
+}
+
+func getStore(ctx context.Context) storage.Store {
+	if store, ok := ctx.Value(storeKey).(storage.Store); ok {
+		return store
+	}
+	return nil
+}
+
+func storeMiddleware(store storage.Store, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), storeKey, store)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

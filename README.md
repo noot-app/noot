@@ -37,6 +37,10 @@ An AI-powered nutrition logging web app. Just say what you ate!
 
     # Upload Configuration
     MAX_UPLOAD_BYTES=104857600  # Maximum upload size in bytes (default: 100MB)
+
+    # Database Configuration
+    DATABASE_PATH=./noot.db     # Path to SQLite database file (default: ./noot.db)
+    DEV_DB_SEED=true           # Enable database seeding in development (optional)
     ```
 
 3) **Run:** The local server can be run with `script/server` (use `--production` for production mode).
@@ -51,6 +55,7 @@ An AI-powered nutrition logging web app. Just say what you ate!
 
 - `GET /` — Static frontend (embedded)
 - `POST /api/ingest` — Multipart form with `audio` field (webm/opus/mp3/wav)
+- `GET /api/meals` — View stored meals (development mode only)
 
 ## Example Response
 
@@ -85,9 +90,17 @@ An AI-powered nutrition logging web app. Just say what you ate!
 - **Build:** `script/build` (or `script/build --single-target` for faster iteration)
 - **Dev Server:** `script/server` (starts with development-friendly caching)
 
+### Database Management
+
+- **Reset:** `script/db reset` — Drop all tables and start fresh
+- **Seed:** `script/db seed` — Add development data (monalisa user + sample meals)
+- **Dump:** `script/db dump` — View database contents in human-readable format
+
 ## Technical Details
 
 - Single binary web server with embedded frontend assets
+- SQLite database with automatic migrations for meal storage
 - OpenAI gpt-4o-mini-transcribe for speech-to-text
-- OpenAI gpt-4o-mini for meal parsing
+- OpenAI gpt-4o-mini for meal parsing with complete nutrition data
 - Audio uploads are streamed to temporary files to avoid memory spikes
+- Development seeding with realistic meal data for testing
