@@ -88,3 +88,16 @@ func applyDaysLimit(days int) int {
 	}
 	return days
 }
+
+// normalizeItemName normalizes item names for consistent matching
+func normalizeItemName(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
+}
+
+// getBrandOrEmpty returns the brand string or empty string if nil
+func getBrandOrEmpty(brand *string) string {
+	if brand == nil {
+		return ""
+	}
+	return *brand
+}
