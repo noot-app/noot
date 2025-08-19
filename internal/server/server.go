@@ -61,6 +61,7 @@ func Run(ctx context.Context, port string) error {
 	r.Use(RequestIDMiddleware())
 	r.Use(LoggingMiddleware())
 	r.Use(RecoveryMiddleware())
+	r.Use(CORSMiddleware())
 	r.Use(StoreMiddleware(store))
 
 	// Create API server
@@ -85,9 +86,6 @@ func Run(ctx context.Context, port string) error {
 			v1.GET("/openapi.yaml", apiServer.OpenAPISpecHandler)
 		}
 	}
-
-	// Static frontend (embedded)
-	r.NoRoute(gin.WrapH(StaticHandler()))
 
 	LogInfo("Starting server", "port", port, "debug", isDebugMode(), "env", getenv("ENV", "production"))
 
