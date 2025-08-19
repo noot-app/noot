@@ -52,9 +52,12 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
+	// Create nutrition service
+	nutritionService := NewNutritionService(store)
+
 	// 1) Transcribe
 	LogDebug("Starting transcription", "request_id", requestID)
-	transcript, err := transcribeAudio(ctx, tmpPath, mimeType)
+	transcript, err := nutritionService.TranscribeAudio(ctx, tmpPath, mimeType)
 	if err != nil {
 		appErr := NewAppError("Transcription failed", http.StatusInternalServerError, err)
 		handleAppError(w, appErr, requestID)
@@ -64,7 +67,7 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 2) Parse items (phase 1: extract items without nutrition)
 	LogDebug("Starting item parsing (items only)", "request_id", requestID)
-	parsed, err := parseItems(ctx, transcript)
+	parsed, err := nutritionService.ParseItems(ctx, transcript)
 	if err != nil {
 		appErr := NewAppError("Item parsing failed", http.StatusInternalServerError, err)
 		handleAppError(w, appErr, requestID)
@@ -72,19 +75,19 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	LogDebug("Item parsing completed", "item_count", len(parsed.Items), "request_id", requestID)
 
-	// 3) Hydrate nutrition (phase 2: add nutrition data using cache + OpenAI)
+	// 3) Hydrate nutrition (phase 2: add nutrition data using cache + AI)
 	LogDebug("Starting nutrition hydration", "request_id", requestID)
 	var hydratedItems []Item
 	if store != nil {
-		hydratedItems, err = hydrateNutrition(ctx, parsed.Items, store)
+		hydratedItems, err = nutritionService.HydrateNutrition(ctx, parsed.Items)
 		if err != nil {
 			appErr := NewAppError("Nutrition hydration failed", http.StatusInternalServerError, err)
 			handleAppError(w, appErr, requestID)
 			return
 		}
 	} else {
-		// No store available - hydrate without cache (direct OpenAI calls)
-		hydratedItems, err = hydrateNutritionWithoutCache(ctx, parsed.Items)
+		// No store available - hydrate without cache (direct AI calls)
+		hydratedItems, err = nutritionService.HydrateNutritionWithoutCache(ctx, parsed.Items)
 		if err != nil {
 			appErr := NewAppError("Nutrition hydration failed", http.StatusInternalServerError, err)
 			handleAppError(w, appErr, requestID)
