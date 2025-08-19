@@ -29,7 +29,7 @@ func transcriptionPrompt() string {
 }
 
 func parseItemsSystemPrompt() string {
-	return `You extract individual food and drink items from a freeform consumption description. Return strict JSON with the following structure:
+	return `You extract individual food and drink items from a freeform meal, snack, beverage, or consumption description. Return strict JSON with the following structure:
 
 {
   "items": [
