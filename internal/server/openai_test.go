@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,17 +19,31 @@ func TestTranscriptionPrompt(t *testing.T) {
 	assert.Contains(t, prompt, "brand")
 }
 
-func TestParseSystemPrompt(t *testing.T) {
-	prompt := parseSystemPrompt()
+func TestParseItemsSystemPrompt(t *testing.T) {
+	prompt := parseItemsSystemPrompt()
+
+	assert.NotEmpty(t, prompt)
+	assert.Contains(t, prompt, "JSON")
+	assert.Contains(t, prompt, "items")
+	// Should contain structure definition
+	assert.Contains(t, prompt, "name")
+	assert.Contains(t, prompt, "quantity")
+	assert.Contains(t, prompt, "unit")
+	assert.Contains(t, prompt, "brand")
+	// Should contain serving size instructions
+	assert.Contains(t, prompt, "serving")
+}
+
+func TestNutritionSystemPrompt(t *testing.T) {
+	prompt := nutritionSystemPrompt()
 
 	assert.NotEmpty(t, prompt)
 	assert.Contains(t, prompt, "JSON")
 	assert.Contains(t, prompt, "nutrition")
-	assert.Contains(t, prompt, "items")
+	assert.Contains(t, prompt, "nutrients")
 	// Should contain structure definition
 	assert.Contains(t, prompt, "calories")
 	assert.Contains(t, prompt, "protein_g")
-	assert.Contains(t, prompt, "nutrients")
 }
 
 func TestStrPtrOrNil(t *testing.T) {
@@ -75,6 +91,33 @@ func TestStrPtrOrNil(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetNutritionFromOpenAI_MissingAPIKey(t *testing.T) {
+	// Save current env var
+	original := os.Getenv("OPENAI_API_KEY")
+	defer func() {
+		if original == "" {
+			os.Unsetenv("OPENAI_API_KEY")
+		} else {
+			os.Setenv("OPENAI_API_KEY", original)
+		}
+	}()
+
+	// Unset API key
+	os.Unsetenv("OPENAI_API_KEY")
+
+	ctx := context.Background()
+	item := Item{Name: "Apple", Quantity: float64Ptr(1), Unit: stringPtr("medium")}
+	_, err := getNutritionFromOpenAI(ctx, item)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "OPENAI_API_KEY not configured")
+}
+
+// Helper function to create float64 pointers for tests
+func float64Ptr(f float64) *float64 {
+	return &f
 }
 
 // Helper function to create string pointers for tests

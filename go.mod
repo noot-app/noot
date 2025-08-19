@@ -3,6 +3,7 @@ module github.com/grantbirki/noot
 go 1.24.4
 
 require (
+	github.com/oklog/ulid/v2 v2.1.1
 	github.com/stretchr/testify v1.10.0
 	modernc.org/sqlite v1.38.2
 )

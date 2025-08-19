@@ -4,4 +4,54 @@ set -euo pipefail
 
 source script/env "$@"
 
-go run ./cmd/noot/main.go
+function usage() {
+    echo "Usage: $0 [--clean]"
+    echo ""
+    echo "Options:"
+    echo "  --clean    Clear the database, reseed it, then start the server"
+    echo ""
+    echo "Without --clean, starts the server with the existing database."
+    exit 1
+}
+
+function clean_and_start() {
+    echo -e "${BLUE}🧹 Cleaning database and starting server...${OFF}"
+    
+    # Reset the database (clears all data)
+    echo -e "${BLUE}Step 1: Resetting database${OFF}"
+    script/db reset
+    
+    # Seed the database with development data
+    echo -e "${BLUE}Step 2: Seeding database${OFF}"
+    script/db seed
+    
+    echo -e "${GREEN}✅ Database cleaned and seeded${OFF}"
+    echo -e "${BLUE}🚀 Starting server...${OFF}"
+    echo ""
+    
+    # Start the server
+    go run ./cmd/noot/main.go
+}
+
+function start_server() {
+    echo -e "${BLUE}🚀 Starting server...${OFF}"
+    go run ./cmd/noot/main.go
+}
+
+# Parse command line arguments
+case "${1:-}" in
+    --clean)
+        clean_and_start
+        ;;
+    --help|-h)
+        usage
+        ;;
+    "")
+        start_server
+        ;;
+    *)
+        echo "Unknown option: $1"
+        echo ""
+        usage
+        ;;
+esac

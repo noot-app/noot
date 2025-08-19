@@ -61,19 +61,40 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	LogDebug("Transcription completed", "transcript_length", len(transcript), "request_id", requestID)
 
-	// 2) Parse items with complete nutrition via Chat Completions
-	LogDebug("Starting item parsing with nutrition", "request_id", requestID)
+	// 2) Parse items (phase 1: extract items without nutrition)
+	LogDebug("Starting item parsing (items only)", "request_id", requestID)
 	parsed, err := parseItems(ctx, transcript)
 	if err != nil {
-		appErr := NewAppError("Parsing failed", http.StatusInternalServerError, err)
+		appErr := NewAppError("Item parsing failed", http.StatusInternalServerError, err)
 		handleAppError(w, appErr, requestID)
 		return
 	}
-	LogDebug("Item parsing with nutrition completed", "item_count", len(parsed.Items), "request_id", requestID)
+	LogDebug("Item parsing completed", "item_count", len(parsed.Items), "request_id", requestID)
 
-	// 3) Convert to ItemWithNutrition format for response
+	// 3) Hydrate nutrition (phase 2: add nutrition data using cache + OpenAI)
+	LogDebug("Starting nutrition hydration", "request_id", requestID)
+	var hydratedItems []Item
+	if store != nil {
+		hydratedItems, err = hydrateNutrition(ctx, parsed.Items, store)
+		if err != nil {
+			appErr := NewAppError("Nutrition hydration failed", http.StatusInternalServerError, err)
+			handleAppError(w, appErr, requestID)
+			return
+		}
+	} else {
+		// No store available - hydrate without cache (direct OpenAI calls)
+		hydratedItems, err = hydrateNutritionWithoutCache(ctx, parsed.Items)
+		if err != nil {
+			appErr := NewAppError("Nutrition hydration failed", http.StatusInternalServerError, err)
+			handleAppError(w, appErr, requestID)
+			return
+		}
+	}
+	LogDebug("Nutrition hydration completed", "hydrated_count", len(hydratedItems), "request_id", requestID)
+
+	// 4) Convert to ItemWithNutrition format for response
 	var itemsWith []ItemWithNutrition
-	for _, it := range parsed.Items {
+	for _, it := range hydratedItems {
 		iw := ItemWithNutrition{
 			Item: it,
 		}
@@ -83,10 +104,10 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 		itemsWith = append(itemsWith, iw)
 	}
 
-	// 4) Summarize
+	// 5) Summarize
 	summary := summarize(itemsWith)
 
-	// 5) Save meal to database if store is available
+	// 6) Save meal to database if store is available
 	if store != nil {
 		// For now, use a default user (monalisa) if no authentication
 		// In the future, this would come from authentication middleware
