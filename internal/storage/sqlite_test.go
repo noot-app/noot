@@ -355,4 +355,69 @@ func TestSQLiteStore(t *testing.T) {
 		expired = store.IsItemCacheExpired(validItem)
 		assert.False(t, expired)
 	})
+
+	t.Run("GetNutritionSummary", func(t *testing.T) {
+		// Create a user
+		user := &User{
+			Provider: "github",
+			Subject:  "testuser5",
+			Email:    "test5@example.com",
+		}
+		err := store.CreateUser(ctx, user)
+		require.NoError(t, err)
+
+		// Create meals with nutrition data
+		meal1 := &Meal{
+			UserID:        user.ID,
+			Transcript:    "Breakfast",
+			ItemsJSON:     `[{"name":"oatmeal","quantity":1,"unit":"cup"}]`,
+			TotalCalories: 300,
+			TotalProtein:  10,
+			TotalFat:      5,
+			TotalCarbs:    60,
+			TotalFiber:    8,
+			TotalSodium:   100,
+		}
+		err = store.CreateMeal(ctx, meal1)
+		require.NoError(t, err)
+
+		meal2 := &Meal{
+			UserID:        user.ID,
+			Transcript:    "Lunch",
+			ItemsJSON:     `[{"name":"sandwich","quantity":1,"unit":"sandwich"}]`,
+			TotalCalories: 500,
+			TotalProtein:  25,
+			TotalFat:      20,
+			TotalCarbs:    45,
+			TotalFiber:    5,
+			TotalSodium:   800,
+		}
+		err = store.CreateMeal(ctx, meal2)
+		require.NoError(t, err)
+
+		// Get nutrition summary for the last 7 days
+		endTime := time.Now().UTC()
+		startTime := endTime.AddDate(0, 0, -7)
+
+		summary, err := store.GetNutritionSummary(ctx, user.ID, startTime, endTime)
+		require.NoError(t, err)
+		require.NotNil(t, summary)
+
+		// Check totals
+		assert.Equal(t, 2, summary.MealCount)
+		assert.Equal(t, float64(800), summary.TotalCalories)
+		assert.Equal(t, float64(35), summary.TotalProtein)
+		assert.Equal(t, float64(25), summary.TotalFat)
+		assert.Equal(t, float64(105), summary.TotalCarbs)
+		assert.Equal(t, float64(13), summary.TotalFiber)
+		assert.Equal(t, float64(900), summary.TotalSodium)
+
+		// Check daily breakdown is populated
+		assert.NotEmpty(t, summary.DailyBreakdown)
+		assert.Equal(t, 1, len(summary.DailyBreakdown)) // All meals on same day
+
+		dailySummary := summary.DailyBreakdown[0]
+		assert.Equal(t, 2, dailySummary.MealCount)
+		assert.Equal(t, float64(800), dailySummary.Calories)
+	})
 }

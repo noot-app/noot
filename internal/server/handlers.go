@@ -1,7 +1,11 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // POST /api/ingest
@@ -111,7 +115,7 @@ func ingestHandler(w http.ResponseWriter, r *http.Request) {
 	if store != nil {
 		// For now, use a default user (monalisa) if no authentication
 		// In the future, this would come from authentication middleware
-		user, err := store.GetUserBySubject(ctx, "github", "monalisa")
+		user, err := store.GetUserBySubject(ctx, "email", "monalisa")
 		if err != nil {
 			LogError("Failed to get user for meal storage", err)
 		} else if user != nil {
@@ -157,7 +161,7 @@ func mealsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// For now, get meals for the default user (monalisa)
-	user, err := store.GetUserBySubject(r.Context(), "github", "monalisa")
+	user, err := store.GetUserBySubject(r.Context(), "email", "monalisa")
 	if err != nil {
 		httpError(w, http.StatusInternalServerError, "Failed to get user")
 		return
@@ -181,5 +185,72 @@ func mealsHandler(w http.ResponseWriter, r *http.Request) {
 		"meals": meals,
 		"user":  user,
 		"count": len(meals),
+	})
+}
+
+// GET /api/nutrition-summary
+func nutritionSummaryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		httpError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	store := getStore(r.Context())
+	if store == nil {
+		httpError(w, http.StatusInternalServerError, "Storage not available")
+		return
+	}
+
+	// For now, get summary for the default user (monalisa)
+	user, err := store.GetUserBySubject(r.Context(), "email", "monalisa")
+	if err != nil {
+		httpError(w, http.StatusInternalServerError, "Failed to get user")
+		return
+	}
+	if user == nil {
+		httpError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	// Parse query parameters
+	dayStr := r.URL.Query().Get("days")
+	days := 7 // default to week view
+
+	if dayStr != "" {
+		if parsedDays, err := strconv.Atoi(dayStr); err == nil && parsedDays > 0 {
+			days = parsedDays
+		}
+	}
+
+	// Enforce subscription tier restrictions
+	if days > 1 && strings.ToLower(user.SubscriptionTier) != "pro" {
+		httpError(w, http.StatusForbidden, "Week view requires pro subscription")
+		return
+	}
+
+	// Performance limit: maximum 7 days
+	if days > 7 {
+		days = 7
+	}
+
+	// Calculate date range
+	endTime := time.Now().UTC()
+	startTime := endTime.AddDate(0, 0, -days+1) // Include today
+
+	summary, err := store.GetNutritionSummary(r.Context(), user.ID, startTime, endTime)
+	if err != nil {
+		appErr := NewAppError(fmt.Sprintf("Failed to get nutrition summary: %v", err), http.StatusInternalServerError, err)
+		handleAppError(w, appErr, getRequestID(r.Context()))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"summary": summary,
+		"user":    user,
+		"days":    days,
+		"date_range": map[string]string{
+			"start": startTime.Format(time.RFC3339),
+			"end":   endTime.Format(time.RFC3339),
+		},
 	})
 }

@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
     provider TEXT NOT NULL,
     subject TEXT NOT NULL,
     email TEXT NOT NULL,
+    subscription_tier TEXT NOT NULL DEFAULT 'free',
     created_at DATETIME NOT NULL,
     UNIQUE(provider, subject)
 );

@@ -17,6 +17,7 @@ type Store interface {
 	GetMeal(ctx context.Context, id string) (*Meal, error)
 	GetMealsByUser(ctx context.Context, userID string, limit, offset int) ([]*Meal, error)
 	GetMealsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Meal, error)
+	GetNutritionSummary(ctx context.Context, userID string, start, end time.Time) (*NutritionSummary, error)
 
 	// Item cache operations (soft TTL)
 	GetItemFromCache(ctx context.Context, normalizedName, normalizedBrand string) (*ItemCache, error)
@@ -37,11 +38,12 @@ type Store interface {
 
 // User represents a user in the system
 type User struct {
-	ID        string    `json:"id"`
-	Provider  string    `json:"provider"`
-	Subject   string    `json:"subject"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
+	ID               string    `json:"id"`
+	Provider         string    `json:"provider"`
+	Subject          string    `json:"subject"`
+	Email            string    `json:"email"`
+	SubscriptionTier string    `json:"subscription_tier"` // "free", "pro"
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 // Meal represents a logged meal with nutrition data
@@ -113,4 +115,43 @@ type ItemAlias struct {
 	CanonicalName  string    `json:"canonical_name"`
 	CanonicalBrand string    `json:"canonical_brand"`
 	CreatedAt      time.Time `json:"created_at"`
+}
+
+// NutritionSummary represents aggregated nutrition data over a time period
+type NutritionSummary struct {
+	UserID    string    `json:"user_id"`
+	StartDate time.Time `json:"start_date"`
+	EndDate   time.Time `json:"end_date"`
+	MealCount int       `json:"meal_count"`
+
+	// Totals for the time period
+	TotalCalories float64 `json:"total_calories"`
+	TotalProtein  float64 `json:"total_protein_g"`
+	TotalFat      float64 `json:"total_fat_g"`
+	TotalCarbs    float64 `json:"total_carbs_g"`
+	TotalFiber    float64 `json:"total_fiber_g"`
+	TotalSodium   float64 `json:"total_sodium_mg"`
+
+	// Averages per day
+	AvgCaloriesPerDay float64 `json:"avg_calories_per_day"`
+	AvgProteinPerDay  float64 `json:"avg_protein_per_day"`
+	AvgFatPerDay      float64 `json:"avg_fat_per_day"`
+	AvgCarbsPerDay    float64 `json:"avg_carbs_per_day"`
+	AvgFiberPerDay    float64 `json:"avg_fiber_per_day"`
+	AvgSodiumPerDay   float64 `json:"avg_sodium_per_day"`
+
+	// Daily breakdown for charts
+	DailyBreakdown []DailySummary `json:"daily_breakdown"`
+}
+
+// DailySummary represents nutrition data for a single day
+type DailySummary struct {
+	Date      time.Time `json:"date"`
+	MealCount int       `json:"meal_count"`
+	Calories  float64   `json:"calories"`
+	Protein   float64   `json:"protein_g"`
+	Fat       float64   `json:"total_fat_g"`
+	Carbs     float64   `json:"total_carbs_g"`
+	Fiber     float64   `json:"fiber_g"`
+	Sodium    float64   `json:"sodium_mg"`
 }

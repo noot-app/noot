@@ -589,8 +589,8 @@ func convertNutrientsToCache(item Item, nutrients CompleteNutrient) *storage.Ite
 		CopperMgPer100g:      nutrients.Copper,
 		ManganeseMgPer100g:   nutrients.Manganese,
 		SeleniumMcgPer100g:   nutrients.Selenium,
-		FetchedAt:            time.Now(),
-		ExpiresAt:            time.Now().Add(30 * 24 * time.Hour), // 30 day TTL
+		FetchedAt:            time.Now().UTC(),
+		ExpiresAt:            time.Now().UTC().Add(30 * 24 * time.Hour), // 30 day TTL
 	}
 }
 

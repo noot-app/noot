@@ -54,6 +54,7 @@ func Run(ctx context.Context, port string) error {
 	// Development-only meals API
 	if env == "development" {
 		mux.HandleFunc("/api/meals", mealsHandler)
+		mux.HandleFunc("/api/nutrition-summary", nutritionSummaryHandler)
 	}
 
 	// Static frontend (embedded)

@@ -27,7 +27,7 @@ type SQLiteStore struct {
 
 // generateULID generates a new ULID string
 func generateULID() string {
-	return ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader).String()
+	return ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String()
 }
 
 // NewSQLiteStore creates a new SQLite-based store
@@ -104,14 +104,19 @@ func (s *SQLiteStore) Reset() error {
 // CreateUser creates a new user
 func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 	query := `
-		INSERT INTO users (id, provider, subject, email, created_at)
-		VALUES (?, ?, ?, ?, ?)`
+		INSERT INTO users (id, provider, subject, email, subscription_tier, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
 	user.ID = generateULID()
 	user.CreatedAt = now
 
-	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email, now)
+	// Set default subscription tier if not provided
+	if user.SubscriptionTier == "" {
+		user.SubscriptionTier = "free"
+	}
+
+	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email, user.SubscriptionTier, now)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -121,11 +126,11 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 
 // GetUser retrieves a user by ID
 func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
-	query := `SELECT id, provider, subject, email, created_at FROM users WHERE id = ?`
+	query := `SELECT id, provider, subject, email, subscription_tier, created_at FROM users WHERE id = ?`
 
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, id).
-		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.CreatedAt)
+		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // User not found
@@ -138,11 +143,11 @@ func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
 
 // GetUserBySubject retrieves a user by provider and subject
 func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject string) (*User, error) {
-	query := `SELECT id, provider, subject, email, created_at FROM users WHERE provider = ? AND subject = ?`
+	query := `SELECT id, provider, subject, email, subscription_tier, created_at FROM users WHERE provider = ? AND subject = ?`
 
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, provider, subject).
-		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.CreatedAt)
+		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // User not found
@@ -264,6 +269,104 @@ func (s *SQLiteStore) GetMealsByUserSince(ctx context.Context, userID string, si
 	return meals, nil
 }
 
+// GetNutritionSummary retrieves aggregated nutrition data for a user over a time period
+func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, start, end time.Time) (*NutritionSummary, error) {
+	// First get the overall totals
+	totalQuery := `
+		SELECT 
+			COUNT(*) as meal_count,
+			COALESCE(SUM(total_calories), 0) as total_calories,
+			COALESCE(SUM(total_protein_g), 0) as total_protein,
+			COALESCE(SUM(total_fat_g), 0) as total_fat,
+			COALESCE(SUM(total_carbs_g), 0) as total_carbs,
+			COALESCE(SUM(total_fiber_g), 0) as total_fiber,
+			COALESCE(SUM(total_sodium_mg), 0) as total_sodium
+		FROM meals 
+		WHERE user_id = ? AND created_at >= ? AND created_at <= ?`
+
+	var summary NutritionSummary
+	err := s.db.QueryRowContext(ctx, totalQuery, userID, start, end).Scan(
+		&summary.MealCount,
+		&summary.TotalCalories,
+		&summary.TotalProtein,
+		&summary.TotalFat,
+		&summary.TotalCarbs,
+		&summary.TotalFiber,
+		&summary.TotalSodium,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get nutrition summary totals: %w", err)
+	}
+
+	// Calculate number of days in the period
+	daysDiff := end.Sub(start).Hours() / 24
+	if daysDiff < 1 {
+		daysDiff = 1 // Minimum 1 day for average calculations
+	}
+
+	// Set summary metadata
+	summary.UserID = userID
+	summary.StartDate = start
+	summary.EndDate = end
+
+	// Calculate daily averages
+	summary.AvgCaloriesPerDay = summary.TotalCalories / daysDiff
+	summary.AvgProteinPerDay = summary.TotalProtein / daysDiff
+	summary.AvgFatPerDay = summary.TotalFat / daysDiff
+	summary.AvgCarbsPerDay = summary.TotalCarbs / daysDiff
+	summary.AvgFiberPerDay = summary.TotalFiber / daysDiff
+	summary.AvgSodiumPerDay = summary.TotalSodium / daysDiff
+
+	// Get daily breakdown for charts
+	dailyQuery := `
+		SELECT 
+			substr(created_at, 1, 10) as date,
+			COUNT(*) as meal_count,
+			COALESCE(SUM(total_calories), 0) as calories,
+			COALESCE(SUM(total_protein_g), 0) as protein,
+			COALESCE(SUM(total_fat_g), 0) as fat,
+			COALESCE(SUM(total_carbs_g), 0) as carbs,
+			COALESCE(SUM(total_fiber_g), 0) as fiber,
+			COALESCE(SUM(total_sodium_mg), 0) as sodium
+		FROM meals 
+		WHERE user_id = ? AND created_at >= ? AND created_at <= ?
+		GROUP BY substr(created_at, 1, 10)
+		ORDER BY date ASC`
+
+	rows, err := s.db.QueryContext(ctx, dailyQuery, userID, start, end)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get daily breakdown: %w", err)
+	}
+	defer rows.Close()
+
+	var dailyBreakdown []DailySummary
+	for rows.Next() {
+		var daily DailySummary
+		var dateStr string
+
+		err := rows.Scan(&dateStr, &daily.MealCount, &daily.Calories,
+			&daily.Protein, &daily.Fat, &daily.Carbs, &daily.Fiber, &daily.Sodium)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan daily summary: %w", err)
+		}
+
+		// Parse the date string
+		daily.Date, err = time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse date: %w", err)
+		}
+
+		dailyBreakdown = append(dailyBreakdown, daily)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating daily breakdown: %w", err)
+	}
+
+	summary.DailyBreakdown = dailyBreakdown
+	return &summary, nil
+}
+
 // Seed adds development seed data
 func (s *SQLiteStore) Seed() error {
 	ctx := context.Background()
@@ -277,9 +380,10 @@ func (s *SQLiteStore) Seed() error {
 	// Create monalisa user if it doesn't exist
 	if user == nil {
 		user = &User{
-			Provider: "email",
-			Subject:  "monalisa",
-			Email:    "monalisa@birki.io",
+			Provider:         "email",
+			Subject:          "monalisa",
+			Email:            "monalisa@birki.io",
+			SubscriptionTier: "pro", // Give the seed user pro access
 		}
 		if err := s.CreateUser(ctx, user); err != nil {
 			return fmt.Errorf("failed to create seed user: %w", err)
@@ -371,7 +475,7 @@ func (s *SQLiteStore) Seed() error {
 
 		// Update the created_at timestamp to simulate different days
 		if sample.daysAgo > 0 {
-			pastTime := time.Now().AddDate(0, 0, -sample.daysAgo)
+			pastTime := time.Now().UTC().AddDate(0, 0, -sample.daysAgo)
 			updateQuery := `UPDATE meals SET created_at = ? WHERE id = ?`
 			if _, err := s.db.Exec(updateQuery, pastTime, meal.ID); err != nil {
 				return fmt.Errorf("failed to update meal timestamp: %w", err)
