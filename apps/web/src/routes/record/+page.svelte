@@ -3,6 +3,7 @@
   import { units, convertWeight, formatWeight, type Units } from "$lib/stores/units";
   import { PUBLIC_APP_NAME } from "$env/static/public";
   import { onMount } from "svelte";
+  import NutritionStats from "$lib/components/NutritionStats.svelte";
 
   let isRecording = false;
   let mediaRecorder: MediaRecorder | null = null;
@@ -210,31 +211,16 @@
         {#if result?.summary}
           <div class="card bg-primary/10 shadow-xl">
             <div class="card-body">
-              <h2 class="card-title text-primary">Nutrition Summary</h2>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="stat">
-                  <div class="stat-title">Calories</div>
-                  <div class="stat-value text-lg">{result.summary.totals.calories}</div>
-                </div>
-                <div class="stat">
-                  <div class="stat-title">Protein</div>
-                  <div class="stat-value text-lg">
-                    {formatWeight(convertNutrientValue(result.summary.totals.protein_g), currentUnits)}
-                  </div>
-                </div>
-                <div class="stat">
-                  <div class="stat-title">Carbs</div>
-                  <div class="stat-value text-lg">
-                    {formatWeight(convertNutrientValue(result.summary.totals.total_carbs_g), currentUnits)}
-                  </div>
-                </div>
-                <div class="stat">
-                  <div class="stat-title">Fat</div>
-                  <div class="stat-value text-lg">
-                    {formatWeight(convertNutrientValue(result.summary.totals.total_fat_g), currentUnits)}
-                  </div>
-                </div>
-              </div>
+              <h2 class="card-title text-primary mb-4">Nutrition Summary</h2>
+              <NutritionStats 
+                calories={result.summary.totals.calories}
+                protein={result.summary.totals.protein_g}
+                carbs={result.summary.totals.total_carbs_g}
+                fat={result.summary.totals.total_fat_g}
+                units={currentUnits}
+                size="compact"
+                className="bg-transparent shadow-none"
+              />
             </div>
           </div>
         {/if}

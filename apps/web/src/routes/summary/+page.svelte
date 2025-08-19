@@ -3,6 +3,7 @@
   import { units, convertWeight, formatWeight, type Units } from "$lib/stores/units";
   import { PUBLIC_APP_NAME } from "$env/static/public";
   import { onMount } from "svelte";
+  import NutritionStats from "$lib/components/NutritionStats.svelte";
 
   let currentView: 'today' | 'week' = 'today';
   let isLoading = false;
@@ -150,57 +151,14 @@
     {#if summaryData && !isLoading}
       <div class="space-y-8">
         <!-- Overview Stats -->
-        <div class="stats stats-vertical lg:stats-horizontal shadow-xl w-full">
-          <div class="stat">
-            <div class="stat-figure text-primary">
-              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <div class="stat-title">Total Calories</div>
-            <div class="stat-value text-primary">{summaryData.summary.total_calories || 0}</div>
-            <div class="stat-desc">{currentView === 'today' ? 'Today' : 'This week'}</div>
-          </div>
-
-          <div class="stat">
-            <div class="stat-figure text-secondary">
-              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-              </svg>
-            </div>
-            <div class="stat-title">Protein</div>
-            <div class="stat-value text-secondary">
-              {formatWeight(convertNutrientValue(summaryData.summary.total_protein_g || 0), currentUnits)}
-            </div>
-            <div class="stat-desc">Essential for muscle</div>
-          </div>
-
-          <div class="stat">
-            <div class="stat-figure text-accent">
-              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h4a1 1 0 011 1v2a1 1 0 01-1 1h-1v12a2 2 0 01-2 2H6a2 2 0 01-2-2V8H3a1 1 0 01-1-1V5a1 1 0 011-1h4z" />
-              </svg>
-            </div>
-            <div class="stat-title">Carbohydrates</div>
-            <div class="stat-value text-accent">
-              {formatWeight(convertNutrientValue(summaryData.summary.total_carbs_g || 0), currentUnits)}
-            </div>
-            <div class="stat-desc">Energy source</div>
-          </div>
-
-          <div class="stat">
-            <div class="stat-figure text-warning">
-              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-            <div class="stat-title">Fat</div>
-            <div class="stat-value text-warning">
-              {formatWeight(convertNutrientValue(summaryData.summary.total_fat_g || 0), currentUnits)}
-            </div>
-            <div class="stat-desc">Healthy fats</div>
-          </div>
-        </div>
+        <NutritionStats 
+          calories={summaryData.summary.total_calories || 0}
+          protein={summaryData.summary.total_protein_g || 0}
+          carbs={summaryData.summary.total_carbs_g || 0}
+          fat={summaryData.summary.total_fat_g || 0}
+          units={currentUnits}
+          size="normal"
+        />
 
         <!-- Daily Breakdown (for week view) -->
         {#if currentView === 'week' && summaryData.summary.daily_breakdown && summaryData.summary.daily_breakdown.length > 0}
