@@ -1,0 +1,884 @@
+{
+  "metadata": {
+    "description": "Dietary Reference Intakes (RDA or AI) for life-stage groups (infants → adults) by sex and age bracket. Values sourced from National Academies / Institute of Medicine DRI summary tables (Tables C-2, C-3, C-4) and related DRI updates. Use for API integration as canonical RDA/AI brackets.",
+    "authoritativeSources": [
+      {
+        "title": "Reference Tables - Dietary Reference Intakes (DRIs) (Tables C-2, C-3, C-4)",
+        "source": "NCBI Bookshelf / National Academies (IOM) DRI summary tables",
+        "referenceId": "turn1view0"
+      },
+      {
+        "title": "Dietary Reference Intakes for Sodium and Potassium (Appendix J summary tables)",
+        "source": "National Academies (2019 update)",
+        "referenceId": "turn0search8"
+      }
+    ],
+    "notes": [
+      "Values are RDAs where available; AI used where the committee set an Adequate Intake (marked with '*').",
+      "Units are per-day unless specified.",
+      "Infant values (0–6 mo) reflect average intakes from human milk (AI); many infant values are AIs.",
+      "For B12, older adults (≥50) are recommended to meet needs largely via fortified foods or supplements due to possible malabsorption.",
+      "Macronutrient 'carbohydrate' RDA is a minimal physiologic requirement (130 g/day for older children/adults); AMDRs for % energy are provided where relevant."
+    ],
+    "sourceDate": "IOM / National Academies DRI summary tables (see authoritativeSources)"
+  },
+
+  "ageBrackets": [
+    "0-6 mo",
+    "7-12 mo",
+    "1-3 y",
+    "4-8 y",
+    "9-13 y",
+    "14-18 y",
+    "19-30 y",
+    "31-50 y",
+    "51-70 y",
+    "71+ y"
+  ],
+
+  "bySex": {
+    "male": {
+      "0-6 mo": {
+        "macronutrients": {
+          "energy": { "value": null, "unit": "kcal/day", "note": "Infant energy needs are weight-dependent; not listed in DRI summary tables here" },
+          "carbohydrate": { "value": 60, "unit": "g", "type": "AI" },
+          "fiber": { "value": null, "unit": "g", "type": "ND", "note": "No DRI for total fiber in exclusively breastfed infants" },
+          "fat": { "value": 31, "unit": "g", "type": "AI" },
+          "linoleic_acid": { "value": 4.4, "unit": "g", "type": "AI" },
+          "alpha_linolenic_acid": { "value": 0.5, "unit": "g", "type": "AI" },
+          "protein": { "value": 9.1, "unit": "g", "type": "AI" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 400, "unit": "µg RAE", "type": "AI" },
+          "vitamin_C": { "value": 40, "unit": "mg", "type": "AI" },
+          "vitamin_D": { "value": 10, "unit": "µg (400 IU)", "type": "AI", "note": "Table shows 5 µg as AI for some infant groups; supplementation guidance varies — check source." },
+          "vitamin_E": { "value": 4, "unit": "mg α-tocopherol", "type": "AI" },
+          "vitamin_K": { "value": 2.0, "unit": "µg", "type": "AI" },
+          "thiamin_B1": { "value": 0.2, "unit": "mg", "type": "AI" },
+          "riboflavin_B2": { "value": 0.3, "unit": "mg", "type": "AI" },
+          "niacin_B3": { "value": 2, "unit": "mg NE", "type": "AI" },
+          "vitamin_B6": { "value": 0.1, "unit": "mg", "type": "AI" },
+          "folate_B9": { "value": 65, "unit": "µg DFE", "type": "AI" },
+          "vitamin_B12": { "value": 0.4, "unit": "µg", "type": "AI" },
+          "pantothenic_acid_B5": { "value": 1.7, "unit": "mg", "type": "AI" },
+          "biotin_B7": { "value": 5, "unit": "µg", "type": "AI" },
+          "choline": { "value": 125, "unit": "mg", "type": "AI" }
+        },
+        "minerals": {
+          "calcium": { "value": 210, "unit": "mg", "type": "AI" },
+          "phosphorus": { "value": 200, "unit": "mg", "type": "AI" },
+          "magnesium": { "value": 30, "unit": "mg", "type": "AI" },
+          "vitamin_D_note": "some DRI tables list infant vitamin D AI as 10 µg (400 IU); the summary table marks 5 µg in certain cells — consult source for context.",
+          "iron": { "value": 0.27, "unit": "mg", "type": "AI" },
+          "zinc": { "value": 2, "unit": "mg", "type": "AI" },
+          "selenium": { "value": 15, "unit": "µg", "type": "AI" },
+          "copper": { "value": 200, "unit": "µg", "type": "AI" },
+          "manganese": { "value": 0.003, "unit": "mg", "type": "AI" },
+          "chromium": { "value": 0.2, "unit": "µg", "type": "AI" },
+          "molybdenum": { "value": 2, "unit": "µg", "type": "AI" },
+          "iodine": { "value": 110, "unit": "µg", "type": "AI" },
+          "fluoride": { "value": 0.01, "unit": "mg", "type": "AI" },
+          "potassium": { "value": null, "unit": "mg", "type": "ND", "note": "Potassium AIs reported elsewhere; see source." },
+          "sodium": { "value": null, "unit": "mg", "type": "ND" }
+        }
+      },
+
+      "7-12 mo": {
+        "macronutrients": {
+          "carbohydrate": { "value": 95, "unit": "g", "type": "AI" },
+          "fiber": { "value": null, "unit": "g", "type": "ND" },
+          "fat": { "value": 30, "unit": "g", "type": "AI" },
+          "linoleic_acid": { "value": 4.6, "unit": "g", "type": "AI" },
+          "alpha_linolenic_acid": { "value": 0.5, "unit": "g", "type": "AI" },
+          "protein": { "value": 13.5, "unit": "g", "type": "AI" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 500, "unit": "µg RAE", "type": "AI" },
+          "vitamin_C": { "value": 50, "unit": "mg", "type": "AI" },
+          "vitamin_D": { "value": 10, "unit": "µg (400 IU)", "type": "AI" },
+          "vitamin_E": { "value": 5, "unit": "mg α-tocopherol", "type": "AI" },
+          "vitamin_K": { "value": 2.5, "unit": "µg", "type": "AI" },
+          "thiamin_B1": { "value": 0.3, "unit": "mg", "type": "AI" },
+          "riboflavin_B2": { "value": 0.4, "unit": "mg", "type": "AI" },
+          "niacin_B3": { "value": 4, "unit": "mg NE", "type": "AI" },
+          "vitamin_B6": { "value": 0.3, "unit": "mg", "type": "AI" },
+          "folate_B9": { "value": 80, "unit": "µg DFE", "type": "AI" },
+          "vitamin_B12": { "value": 0.5, "unit": "µg", "type": "AI" },
+          "pantothenic_acid_B5": { "value": 1.8, "unit": "mg", "type": "AI" },
+          "biotin_B7": { "value": 6, "unit": "µg", "type": "AI" },
+          "choline": { "value": 150, "unit": "mg", "type": "AI" }
+        },
+        "minerals": {
+          "calcium": { "value": 270, "unit": "mg", "type": "AI" },
+          "phosphorus": { "value": 275, "unit": "mg", "type": "AI" },
+          "magnesium": { "value": 75, "unit": "mg", "type": "AI" },
+          "iron": { "value": 11, "unit": "mg", "type": "RDA", "note": "RDA for mixed diet older infant (7–12 mo)" },
+          "zinc": { "value": 3, "unit": "mg", "type": "AI/RDA" },
+          "selenium": { "value": 20, "unit": "µg", "type": "AI" },
+          "copper": { "value": 220, "unit": "µg", "type": "AI" },
+          "manganese": { "value": 0.6, "unit": "mg", "type": "AI" },
+          "chromium": { "value": 5.5, "unit": "µg", "type": "AI" },
+          "molybdenum": { "value": 17, "unit": "µg", "type": "AI" },
+          "iodine": { "value": 130, "unit": "µg", "type": "AI" },
+          "fluoride": { "value": 0.5, "unit": "mg", "type": "AI" }
+        }
+      },
+
+      "1-3 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g", "type": "RDA" },
+          "fiber": { "value": 19, "unit": "g", "type": "AI" },
+          "fat": { "value": null, "unit": "g", "note": "AMDR for fat (children 1–3 y): 30–40% energy" },
+          "linoleic_acid": { "value": 7, "unit": "g", "type": "AI" },
+          "alpha_linolenic_acid": { "value": 0.7, "unit": "g", "type": "AI" },
+          "protein": { "value": 13, "unit": "g", "type": "RDA" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 300, "unit": "µg RAE", "type": "RDA" },
+          "vitamin_C": { "value": 15, "unit": "mg", "type": "RDA" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)", "type": "AI/RDA", "note": "Vitamin D often listed as 5 µg AI for children in some tables; official DRI vitamin D for many life stages listed as 15 µg for older children/adolescents/adults." },
+          "vitamin_E": { "value": 6, "unit": "mg α-tocopherol", "type": "AI" },
+          "vitamin_K": { "value": 30, "unit": "µg", "type": "AI" },
+          "thiamin_B1": { "value": 0.5, "unit": "mg", "type": "RDA" },
+          "riboflavin_B2": { "value": 0.5, "unit": "mg", "type": "RDA" },
+          "niacin_B3": { "value": 6, "unit": "mg NE", "type": "RDA" },
+          "vitamin_B6": { "value": 0.5, "unit": "mg", "type": "RDA" },
+          "folate_B9": { "value": 150, "unit": "µg DFE", "type": "RDA" },
+          "vitamin_B12": { "value": 0.9, "unit": "µg", "type": "RDA" },
+          "pantothenic_acid_B5": { "value": 2, "unit": "mg", "type": "AI" },
+          "biotin_B7": { "value": 8, "unit": "µg", "type": "AI" },
+          "choline": { "value": 200, "unit": "mg", "type": "AI" }
+        },
+        "minerals": {
+          "calcium": { "value": 500, "unit": "mg", "type": "AI" },
+          "phosphorus": { "value": 340, "unit": "mg", "type": "AI" },
+          "magnesium": { "value": 80, "unit": "mg", "type": "AI" },
+          "iron": { "value": 7, "unit": "mg", "type": "RDA" },
+          "zinc": { "value": 3, "unit": "mg", "type": "RDA/AI" },
+          "selenium": { "value": 20, "unit": "µg", "type": "AI" },
+          "copper": { "value": 340, "unit": "µg", "type": "AI" },
+          "manganese": { "value": 1.2, "unit": "mg", "type": "AI" },
+          "chromium": { "value": 11, "unit": "µg", "type": "AI" },
+          "molybdenum": { "value": 22, "unit": "µg", "type": "AI" },
+          "iodine": { "value": 90, "unit": "µg", "type": "AI" },
+          "fluoride": { "value": 0.7, "unit": "mg", "type": "AI" }
+        }
+      },
+
+      "4-8 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g", "type": "RDA" },
+          "fiber": { "value": 25, "unit": "g", "type": "AI" },
+          "fat": { "value": null, "unit": "g", "note": "AMDR for fat (children 4–18 y): 25–35% energy" },
+          "linoleic_acid": { "value": 10, "unit": "g", "type": "AI" },
+          "alpha_linolenic_acid": { "value": 0.9, "unit": "g", "type": "AI" },
+          "protein": { "value": 19, "unit": "g", "type": "RDA" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 400, "unit": "µg RAE", "type": "RDA" },
+          "vitamin_C": { "value": 25, "unit": "mg", "type": "RDA" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)", "type": "AI/RDA" },
+          "vitamin_E": { "value": 7, "unit": "mg α-tocopherol", "type": "AI" },
+          "vitamin_K": { "value": 55, "unit": "µg", "type": "AI" },
+          "thiamin_B1": { "value": 0.6, "unit": "mg", "type": "RDA" },
+          "riboflavin_B2": { "value": 0.6, "unit": "mg", "type": "RDA" },
+          "niacin_B3": { "value": 8, "unit": "mg NE", "type": "RDA" },
+          "vitamin_B6": { "value": 0.6, "unit": "mg", "type": "RDA" },
+          "folate_B9": { "value": 200, "unit": "µg DFE", "type": "RDA" },
+          "vitamin_B12": { "value": 1.2, "unit": "µg", "type": "RDA" },
+          "pantothenic_acid_B5": { "value": 3, "unit": "mg", "type": "AI" },
+          "biotin_B7": { "value": 12, "unit": "µg", "type": "AI" },
+          "choline": { "value": 250, "unit": "mg", "type": "AI" }
+        },
+        "minerals": {
+          "calcium": { "value": 800, "unit": "mg", "type": "AI" },
+          "phosphorus": { "value": 500, "unit": "mg", "type": "AI" },
+          "magnesium": { "value": 130, "unit": "mg", "type": "AI" },
+          "iron": { "value": 10, "unit": "mg", "type": "RDA" },
+          "zinc": { "value": 5, "unit": "mg", "type": "RDA" },
+          "selenium": { "value": 30, "unit": "µg", "type": "AI" },
+          "copper": { "value": 440, "unit": "µg", "type": "AI" },
+          "manganese": { "value": 1.5, "unit": "mg", "type": "AI" },
+          "chromium": { "value": 15, "unit": "µg", "type": "AI" },
+          "molybdenum": { "value": 22, "unit": "µg", "type": "AI" },
+          "iodine": { "value": 90, "unit": "µg", "type": "AI" },
+          "fluoride": { "value": 1.0, "unit": "mg", "type": "AI" }
+        }
+      },
+
+      "9-13 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g", "type": "RDA" },
+          "fiber": { "value": 26, "unit": "g", "type": "RDA/AI" },
+          "fat": { "AMDR": { "percentEnergy": [25,35] } },
+          "linoleic_acid": { "value": 12, "unit": "g", "type": "AI" },
+          "alpha_linolenic_acid": { "value": 1.2, "unit": "g", "type": "AI" },
+          "protein": { "value": 34, "unit": "g", "type": "RDA" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 600, "unit": "µg RAE", "type": "RDA" },
+          "vitamin_C": { "value": 45, "unit": "mg", "type": "RDA" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)", "type": "RDA/AI" },
+          "vitamin_E": { "value": 11, "unit": "mg α-tocopherol", "type": "AI/RDA" },
+          "vitamin_K": { "value": 60, "unit": "µg", "type": "AI" },
+          "thiamin_B1": { "value": 0.9, "unit": "mg", "type": "RDA" },
+          "riboflavin_B2": { "value": 1.3, "unit": "mg", "type": "RDA" },
+          "niacin_B3": { "value": 12, "unit": "mg NE", "type": "RDA" },
+          "vitamin_B6": { "value": 1.0, "unit": "mg", "type": "RDA" },
+          "folate_B9": { "value": 300, "unit": "µg DFE", "type": "RDA" },
+          "vitamin_B12": { "value": 1.8, "unit": "µg", "type": "RDA" },
+          "pantothenic_acid_B5": { "value": 4, "unit": "mg", "type": "AI" },
+          "biotin_B7": { "value": 20, "unit": "µg", "type": "AI" },
+          "choline": { "value": 375, "unit": "mg", "type": "AI" }
+        },
+        "minerals": {
+          "calcium": { "value": 1300, "unit": "mg", "type": "AI/RDA" },
+          "phosphorus": { "value": 700, "unit": "mg", "type": "RDA" },
+          "magnesium": { "value": 240, "unit": "mg", "type": "RDA/AI" },
+          "iron": { "value": 8, "unit": "mg", "type": "RDA" },
+          "zinc": { "value": 8, "unit": "mg", "type": "RDA" },
+          "selenium": { "value": 40, "unit": "µg", "type": "RDA/AI" },
+          "copper": { "value": 700, "unit": "µg", "type": "AI/RDA" },
+          "manganese": { "value": 1.9, "unit": "mg", "type": "AI/RDA" },
+          "chromium": { "value": 25, "unit": "µg", "type": "AI" },
+          "molybdenum": { "value": 34, "unit": "µg", "type": "AI" },
+          "iodine": { "value": 120, "unit": "µg", "type": "RDA/AI" },
+          "fluoride": { "value": 2.0, "unit": "mg", "type": "AI" }
+        }
+      },
+
+      "14-18 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g", "type": "RDA" },
+          "fiber": { "value": 38, "unit": "g", "type": "RDA/AI" },
+          "fat": { "AMDR": { "percentEnergy": [25,35] } },
+          "linoleic_acid": { "value": 16, "unit": "g", "type": "AI" },
+          "alpha_linolenic_acid": { "value": 1.6, "unit": "g", "type": "AI" },
+          "protein": { "value": 52, "unit": "g", "type": "RDA" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 900, "unit": "µg RAE", "type": "RDA" },
+          "vitamin_C": { "value": 75, "unit": "mg", "type": "RDA" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)", "type": "RDA" },
+          "vitamin_E": { "value": 15, "unit": "mg α-tocopherol", "type": "RDA/AI" },
+          "vitamin_K": { "value": 75, "unit": "µg", "type": "AI" },
+          "thiamin_B1": { "value": 1.2, "unit": "mg", "type": "RDA" },
+          "riboflavin_B2": { "value": 1.3, "unit": "mg", "type": "RDA" },
+          "niacin_B3": { "value": 16, "unit": "mg NE", "type": "RDA" },
+          "vitamin_B6": { "value": 1.3, "unit": "mg", "type": "RDA" },
+          "folate_B9": { "value": 400, "unit": "µg DFE", "type": "RDA" },
+          "vitamin_B12": { "value": 2.4, "unit": "µg", "type": "RDA" },
+          "pantothenic_acid_B5": { "value": 5, "unit": "mg", "type": "AI" },
+          "biotin_B7": { "value": 25, "unit": "µg", "type": "AI" },
+          "choline": { "value": 550, "unit": "mg", "type": "AI" }
+        },
+        "minerals": {
+          "calcium": { "value": 1300, "unit": "mg", "type": "RDA" },
+          "phosphorus": { "value": 1250, "unit": "mg", "type": "RDA/AI" },
+          "magnesium": { "value": 410, "unit": "mg", "type": "RDA" },
+          "iron": { "value": 11, "unit": "mg", "type": "RDA" },
+          "zinc": { "value": 11, "unit": "mg", "type": "RDA" },
+          "selenium": { "value": 55, "unit": "µg", "type": "RDA" },
+          "copper": { "value": 890, "unit": "µg", "type": "RDA" },
+          "manganese": { "value": 2.2, "unit": "mg", "type": "RDA/AI" },
+          "chromium": { "value": 35, "unit": "µg", "type": "AI" },
+          "molybdenum": { "value": 45, "unit": "µg", "type": "RDA" },
+          "iodine": { "value": 150, "unit": "µg", "type": "RDA" },
+          "fluoride": { "value": 10, "unit": "mg", "type": "AI" }
+        }
+      },
+
+      "19-30 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g", "type": "RDA" },
+          "fiber": { "value": 38, "unit": "g", "type": "AI/RDA (adult male)" },
+          "fat": { "AMDR": { "percentEnergy": [20,35] } },
+          "linoleic_acid": { "value": 17, "unit": "g", "type": "AI" },
+          "alpha_linolenic_acid": { "value": 1.6, "unit": "g", "type": "AI" },
+          "protein": { "value": 56, "unit": "g", "type": "RDA (0.8 g/kg)" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 900, "unit": "µg RAE", "type": "RDA" },
+          "vitamin_C": { "value": 90, "unit": "mg", "type": "RDA" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)", "type": "RDA" },
+          "vitamin_E": { "value": 15, "unit": "mg α-tocopherol", "type": "RDA" },
+          "vitamin_K": { "value": 120, "unit": "µg", "type": "AI" },
+          "thiamin_B1": { "value": 1.2, "unit": "mg", "type": "RDA" },
+          "riboflavin_B2": { "value": 1.3, "unit": "mg", "type": "RDA" },
+          "niacin_B3": { "value": 16, "unit": "mg NE", "type": "RDA" },
+          "vitamin_B6": { "value": 1.3, "unit": "mg", "type": "RDA" },
+          "folate_B9": { "value": 400, "unit": "µg DFE", "type": "RDA" },
+          "vitamin_B12": { "value": 2.4, "unit": "µg", "type": "RDA" },
+          "pantothenic_acid_B5": { "value": 5, "unit": "mg", "type": "AI" },
+          "biotin_B7": { "value": 30, "unit": "µg", "type": "AI" },
+          "choline": { "value": 550, "unit": "mg", "type": "AI" }
+        },
+        "minerals": {
+          "calcium": { "value": 1000, "unit": "mg", "type": "RDA" },
+          "phosphorus": { "value": 700, "unit": "mg", "type": "RDA" },
+          "magnesium": { "value": 400, "unit": "mg", "type": "RDA" },
+          "iron": { "value": 8, "unit": "mg", "type": "RDA" },
+          "zinc": { "value": 11, "unit": "mg", "type": "RDA" },
+          "selenium": { "value": 55, "unit": "µg", "type": "RDA" },
+          "copper": { "value": 900, "unit": "µg", "type": "RDA" },
+          "manganese": { "value": 2.3, "unit": "mg", "type": "RDA/AI" },
+          "chromium": { "value": 35, "unit": "µg", "type": "AI" },
+          "molybdenum": { "value": 45, "unit": "µg", "type": "RDA" },
+          "iodine": { "value": 150, "unit": "µg", "type": "RDA" },
+          "fluoride": { "value": 4, "unit": "mg", "type": "AI" },
+          "potassium": { "value": 4700, "unit": "mg", "type": "AI (2019 summary for adults)" },
+          "sodium": { "value": 1500, "unit": "mg", "type": "AI", "note": "UL = 2300 mg" }
+        }
+      },
+
+      "31-50 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g" },
+          "fiber": { "value": 38, "unit": "g" },
+          "fat": { "AMDR": { "percentEnergy": [20,35] } },
+          "linoleic_acid": { "value": 17, "unit": "g" },
+          "alpha_linolenic_acid": { "value": 1.6, "unit": "g" },
+          "protein": { "value": 56, "unit": "g" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 900, "unit": "µg RAE" },
+          "vitamin_C": { "value": 90, "unit": "mg" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)" },
+          "vitamin_E": { "value": 15, "unit": "mg" },
+          "vitamin_K": { "value": 120, "unit": "µg" },
+          "thiamin_B1": { "value": 1.2, "unit": "mg" },
+          "riboflavin_B2": { "value": 1.3, "unit": "mg" },
+          "niacin_B3": { "value": 16, "unit": "mg NE" },
+          "vitamin_B6": { "value": 1.3, "unit": "mg" },
+          "folate_B9": { "value": 400, "unit": "µg DFE" },
+          "vitamin_B12": { "value": 2.4, "unit": "µg" },
+          "pantothenic_acid_B5": { "value": 5, "unit": "mg" },
+          "biotin_B7": { "value": 30, "unit": "µg" },
+          "choline": { "value": 550, "unit": "mg" }
+        },
+        "minerals": {
+          "calcium": { "value": 1000, "unit": "mg" },
+          "phosphorus": { "value": 700, "unit": "mg" },
+          "magnesium": { "value": 420, "unit": "mg" },
+          "iron": { "value": 8, "unit": "mg" },
+          "zinc": { "value": 11, "unit": "mg" },
+          "selenium": { "value": 55, "unit": "µg" },
+          "copper": { "value": 900, "unit": "µg" },
+          "manganese": { "value": 2.3, "unit": "mg" },
+          "chromium": { "value": 35, "unit": "µg" },
+          "molybdenum": { "value": 45, "unit": "µg" },
+          "iodine": { "value": 150, "unit": "µg" },
+          "fluoride": { "value": 4, "unit": "mg" },
+          "potassium": { "value": 4700, "unit": "mg" },
+          "sodium": { "value": 1500, "unit": "mg", "note": "AI; UL = 2300 mg" }
+        }
+      },
+
+      "51-70 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g" },
+          "fiber": { "value": 30, "unit": "g" },
+          "fat": { "AMDR": { "percentEnergy": [20,35] } },
+          "linoleic_acid": { "value": 14, "unit": "g" },
+          "alpha_linolenic_acid": { "value": 1.6, "unit": "g" },
+          "protein": { "value": 56, "unit": "g" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 900, "unit": "µg RAE" },
+          "vitamin_C": { "value": 90, "unit": "mg" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)" },
+          "vitamin_E": { "value": 15, "unit": "mg" },
+          "vitamin_K": { "value": 120, "unit": "µg" },
+          "thiamin_B1": { "value": 1.2, "unit": "mg" },
+          "riboflavin_B2": { "value": 1.3, "unit": "mg" },
+          "niacin_B3": { "value": 16, "unit": "mg NE" },
+          "vitamin_B6": { "value": 1.7, "unit": "mg", "note": "RDA increased for older adults" },
+          "folate_B9": { "value": 400, "unit": "µg DFE" },
+          "vitamin_B12": { "value": 2.4, "unit": "µg" },
+          "pantothenic_acid_B5": { "value": 5, "unit": "mg" },
+          "biotin_B7": { "value": 30, "unit": "µg" },
+          "choline": { "value": 550, "unit": "mg" }
+        },
+        "minerals": {
+          "calcium": { "value": 1200, "unit": "mg" },
+          "phosphorus": { "value": 700, "unit": "mg" },
+          "magnesium": { "value": 420, "unit": "mg" },
+          "iron": { "value": 8, "unit": "mg" },
+          "zinc": { "value": 11, "unit": "mg" },
+          "selenium": { "value": 55, "unit": "µg" },
+          "copper": { "value": 900, "unit": "µg" },
+          "manganese": { "value": 2.3, "unit": "mg" },
+          "chromium": { "value": 30, "unit": "µg" },
+          "molybdenum": { "value": 45, "unit": "µg" },
+          "iodine": { "value": 150, "unit": "µg" },
+          "fluoride": { "value": 4, "unit": "mg" },
+          "potassium": { "value": 4700, "unit": "mg" },
+          "sodium": { "value": 1300, "unit": "mg", "note": "AI for ages 51-70 per DRI updates; UL = 2300 mg" }
+        }
+      },
+
+      "71+ y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g" },
+          "fiber": { "value": 30, "unit": "g" },
+          "fat": { "AMDR": { "percentEnergy": [20,35] } },
+          "linoleic_acid": { "value": 14, "unit": "g" },
+          "alpha_linolenic_acid": { "value": 1.6, "unit": "g" },
+          "protein": { "value": 56, "unit": "g" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 900, "unit": "µg RAE" },
+          "vitamin_C": { "value": 90, "unit": "mg" },
+          "vitamin_D": { "value": 20, "unit": "µg (800 IU)", "note": "IOM lists higher vitamin D for 71+ in some tables" },
+          "vitamin_E": { "value": 15, "unit": "mg" },
+          "vitamin_K": { "value": 120, "unit": "µg" },
+          "thiamin_B1": { "value": 1.2, "unit": "mg" },
+          "riboflavin_B2": { "value": 1.3, "unit": "mg" },
+          "niacin_B3": { "value": 16, "unit": "mg NE" },
+          "vitamin_B6": { "value": 1.7, "unit": "mg" },
+          "folate_B9": { "value": 400, "unit": "µg DFE" },
+          "vitamin_B12": { "value": 2.4, "unit": "µg", "note": "fortified foods/supplements recommended for many older adults" },
+          "pantothenic_acid_B5": { "value": 5, "unit": "mg" },
+          "biotin_B7": { "value": 30, "unit": "µg" },
+          "choline": { "value": 550, "unit": "mg" }
+        },
+        "minerals": {
+          "calcium": { "value": 1200, "unit": "mg" },
+          "phosphorus": { "value": 700, "unit": "mg" },
+          "magnesium": { "value": 420, "unit": "mg" },
+          "iron": { "value": 8, "unit": "mg" },
+          "zinc": { "value": 11, "unit": "mg" },
+          "selenium": { "value": 55, "unit": "µg" },
+          "copper": { "value": 900, "unit": "µg" },
+          "manganese": { "value": 2.3, "unit": "mg" },
+          "chromium": { "value": 30, "unit": "µg" },
+          "molybdenum": { "value": 45, "unit": "µg" },
+          "iodine": { "value": 150, "unit": "µg" },
+          "fluoride": { "value": 4, "unit": "mg" },
+          "potassium": { "value": 4700, "unit": "mg" },
+          "sodium": { "value": 1200, "unit": "mg", "note": "AI for >70 yrs; UL = 2300 mg" }
+        }
+      }
+    },
+
+    "female": {
+      "0-6 mo": {
+        "macronutrients": {
+          "carbohydrate": { "value": 60, "unit": "g", "type": "AI" },
+          "fiber": { "value": null, "unit": "g", "type": "ND" },
+          "fat": { "value": 31, "unit": "g", "type": "AI" },
+          "linoleic_acid": { "value": 4.4, "unit": "g", "type": "AI" },
+          "alpha_linolenic_acid": { "value": 0.5, "unit": "g", "type": "AI" },
+          "protein": { "value": 9.1, "unit": "g", "type": "AI" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 400, "unit": "µg RAE", "type": "AI" },
+          "vitamin_C": { "value": 40, "unit": "mg", "type": "AI" },
+          "vitamin_D": { "value": 10, "unit": "µg (400 IU)", "type": "AI" },
+          "vitamin_E": { "value": 4, "unit": "mg", "type": "AI" },
+          "vitamin_K": { "value": 2.0, "unit": "µg", "type": "AI" },
+          "thiamin_B1": { "value": 0.2, "unit": "mg", "type": "AI" },
+          "riboflavin_B2": { "value": 0.3, "unit": "mg", "type": "AI" },
+          "niacin_B3": { "value": 2, "unit": "mg NE", "type": "AI" },
+          "vitamin_B6": { "value": 0.1, "unit": "mg", "type": "AI" },
+          "folate_B9": { "value": 65, "unit": "µg DFE", "type": "AI" },
+          "vitamin_B12": { "value": 0.4, "unit": "µg", "type": "AI" },
+          "pantothenic_acid_B5": { "value": 1.7, "unit": "mg", "type": "AI" },
+          "biotin_B7": { "value": 5, "unit": "µg", "type": "AI" },
+          "choline": { "value": 125, "unit": "mg", "type": "AI" }
+        },
+        "minerals": {
+          "calcium": { "value": 210, "unit": "mg", "type": "AI" },
+          "phosphorus": { "value": 200, "unit": "mg", "type": "AI" },
+          "magnesium": { "value": 30, "unit": "mg", "type": "AI" },
+          "iron": { "value": 0.27, "unit": "mg", "type": "AI" },
+          "zinc": { "value": 2, "unit": "mg", "type": "AI" },
+          "selenium": { "value": 15, "unit": "µg", "type": "AI" },
+          "copper": { "value": 200, "unit": "µg", "type": "AI" },
+          "manganese": { "value": 0.003, "unit": "mg", "type": "AI" },
+          "chromium": { "value": 0.2, "unit": "µg", "type": "AI" },
+          "molybdenum": { "value": 2, "unit": "µg", "type": "AI" },
+          "iodine": { "value": 110, "unit": "µg", "type": "AI" },
+          "fluoride": { "value": 0.01, "unit": "mg", "type": "AI" }
+        }
+      },
+
+      "7-12 mo": {
+        "macronutrients": {
+          "carbohydrate": { "value": 95, "unit": "g", "type": "AI" },
+          "fiber": { "value": null, "unit": "g", "type": "ND" },
+          "fat": { "value": 30, "unit": "g", "type": "AI" },
+          "linoleic_acid": { "value": 4.6, "unit": "g", "type": "AI" },
+          "alpha_linolenic_acid": { "value": 0.5, "unit": "g", "type": "AI" },
+          "protein": { "value": 13.5, "unit": "g", "type": "AI" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 500, "unit": "µg RAE", "type": "AI" },
+          "vitamin_C": { "value": 50, "unit": "mg", "type": "AI" },
+          "vitamin_D": { "value": 10, "unit": "µg (400 IU)", "type": "AI" },
+          "vitamin_E": { "value": 5, "unit": "mg α-tocopherol", "type": "AI" },
+          "vitamin_K": { "value": 2.5, "unit": "µg", "type": "AI" },
+          "thiamin_B1": { "value": 0.3, "unit": "mg", "type": "AI" },
+          "riboflavin_B2": { "value": 0.4, "unit": "mg", "type": "AI" },
+          "niacin_B3": { "value": 4, "unit": "mg NE", "type": "AI" },
+          "vitamin_B6": { "value": 0.3, "unit": "mg", "type": "AI" },
+          "folate_B9": { "value": 80, "unit": "µg DFE", "type": "AI" },
+          "vitamin_B12": { "value": 0.5, "unit": "µg", "type": "AI" },
+          "pantothenic_acid_B5": { "value": 1.8, "unit": "mg", "type": "AI" },
+          "biotin_B7": { "value": 6, "unit": "µg", "type": "AI" },
+          "choline": { "value": 150, "unit": "mg", "type": "AI" }
+        },
+        "minerals": {
+          "calcium": { "value": 270, "unit": "mg", "type": "AI" },
+          "phosphorus": { "value": 275, "unit": "mg", "type": "AI" },
+          "magnesium": { "value": 75, "unit": "mg", "type": "AI" },
+          "iron": { "value": 11, "unit": "mg", "type": "RDA" },
+          "zinc": { "value": 3, "unit": "mg", "type": "AI/RDA" },
+          "selenium": { "value": 20, "unit": "µg", "type": "AI" },
+          "copper": { "value": 220, "unit": "µg", "type": "AI" },
+          "manganese": { "value": 0.6, "unit": "mg", "type": "AI" },
+          "chromium": { "value": 5.5, "unit": "µg", "type": "AI" },
+          "molybdenum": { "value": 17, "unit": "µg", "type": "AI" },
+          "iodine": { "value": 130, "unit": "µg", "type": "AI" },
+          "fluoride": { "value": 0.5, "unit": "mg", "type": "AI" }
+        }
+      },
+
+      "1-3 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g", "type": "RDA" },
+          "fiber": { "value": 19, "unit": "g", "type": "AI" },
+          "fat": { "note": "AMDR 30–40% energy for 1–3 y" },
+          "linoleic_acid": { "value": 7, "unit": "g", "type": "AI" },
+          "alpha_linolenic_acid": { "value": 0.7, "unit": "g", "type": "AI" },
+          "protein": { "value": 13, "unit": "g", "type": "RDA" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 300, "unit": "µg RAE" },
+          "vitamin_C": { "value": 15, "unit": "mg" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)" },
+          "vitamin_E": { "value": 6, "unit": "mg α-tocopherol" },
+          "vitamin_K": { "value": 30, "unit": "µg" },
+          "thiamin_B1": { "value": 0.5, "unit": "mg" },
+          "riboflavin_B2": { "value": 0.5, "unit": "mg" },
+          "niacin_B3": { "value": 6, "unit": "mg NE" },
+          "vitamin_B6": { "value": 0.5, "unit": "mg" },
+          "folate_B9": { "value": 150, "unit": "µg DFE" },
+          "vitamin_B12": { "value": 0.9, "unit": "µg" },
+          "pantothenic_acid_B5": { "value": 2, "unit": "mg" },
+          "biotin_B7": { "value": 8, "unit": "µg" },
+          "choline": { "value": 200, "unit": "mg" }
+        },
+        "minerals": {
+          "calcium": { "value": 500, "unit": "mg" },
+          "phosphorus": { "value": 340, "unit": "mg" },
+          "magnesium": { "value": 80, "unit": "mg" },
+          "iron": { "value": 7, "unit": "mg" },
+          "zinc": { "value": 3, "unit": "mg" },
+          "selenium": { "value": 20, "unit": "µg" },
+          "copper": { "value": 340, "unit": "µg" },
+          "manganese": { "value": 1.2, "unit": "mg" },
+          "chromium": { "value": 11, "unit": "µg" },
+          "molybdenum": { "value": 22, "unit": "µg" },
+          "iodine": { "value": 90, "unit": "µg" },
+          "fluoride": { "value": 0.7, "unit": "mg" }
+        }
+      },
+
+      "4-8 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g" },
+          "fiber": { "value": 25, "unit": "g" },
+          "fat": { "note": "AMDR 25–35% energy for 4–18 y" },
+          "linoleic_acid": { "value": 10, "unit": "g" },
+          "alpha_linolenic_acid": { "value": 0.9, "unit": "g" },
+          "protein": { "value": 19, "unit": "g" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 400, "unit": "µg RAE" },
+          "vitamin_C": { "value": 25, "unit": "mg" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)" },
+          "vitamin_E": { "value": 7, "unit": "mg α-tocopherol" },
+          "vitamin_K": { "value": 55, "unit": "µg" },
+          "thiamin_B1": { "value": 0.6, "unit": "mg" },
+          "riboflavin_B2": { "value": 0.6, "unit": "mg" },
+          "niacin_B3": { "value": 8, "unit": "mg NE" },
+          "vitamin_B6": { "value": 0.6, "unit": "mg" },
+          "folate_B9": { "value": 200, "unit": "µg DFE" },
+          "vitamin_B12": { "value": 1.2, "unit": "µg" },
+          "pantothenic_acid_B5": { "value": 3, "unit": "mg" },
+          "biotin_B7": { "value": 12, "unit": "µg" },
+          "choline": { "value": 250, "unit": "mg" }
+        },
+        "minerals": {
+          "calcium": { "value": 800, "unit": "mg" },
+          "phosphorus": { "value": 500, "unit": "mg" },
+          "magnesium": { "value": 130, "unit": "mg" },
+          "iron": { "value": 10, "unit": "mg" },
+          "zinc": { "value": 5, "unit": "mg" },
+          "selenium": { "value": 30, "unit": "µg" },
+          "copper": { "value": 440, "unit": "µg" },
+          "manganese": { "value": 1.5, "unit": "mg" },
+          "chromium": { "value": 15, "unit": "µg" },
+          "molybdenum": { "value": 22, "unit": "µg" },
+          "iodine": { "value": 90, "unit": "µg" },
+          "fluoride": { "value": 1.0, "unit": "mg" }
+        }
+      },
+
+      "9-13 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g" },
+          "fiber": { "value": 31, "unit": "g" },
+          "fat": { "AMDR": { "percentEnergy": [25,35] } },
+          "linoleic_acid": { "value": 10, "unit": "g" },
+          "alpha_linolenic_acid": { "value": 1.0, "unit": "g" },
+          "protein": { "value": 34, "unit": "g" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 600, "unit": "µg RAE" },
+          "vitamin_C": { "value": 45, "unit": "mg" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)" },
+          "vitamin_E": { "value": 11, "unit": "mg α-tocopherol" },
+          "vitamin_K": { "value": 60, "unit": "µg" },
+          "thiamin_B1": { "value": 0.9, "unit": "mg" },
+          "riboflavin_B2": { "value": 1.3, "unit": "mg" },
+          "niacin_B3": { "value": 14, "unit": "mg NE" },
+          "vitamin_B6": { "value": 1.2, "unit": "mg" },
+          "folate_B9": { "value": 400, "unit": "µg DFE" },
+          "vitamin_B12": { "value": 2.4, "unit": "µg" },
+          "pantothenic_acid_B5": { "value": 4, "unit": "mg" },
+          "biotin_B7": { "value": 20, "unit": "µg" },
+          "choline": { "value": 400, "unit": "mg" }
+        },
+        "minerals": {
+          "calcium": { "value": 1300, "unit": "mg" },
+          "phosphorus": { "value": 700, "unit": "mg" },
+          "magnesium": { "value": 360, "unit": "mg" },
+          "iron": { "value": 8, "unit": "mg" },
+          "zinc": { "value": 9, "unit": "mg" },
+          "selenium": { "value": 55, "unit": "µg" },
+          "copper": { "value": 700, "unit": "µg" },
+          "manganese": { "value": 1.6, "unit": "mg" },
+          "chromium": { "value": 25, "unit": "µg" },
+          "molybdenum": { "value": 45, "unit": "µg" },
+          "iodine": { "value": 150, "unit": "µg" },
+          "fluoride": { "value": 2.6, "unit": "mg" }
+        }
+      },
+
+      "14-18 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g" },
+          "fiber": { "value": 26, "unit": "g" },
+          "fat": { "AMDR": { "percentEnergy": [25,35] } },
+          "linoleic_acid": { "value": 11, "unit": "g" },
+          "alpha_linolenic_acid": { "value": 1.1, "unit": "g" },
+          "protein": { "value": 46, "unit": "g" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 700, "unit": "µg RAE" },
+          "vitamin_C": { "value": 65, "unit": "mg" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)" },
+          "vitamin_E": { "value": 15, "unit": "mg α-tocopherol" },
+          "vitamin_K": { "value": 75, "unit": "µg" },
+          "thiamin_B1": { "value": 1.0, "unit": "mg" },
+          "riboflavin_B2": { "value": 1.1, "unit": "mg" },
+          "niacin_B3": { "value": 14, "unit": "mg NE" },
+          "vitamin_B6": { "value": 1.3, "unit": "mg" },
+          "folate_B9": { "value": 400, "unit": "µg DFE" },
+          "vitamin_B12": { "value": 2.4, "unit": "µg" },
+          "pantothenic_acid_B5": { "value": 5, "unit": "mg" },
+          "biotin_B7": { "value": 30, "unit": "µg" },
+          "choline": { "value": 425, "unit": "mg" }
+        },
+        "minerals": {
+          "calcium": { "value": 1300, "unit": "mg" },
+          "phosphorus": { "value": 1250, "unit": "mg" },
+          "magnesium": { "value": 310, "unit": "mg" },
+          "iron": { "value": 15, "unit": "mg" },
+          "zinc": { "value": 8, "unit": "mg" },
+          "selenium": { "value": 55, "unit": "µg" },
+          "copper": { "value": 890, "unit": "µg" },
+          "manganese": { "value": 2.0, "unit": "mg" },
+          "chromium": { "value": 25, "unit": "µg" },
+          "molybdenum": { "value": 45, "unit": "µg" },
+          "iodine": { "value": 150, "unit": "µg" },
+          "fluoride": { "value": 10, "unit": "mg" }
+        }
+      },
+
+      "19-30 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g" },
+          "fiber": { "value": 25, "unit": "g" },
+          "fat": { "AMDR": { "percentEnergy": [20,35] } },
+          "linoleic_acid": { "value": 12, "unit": "g" },
+          "alpha_linolenic_acid": { "value": 1.1, "unit": "g" },
+          "protein": { "value": 46, "unit": "g" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 700, "unit": "µg RAE" },
+          "vitamin_C": { "value": 75, "unit": "mg" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)" },
+          "vitamin_E": { "value": 15, "unit": "mg" },
+          "vitamin_K": { "value": 90, "unit": "µg" },
+          "thiamin_B1": { "value": 1.1, "unit": "mg" },
+          "riboflavin_B2": { "value": 1.1, "unit": "mg" },
+          "niacin_B3": { "value": 14, "unit": "mg NE" },
+          "vitamin_B6": { "value": 1.3, "unit": "mg" },
+          "folate_B9": { "value": 400, "unit": "µg DFE" },
+          "vitamin_B12": { "value": 2.4, "unit": "µg" },
+          "pantothenic_acid_B5": { "value": 5, "unit": "mg" },
+          "biotin_B7": { "value": 30, "unit": "µg" },
+          "choline": { "value": 425, "unit": "mg" }
+        },
+        "minerals": {
+          "calcium": { "value": 1000, "unit": "mg" },
+          "phosphorus": { "value": 700, "unit": "mg" },
+          "magnesium": { "value": 320, "unit": "mg" },
+          "iron": { "value": 18, "unit": "mg" },
+          "zinc": { "value": 8, "unit": "mg" },
+          "selenium": { "value": 55, "unit": "µg" },
+          "copper": { "value": 900, "unit": "µg" },
+          "manganese": { "value": 1.8, "unit": "mg" },
+          "chromium": { "value": 25, "unit": "µg" },
+          "molybdenum": { "value": 45, "unit": "µg" },
+          "iodine": { "value": 150, "unit": "µg" },
+          "fluoride": { "value": 3, "unit": "mg" },
+          "potassium": { "value": 4700, "unit": "mg" },
+          "sodium": { "value": 1500, "unit": "mg", "note": "AI; UL = 2300 mg" }
+        }
+      },
+
+      "31-50 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g" },
+          "fiber": { "value": 25, "unit": "g" },
+          "fat": { "AMDR": { "percentEnergy": [20,35] } },
+          "linoleic_acid": { "value": 12, "unit": "g" },
+          "alpha_linolenic_acid": { "value": 1.1, "unit": "g" },
+          "protein": { "value": 46, "unit": "g" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 700, "unit": "µg RAE" },
+          "vitamin_C": { "value": 75, "unit": "mg" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)" },
+          "vitamin_E": { "value": 15, "unit": "mg" },
+          "vitamin_K": { "value": 90, "unit": "µg" },
+          "thiamin_B1": { "value": 1.1, "unit": "mg" },
+          "riboflavin_B2": { "value": 1.1, "unit": "mg" },
+          "niacin_B3": { "value": 14, "unit": "mg NE" },
+          "vitamin_B6": { "value": 1.3, "unit": "mg" },
+          "folate_B9": { "value": 400, "unit": "µg DFE" },
+          "vitamin_B12": { "value": 2.4, "unit": "µg" },
+          "pantothenic_acid_B5": { "value": 5, "unit": "mg" },
+          "biotin_B7": { "value": 30, "unit": "µg" },
+          "choline": { "value": 425, "unit": "mg" }
+        },
+        "minerals": {
+          "calcium": { "value": 1000, "unit": "mg" },
+          "phosphorus": { "value": 700, "unit": "mg" },
+          "magnesium": { "value": 320, "unit": "mg" },
+          "iron": { "value": 18, "unit": "mg" },
+          "zinc": { "value": 8, "unit": "mg" },
+          "selenium": { "value": 55, "unit": "µg" },
+          "copper": { "value": 900, "unit": "µg" },
+          "manganese": { "value": 1.8, "unit": "mg" },
+          "chromium": { "value": 25, "unit": "µg" },
+          "molybdenum": { "value": 45, "unit": "µg" },
+          "iodine": { "value": 150, "unit": "µg" },
+          "fluoride": { "value": 3, "unit": "mg" },
+          "potassium": { "value": 4700, "unit": "mg" },
+          "sodium": { "value": 1500, "unit": "mg" }
+        }
+      },
+
+      "51-70 y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g" },
+          "fiber": { "value": 21, "unit": "g" },
+          "fat": { "AMDR": { "percentEnergy": [20,35] } },
+          "linoleic_acid": { "value": 11, "unit": "g" },
+          "alpha_linolenic_acid": { "value": 1.1, "unit": "g" },
+          "protein": { "value": 46, "unit": "g" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 700, "unit": "µg RAE" },
+          "vitamin_C": { "value": 75, "unit": "mg" },
+          "vitamin_D": { "value": 15, "unit": "µg (600 IU)" },
+          "vitamin_E": { "value": 15, "unit": "mg" },
+          "vitamin_K": { "value": 90, "unit": "µg" },
+          "thiamin_B1": { "value": 1.1, "unit": "mg" },
+          "riboflavin_B2": { "value": 1.1, "unit": "mg" },
+          "niacin_B3": { "value": 14, "unit": "mg NE" },
+          "vitamin_B6": { "value": 1.5, "unit": "mg", "note": "increased RDA for older women" },
+          "folate_B9": { "value": 400, "unit": "µg DFE" },
+          "vitamin_B12": { "value": 2.4, "unit": "µg" },
+          "pantothenic_acid_B5": { "value": 5, "unit": "mg" },
+          "biotin_B7": { "value": 30, "unit": "µg" },
+          "choline": { "value": 425, "unit": "mg" }
+        },
+        "minerals": {
+          "calcium": { "value": 1200, "unit": "mg", "note": "DRI increases for women after age 50" },
+          "phosphorus": { "value": 700, "unit": "mg" },
+          "magnesium": { "value": 320, "unit": "mg" },
+          "iron": { "value": 8, "unit": "mg" },
+          "zinc": { "value": 8, "unit": "mg" },
+          "selenium": { "value": 55, "unit": "µg" },
+          "copper": { "value": 900, "unit": "µg" },
+          "manganese": { "value": 1.8, "unit": "mg" },
+          "chromium": { "value": 20, "unit": "µg" },
+          "molybdenum": { "value": 45, "unit": "µg" },
+          "iodine": { "value": 150, "unit": "µg" },
+          "fluoride": { "value": 3, "unit": "mg" },
+          "potassium": { "value": 4700, "unit": "mg" },
+          "sodium": { "value": 1300, "unit": "mg", "note": "AI for 51-70; UL = 2300 mg" }
+        }
+      },
+
+      "71+ y": {
+        "macronutrients": {
+          "carbohydrate": { "value": 130, "unit": "g" },
+          "fiber": { "value": 21, "unit": "g" },
+          "fat": { "AMDR": { "percentEnergy": [20,35] } },
+          "linoleic_acid": { "value": 11, "unit": "g" },
+          "alpha_linolenic_acid": { "value": 1.1, "unit": "g" },
+          "protein": { "value": 46, "unit": "g" }
+        },
+        "vitamins": {
+          "vitamin_A": { "value": 700, "unit": "µg RAE" },
+          "vitamin_C": { "value": 75, "unit": "mg" },
+          "vitamin_D": { "value": 20, "unit": "µg (800 IU)", "note": "IOM lists higher vitamin D for 71+ in summary tables" },
+          "vitamin_E": { "value": 15, "unit": "mg" },
+          "vitamin_K": { "value": 90, "unit": "µg" },
+          "thiamin_B1": { "value": 1.1, "unit": "mg" },
+          "riboflavin_B2": { "value": 1.1, "unit": "mg" },
+          "niacin_B3": { "value": 14, "unit": "mg NE" },
+          "vitamin_B6": { "value": 1.5, "unit": "mg" },
+          "folate_B9": { "value": 400, "unit": "µg DFE" },
+          "vitamin_B12": { "value": 2.4, "unit": "µg", "note": "fortified foods/supplements recommended for many older adults" },
+          "pantothenic_acid_B5": { "value": 5, "unit": "mg" },
+          "biotin_B7": { "value": 30, "unit": "µg" },
+          "choline": { "value": 425, "unit": "mg" }
+        },
+        "minerals": {
+          "calcium": { "value": 1200, "unit": "mg" },
+          "phosphorus": { "value": 700, "unit": "mg" },
+          "magnesium": { "value": 320, "unit": "mg" },
+          "iron": { "value": 8, "unit": "mg" },
+          "zinc": { "value": 8, "unit": "mg" },
+          "selenium": { "value": 55, "unit": "µg" },
+          "copper": { "value": 900, "unit": "µg" },
+          "manganese": { "value": 1.8, "unit": "mg" },
+          "chromium": { "value": 20, "unit": "µg" },
+          "molybdenum": { "value": 45, "unit": "µg" },
+          "iodine": { "value": 150, "unit": "µg" },
+          "fluoride": { "value": 3, "unit": "mg" },
+          "potassium": { "value": 4700, "unit": "mg" },
+          "sodium": { "value": 1200, "unit": "mg", "note": "AI for >70; UL = 2300 mg" }
+        }
+      }
+    }
+  }
+}
