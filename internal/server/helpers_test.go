@@ -15,18 +15,18 @@ import (
 
 func TestParseDateRangeParams(t *testing.T) {
 	tests := []struct {
-		name           string
-		queryParams    map[string]string
-		expectedDays   int
-		expectError    bool
-		expectedStart  bool // whether to check start time
-		expectedEnd    bool // whether to check end time
+		name          string
+		queryParams   map[string]string
+		expectedDays  int
+		expectError   bool
+		expectedStart bool // whether to check start time
+		expectedEnd   bool // whether to check end time
 	}{
 		{
-			name:         "direct date range",
-			queryParams:  map[string]string{"start": "2024-01-01T00:00:00Z", "end": "2024-01-03T23:59:59Z"},
-			expectedDays: 3,
-			expectError:  false,
+			name:          "direct date range",
+			queryParams:   map[string]string{"start": "2024-01-01T00:00:00Z", "end": "2024-01-03T23:59:59Z"},
+			expectedDays:  3,
+			expectError:   false,
 			expectedStart: true,
 			expectedEnd:   true,
 		},
@@ -43,14 +43,14 @@ func TestParseDateRangeParams(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:         "invalid start date",
-			queryParams:  map[string]string{"start": "invalid", "end": "2024-01-01T00:00:00Z"},
-			expectError:  true,
+			name:        "invalid start date",
+			queryParams: map[string]string{"start": "invalid", "end": "2024-01-01T00:00:00Z"},
+			expectError: true,
 		},
 		{
-			name:         "invalid end date",
-			queryParams:  map[string]string{"start": "2024-01-01T00:00:00Z", "end": "invalid"},
-			expectError:  true,
+			name:        "invalid end date",
+			queryParams: map[string]string{"start": "2024-01-01T00:00:00Z", "end": "invalid"},
+			expectError: true,
 		},
 		{
 			name:         "invalid days parameter",
@@ -103,39 +103,39 @@ func TestParseDateRangeParams(t *testing.T) {
 
 func TestValidateSubscriptionAccess(t *testing.T) {
 	tests := []struct {
-		name     string
-		user     *storage.User
-		days     int
+		name        string
+		user        *storage.User
+		days        int
 		expectError bool
 	}{
 		{
-			name: "free user single day - allowed",
-			user: &storage.User{SubscriptionTier: SubscriptionTierFree},
-			days: 1,
+			name:        "free user single day - allowed",
+			user:        &storage.User{SubscriptionTier: SubscriptionTierFree},
+			days:        1,
 			expectError: false,
 		},
 		{
-			name: "free user multiple days - denied",
-			user: &storage.User{SubscriptionTier: SubscriptionTierFree},
-			days: 7,
+			name:        "free user multiple days - denied",
+			user:        &storage.User{SubscriptionTier: SubscriptionTierFree},
+			days:        7,
 			expectError: true,
 		},
 		{
-			name: "pro user multiple days - allowed",
-			user: &storage.User{SubscriptionTier: SubscriptionTierPro},
-			days: 7,
+			name:        "pro user multiple days - allowed",
+			user:        &storage.User{SubscriptionTier: SubscriptionTierPro},
+			days:        7,
 			expectError: false,
 		},
 		{
-			name: "pro user single day - allowed",
-			user: &storage.User{SubscriptionTier: SubscriptionTierPro},
-			days: 1,
+			name:        "pro user single day - allowed",
+			user:        &storage.User{SubscriptionTier: SubscriptionTierPro},
+			days:        1,
 			expectError: false,
 		},
 		{
-			name: "case insensitive pro user",
-			user: &storage.User{SubscriptionTier: "PRO"},
-			days: 7,
+			name:        "case insensitive pro user",
+			user:        &storage.User{SubscriptionTier: "PRO"},
+			days:        7,
 			expectError: true, // Should fail because we compare with exact match
 		},
 	}

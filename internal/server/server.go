@@ -22,9 +22,19 @@ const (
 
 // Run configures routes and starts the HTTP server
 func Run(ctx context.Context, port string) error {
-	// Initialize storage
-	dbPath := getenv("DATABASE_PATH", "./noot.db")
-	store, err := storage.NewSQLiteStore(dbPath)
+	// Initialize storage using new config approach
+	config := &storage.Config{
+		Type:     getenv("DB_TYPE", "sqlite"),
+		Database: getenv("DATABASE_PATH", "./noot.db"),
+		// Future PostgreSQL support
+		Host:     getenv("DB_HOST", "localhost"),
+		Port:     getenvInt("DB_PORT", 5432),
+		Username: getenv("DB_USER", ""),
+		Password: getenv("DB_PASS", ""),
+		SSLMode:  getenv("DB_SSLMODE", "prefer"),
+	}
+
+	store, err := storage.NewStore(config)
 	if err != nil {
 		return fmt.Errorf("failed to initialize storage: %w", err)
 	}

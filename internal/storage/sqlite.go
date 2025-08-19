@@ -90,7 +90,7 @@ func (s *SQLiteStore) Migrate() error {
 // Reset drops all tables and re-applies migrations
 func (s *SQLiteStore) Reset() error {
 	// Drop tables in reverse dependency order
-	tables := []string{"item_aliases", "items_cache", "meals", "users"}
+	tables := GetDropTableOrder()
 	for _, table := range tables {
 		if _, err := s.db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s", table)); err != nil {
 			return fmt.Errorf("failed to drop table %s: %w", table, err)
