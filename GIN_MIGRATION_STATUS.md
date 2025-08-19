@@ -33,9 +33,9 @@
 ## Remaining for Full Gin Migration ⏳
 
 ### Dependencies
-- ⏳ Add `github.com/gin-gonic/gin` to go.mod
-- ⏳ Add `github.com/gin-contrib/cors` for CORS middleware
-- ⏳ Add `github.com/oapi-codegen/oapi-codegen/v2` for code generation
+- ⏳ Add `github.com/gin-gonic/gin` to go.mod - i did this
+- ⏳ Add `github.com/gin-contrib/cors` for CORS middleware - i did this
+- ⏳ Add `github.com/oapi-codegen/oapi-codegen/v2` for code generation - i did this
 
 ### Gin Router Migration
 - ⏳ Replace `http.NewServeMux()` with `gin.New()`
