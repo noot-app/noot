@@ -127,7 +127,7 @@ func TestSQLiteStore(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, retrieved, 2)
 
-		// Meals should be ordered by created_at DESC
+		// Consumptions should be ordered by created_at DESC
 		assert.Equal(t, "Lunch", retrieved[0].Transcript)
 		assert.Equal(t, "Breakfast", retrieved[1].Transcript)
 	})
@@ -367,7 +367,7 @@ func TestSQLiteStore(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create consumptions with nutrition data
-		meal1 := &Consumption{
+		consumption1 := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Breakfast",
 			ItemsJSON:     `[{"name":"oatmeal","quantity":1,"unit":"cup"}]`,
@@ -378,10 +378,10 @@ func TestSQLiteStore(t *testing.T) {
 			TotalFiber:    8,
 			TotalSodium:   100,
 		}
-		err = store.CreateConsumption(ctx, meal1)
+		err = store.CreateConsumption(ctx, consumption1)
 		require.NoError(t, err)
 
-		meal2 := &Consumption{
+		consumption2 := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Lunch",
 			ItemsJSON:     `[{"name":"sandwich","quantity":1,"unit":"sandwich"}]`,
@@ -392,7 +392,7 @@ func TestSQLiteStore(t *testing.T) {
 			TotalFiber:    5,
 			TotalSodium:   800,
 		}
-		err = store.CreateConsumption(ctx, meal2)
+		err = store.CreateConsumption(ctx, consumption2)
 		require.NoError(t, err)
 
 		// Get nutrition summary for the last 7 days
