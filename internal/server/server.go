@@ -57,9 +57,9 @@ func Run(ctx context.Context, port string) error {
 
 	mux := http.NewServeMux()
 
-	// API v1 routes
-	mux.HandleFunc("/api/v1/consumption", ingestHandler)
-	mux.HandleFunc("/api/v1/health", healthHandler)
+	// API v1 routes (using new context pattern)
+	mux.HandleFunc("/api/v1/consumption", WrapHandler(v1ConsumptionHandler))
+	mux.HandleFunc("/api/v1/health", WrapHandler(v1HealthHandler))
 
 	// Legacy API routes
 	mux.HandleFunc("/api/consumption", ingestHandler) // Renamed from /api/ingest
@@ -67,11 +67,11 @@ func Run(ctx context.Context, port string) error {
 
 	// Development-only API
 	if env == "development" {
-		// v1 routes
-		mux.HandleFunc("/api/v1/consumptions", consumptionsHandler)
-		mux.HandleFunc("/api/v1/nutrition-summary", nutritionSummaryHandler)
-		mux.HandleFunc("/api/v1/docs", swaggerUIHandler)
-		mux.HandleFunc("/api/v1/openapi.yaml", openAPISpecHandler)
+		// v1 routes (using new context pattern)
+		mux.HandleFunc("/api/v1/consumptions", WrapHandler(v1ConsumptionsHandler))
+		mux.HandleFunc("/api/v1/nutrition-summary", WrapHandler(v1NutritionSummaryHandler))
+		mux.HandleFunc("/api/v1/docs", WrapHandler(v1SwaggerUIHandler))
+		mux.HandleFunc("/api/v1/openapi.yaml", WrapHandler(v1OpenAPISpecHandler))
 		
 		// Legacy routes
 		mux.HandleFunc("/api/consumptions", consumptionsHandler)
