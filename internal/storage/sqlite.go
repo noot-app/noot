@@ -14,6 +14,9 @@ import (
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 
+// CacheTTL is the default cache time-to-live (30 days)
+const CacheTTL = 30 * 24 * time.Hour
+
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
@@ -436,7 +439,7 @@ func (s *SQLiteStore) UpsertItemCache(ctx context.Context, item *ItemCache) erro
 			item.FetchedAt = now
 		}
 		if item.ExpiresAt.IsZero() {
-			item.ExpiresAt = now.AddDate(0, 0, 30) // 30-day TTL
+			item.ExpiresAt = now.Add(CacheTTL)
 		}
 
 		query := `
@@ -474,7 +477,7 @@ func (s *SQLiteStore) UpsertItemCache(ctx context.Context, item *ItemCache) erro
 			item.FetchedAt = now
 		}
 		if item.ExpiresAt.IsZero() {
-			item.ExpiresAt = now.AddDate(0, 0, 30) // 30-day TTL
+			item.ExpiresAt = now.Add(CacheTTL)
 		}
 
 		query := `
@@ -555,4 +558,12 @@ func (s *SQLiteStore) GetCanonicalName(ctx context.Context, aliasName, aliasBran
 	}
 
 	return canonicalName, canonicalBrand, nil
+}
+
+// IsItemCacheExpired checks if a cache item has expired
+func (s *SQLiteStore) IsItemCacheExpired(item *ItemCache) bool {
+	if item == nil {
+		return true
+	}
+	return time.Now().UTC().After(item.ExpiresAt)
 }

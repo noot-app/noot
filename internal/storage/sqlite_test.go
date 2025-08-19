@@ -334,4 +334,25 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Equal(t, "cherry_tomato", canonical2)
 		assert.Equal(t, "organic", brand2)
 	})
+
+	t.Run("CacheExpirationCheck", func(t *testing.T) {
+		// Test nil item
+		expired := store.IsItemCacheExpired(nil)
+		assert.True(t, expired)
+
+		// Test expired item
+		now := time.Now().UTC()
+		expiredItem := &ItemCache{
+			ExpiresAt: now.Add(-1 * time.Hour), // Expired 1 hour ago
+		}
+		expired = store.IsItemCacheExpired(expiredItem)
+		assert.True(t, expired)
+
+		// Test valid item
+		validItem := &ItemCache{
+			ExpiresAt: now.Add(1 * time.Hour), // Expires in 1 hour
+		}
+		expired = store.IsItemCacheExpired(validItem)
+		assert.False(t, expired)
+	})
 }

@@ -22,6 +22,7 @@ type Store interface {
 	GetItemFromCache(ctx context.Context, normalizedName, normalizedBrand string) (*ItemCache, error)
 	UpsertItemCache(ctx context.Context, item *ItemCache) error
 	RefreshItemCache(ctx context.Context, normalizedName, normalizedBrand string, item *ItemCache) error
+	IsItemCacheExpired(item *ItemCache) bool
 
 	// Item alias operations
 	CreateItemAlias(ctx context.Context, alias *ItemAlias) error
