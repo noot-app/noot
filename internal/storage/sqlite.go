@@ -121,7 +121,7 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 		user.Sex = "unspecified"
 	}
 
-	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email, 
+	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email,
 		user.SubscriptionTier, user.Sex, user.BirthDate, now)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
@@ -775,7 +775,7 @@ func (s *SQLiteStore) UpsertUserGoal(ctx context.Context, goal *UserGoal) error 
 	}
 	goal.UpdatedAt = now
 
-	_, err := s.db.ExecContext(ctx, query, goal.ID, goal.UserID, goal.Name, 
+	_, err := s.db.ExecContext(ctx, query, goal.ID, goal.UserID, goal.Name,
 		goal.OverridesJSON, goal.CreatedAt, goal.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to upsert user goal: %w", err)
@@ -791,7 +791,7 @@ func (s *SQLiteStore) GetUserGoal(ctx context.Context, userID, name string) (*Us
 
 	goal := &UserGoal{}
 	err := s.db.QueryRowContext(ctx, query, userID, name).
-		Scan(&goal.ID, &goal.UserID, &goal.Name, &goal.OverridesJSON, 
+		Scan(&goal.ID, &goal.UserID, &goal.Name, &goal.OverridesJSON,
 			&goal.CreatedAt, &goal.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -806,7 +806,7 @@ func (s *SQLiteStore) GetUserGoal(ctx context.Context, userID, name string) (*Us
 // DeleteUserGoal deletes a user goal
 func (s *SQLiteStore) DeleteUserGoal(ctx context.Context, userID, name string) error {
 	query := `DELETE FROM user_goals WHERE user_id = ? AND name = ?`
-	
+
 	result, err := s.db.ExecContext(ctx, query, userID, name)
 	if err != nil {
 		return fmt.Errorf("failed to delete user goal: %w", err)

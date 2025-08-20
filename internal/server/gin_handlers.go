@@ -23,7 +23,7 @@ func NewAPIServer(store storage.Store) (*APIServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &APIServer{
 		store:        store,
 		goalResolver: goalResolver,
@@ -406,7 +406,7 @@ func (s *APIServer) GetGoals(c *gin.Context) {
 	for k, v := range resolvedGoals.Targets {
 		apiTargets[k] = float32(v)
 	}
-	
+
 	apiUpperLimits := make(map[string]float32)
 	for k, v := range resolvedGoals.UpperLimits {
 		apiUpperLimits[k] = float32(v)
@@ -490,7 +490,7 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 	s.GetGoals(c)
 }
 
-// GetTrends implements ServerInterface.GetTrends  
+// GetTrends implements ServerInterface.GetTrends
 func (s *APIServer) GetTrends(c *gin.Context, params api.GetTrendsParams) {
 	requestID := c.GetString("request_id")
 	ctx := c.Request.Context()
@@ -572,7 +572,7 @@ func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
 		return
 	}
 
-	// Parse date range parameters  
+	// Parse date range parameters
 	start, end, _, err := parseTrendsDateRangeParams(params.Start, params.End, nil)
 	if err != nil {
 		appErr := NewAppError("Invalid date range parameters", http.StatusBadRequest, err)

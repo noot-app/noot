@@ -9,7 +9,7 @@ var TableNames = struct {
 	ItemAliases  string
 }{
 	Users:        "users",
-	Consumptions: "consumptions", 
+	Consumptions: "consumptions",
 	UserGoals:    "user_goals",
 	ItemsCache:   "items_cache",
 	ItemAliases:  "item_aliases",
