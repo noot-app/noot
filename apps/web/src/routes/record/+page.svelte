@@ -391,32 +391,10 @@
   .gradient-bg {
     background: linear-gradient(135deg, hsl(var(--b1)), hsl(var(--b2)));
   }
-
-  .navbar-glass {
-    background-color: hsla(var(--b1), 0.8);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid hsl(var(--b3));
-  }
 </style>
 
 <div class="min-h-screen gradient-bg flex flex-col">
-  <!-- Minimal header with navigation -->
-  <div class="navbar navbar-glass">
-    <div class="navbar-start">
-      <a href="/" class="btn btn-ghost btn-sm">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Home
-      </a>
-    </div>
-    <div class="navbar-center">
-      <span class="font-bold text-lg">Record</span>
-    </div>
-    <div class="navbar-end">
-      <a href="/summary" class="btn btn-ghost btn-sm">Summary</a>
-    </div>
-  </div>
+  <!-- Main content area -->
 
   <!-- Main recording interface -->
   <div class="flex-1 flex items-center justify-center px-4">

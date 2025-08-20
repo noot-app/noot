@@ -111,7 +111,9 @@
               {goals.life_stage.sex} • {goals.life_stage.age_bracket}
             </span>
             {#if goals.source === "custom"}
-              <span class="badge badge-primary ml-2">Custom Goals</span>
+              <span class="badge badge-primary ml-2">
+                {goals.custom_name || "Custom Goals"}
+              </span>
             {:else}
               <div class="tooltip tooltip-bottom ml-2" data-tip="Dietary Reference Intakes (DRI) are nutrient reference values developed by health experts. Visit your profile to customize your nutrition goals.">
                 <span class="badge badge-primary">
@@ -191,7 +193,9 @@
             <div class="stat">
               <div class="stat-title">Source</div>
               <div class="stat-value text-lg">
-                {goals.source === "custom" ? "Custom" : "DRI"}
+                {goals.source === "custom" 
+                  ? (goals.custom_name || "Custom") 
+                  : "DRI"}
               </div>
               <div class="stat-desc">Nutrition guidelines</div>
             </div>

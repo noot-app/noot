@@ -54,10 +54,11 @@ type DailyValueEntry struct {
 
 // Goals represents resolved nutrition goals for a user
 type Goals struct {
-	Targets     map[string]float64 `json:"targets"`      // nutrient_key -> target amount
-	UpperLimits map[string]float64 `json:"upper_limits"` // nutrient_key -> upper limit
-	Units       map[string]string  `json:"units"`        // nutrient_key -> unit
-	Source      string             `json:"source"`       // "dri", "custom", etc.
+	Targets     map[string]float64 `json:"targets"`               // nutrient_key -> target amount
+	UpperLimits map[string]float64 `json:"upper_limits"`          // nutrient_key -> upper limit
+	Units       map[string]string  `json:"units"`                 // nutrient_key -> unit
+	Source      string             `json:"source"`                // "dri", "custom", etc.
+	CustomName  string             `json:"custom_name,omitempty"` // name of custom goal (only when source is "custom")
 	LifeStage   LifeStage          `json:"life_stage"`
 }
 
@@ -69,7 +70,8 @@ type LifeStage struct {
 
 // UserOverrides represents custom goal overrides from Pro users
 type UserOverrides struct {
-	Overrides map[string]float64 `json:"overrides"` // nutrient_key -> custom target
+	Name      string             `json:"name,omitempty"` // custom name for the goal set
+	Overrides map[string]float64 `json:"overrides"`      // nutrient_key -> custom target
 }
 
 // NewGoalResolver creates a new goal resolver with embedded DRI data
@@ -116,6 +118,11 @@ func (r *GoalResolver) ResolveGoals(sex string, birthDate *time.Time, customOver
 			baseGoals.Targets[nutrient] = value
 		}
 		baseGoals.Source = "custom"
+		if customOverrides.Name != "" {
+			baseGoals.CustomName = customOverrides.Name
+		} else {
+			baseGoals.CustomName = "Custom Goals"
+		}
 	}
 
 	return baseGoals, nil

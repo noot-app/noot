@@ -1062,6 +1062,10 @@ components:
           type: string
           enum: [dri, custom]
           description: Source of the goals (DRI defaults or custom overrides)
+        custom_name:
+          type: string
+          description: Name of the custom goal set (only present when source is "custom")
+          example: "Bulk Season"
         life_stage:
           $ref: "#/components/schemas/LifeStage"
 
@@ -1085,6 +1089,11 @@ components:
       required:
         - overrides
       properties:
+        name:
+          type: string
+          maxLength: 50
+          description: Custom name for the goal set (optional, defaults to "custom")
+          example: "Bulk Season"
         overrides:
           type: object
           additionalProperties:
