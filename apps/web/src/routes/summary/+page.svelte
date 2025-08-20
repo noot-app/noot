@@ -4,6 +4,7 @@
   import { PUBLIC_APP_NAME } from "$env/static/public";
   import { onMount } from "svelte";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
+  import Goals from "$lib/components/Goals.svelte";
 
   let currentView: 'today' | 'week' = 'today';
   let isLoading = false;
@@ -80,6 +81,20 @@
   function convertNutrientValue(value: number): number {
     return convertWeight(value, 'grams', currentUnits);
   }
+
+  // Extract current nutrition values for goals comparison
+  $: currentNutrition = summaryData?.summary ? {
+    calories: summaryData.summary.total_calories || 0,
+    protein_g: summaryData.summary.total_protein_g || 0,
+    total_carbs_g: summaryData.summary.total_carbs_g || 0,
+    total_fat_g: summaryData.summary.total_fat_g || 0,
+    dietary_fiber_g: summaryData.summary.total_fiber_g || 0,
+    sodium_mg: summaryData.summary.total_sodium_mg || 0,
+    // Add micronutrients if available in summary
+    vitamin_c_mg: summaryData.summary.vitamin_c_mg || 0,
+    calcium_mg: summaryData.summary.calcium_mg || 0,
+    iron_mg: summaryData.summary.iron_mg || 0,
+  } : {};
 </script>
 
 <svelte:head>
@@ -159,6 +174,9 @@
           units={currentUnits}
           size="normal"
         />
+
+        <!-- Nutrition Goals -->
+        <Goals {currentNutrition} />
 
         <!-- Daily Breakdown (for week view) -->
         {#if currentView === 'week' && summaryData.summary.daily_breakdown && summaryData.summary.daily_breakdown.length > 0}

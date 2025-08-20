@@ -84,6 +84,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get nutrition goals
+         * @description Get resolved nutrition goals based on user profile (DRI) and any custom overrides
+         */
+        get: operations["getGoals"];
+        /**
+         * Update nutrition goals (Pro only)
+         * @description Set custom nutrition goal overrides for Pro users
+         */
+        put: operations["updateGoals"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/trends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get nutrition trends
+         * @description Get time series data for nutrition metrics over a specified period
+         */
+        get: operations["getTrends"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export nutrition data (Pro only)
+         * @description Export nutrition data in CSV or JSON format for a specified date range
+         */
+        get: operations["exportData"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -329,6 +393,130 @@ export interface components {
             /** @description Total sodium in milligrams for the day */
             sodium_mg: number;
         };
+        GoalsResponse: {
+            goals: components["schemas"]["Goals"];
+            user: components["schemas"]["User"];
+        };
+        Goals: {
+            /**
+             * @description Target amounts for each nutrient
+             * @example {
+             *       "calories": 2000,
+             *       "protein_g": 50,
+             *       "vitamin_c_mg": 90
+             *     }
+             */
+            targets: {
+                [key: string]: number;
+            };
+            /**
+             * @description Upper limit amounts for each nutrient (where defined)
+             * @example {
+             *       "sodium_mg": 2300
+             *     }
+             */
+            upper_limits: {
+                [key: string]: number;
+            };
+            /**
+             * @description Units for each nutrient
+             * @example {
+             *       "calories": "kcal",
+             *       "protein_g": "g",
+             *       "vitamin_c_mg": "mg"
+             *     }
+             */
+            units: {
+                [key: string]: string;
+            };
+            /**
+             * @description Source of the goals (DRI defaults or custom overrides)
+             * @enum {string}
+             */
+            source: "dri" | "custom";
+            life_stage: components["schemas"]["LifeStage"];
+        };
+        LifeStage: {
+            /**
+             * @description User sex for DRI calculation
+             * @enum {string}
+             */
+            sex: "male" | "female" | "unspecified";
+            /**
+             * @description Age bracket used for DRI lookup
+             * @example 19-30 y
+             */
+            age_bracket: string;
+        };
+        UpdateGoalsRequest: {
+            /**
+             * @description Custom nutrition goal overrides
+             * @example {
+             *       "calories": 3000,
+             *       "protein_g": 180,
+             *       "vitamin_c_mg": 120
+             *     }
+             */
+            overrides: {
+                [key: string]: number;
+            };
+        };
+        TrendsResponse: {
+            /**
+             * @description Time series data for each requested metric
+             * @example {
+             *       "calories": [
+             *         {
+             *           "date": "2023-01-01T00:00:00Z",
+             *           "value": 2100
+             *         },
+             *         {
+             *           "date": "2023-01-02T00:00:00Z",
+             *           "value": 2250
+             *         }
+             *       ]
+             *     }
+             */
+            series: {
+                [key: string]: components["schemas"]["DataPoint"][];
+            };
+            user: components["schemas"]["User"];
+            date_range: {
+                /** Format: date-time */
+                start?: string;
+                /** Format: date-time */
+                end?: string;
+            };
+            /** @description Number of days in the time series */
+            days: number;
+        };
+        DataPoint: {
+            /**
+             * Format: date-time
+             * @description Date for this data point
+             */
+            date: string;
+            /** @description Nutrient value for this date */
+            value: number;
+        };
+        ExportResponse: {
+            /** @description Time series data for each requested metric */
+            series: {
+                [key: string]: components["schemas"]["DataPoint"][];
+            };
+            user: components["schemas"]["User"];
+            date_range: {
+                /** Format: date-time */
+                start?: string;
+                /** Format: date-time */
+                end?: string;
+            };
+            /**
+             * @description Export format used
+             * @enum {string}
+             */
+            format: "csv" | "json";
+        };
     };
     responses: never;
     parameters: never;
@@ -516,6 +704,235 @@ export interface operations {
             };
             /** @description Method not allowed */
             405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getGoals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User nutrition goals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalsResponse"];
+                };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateGoals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGoalsRequest"];
+            };
+        };
+        responses: {
+            /** @description Goals updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalsResponse"];
+                };
+            };
+            /** @description Invalid request body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getTrends: {
+        parameters: {
+            query?: {
+                /** @description Comma-separated list of metrics to include */
+                metrics?: string;
+                /** @description Start date (RFC3339 format) */
+                start?: string;
+                /** @description End date (RFC3339 format) */
+                end?: string;
+                /** @description Number of days to look back from today (alternative to start/end) */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Nutrition trends data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrendsResponse"];
+                };
+            };
+            /** @description Invalid parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Access denied (subscription limitation) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    exportData: {
+        parameters: {
+            query: {
+                /** @description Export format */
+                format: "csv" | "json";
+                /** @description Start date (RFC3339 format) */
+                start?: string;
+                /** @description End date (RFC3339 format) */
+                end?: string;
+                /** @description Comma-separated list of metrics to include (defaults to common macros) */
+                metrics?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Exported data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportResponse"];
+                    "text/csv": string;
+                };
+            };
+            /** @description Invalid parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description User not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
