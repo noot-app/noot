@@ -45,14 +45,26 @@ type CompleteNutrient struct {
 	// AddedSugarsG Added sugars in grams
 	AddedSugarsG float32 `json:"added_sugars_g"`
 
+	// BiotinMcg Biotin in micrograms
+	BiotinMcg float32 `json:"biotin_mcg"`
+
 	// CalciumMg Calcium in milligrams
 	CalciumMg float32 `json:"calcium_mg"`
 
 	// Calories Calories per serving
 	Calories float32 `json:"calories"`
 
+	// ChlorideMg Chloride in milligrams
+	ChlorideMg float32 `json:"chloride_mg"`
+
 	// CholesterolMg Cholesterol in milligrams
 	CholesterolMg float32 `json:"cholesterol_mg"`
+
+	// CholineMg Choline in milligrams
+	CholineMg float32 `json:"choline_mg"`
+
+	// ChromiumMcg Chromium in micrograms
+	ChromiumMcg float32 `json:"chromium_mcg"`
 
 	// CopperMg Copper in milligrams
 	CopperMg float32 `json:"copper_mg"`
@@ -60,8 +72,14 @@ type CompleteNutrient struct {
 	// DietaryFiberG Dietary fiber in grams
 	DietaryFiberG float32 `json:"dietary_fiber_g"`
 
+	// FluorideMg Fluoride in milligrams
+	FluorideMg float32 `json:"fluoride_mg"`
+
 	// FolateMcg Folate in micrograms
 	FolateMcg float32 `json:"folate_mcg"`
+
+	// IodineMcg Iodine in micrograms
+	IodineMcg float32 `json:"iodine_mcg"`
 
 	// IronMg Iron in milligrams
 	IronMg float32 `json:"iron_mg"`
@@ -72,8 +90,14 @@ type CompleteNutrient struct {
 	// ManganeseMg Manganese in milligrams
 	ManganeseMg float32 `json:"manganese_mg"`
 
+	// MolybdenumMcg Molybdenum in micrograms
+	MolybdenumMcg float32 `json:"molybdenum_mcg"`
+
 	// NiacinMg Niacin (B3) in milligrams
 	NiacinMg float32 `json:"niacin_mg"`
+
+	// PantothenicAcidMg Pantothenic Acid (B5) in milligrams
+	PantothenicAcidMg float32 `json:"pantothenic_acid_mg"`
 
 	// PhosphorusMg Phosphorus in milligrams
 	PhosphorusMg float32 `json:"phosphorus_mg"`
@@ -368,6 +392,9 @@ type NutritionSummary struct {
 	// TotalAddedSugarsG Total added sugars in grams
 	TotalAddedSugarsG float32 `json:"total_added_sugars_g"`
 
+	// TotalBiotinMcg Total biotin in micrograms
+	TotalBiotinMcg float32 `json:"total_biotin_mcg"`
+
 	// TotalCalciumMg Total calcium in milligrams
 	TotalCalciumMg float32 `json:"total_calcium_mg"`
 
@@ -377,8 +404,17 @@ type NutritionSummary struct {
 	// TotalCarbsG Total carbohydrates in grams
 	TotalCarbsG float32 `json:"total_carbs_g"`
 
+	// TotalChlorideMg Total chloride in milligrams
+	TotalChlorideMg float32 `json:"total_chloride_mg"`
+
 	// TotalCholesterolMg Total cholesterol in milligrams
 	TotalCholesterolMg float32 `json:"total_cholesterol_mg"`
+
+	// TotalCholineMg Total choline in milligrams
+	TotalCholineMg float32 `json:"total_choline_mg"`
+
+	// TotalChromiumMcg Total chromium in micrograms
+	TotalChromiumMcg float32 `json:"total_chromium_mcg"`
 
 	// TotalCopperMg Total copper in milligrams
 	TotalCopperMg float32 `json:"total_copper_mg"`
@@ -389,8 +425,14 @@ type NutritionSummary struct {
 	// TotalFiberG Total fiber in grams
 	TotalFiberG float32 `json:"total_fiber_g"`
 
+	// TotalFluorideMg Total fluoride in milligrams
+	TotalFluorideMg float32 `json:"total_fluoride_mg"`
+
 	// TotalFolateMcg Total folate in micrograms
 	TotalFolateMcg float32 `json:"total_folate_mcg"`
+
+	// TotalIodineMcg Total iodine in micrograms
+	TotalIodineMcg float32 `json:"total_iodine_mcg"`
 
 	// TotalIronMg Total iron in milligrams
 	TotalIronMg float32 `json:"total_iron_mg"`
@@ -401,8 +443,14 @@ type NutritionSummary struct {
 	// TotalManganeseMg Total manganese in milligrams
 	TotalManganeseMg float32 `json:"total_manganese_mg"`
 
+	// TotalMolybdenumMcg Total molybdenum in micrograms
+	TotalMolybdenumMcg float32 `json:"total_molybdenum_mcg"`
+
 	// TotalNiacinMg Total niacin (B3) in milligrams
 	TotalNiacinMg float32 `json:"total_niacin_mg"`
+
+	// TotalPantothenicAcidMg Total pantothenic acid (B5) in milligrams
+	TotalPantothenicAcidMg float32 `json:"total_pantothenic_acid_mg"`
 
 	// TotalPhosphorusMg Total phosphorus in milligrams
 	TotalPhosphorusMg float32 `json:"total_phosphorus_mg"`

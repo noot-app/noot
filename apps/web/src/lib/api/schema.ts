@@ -309,6 +309,22 @@ export interface components {
             manganese_mg: number;
             /** @description Selenium in micrograms */
             selenium_mcg: number;
+            /** @description Biotin in micrograms */
+            biotin_mcg: number;
+            /** @description Pantothenic Acid (B5) in milligrams */
+            pantothenic_acid_mg: number;
+            /** @description Choline in milligrams */
+            choline_mg: number;
+            /** @description Chloride in milligrams */
+            chloride_mg: number;
+            /** @description Chromium in micrograms */
+            chromium_mcg: number;
+            /** @description Fluoride in milligrams */
+            fluoride_mg: number;
+            /** @description Iodine in micrograms */
+            iodine_mcg: number;
+            /** @description Molybdenum in micrograms */
+            molybdenum_mcg: number;
         };
         Summary: {
             totals: components["schemas"]["CompleteNutrient"];
@@ -433,6 +449,22 @@ export interface components {
             total_manganese_mg: number;
             /** @description Total selenium in micrograms */
             total_selenium_mcg: number;
+            /** @description Total biotin in micrograms */
+            total_biotin_mcg: number;
+            /** @description Total pantothenic acid (B5) in milligrams */
+            total_pantothenic_acid_mg: number;
+            /** @description Total choline in milligrams */
+            total_choline_mg: number;
+            /** @description Total chloride in milligrams */
+            total_chloride_mg: number;
+            /** @description Total chromium in micrograms */
+            total_chromium_mcg: number;
+            /** @description Total fluoride in milligrams */
+            total_fluoride_mg: number;
+            /** @description Total iodine in micrograms */
+            total_iodine_mcg: number;
+            /** @description Total molybdenum in micrograms */
+            total_molybdenum_mcg: number;
             /** @description Average calories per day */
             avg_calories_per_day: number;
             /** @description Average protein per day in grams */
