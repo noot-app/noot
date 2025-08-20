@@ -214,6 +214,6 @@
     --progress-color: oklch(var(--wa));
   }
   progress.progress-primary {
-    --progress-color: oklch(var(--er));
+    --progress-color: var(--color-dark);
   }
 </style>

@@ -30,8 +30,10 @@
   --color-success-content: #ffffff;
   --color-warning: #bb704f;
   --color-warning-content: #ffffff;
-  --color-error: #2b2621;
-  --color-error-content: #fdf8ee;
+  --color-error: #b94e48;
+  --color-error-content: #ffffff;
+  --color-dark: #2b2621;
+  --color-dark-content: #fdf8ee;
 
   /* border radius */
   --radius-selector: 1rem;
