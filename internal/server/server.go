@@ -65,7 +65,10 @@ func Run(ctx context.Context, port string) error {
 	r.Use(StoreMiddleware(store))
 
 	// Create API server
-	apiServer := NewAPIServer(store)
+	apiServer, err := NewAPIServer(store)
+	if err != nil {
+		return fmt.Errorf("failed to create API server: %w", err)
+	}
 
 	// API v1 routes with OpenAPI generated routing
 	v1 := r.Group("/api/v1")
@@ -77,6 +80,10 @@ func Run(ctx context.Context, port string) error {
 
 		v1.POST("/consumption", wrapper.CreateConsumption)
 		v1.GET("/health", wrapper.GetHealth)
+		v1.GET("/goals", wrapper.GetGoals)
+		v1.PUT("/goals", wrapper.UpdateGoals)
+		v1.GET("/trends", wrapper.GetTrends)
+		v1.GET("/export", wrapper.ExportData)
 
 		// Development-only routes
 		if env == "development" {

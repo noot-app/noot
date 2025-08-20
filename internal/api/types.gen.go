@@ -9,10 +9,35 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for ExportResponseFormat.
+const (
+	ExportResponseFormatCsv  ExportResponseFormat = "csv"
+	ExportResponseFormatJson ExportResponseFormat = "json"
+)
+
+// Defines values for GoalsSource.
+const (
+	Custom GoalsSource = "custom"
+	Dri    GoalsSource = "dri"
+)
+
+// Defines values for LifeStageSex.
+const (
+	Female      LifeStageSex = "female"
+	Male        LifeStageSex = "male"
+	Unspecified LifeStageSex = "unspecified"
+)
+
 // Defines values for UserSubscriptionTier.
 const (
 	Free UserSubscriptionTier = "free"
 	Pro  UserSubscriptionTier = "pro"
+)
+
+// Defines values for ExportDataParamsFormat.
+const (
+	ExportDataParamsFormatCsv  ExportDataParamsFormat = "csv"
+	ExportDataParamsFormatJson ExportDataParamsFormat = "json"
 )
 
 // CompleteNutrient defines model for CompleteNutrient.
@@ -180,6 +205,15 @@ type DailySummary struct {
 	TotalFatG float32 `json:"total_fat_g"`
 }
 
+// DataPoint defines model for DataPoint.
+type DataPoint struct {
+	// Date Date for this data point
+	Date time.Time `json:"date"`
+
+	// Value Nutrient value for this date
+	Value float32 `json:"value"`
+}
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	// Code HTTP status code
@@ -196,6 +230,50 @@ type ErrorResponse struct {
 
 	// TraceId Request trace ID
 	TraceId *string `json:"trace_id,omitempty"`
+}
+
+// ExportResponse defines model for ExportResponse.
+type ExportResponse struct {
+	DateRange struct {
+		End   *time.Time `json:"end,omitempty"`
+		Start *time.Time `json:"start,omitempty"`
+	} `json:"date_range"`
+
+	// Format Export format used
+	Format ExportResponseFormat `json:"format"`
+
+	// Series Time series data for each requested metric
+	Series map[string][]DataPoint `json:"series"`
+	User   User                   `json:"user"`
+}
+
+// ExportResponseFormat Export format used
+type ExportResponseFormat string
+
+// Goals defines model for Goals.
+type Goals struct {
+	LifeStage LifeStage `json:"life_stage"`
+
+	// Source Source of the goals (DRI defaults or custom overrides)
+	Source GoalsSource `json:"source"`
+
+	// Targets Target amounts for each nutrient
+	Targets map[string]float32 `json:"targets"`
+
+	// Units Units for each nutrient
+	Units map[string]string `json:"units"`
+
+	// UpperLimits Upper limit amounts for each nutrient (where defined)
+	UpperLimits map[string]float32 `json:"upper_limits"`
+}
+
+// GoalsSource Source of the goals (DRI defaults or custom overrides)
+type GoalsSource string
+
+// GoalsResponse defines model for GoalsResponse.
+type GoalsResponse struct {
+	Goals Goals `json:"goals"`
+	User  User  `json:"user"`
 }
 
 // HealthResponse defines model for HealthResponse.
@@ -228,6 +306,18 @@ type ItemWithNutrition struct {
 	// Note Additional note (e.g., if nutrition data unavailable)
 	Note *string `json:"note,omitempty"`
 }
+
+// LifeStage defines model for LifeStage.
+type LifeStage struct {
+	// AgeBracket Age bracket used for DRI lookup
+	AgeBracket string `json:"age_bracket"`
+
+	// Sex User sex for DRI calculation
+	Sex LifeStageSex `json:"sex"`
+}
+
+// LifeStageSex User sex for DRI calculation
+type LifeStageSex string
 
 // NutritionSummary defines model for NutritionSummary.
 type NutritionSummary struct {
@@ -306,6 +396,27 @@ type Summary struct {
 	Totals         CompleteNutrient `json:"totals"`
 }
 
+// TrendsResponse defines model for TrendsResponse.
+type TrendsResponse struct {
+	DateRange struct {
+		End   *time.Time `json:"end,omitempty"`
+		Start *time.Time `json:"start,omitempty"`
+	} `json:"date_range"`
+
+	// Days Number of days in the time series
+	Days int `json:"days"`
+
+	// Series Time series data for each requested metric
+	Series map[string][]DataPoint `json:"series"`
+	User   User                   `json:"user"`
+}
+
+// UpdateGoalsRequest defines model for UpdateGoalsRequest.
+type UpdateGoalsRequest struct {
+	// Overrides Custom nutrition goal overrides
+	Overrides map[string]float32 `json:"overrides"`
+}
+
 // User defines model for User.
 type User struct {
 	// CreatedAt User creation timestamp
@@ -336,6 +447,24 @@ type CreateConsumptionMultipartBody struct {
 	Audio openapi_types.File `json:"audio"`
 }
 
+// ExportDataParams defines parameters for ExportData.
+type ExportDataParams struct {
+	// Format Export format
+	Format ExportDataParamsFormat `form:"format" json:"format"`
+
+	// Start Start date (RFC3339 format)
+	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
+
+	// End End date (RFC3339 format)
+	End *time.Time `form:"end,omitempty" json:"end,omitempty"`
+
+	// Metrics Comma-separated list of metrics to include (defaults to common macros)
+	Metrics *string `form:"metrics,omitempty" json:"metrics,omitempty"`
+}
+
+// ExportDataParamsFormat defines parameters for ExportData.
+type ExportDataParamsFormat string
+
 // GetNutritionSummaryParams defines parameters for GetNutritionSummary.
 type GetNutritionSummaryParams struct {
 	// Start Start date (RFC3339 format)
@@ -348,5 +477,23 @@ type GetNutritionSummaryParams struct {
 	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
 
+// GetTrendsParams defines parameters for GetTrends.
+type GetTrendsParams struct {
+	// Metrics Comma-separated list of metrics to include
+	Metrics *string `form:"metrics,omitempty" json:"metrics,omitempty"`
+
+	// Start Start date (RFC3339 format)
+	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
+
+	// End End date (RFC3339 format)
+	End *time.Time `form:"end,omitempty" json:"end,omitempty"`
+
+	// Days Number of days to look back from today (alternative to start/end)
+	Days *int `form:"days,omitempty" json:"days,omitempty"`
+}
+
 // CreateConsumptionMultipartRequestBody defines body for CreateConsumption for multipart/form-data ContentType.
 type CreateConsumptionMultipartRequestBody CreateConsumptionMultipartBody
+
+// UpdateGoalsJSONRequestBody defines body for UpdateGoals for application/json ContentType.
+type UpdateGoalsJSONRequestBody = UpdateGoalsRequest

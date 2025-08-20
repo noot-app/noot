@@ -1,24 +1,33 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/grantbirki/noot/internal/api"
+	"github.com/grantbirki/noot/internal/goals"
 	"github.com/grantbirki/noot/internal/storage"
 )
 
 // APIServer implements the generated ServerInterface
 type APIServer struct {
-	store storage.Store
+	store        storage.Store
+	goalResolver *goals.GoalResolver
 }
 
 // NewAPIServer creates a new API server instance
-func NewAPIServer(store storage.Store) *APIServer {
-	return &APIServer{
-		store: store,
+func NewAPIServer(store storage.Store) (*APIServer, error) {
+	goalResolver, err := goals.NewGoalResolver()
+	if err != nil {
+		return nil, err
 	}
+	
+	return &APIServer{
+		store:        store,
+		goalResolver: goalResolver,
+	}, nil
 }
 
 // GetHealth implements ServerInterface.GetHealth
@@ -354,6 +363,259 @@ func (s *APIServer) SwaggerUIHandler(c *gin.Context) {
 </html>`
 
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+}
+
+// GetGoals implements ServerInterface.GetGoals
+func (s *APIServer) GetGoals(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get user's custom goals if they're a Pro user
+	var customOverrides *goals.UserOverrides
+	if user.SubscriptionTier == storage.SubscriptionTierPro {
+		userGoal, err := s.store.GetUserGoal(ctx, user.ID, "custom")
+		if err != nil {
+			LogError("Failed to get user goal", err, "user_id", user.ID)
+		} else if userGoal != nil {
+			customOverrides = &goals.UserOverrides{}
+			if err := json.Unmarshal([]byte(userGoal.OverridesJSON), &customOverrides.Overrides); err != nil {
+				LogError("Failed to parse user goal overrides", err, "user_id", user.ID)
+				customOverrides = nil
+			}
+		}
+	}
+
+	// Resolve goals based on user profile
+	resolvedGoals, err := s.goalResolver.ResolveGoals(user.Sex, user.BirthDate, customOverrides)
+	if err != nil {
+		appErr := NewAppError("Failed to resolve nutrition goals", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert to API response format
+	apiTargets := make(map[string]float32)
+	for k, v := range resolvedGoals.Targets {
+		apiTargets[k] = float32(v)
+	}
+	
+	apiUpperLimits := make(map[string]float32)
+	for k, v := range resolvedGoals.UpperLimits {
+		apiUpperLimits[k] = float32(v)
+	}
+
+	apiGoals := api.Goals{
+		Targets:     apiTargets,
+		UpperLimits: apiUpperLimits,
+		Units:       resolvedGoals.Units,
+		Source:      api.GoalsSource(resolvedGoals.Source),
+		LifeStage: api.LifeStage{
+			Sex:        api.LifeStageSex(resolvedGoals.LifeStage.Sex),
+			AgeBracket: resolvedGoals.LifeStage.AgeBracket,
+		},
+	}
+
+	response := api.GoalsResponse{
+		Goals: apiGoals,
+		User:  convertUser(user),
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// UpdateGoals implements ServerInterface.UpdateGoals
+func (s *APIServer) UpdateGoals(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check subscription tier
+	if user.SubscriptionTier != storage.SubscriptionTierPro {
+		appErr := NewAppError("Pro subscription required for custom goals", http.StatusForbidden, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse request body
+	var req api.UpdateGoalsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Validate overrides (basic validation)
+	if len(req.Overrides) == 0 {
+		appErr := NewAppError("At least one override must be provided", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Store the custom overrides
+	overridesJSON, err := json.Marshal(req.Overrides)
+	if err != nil {
+		appErr := NewAppError("Failed to serialize goal overrides", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	userGoal := &storage.UserGoal{
+		UserID:        user.ID,
+		Name:          "custom",
+		OverridesJSON: string(overridesJSON),
+	}
+
+	if err := s.store.UpsertUserGoal(ctx, userGoal); err != nil {
+		appErr := NewAppError("Failed to save custom goals", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Return updated goals
+	s.GetGoals(c)
+}
+
+// GetTrends implements ServerInterface.GetTrends  
+func (s *APIServer) GetTrends(c *gin.Context, params api.GetTrendsParams) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse date range parameters
+	start, end, days, err := parseTrendsDateRangeParams(params.Start, params.End, params.Days)
+	if err != nil {
+		appErr := NewAppError("Invalid date range parameters", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Apply subscription-based limits
+	if err := validateTrendsSubscriptionAccess(user.SubscriptionTier, start, end); err != nil {
+		appErr := NewAppError(err.Error(), http.StatusForbidden, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get consumption data
+	consumptions, err := s.store.GetConsumptionsByUserSince(ctx, user.ID, start)
+	if err != nil {
+		appErr := NewAppError("Failed to get consumptions", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse requested metrics (default to common macros)
+	metrics := []string{"calories", "protein_g", "total_fat_g", "total_carbs_g"}
+	if params.Metrics != nil && *params.Metrics != "" {
+		// Parse comma-separated metrics
+		// TODO: Implement proper parsing and validation
+	}
+
+	// Generate time series data
+	series := generateTimeSeries(consumptions, metrics, start, end)
+
+	response := api.TrendsResponse{
+		Series: series,
+		User:   convertUser(user),
+		DateRange: struct {
+			End   *time.Time `json:"end,omitempty"`
+			Start *time.Time `json:"start,omitempty"`
+		}{
+			Start: &start,
+			End:   &end,
+		},
+		Days: days,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// ExportData implements ServerInterface.ExportData
+func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check subscription tier
+	if user.SubscriptionTier != storage.SubscriptionTierPro {
+		appErr := NewAppError("Pro subscription required for data export", http.StatusForbidden, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse date range parameters  
+	start, end, _, err := parseTrendsDateRangeParams(params.Start, params.End, nil)
+	if err != nil {
+		appErr := NewAppError("Invalid date range parameters", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get consumption data
+	consumptions, err := s.store.GetConsumptionsByUserSince(ctx, user.ID, start)
+	if err != nil {
+		appErr := NewAppError("Failed to get consumptions", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse requested metrics (default to common macros)
+	metrics := []string{"calories", "protein_g", "total_fat_g", "total_carbs_g"}
+	if params.Metrics != nil && *params.Metrics != "" {
+		// TODO: Implement proper parsing and validation
+	}
+
+	if params.Format == "csv" {
+		// Generate CSV export
+		csvData := generateCSVExport(consumptions, metrics, start, end)
+		c.Header("Content-Disposition", "attachment; filename=\"nutrition-export.csv\"")
+		c.Data(http.StatusOK, "text/csv", []byte(csvData))
+	} else {
+		// Generate JSON export (same as trends response)
+		series := generateTimeSeries(consumptions, metrics, start, end)
+		response := api.ExportResponse{
+			Series: series,
+			User:   convertUser(user),
+			DateRange: struct {
+				End   *time.Time `json:"end,omitempty"`
+				Start *time.Time `json:"start,omitempty"`
+			}{
+				Start: &start,
+				End:   &end,
+			},
+			Format: api.ExportResponseFormat(params.Format),
+		}
+		c.JSON(http.StatusOK, response)
+	}
 }
 
 // OpenAPISpecHandler serves the OpenAPI specification
