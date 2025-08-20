@@ -357,12 +357,56 @@ export interface components {
             total_fiber_g: number;
             /** @description Total sodium in milligrams */
             total_sodium_mg: number;
+            /** @description Total saturated fat in grams */
+            total_saturated_fat_g: number;
+            /** @description Total trans fat in grams */
+            total_trans_fat_g: number;
+            /** @description Total cholesterol in milligrams */
+            total_cholesterol_mg: number;
+            /** @description Total sugars in grams */
+            total_sugars_g: number;
+            /** @description Total added sugars in grams */
+            total_added_sugars_g: number;
+            /** @description Total vitamin A in micrograms */
+            total_vitamin_a_mcg: number;
             /** @description Total vitamin C in milligrams */
             total_vitamin_c_mg: number;
+            /** @description Total vitamin D in micrograms */
+            total_vitamin_d_mcg: number;
+            /** @description Total vitamin E in milligrams */
+            total_vitamin_e_mg: number;
+            /** @description Total vitamin K in micrograms */
+            total_vitamin_k_mcg: number;
+            /** @description Total thiamine (B1) in milligrams */
+            total_thiamine_mg: number;
+            /** @description Total riboflavin (B2) in milligrams */
+            total_riboflavin_mg: number;
+            /** @description Total niacin (B3) in milligrams */
+            total_niacin_mg: number;
+            /** @description Total vitamin B6 in milligrams */
+            total_vitamin_b6_mg: number;
+            /** @description Total folate in micrograms */
+            total_folate_mcg: number;
+            /** @description Total vitamin B12 in micrograms */
+            total_vitamin_b12_mcg: number;
             /** @description Total calcium in milligrams */
             total_calcium_mg: number;
             /** @description Total iron in milligrams */
             total_iron_mg: number;
+            /** @description Total magnesium in milligrams */
+            total_magnesium_mg: number;
+            /** @description Total phosphorus in milligrams */
+            total_phosphorus_mg: number;
+            /** @description Total potassium in milligrams */
+            total_potassium_mg: number;
+            /** @description Total zinc in milligrams */
+            total_zinc_mg: number;
+            /** @description Total copper in milligrams */
+            total_copper_mg: number;
+            /** @description Total manganese in milligrams */
+            total_manganese_mg: number;
+            /** @description Total selenium in micrograms */
+            total_selenium_mcg: number;
             /** @description Average calories per day */
             avg_calories_per_day: number;
             /** @description Average protein per day in grams */

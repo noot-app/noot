@@ -732,9 +732,31 @@ components:
         - total_carbs_g
         - total_fiber_g
         - total_sodium_mg
+        - total_saturated_fat_g
+        - total_trans_fat_g
+        - total_cholesterol_mg
+        - total_sugars_g
+        - total_added_sugars_g
+        - total_vitamin_a_mcg
         - total_vitamin_c_mg
+        - total_vitamin_d_mcg
+        - total_vitamin_e_mg
+        - total_vitamin_k_mcg
+        - total_thiamine_mg
+        - total_riboflavin_mg
+        - total_niacin_mg
+        - total_vitamin_b6_mg
+        - total_folate_mcg
+        - total_vitamin_b12_mcg
         - total_calcium_mg
         - total_iron_mg
+        - total_magnesium_mg
+        - total_phosphorus_mg
+        - total_potassium_mg
+        - total_zinc_mg
+        - total_copper_mg
+        - total_manganese_mg
+        - total_selenium_mcg
         - avg_calories_per_day
         - avg_protein_per_day
         - avg_fat_per_day
@@ -775,15 +797,81 @@ components:
         total_sodium_mg:
           type: number
           description: Total sodium in milligrams
+        total_saturated_fat_g:
+          type: number
+          description: Total saturated fat in grams
+        total_trans_fat_g:
+          type: number
+          description: Total trans fat in grams
+        total_cholesterol_mg:
+          type: number
+          description: Total cholesterol in milligrams
+        total_sugars_g:
+          type: number
+          description: Total sugars in grams
+        total_added_sugars_g:
+          type: number
+          description: Total added sugars in grams
+        total_vitamin_a_mcg:
+          type: number
+          description: Total vitamin A in micrograms
         total_vitamin_c_mg:
           type: number
           description: Total vitamin C in milligrams
+        total_vitamin_d_mcg:
+          type: number
+          description: Total vitamin D in micrograms
+        total_vitamin_e_mg:
+          type: number
+          description: Total vitamin E in milligrams
+        total_vitamin_k_mcg:
+          type: number
+          description: Total vitamin K in micrograms
+        total_thiamine_mg:
+          type: number
+          description: Total thiamine (B1) in milligrams
+        total_riboflavin_mg:
+          type: number
+          description: Total riboflavin (B2) in milligrams
+        total_niacin_mg:
+          type: number
+          description: Total niacin (B3) in milligrams
+        total_vitamin_b6_mg:
+          type: number
+          description: Total vitamin B6 in milligrams
+        total_folate_mcg:
+          type: number
+          description: Total folate in micrograms
+        total_vitamin_b12_mcg:
+          type: number
+          description: Total vitamin B12 in micrograms
         total_calcium_mg:
           type: number
           description: Total calcium in milligrams
         total_iron_mg:
           type: number
           description: Total iron in milligrams
+        total_magnesium_mg:
+          type: number
+          description: Total magnesium in milligrams
+        total_phosphorus_mg:
+          type: number
+          description: Total phosphorus in milligrams
+        total_potassium_mg:
+          type: number
+          description: Total potassium in milligrams
+        total_zinc_mg:
+          type: number
+          description: Total zinc in milligrams
+        total_copper_mg:
+          type: number
+          description: Total copper in milligrams
+        total_manganese_mg:
+          type: number
+          description: Total manganese in milligrams
+        total_selenium_mcg:
+          type: number
+          description: Total selenium in micrograms
         avg_calories_per_day:
           type: number
           description: Average calories per day

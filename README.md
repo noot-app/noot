@@ -127,7 +127,7 @@ The API follows OpenAPI `3.0.3` specification:
 
 - **Specification:** `/api/v1/openapi.yaml`
 - **Documentation:** `/api/v1/docs` (Swagger UI, development only)
-- **Generate Types:** `script/validate-types` (requires oapi-codegen via the go toolchain - vendored in this project)
+- **Generate Types:** `script/generate-types` (requires oapi-codegen via the go toolchain - vendored in this project)
 - **Frontend API Types:** Generated automatically by `openapi-typescript` from the OpenAPI spec
 
 ### Database Management

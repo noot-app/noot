@@ -351,6 +351,9 @@ type NutritionSummary struct {
 	// StartDate Start date of the summary period
 	StartDate time.Time `json:"start_date"`
 
+	// TotalAddedSugarsG Total added sugars in grams
+	TotalAddedSugarsG float32 `json:"total_added_sugars_g"`
+
 	// TotalCalciumMg Total calcium in milligrams
 	TotalCalciumMg float32 `json:"total_calcium_mg"`
 
@@ -360,23 +363,86 @@ type NutritionSummary struct {
 	// TotalCarbsG Total carbohydrates in grams
 	TotalCarbsG float32 `json:"total_carbs_g"`
 
+	// TotalCholesterolMg Total cholesterol in milligrams
+	TotalCholesterolMg float32 `json:"total_cholesterol_mg"`
+
+	// TotalCopperMg Total copper in milligrams
+	TotalCopperMg float32 `json:"total_copper_mg"`
+
 	// TotalFatG Total fat in grams
 	TotalFatG float32 `json:"total_fat_g"`
 
 	// TotalFiberG Total fiber in grams
 	TotalFiberG float32 `json:"total_fiber_g"`
 
+	// TotalFolateMcg Total folate in micrograms
+	TotalFolateMcg float32 `json:"total_folate_mcg"`
+
 	// TotalIronMg Total iron in milligrams
 	TotalIronMg float32 `json:"total_iron_mg"`
+
+	// TotalMagnesiumMg Total magnesium in milligrams
+	TotalMagnesiumMg float32 `json:"total_magnesium_mg"`
+
+	// TotalManganeseMg Total manganese in milligrams
+	TotalManganeseMg float32 `json:"total_manganese_mg"`
+
+	// TotalNiacinMg Total niacin (B3) in milligrams
+	TotalNiacinMg float32 `json:"total_niacin_mg"`
+
+	// TotalPhosphorusMg Total phosphorus in milligrams
+	TotalPhosphorusMg float32 `json:"total_phosphorus_mg"`
+
+	// TotalPotassiumMg Total potassium in milligrams
+	TotalPotassiumMg float32 `json:"total_potassium_mg"`
 
 	// TotalProteinG Total protein in grams
 	TotalProteinG float32 `json:"total_protein_g"`
 
+	// TotalRiboflavinMg Total riboflavin (B2) in milligrams
+	TotalRiboflavinMg float32 `json:"total_riboflavin_mg"`
+
+	// TotalSaturatedFatG Total saturated fat in grams
+	TotalSaturatedFatG float32 `json:"total_saturated_fat_g"`
+
+	// TotalSeleniumMcg Total selenium in micrograms
+	TotalSeleniumMcg float32 `json:"total_selenium_mcg"`
+
 	// TotalSodiumMg Total sodium in milligrams
 	TotalSodiumMg float32 `json:"total_sodium_mg"`
 
+	// TotalSugarsG Total sugars in grams
+	TotalSugarsG float32 `json:"total_sugars_g"`
+
+	// TotalThiamineMg Total thiamine (B1) in milligrams
+	TotalThiamineMg float32 `json:"total_thiamine_mg"`
+
+	// TotalTransFatG Total trans fat in grams
+	TotalTransFatG float32 `json:"total_trans_fat_g"`
+
+	// TotalVitaminAMcg Total vitamin A in micrograms
+	TotalVitaminAMcg float32 `json:"total_vitamin_a_mcg"`
+
+	// TotalVitaminB12Mcg Total vitamin B12 in micrograms
+	TotalVitaminB12Mcg float32 `json:"total_vitamin_b12_mcg"`
+
+	// TotalVitaminB6Mg Total vitamin B6 in milligrams
+	TotalVitaminB6Mg float32 `json:"total_vitamin_b6_mg"`
+
 	// TotalVitaminCMg Total vitamin C in milligrams
 	TotalVitaminCMg float32 `json:"total_vitamin_c_mg"`
+
+	// TotalVitaminDMcg Total vitamin D in micrograms
+	TotalVitaminDMcg float32 `json:"total_vitamin_d_mcg"`
+
+	// TotalVitaminEMg Total vitamin E in milligrams
+	TotalVitaminEMg float32 `json:"total_vitamin_e_mg"`
+
+	// TotalVitaminKMcg Total vitamin K in micrograms
+	TotalVitaminKMcg float32 `json:"total_vitamin_k_mcg"`
+
+	// TotalZincMg Total zinc in milligrams
+	TotalZincMg float32 `json:"total_zinc_mg"`
 
 	// UserId User ID
 	UserId string `json:"user_id"`

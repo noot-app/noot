@@ -49,8 +49,20 @@
     return value.toFixed(0);
   }
 
-  // Key nutrients to display
-  const keyNutrients = ["calories", "protein_g", "total_carbs_g", "total_fat_g", "vitamin_c_mg", "calcium_mg", "iron_mg"];
+  // Key nutrients to display - organized by importance
+  const keyNutrients = [
+    // Essential macronutrients
+    "protein_g", "total_carbs_g", "dietary_fiber_g", "sodium_mg",
+    
+    // Important vitamins
+    "vitamin_c_mg", "vitamin_d_mcg", "vitamin_a_mcg", "folate_mcg", "vitamin_b12_mcg",
+    
+    // Essential minerals
+    "calcium_mg", "iron_mg", "magnesium_mg", "potassium_mg", "zinc_mg",
+    
+    // Additional important nutrients
+    "vitamin_e_mg", "thiamine_mg", "riboflavin_mg", "niacin_mg"
+  ];
 </script>
 
 <div class="card bg-base-200 shadow-lg">
@@ -106,12 +118,12 @@
                 </div>
                 <div class="flex items-center gap-2">
                   <progress 
-                    class="progress progress-primary flex-1" 
+                    class="progress flex-1"
+                    class:progress-primary={progress < 50}
+                    class:progress-warning={progress >= 50 && progress < 80}
+                    class:progress-success={progress >= 80}
                     value={progress} 
                     max="100"
-                    class:progress-success={progress >= 80}
-                    class:progress-warning={progress >= 50 && progress < 80}
-                    class:progress-error={progress < 50}
                   ></progress>
                   <span class="text-xs text-base-content/60 min-w-[3rem]">
                     {progress.toFixed(0)}%
@@ -124,12 +136,15 @@
 
         <!-- Summary Stats -->
         {#if goals}
+          {@const availableNutrients = keyNutrients.filter(n => goals?.targets[n])}
+          {@const metGoals = availableNutrients.filter(n => goals?.targets[n] && getProgress(n, currentNutrition[n] || 0) >= 80).length}
+          
           <div class="stats stats-vertical lg:stats-horizontal bg-base-100 shadow-sm">
             <div class="stat">
               <div class="stat-title">Goals Met</div>
               <div class="stat-value text-lg">
-                {keyNutrients.filter(n => goals.targets[n] && getProgress(n, currentNutrition[n] || 0) >= 80).length}
-                <span class="text-sm">/{keyNutrients.filter(n => goals.targets[n]).length}</span>
+                {metGoals}
+                <span class="text-sm">/{availableNutrients.length}</span>
               </div>
               <div class="stat-desc">≥80% of target</div>
             </div>
@@ -154,7 +169,7 @@
   progress.progress-warning {
     --progress-color: oklch(var(--wa));
   }
-  progress.progress-error {
+  progress.progress-primary {
     --progress-color: oklch(var(--er));
   }
 </style>
