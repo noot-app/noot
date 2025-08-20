@@ -4,8 +4,10 @@
   import { expoOut } from "svelte/easing"
   import { slide } from "svelte/transition"
   import { onMount } from "svelte"
+  import { dev } from '$app/environment';
   import { units } from "$lib/stores/units"
   import Navbar from "$lib/components/Navbar.svelte"
+  import DevBanner from "$lib/components/DevBanner.svelte"
 
   interface Props {
     children?: import("svelte").Snippet
@@ -17,6 +19,8 @@
     units.init();
   });
 </script>
+
+<DevBanner />
 
 {#if $navigating}
   <!-- 
