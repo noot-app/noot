@@ -32,17 +32,17 @@
   });
 
   function getProgress(nutrient: string, current: number): number {
-    if (!goals?.targets[nutrient]) return 0;
+    if (goals?.targets[nutrient] === undefined) return 0;
     return Math.min((current / goals.targets[nutrient]) * 100, 100);
   }
 
   function getActualProgress(nutrient: string, current: number): number {
-    if (!goals?.targets[nutrient]) return 0;
+    if (goals?.targets[nutrient] === undefined) return 0;
     return (current / goals.targets[nutrient]) * 100;
   }
 
   function getOverageText(nutrient: string, current: number): string {
-    if (!goals?.targets[nutrient]) return "";
+    if (goals?.targets[nutrient] === undefined) return "";
     const actualProgress = (current / goals.targets[nutrient]) * 100;
     if (actualProgress <= 100) return "";
     const overage = actualProgress - 100;
@@ -181,8 +181,8 @@
 
         <!-- Summary Stats -->
         {#if goals}
-          {@const availableNutrients = keyNutrients.filter(n => goals?.targets[n])}
-          {@const metGoals = availableNutrients.filter(n => goals?.targets[n] && getProgress(n, currentNutrition[n] || 0) >= 80).length}
+          {@const availableNutrients = keyNutrients.filter(n => goals?.targets[n] !== undefined)}
+          {@const metGoals = availableNutrients.filter(n => goals?.targets[n] !== undefined && getProgress(n, currentNutrition[n] || 0) >= 80).length}
           
           <div class="stats stats-vertical lg:stats-horizontal bg-base-100 shadow-sm">
             <div class="stat">

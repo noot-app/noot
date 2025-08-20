@@ -102,7 +102,7 @@ func TestResolveGoals(t *testing.T) {
 	}
 
 	// Verify we have comprehensive nutrient coverage
-	expectedMinimumNutrients := 35 // Should have at least 35 nutrients with DRI + DV data
+	expectedMinimumNutrients := 39 // Should have 39 nutrients with complete DRI coverage
 	if len(goals.Targets) < expectedMinimumNutrients {
 		t.Errorf("Expected at least %d nutrition targets, got %d", expectedMinimumNutrients, len(goals.Targets))
 	}

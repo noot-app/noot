@@ -275,21 +275,21 @@ func (r *GoalResolver) mapNutrientToAPIKey(driName string) string {
 		"choline":             "choline_mg",
 
 		// Minerals - map to API field names
-		"calcium":     "calcium_mg",
-		"iron":        "iron_mg",
-		"magnesium":   "magnesium_mg",
-		"phosphorus":  "phosphorus_mg",
-		"potassium":   "potassium_mg",
-		"zinc":        "zinc_mg",
-		"copper":      "copper_mg",
-		"manganese":   "manganese_mg",
-		"selenium":    "selenium_mcg",
-		"sodium":      "sodium_mg",
-		"chloride":    "chloride_mg",
-		"chromium":    "chromium_mcg",
-		"fluoride":    "fluoride_mg",
-		"iodine":      "iodine_mcg",
-		"molybdenum":  "molybdenum_mcg",
+		"calcium":    "calcium_mg",
+		"iron":       "iron_mg",
+		"magnesium":  "magnesium_mg",
+		"phosphorus": "phosphorus_mg",
+		"potassium":  "potassium_mg",
+		"zinc":       "zinc_mg",
+		"copper":     "copper_mg",
+		"manganese":  "manganese_mg",
+		"selenium":   "selenium_mcg",
+		"sodium":     "sodium_mg",
+		"chloride":   "chloride_mg",
+		"chromium":   "chromium_mcg",
+		"fluoride":   "fluoride_mg",
+		"iodine":     "iodine_mcg",
+		"molybdenum": "molybdenum_mcg",
 	}
 
 	if apiKey, exists := mapping[driName]; exists {
@@ -308,13 +308,14 @@ func (r *GoalResolver) mapNutrientToAPIKey(driName string) string {
 func (r *GoalResolver) addDVNutrients(goals *Goals) {
 	// Nutrients to add from DV data that typically aren't in DRI
 	dvNutrients := map[string]string{
-		"calories":        "calories",      // Standard calorie target for adults
-		"fat_total":       "total_fat_g",
-		"saturated_fat":   "saturated_fat_g",
-		"cholesterol":     "cholesterol_mg",
-		"total_sugars":    "total_sugars_g",
-		"added_sugars":    "added_sugars_g",
-		"chloride":        "chloride_mg",
+		"calories":      "calories", // Standard calorie target for adults
+		"fat_total":     "total_fat_g",
+		"saturated_fat": "saturated_fat_g",
+		"trans_fat":     "trans_fat_g",
+		"cholesterol":   "cholesterol_mg",
+		"total_sugars":  "total_sugars_g",
+		"added_sugars":  "added_sugars_g",
+		"chloride":      "chloride_mg",
 	}
 
 	for dvKey, apiKey := range dvNutrients {
@@ -331,6 +332,18 @@ func (r *GoalResolver) addDVNutrients(goals *Goals) {
 	if _, exists := goals.Targets["calories"]; !exists {
 		goals.Targets["calories"] = 2000
 		goals.Units["calories"] = "kcal"
+	}
+
+	// Add nutrients that don't have FDA DV but should be tracked
+	// These are nutrients in CompleteNutrient that need values for completeness
+	if _, exists := goals.Targets["total_sugars_g"]; !exists {
+		goals.Targets["total_sugars_g"] = 0 // No specific recommendation, track for awareness
+		goals.Units["total_sugars_g"] = "g"
+	}
+
+	if _, exists := goals.Targets["trans_fat_g"]; !exists {
+		goals.Targets["trans_fat_g"] = 0 // Should be minimized, no safe level
+		goals.Units["trans_fat_g"] = "g"
 	}
 }
 
