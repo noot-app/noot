@@ -72,7 +72,7 @@ func TestSQLiteStore(t *testing.T) {
 			TotalProtein:  2,
 			TotalFat:      0.5,
 			TotalCarbs:    50,
-			DietaryFiber:    8,
+			DietaryFiber:  8,
 			TotalSodium:   2,
 		}
 
@@ -446,7 +446,7 @@ func TestSQLiteStore(t *testing.T) {
 			TotalProtein:  10,
 			TotalFat:      5,
 			TotalCarbs:    60,
-			DietaryFiber:    8,
+			DietaryFiber:  8,
 			TotalSodium:   100,
 		}
 		err = store.CreateConsumption(ctx, consumption1)
@@ -460,7 +460,7 @@ func TestSQLiteStore(t *testing.T) {
 			TotalProtein:  25,
 			TotalFat:      20,
 			TotalCarbs:    45,
-			DietaryFiber:    5,
+			DietaryFiber:  5,
 			TotalSodium:   800,
 		}
 		err = store.CreateConsumption(ctx, consumption2)
