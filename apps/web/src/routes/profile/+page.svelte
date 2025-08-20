@@ -396,7 +396,7 @@
       <div class="text-center space-y-6">
         <!-- Meme Header -->
         <div class="text-6xl">🚫</div>
-        <h3 class="font-bold text-2xl text-error">LOL NO.</h3>
+        <h3 class="font-bold text-2xl" style="color: var(--color-dark);">LOL NO.</h3>
         
         <!-- Meme Content -->
         <div class="space-y-4 text-lg">
