@@ -103,8 +103,18 @@ func TestResolveGoals(t *testing.T) {
 
 	// Verify we have comprehensive nutrient coverage
 	expectedMinimumNutrients := 39 // Should have 39 nutrients with complete DRI coverage
-	if len(goals.Targets) < expectedMinimumNutrients {
-		t.Errorf("Expected at least %d nutrition targets, got %d", expectedMinimumNutrients, len(goals.Targets))
+	totalNutrients := len(goals.Targets) + len(goals.UpperLimits)
+	if totalNutrients < expectedMinimumNutrients {
+		t.Errorf("Expected at least %d total nutrition values (targets + upper limits), got %d targets + %d upper limits = %d total",
+			expectedMinimumNutrients, len(goals.Targets), len(goals.UpperLimits), totalNutrients)
+	}
+
+	// Verify upper limits are set for nutrients that should be minimized
+	expectedUpperLimits := []string{"added_sugars_g", "saturated_fat_g", "trans_fat_g", "cholesterol_mg"}
+	for _, nutrient := range expectedUpperLimits {
+		if _, exists := goals.UpperLimits[nutrient]; !exists {
+			t.Errorf("Expected upper limit for %s but not found", nutrient)
+		}
 	}
 
 	// Test with custom overrides

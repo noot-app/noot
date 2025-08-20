@@ -222,13 +222,26 @@ func (r *GoalResolver) getDRIGoals(sex, ageBracket string) (*Goals, error) {
 
 // extractNutrientValues extracts nutrient values from DRI data
 func (r *GoalResolver) extractNutrientValues(data map[string]interface{}, goals *Goals, category string) {
+	// Define nutrients that should be upper limits (minimize intake)
+	upperLimitNutrients := map[string]bool{
+		"added_sugars_g":  true,
+		"saturated_fat_g": true,
+		"trans_fat_g":     true,
+		"cholesterol_mg":  true,
+	}
+
 	for nutrient, valueData := range data {
 		if valueMap, ok := valueData.(map[string]interface{}); ok {
 			if value, ok := valueMap["value"].(float64); ok && value > 0 {
 				// Map DRI nutrient names to API nutrient keys
 				apiKey := r.mapNutrientToAPIKey(nutrient)
 				if apiKey != "" {
-					goals.Targets[apiKey] = value
+					// Check if this should be an upper limit or a target
+					if upperLimitNutrients[apiKey] {
+						goals.UpperLimits[apiKey] = value
+					} else {
+						goals.Targets[apiKey] = value
+					}
 
 					// Extract unit
 					if unit, ok := valueMap["unit"].(string); ok {
@@ -318,12 +331,27 @@ func (r *GoalResolver) addDVNutrients(goals *Goals) {
 		"chloride":      "chloride_mg",
 	}
 
+	// Define nutrients that should be upper limits (minimize intake)
+	upperLimitNutrients := map[string]bool{
+		"added_sugars_g":  true,
+		"saturated_fat_g": true,
+		"trans_fat_g":     true,
+		"cholesterol_mg":  true,
+	}
+
 	for dvKey, apiKey := range dvNutrients {
-		// Only add if not already present from DRI data
-		if _, exists := goals.Targets[apiKey]; !exists {
-			if entry, exists := r.dvData.FDADailyValues[dvKey]; exists {
-				goals.Targets[apiKey] = entry.Value
-				goals.Units[apiKey] = r.normalizeUnit(entry.Unit)
+		// Only add if not already present from DRI data (in either targets or upper limits)
+		if _, existsInTargets := goals.Targets[apiKey]; !existsInTargets {
+			if _, existsInUpperLimits := goals.UpperLimits[apiKey]; !existsInUpperLimits {
+				if entry, exists := r.dvData.FDADailyValues[dvKey]; exists {
+					// Check if this should be an upper limit or a target
+					if upperLimitNutrients[apiKey] {
+						goals.UpperLimits[apiKey] = entry.Value
+					} else {
+						goals.Targets[apiKey] = entry.Value
+					}
+					goals.Units[apiKey] = r.normalizeUnit(entry.Unit)
+				}
 			}
 		}
 	}
@@ -336,14 +364,38 @@ func (r *GoalResolver) addDVNutrients(goals *Goals) {
 
 	// Add nutrients that don't have FDA DV but should be tracked
 	// These are nutrients in CompleteNutrient that need values for completeness
-	if _, exists := goals.Targets["total_sugars_g"]; !exists {
-		goals.Targets["total_sugars_g"] = 0 // No specific recommendation, track for awareness
-		goals.Units["total_sugars_g"] = "g"
+	if _, existsInTargets := goals.Targets["total_sugars_g"]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits["total_sugars_g"]; !existsInUpperLimits {
+			goals.Targets["total_sugars_g"] = 0 // No specific recommendation, track for awareness
+			goals.Units["total_sugars_g"] = "g"
+		}
 	}
 
-	if _, exists := goals.Targets["trans_fat_g"]; !exists {
-		goals.Targets["trans_fat_g"] = 0 // Should be minimized, no safe level
-		goals.Units["trans_fat_g"] = "g"
+	if _, existsInTargets := goals.Targets["trans_fat_g"]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits["trans_fat_g"]; !existsInUpperLimits {
+			// Trans fat should be an upper limit of 0 (minimize intake)
+			goals.UpperLimits["trans_fat_g"] = 0
+			goals.Units["trans_fat_g"] = "g"
+		}
+	}
+
+	// Add default upper limits for nutrients that should be minimized if not already set
+	if _, exists := goals.UpperLimits["added_sugars_g"]; !exists {
+		// WHO/IOM recommendation: <10% of total calories, using 2000 kcal = 50g
+		goals.UpperLimits["added_sugars_g"] = 50
+		goals.Units["added_sugars_g"] = "g"
+	}
+
+	if _, exists := goals.UpperLimits["saturated_fat_g"]; !exists {
+		// AHA recommendation: <10% of total calories, using 2000 kcal = ~22g
+		goals.UpperLimits["saturated_fat_g"] = 22
+		goals.Units["saturated_fat_g"] = "g"
+	}
+
+	if _, exists := goals.UpperLimits["cholesterol_mg"]; !exists {
+		// AHA recommendation: <300mg per day
+		goals.UpperLimits["cholesterol_mg"] = 300
+		goals.Units["cholesterol_mg"] = "mg"
 	}
 }
 
