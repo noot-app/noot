@@ -219,8 +219,6 @@ func (p *OpenAIProvider) TranscribeAudio(ctx context.Context, filePath, mimeType
 
 // ParseItems implements AIProvider.ParseItems
 func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) (ParsedItems, error) {
-	LogDebug("Starting OpenAI item parsing", "model", p.config.ParseModel, "transcript_length", len(transcriptText))
-
 	system := p.parseItemsSystemPrompt()
 	user := "Meal: " + transcriptText
 
@@ -272,8 +270,7 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 		content = out.Choices[0].Message.Content
 	}
 
-	LogDebug("OpenAI item parsing response received", "content_length", len(content))
-	LogDebug("OpenAI response content", "content", content)
+	LogDebug("OpenAI item parsing response received", "content_length", len(content), "content", content)
 
 	var parsed ParsedItems
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
@@ -297,13 +294,15 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 		})
 	}
 
-	LogDebug("Item parsing completed", "items_found", len(clean))
+	LogDebug("Item parsing completed", "items_found", len(clean), "items", clean)
 	return ParsedItems{Items: clean}, nil
 }
 
 // GetNutrition implements AIProvider.GetNutrition
 func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteNutrient, error) {
 	system := p.nutritionSystemPrompt()
+
+	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name)
 
 	// Build user message with item details
 	var userMsg strings.Builder
@@ -375,6 +374,8 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 		LogWarn("Failed to parse nutrition JSON", "content", content, "error", err.Error())
 		return CompleteNutrient{}, NewAppError("Failed to parse nutrition data", http.StatusInternalServerError, err)
 	}
+
+	LogDebug("CompleteNutrient resolved", "item", item.Name, "nutrients", result.Nutrients)
 
 	return result.Nutrients, nil
 }
