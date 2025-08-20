@@ -201,28 +201,26 @@ func TestUnitConverter_EstimateServingWeight(t *testing.T) {
 		expected float64
 	}{
 		{
-			name: "item with quantity and standard unit (grams)",
+			name: "item with grams",
 			item: Item{
-				Name:     "Rice",
-				Quantity: float64Ptr(150),
-				Unit:     stringPtr("g"),
+				Name:  "Rice",
+				Grams: 150.0,
 			},
 			expected: 150,
 		},
 		{
-			name: "item with quantity and standard unit (cups)",
+			name: "item with different grams amount",
 			item: Item{
-				Name:     "Milk",
-				Quantity: float64Ptr(1),
-				Unit:     stringPtr("cup"),
+				Name:  "Milk",
+				Grams: 240.0,
 			},
 			expected: 240,
 		},
 		{
 			name: "item with quantity but no unit (assumes grams)",
 			item: Item{
-				Name:     "Rice",
-				Quantity: float64Ptr(150),
+				Name:  "Rice",
+				Grams: 150.0,
 			},
 			expected: 150,
 		},
@@ -237,8 +235,8 @@ func TestUnitConverter_EstimateServingWeight(t *testing.T) {
 			name: "item with non-standard unit (pieces - returns as-is since LLM handles it)",
 			item: Item{
 				Name:     "Apple",
-				Quantity: float64Ptr(2),
-				Unit:     stringPtr("pieces"),
+				Grams:    2.0,
+				UserUnit: stringPtr("pieces"),
 			},
 			expected: 2, // Non-standard units return the quantity as-is
 		},

@@ -104,6 +104,6 @@ func TestOpenAIProvider_NutritionSystemPrompt(t *testing.T) {
 	assert.Contains(t, prompt, "total_fat_g")
 	assert.Contains(t, prompt, "vitamin_a_mcg")
 	assert.Contains(t, prompt, "calcium_mg")
-	assert.Contains(t, prompt, "NUTRITION DATA ACCURACY")
-	assert.Contains(t, prompt, "QUANTITY-ADJUSTED")
+	assert.Contains(t, prompt, "WEIGHT-BASED NUTRITION")
+	assert.Contains(t, prompt, "ACCURACY REFERENCE")
 }

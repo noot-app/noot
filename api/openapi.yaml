@@ -558,18 +558,22 @@ components:
       type: object
       required:
         - name
+        - grams
       properties:
         name:
           type: string
           description: Name of the food item
-        quantity:
+        grams:
+          type: number
+          description: Weight in grams (standardized internally)
+        user_quantity:
           type: number
           nullable: true
-          description: Quantity consumed
-        unit:
+          description: Original user input quantity for display
+        user_unit:
           type: string
           nullable: true
-          description: Unit of measurement
+          description: Original user input unit for display
         brand:
           type: string
           nullable: true

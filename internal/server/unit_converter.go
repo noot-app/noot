@@ -67,34 +67,15 @@ func (c *UnitConverter) ConvertFromServingToPer100g(servingValue float64, servin
 	return servingValue * (100.0 / servingGrams)
 }
 
-// EstimateServingWeight attempts to estimate weight for standard measurement units only
-// For food-specific units like "pieces" or "medium", the LLM handles the conversion
+// EstimateServingWeight is now deprecated since we use grams directly from OpenAI parsing
+// Keeping for backwards compatibility with existing cache conversion logic
 func (c *UnitConverter) EstimateServingWeight(item Item) (float64, error) {
-	if item.Quantity == nil {
-		// No quantity specified - use a default weight for per-100g calculations
-		return 100.0, nil
+	// If no grams specified, return default 100g for backwards compatibility
+	if item.Grams == 0 {
+		return 100, nil
 	}
-
-	quantity := *item.Quantity
-	unit := ""
-	if item.Unit != nil {
-		unit = *item.Unit
-	}
-
-	// If no unit specified, assume grams for numeric quantities
-	if unit == "" {
-		return quantity, nil
-	}
-
-	// Try to convert standard measurement units to grams
-	// For food-specific units, just return the quantity since LLM handles the conversion
-	if grams, err := c.ConvertToGrams(quantity, unit); err == nil {
-		return grams, nil
-	}
-
-	// For non-standard units, return the original quantity
-	// The LLM already converted this to proper serving nutrition values
-	return quantity, nil
+	// Just return the grams since that's what we have now
+	return item.Grams, nil
 }
 
 // RoundToDecimalPlaces rounds a float64 to the specified number of decimal places
