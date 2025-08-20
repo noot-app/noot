@@ -16,6 +16,8 @@
   // Form state
   let customName = "";
   let customTargets: Record<string, number> = {};
+  let showImperialModal = false;
+  let selectedUnits = "metric"; // Track unit system selection
 
   onMount(async () => {
     await loadGoals();
@@ -105,6 +107,15 @@
       customTargets[key] = value;
     }
     customTargets = { ...customTargets }; // Trigger reactivity
+  }
+
+  function openImperialModal() {
+    showImperialModal = true;
+  }
+
+  function closeImperialModal() {
+    showImperialModal = false;
+    selectedUnits = "metric"; // Force selection back to metric
   }
 </script>
 
@@ -275,13 +286,26 @@
                 <div class="form-control">
                   <label class="label cursor-pointer">
                     <span class="label-text">Metric (grams, milligrams)</span> 
-                    <input type="radio" name="units" class="radio radio-primary" checked />
+                    <input 
+                      type="radio" 
+                      name="units" 
+                      class="radio radio-primary" 
+                      bind:group={selectedUnits} 
+                      value="metric"
+                    />
                   </label>
                 </div>
                 <div class="form-control">
                   <label class="label cursor-pointer">
                     <span class="label-text">Imperial (ounces, pounds)</span> 
-                    <input type="radio" name="units" class="radio radio-primary" />
+                    <input 
+                      type="radio" 
+                      name="units" 
+                      class="radio radio-primary" 
+                      bind:group={selectedUnits} 
+                      value="imperial"
+                      on:change={openImperialModal}
+                    />
                   </label>
                 </div>
               </div>
@@ -305,3 +329,62 @@
     {/if}
   </div>
 </div>
+
+<!-- Imperial System Meme Modal -->
+{#if showImperialModal}
+  <div class="modal modal-open">
+    <div class="modal-box max-w-2xl">
+      <div class="text-center space-y-6">
+        <!-- Meme Header -->
+        <div class="text-6xl">🚫</div>
+        <h3 class="font-bold text-2xl text-error">LOL NO.</h3>
+        
+        <!-- Meme Content -->
+        <div class="space-y-4 text-lg">
+          <p>You can't use Imperial units on this site.</p>
+          <p class="font-semibold text-primary">This site uses the METRIC SYSTEM because it is SUPERIOR! 🧑‍🔬</p>
+          
+          <div class="bg-base-200 p-4 rounded-box space-y-2">
+            <p class="text-sm">🌍 Used by 95% of the world</p>
+            <p class="text-sm">🧮 Base-10, actually makes sense</p>
+            <p class="text-sm">🚀 Used by NASA (even though they're American)</p>
+            <p class="text-sm">🔬 All scientific research uses metric</p>
+            <p class="text-sm">💊 Your medicine dosages? Metric.</p>
+            <p class="text-sm">🏃‍♂️ Olympic records? Metric.</p>
+          </div>
+          
+          <div class="text-base space-y-2">
+            <p>Imperial is just...</p>
+            <p class="italic">"12 inches in a foot, 3 feet in a yard, 1760 yards in a mile"</p>
+            <p class="font-bold">vs.</p>
+            <p class="italic">"10mm = 1cm, 100cm = 1m, 1000m = 1km"</p>
+            <p class="text-primary font-semibold">See the difference? 🤯</p>
+          </div>
+          
+          <div class="text-sm text-base-content/70">
+            <p>Even the UK switched to metric for most things.</p>
+            <p>It's time to let go of the past. 📏➡️📐</p>
+          </div>
+        </div>
+        
+        <!-- Acknowledgment Button -->
+        <div class="modal-action justify-center">
+          <button 
+            class="btn btn-success btn-lg"
+            on:click={closeImperialModal}
+          >
+            I acknowledge that the metric system is better
+          </button>
+        </div>
+      </div>
+    </div>
+    <div 
+      class="modal-backdrop" 
+      on:click={closeImperialModal}
+      on:keydown={(e) => e.key === 'Escape' && closeImperialModal()}
+      role="button" 
+      tabindex="0"
+      aria-label="Close modal"
+    ></div>
+  </div>
+{/if}
