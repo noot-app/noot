@@ -175,7 +175,7 @@ func convertInternalNutritionSummaryToAPI(internal *storage.NutritionSummary) ap
 		TotalProteinG:      float32(internal.TotalProtein),
 		TotalCarbsG:        float32(internal.TotalCarbs),
 		TotalFatG:          float32(internal.TotalFat),
-		TotalFiberG:        float32(internal.TotalFiber),
+		TotalFiberG:        float32(internal.DietaryFiber),
 		TotalSodiumMg:      float32(internal.TotalSodium),
 		TotalSaturatedFatG: float32(internal.TotalSaturatedFat),
 		TotalTransFatG:     float32(internal.TotalTransFat),

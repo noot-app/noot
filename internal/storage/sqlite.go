@@ -167,14 +167,16 @@ func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject st
 // CreateConsumption creates a new consumption
 func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consumption) error {
 	query := `
-		INSERT INTO consumptions (id, user_id, transcript, items_json, total_calories, total_protein_g, 
-						  total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg,
+		INSERT INTO consumptions (id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g, 
+						  total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 						  saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 						  vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
 						  thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg, vitamin_b12_mcg,
+						  biotin_mcg, pantothenic_acid_mg, choline_mg,
 						  calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
-						  zinc_mg, copper_mg, manganese_mg, selenium_mcg, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+						  zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg,
+						  chromium_mcg, fluoride_mg, chloride_mg, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
 	consumption.ID = generateULID()
@@ -182,15 +184,18 @@ func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consum
 
 	_, err := s.db.ExecContext(ctx, query,
 		consumption.ID, consumption.UserID, consumption.Transcript, consumption.ItemsJSON,
+		consumption.UserQuantity, consumption.UserUnit,
 		consumption.TotalCalories, consumption.TotalProtein, consumption.TotalFat,
-		consumption.TotalCarbs, consumption.TotalFiber, consumption.TotalSodium,
+		consumption.TotalCarbs, consumption.DietaryFiber, consumption.TotalSodium,
 		consumption.SaturatedFat, consumption.TransFat, consumption.Cholesterol,
 		consumption.TotalSugars, consumption.AddedSugars, consumption.VitaminA, consumption.VitaminC,
 		consumption.VitaminD, consumption.VitaminE, consumption.VitaminK, consumption.Thiamine,
 		consumption.Riboflavin, consumption.Niacin, consumption.VitaminB6, consumption.Folate,
-		consumption.VitaminB12, consumption.Calcium, consumption.Iron, consumption.Magnesium,
+		consumption.VitaminB12, consumption.Biotin, consumption.PantothenicAcid, consumption.Choline,
+		consumption.Calcium, consumption.Iron, consumption.Magnesium,
 		consumption.Phosphorus, consumption.Potassium, consumption.Zinc, consumption.Copper,
-		consumption.Manganese, consumption.Selenium, now)
+		consumption.Manganese, consumption.Selenium, consumption.Iodine, consumption.Molybdenum,
+		consumption.Chromium, consumption.Fluoride, consumption.Chloride, now)
 	if err != nil {
 		return fmt.Errorf("failed to create consumption: %w", err)
 	}
@@ -201,27 +206,32 @@ func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consum
 // GetConsumption retrieves a consumption by ID
 func (s *SQLiteStore) GetConsumption(ctx context.Context, id string) (*Consumption, error) {
 	query := `
-		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
-			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg,
+		SELECT id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g,
+			   total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
 			   thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg, vitamin_b12_mcg,
+			   biotin_mcg, pantothenic_acid_mg, choline_mg,
 			   calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
-			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, created_at
+			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg,
+			   chromium_mcg, fluoride_mg, chloride_mg, created_at, updated_at
 		FROM consumptions WHERE id = ?`
 
 	consumption := &Consumption{}
 	err := s.db.QueryRowContext(ctx, query, id).
 		Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
+			&consumption.UserQuantity, &consumption.UserUnit,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
-			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium,
+			&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
 			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
 			&consumption.TotalSugars, &consumption.AddedSugars, &consumption.VitaminA, &consumption.VitaminC,
 			&consumption.VitaminD, &consumption.VitaminE, &consumption.VitaminK, &consumption.Thiamine,
 			&consumption.Riboflavin, &consumption.Niacin, &consumption.VitaminB6, &consumption.Folate,
-			&consumption.VitaminB12, &consumption.Calcium, &consumption.Iron, &consumption.Magnesium,
+			&consumption.VitaminB12, &consumption.Biotin, &consumption.PantothenicAcid, &consumption.Choline,
+			&consumption.Calcium, &consumption.Iron, &consumption.Magnesium,
 			&consumption.Phosphorus, &consumption.Potassium, &consumption.Zinc, &consumption.Copper,
-			&consumption.Manganese, &consumption.Selenium, &consumption.CreatedAt)
+			&consumption.Manganese, &consumption.Selenium, &consumption.Iodine, &consumption.Molybdenum,
+			&consumption.Chromium, &consumption.Fluoride, &consumption.Chloride, &consumption.CreatedAt, &consumption.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Consumption not found
@@ -235,13 +245,15 @@ func (s *SQLiteStore) GetConsumption(ctx context.Context, id string) (*Consumpti
 // GetConsumptionsByUser retrieves consumptions for a user with pagination
 func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, limit, offset int) ([]*Consumption, error) {
 	query := `
-		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
-			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg,
+		SELECT id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g,
+			   total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
 			   thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg, vitamin_b12_mcg,
+			   biotin_mcg, pantothenic_acid_mg, choline_mg,
 			   calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
-			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, created_at
+			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg,
+			   chromium_mcg, fluoride_mg, chloride_mg, created_at, updated_at
 		FROM consumptions WHERE user_id = ?
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
@@ -256,15 +268,18 @@ func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, 
 	for rows.Next() {
 		consumption := &Consumption{}
 		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
+			&consumption.UserQuantity, &consumption.UserUnit,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
-			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium,
+			&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
 			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
 			&consumption.TotalSugars, &consumption.AddedSugars, &consumption.VitaminA, &consumption.VitaminC,
 			&consumption.VitaminD, &consumption.VitaminE, &consumption.VitaminK, &consumption.Thiamine,
 			&consumption.Riboflavin, &consumption.Niacin, &consumption.VitaminB6, &consumption.Folate,
-			&consumption.VitaminB12, &consumption.Calcium, &consumption.Iron, &consumption.Magnesium,
+			&consumption.VitaminB12, &consumption.Biotin, &consumption.PantothenicAcid, &consumption.Choline,
+			&consumption.Calcium, &consumption.Iron, &consumption.Magnesium,
 			&consumption.Phosphorus, &consumption.Potassium, &consumption.Zinc, &consumption.Copper,
-			&consumption.Manganese, &consumption.Selenium, &consumption.CreatedAt)
+			&consumption.Manganese, &consumption.Selenium, &consumption.Iodine, &consumption.Molybdenum,
+			&consumption.Chromium, &consumption.Fluoride, &consumption.Chloride, &consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
@@ -281,13 +296,15 @@ func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, 
 // GetConsumptionsByUserSince retrieves consumptions for a user since a specific time
 func (s *SQLiteStore) GetConsumptionsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Consumption, error) {
 	query := `
-		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
-			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg,
+		SELECT id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g,
+			   total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
 			   thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg, vitamin_b12_mcg,
+			   biotin_mcg, pantothenic_acid_mg, choline_mg,
 			   calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
-			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, created_at
+			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg,
+			   chromium_mcg, fluoride_mg, chloride_mg, created_at, updated_at
 		FROM consumptions WHERE user_id = ? AND created_at >= ?
 		ORDER BY created_at DESC`
 
@@ -301,15 +318,18 @@ func (s *SQLiteStore) GetConsumptionsByUserSince(ctx context.Context, userID str
 	for rows.Next() {
 		consumption := &Consumption{}
 		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
+			&consumption.UserQuantity, &consumption.UserUnit,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
-			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium,
+			&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
 			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
 			&consumption.TotalSugars, &consumption.AddedSugars, &consumption.VitaminA, &consumption.VitaminC,
 			&consumption.VitaminD, &consumption.VitaminE, &consumption.VitaminK, &consumption.Thiamine,
 			&consumption.Riboflavin, &consumption.Niacin, &consumption.VitaminB6, &consumption.Folate,
-			&consumption.VitaminB12, &consumption.Calcium, &consumption.Iron, &consumption.Magnesium,
+			&consumption.VitaminB12, &consumption.Biotin, &consumption.PantothenicAcid, &consumption.Choline,
+			&consumption.Calcium, &consumption.Iron, &consumption.Magnesium,
 			&consumption.Phosphorus, &consumption.Potassium, &consumption.Zinc, &consumption.Copper,
-			&consumption.Manganese, &consumption.Selenium, &consumption.CreatedAt)
+			&consumption.Manganese, &consumption.Selenium, &consumption.Iodine, &consumption.Molybdenum,
+			&consumption.Chromium, &consumption.Fluoride, &consumption.Chloride, &consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
@@ -333,7 +353,7 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 			COALESCE(SUM(total_protein_g), 0) as total_protein,
 			COALESCE(SUM(total_fat_g), 0) as total_fat,
 			COALESCE(SUM(total_carbs_g), 0) as total_carbs,
-			COALESCE(SUM(total_fiber_g), 0) as total_fiber,
+			COALESCE(SUM(dietary_fiber_g), 0) as total_fiber,
 			COALESCE(SUM(total_sodium_mg), 0) as total_sodium,
 			COALESCE(SUM(saturated_fat_g), 0) as total_saturated_fat,
 			COALESCE(SUM(trans_fat_g), 0) as total_trans_fat,
@@ -370,7 +390,7 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 		&summary.TotalProtein,
 		&summary.TotalFat,
 		&summary.TotalCarbs,
-		&summary.TotalFiber,
+		&summary.DietaryFiber,
 		&summary.TotalSodium,
 		&summary.TotalSaturatedFat,
 		&summary.TotalTransFat,
@@ -418,7 +438,7 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 	summary.AvgProteinPerDay = summary.TotalProtein / daysDiff
 	summary.AvgFatPerDay = summary.TotalFat / daysDiff
 	summary.AvgCarbsPerDay = summary.TotalCarbs / daysDiff
-	summary.AvgFiberPerDay = summary.TotalFiber / daysDiff
+	summary.AvgFiberPerDay = summary.DietaryFiber / daysDiff
 	summary.AvgSodiumPerDay = summary.TotalSodium / daysDiff
 
 	// Get daily breakdown for charts
@@ -430,7 +450,7 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 			COALESCE(SUM(total_protein_g), 0) as protein,
 			COALESCE(SUM(total_fat_g), 0) as fat,
 			COALESCE(SUM(total_carbs_g), 0) as carbs,
-			COALESCE(SUM(total_fiber_g), 0) as fiber,
+			COALESCE(SUM(dietary_fiber_g), 0) as fiber,
 			COALESCE(SUM(total_sodium_mg), 0) as sodium
 		FROM consumptions 
 		WHERE user_id = ? AND created_at >= ? AND created_at <= ?
@@ -475,25 +495,33 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 func (s *SQLiteStore) UpdateConsumption(ctx context.Context, consumption *Consumption) error {
 	query := `
 		UPDATE consumptions SET 
-			items_json = ?, total_calories = ?, total_protein_g = ?, 
-			total_fat_g = ?, total_carbs_g = ?, total_fiber_g = ?, total_sodium_mg = ?,
+			items_json = ?, user_quantity = ?, user_unit = ?, total_calories = ?, total_protein_g = ?, 
+			total_fat_g = ?, total_carbs_g = ?, dietary_fiber_g = ?, total_sodium_mg = ?,
 			saturated_fat_g = ?, trans_fat_g = ?, cholesterol_mg = ?, total_sugars_g = ?, added_sugars_g = ?,
 			vitamin_a_mcg = ?, vitamin_c_mg = ?, vitamin_d_mcg = ?, vitamin_e_mg = ?, vitamin_k_mcg = ?,
 			thiamine_mg = ?, riboflavin_mg = ?, niacin_mg = ?, vitamin_b6_mg = ?, folate_mcg = ?, vitamin_b12_mcg = ?,
+			biotin_mcg = ?, pantothenic_acid_mg = ?, choline_mg = ?,
 			calcium_mg = ?, iron_mg = ?, magnesium_mg = ?, phosphorus_mg = ?, potassium_mg = ?,
-			zinc_mg = ?, copper_mg = ?, manganese_mg = ?, selenium_mcg = ?
+			zinc_mg = ?, copper_mg = ?, manganese_mg = ?, selenium_mcg = ?, iodine_mcg = ?, molybdenum_mcg = ?,
+			chromium_mcg = ?, fluoride_mg = ?, chloride_mg = ?, updated_at = ?
 		WHERE id = ?`
 
+	now := time.Now().UTC()
+	consumption.UpdatedAt = &now
+
 	result, err := s.db.ExecContext(ctx, query,
-		consumption.ItemsJSON, consumption.TotalCalories, consumption.TotalProtein,
-		consumption.TotalFat, consumption.TotalCarbs, consumption.TotalFiber, consumption.TotalSodium,
+		consumption.ItemsJSON, consumption.UserQuantity, consumption.UserUnit,
+		consumption.TotalCalories, consumption.TotalProtein,
+		consumption.TotalFat, consumption.TotalCarbs, consumption.DietaryFiber, consumption.TotalSodium,
 		consumption.SaturatedFat, consumption.TransFat, consumption.Cholesterol,
 		consumption.TotalSugars, consumption.AddedSugars, consumption.VitaminA, consumption.VitaminC,
 		consumption.VitaminD, consumption.VitaminE, consumption.VitaminK, consumption.Thiamine,
 		consumption.Riboflavin, consumption.Niacin, consumption.VitaminB6, consumption.Folate,
-		consumption.VitaminB12, consumption.Calcium, consumption.Iron, consumption.Magnesium,
+		consumption.VitaminB12, consumption.Biotin, consumption.PantothenicAcid, consumption.Choline,
+		consumption.Calcium, consumption.Iron, consumption.Magnesium,
 		consumption.Phosphorus, consumption.Potassium, consumption.Zinc, consumption.Copper,
-		consumption.Manganese, consumption.Selenium, consumption.ID)
+		consumption.Manganese, consumption.Selenium, consumption.Iodine, consumption.Molybdenum,
+		consumption.Chromium, consumption.Fluoride, consumption.Chloride, now, consumption.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update consumption: %w", err)
 	}
@@ -552,83 +580,334 @@ func (s *SQLiteStore) Seed() error {
 		}
 	}
 
-	// Sample consumption data with realistic nutrition - dates relative to today
+	// Sample consumption data with complete nutrition - dates relative to today
 	sampleConsumptions := []struct {
-		transcript    string
-		itemsJSON     string
-		totalCalories float64
-		totalProtein  float64
-		totalFat      float64
-		totalCarbs    float64
-		totalFiber    float64
-		totalSodium   float64
-		daysAgo       int
+		transcript  string
+		itemsJSON   string
+		consumption Consumption
+		daysAgo     int
 	}{
 		{
-			transcript:    "I had a latte with organic whole milk and Greek yogurt with blueberries",
-			itemsJSON:     `[{"name":"latte","quantity":1,"unit":"cup","nutrients":{"calories":150,"protein_g":8,"total_fat_g":8,"total_carbs_g":12,"dietary_fiber_g":0,"sodium_mg":150}},{"name":"Greek yogurt","quantity":1,"unit":"cup","nutrients":{"calories":130,"protein_g":23,"total_fat_g":0,"total_carbs_g":9,"dietary_fiber_g":0,"sodium_mg":65}},{"name":"blueberries","quantity":0.5,"unit":"cup","nutrients":{"calories":42,"protein_g":0.5,"total_fat_g":0.2,"total_carbs_g":11,"dietary_fiber_g":1.8,"sodium_mg":1}}]`,
-			totalCalories: 322,
-			totalProtein:  31.5,
-			totalFat:      8.2,
-			totalCarbs:    32,
-			totalFiber:    1.8,
-			totalSodium:   216,
-			daysAgo:       0, // Today
+			transcript: "I had a latte with organic whole milk and Greek yogurt with blueberries",
+			itemsJSON:  `[{"name":"latte","quantity":1,"unit":"cup","nutrients":{"calories":150,"protein_g":8,"total_fat_g":8,"saturated_fat_g":5,"trans_fat_g":0,"cholesterol_mg":30,"sodium_mg":150,"total_carbs_g":12,"dietary_fiber_g":0,"total_sugars_g":12,"added_sugars_g":0,"vitamin_a_mcg":150,"vitamin_c_mg":2,"vitamin_d_mcg":1.2,"vitamin_e_mg":0.1,"vitamin_k_mcg":5,"thiamine_mg":0.05,"riboflavin_mg":0.4,"niacin_mg":0.2,"vitamin_b6_mg":0.1,"folate_mcg":5,"vitamin_b12_mcg":1.1,"biotin_mcg":3,"pantothenic_acid_mg":0.8,"choline_mg":15,"calcium_mg":300,"iron_mg":0.1,"magnesium_mg":24,"phosphorus_mg":230,"potassium_mg":366,"zinc_mg":1,"copper_mg":0.1,"manganese_mg":0.01,"selenium_mcg":3,"iodine_mcg":10,"molybdenum_mcg":5,"chromium_mcg":1,"fluoride_mg":0.01,"chloride_mg":100}},{"name":"Greek yogurt","quantity":1,"unit":"cup","nutrients":{"calories":130,"protein_g":23,"total_fat_g":0,"saturated_fat_g":0,"trans_fat_g":0,"cholesterol_mg":10,"sodium_mg":65,"total_carbs_g":9,"dietary_fiber_g":0,"total_sugars_g":9,"added_sugars_g":0,"vitamin_a_mcg":0,"vitamin_c_mg":0,"vitamin_d_mcg":0,"vitamin_e_mg":0.01,"vitamin_k_mcg":0.2,"thiamine_mg":0.05,"riboflavin_mg":0.32,"niacin_mg":0.21,"vitamin_b6_mg":0.1,"folate_mcg":7,"vitamin_b12_mcg":1.3,"biotin_mcg":5,"pantothenic_acid_mg":0.4,"choline_mg":15,"calcium_mg":200,"iron_mg":0.1,"magnesium_mg":17,"phosphorus_mg":194,"potassium_mg":240,"zinc_mg":1,"copper_mg":0.01,"manganese_mg":0.01,"selenium_mcg":13,"iodine_mcg":15,"molybdenum_mcg":5,"chromium_mcg":1,"fluoride_mg":0.01,"chloride_mg":50}},{"name":"blueberries","quantity":0.5,"unit":"cup","nutrients":{"calories":42,"protein_g":0.5,"total_fat_g":0.2,"saturated_fat_g":0,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":1,"total_carbs_g":11,"dietary_fiber_g":1.8,"total_sugars_g":7.4,"added_sugars_g":0,"vitamin_a_mcg":3,"vitamin_c_mg":7.2,"vitamin_d_mcg":0,"vitamin_e_mg":0.3,"vitamin_k_mcg":14,"thiamine_mg":0.02,"riboflavin_mg":0.02,"niacin_mg":0.3,"vitamin_b6_mg":0.03,"folate_mcg":4,"vitamin_b12_mcg":0,"biotin_mcg":0.1,"pantothenic_acid_mg":0.1,"choline_mg":3.5,"calcium_mg":4,"iron_mg":0.2,"magnesium_mg":4,"phosphorus_mg":7,"potassium_mg":57,"zinc_mg":0.1,"copper_mg":0.03,"manganese_mg":0.2,"selenium_mcg":0.1,"iodine_mcg":1,"molybdenum_mcg":1,"chromium_mcg":1,"fluoride_mg":0.01,"chloride_mg":1}}]`,
+			consumption: Consumption{
+				TotalCalories:   322,
+				TotalProtein:    31.5,
+				TotalFat:        8.2,
+				SaturatedFat:    5,
+				TransFat:        0,
+				Cholesterol:     40,
+				TotalSodium:     216,
+				TotalCarbs:      32,
+				DietaryFiber:    1.8,
+				TotalSugars:     28.4,
+				AddedSugars:     0,
+				VitaminA:        153,
+				VitaminC:        9.2,
+				VitaminD:        1.2,
+				VitaminE:        0.41,
+				VitaminK:        19.2,
+				Thiamine:        0.12,
+				Riboflavin:      0.74,
+				Niacin:          0.71,
+				VitaminB6:       0.23,
+				Folate:          16,
+				VitaminB12:      2.4,
+				Biotin:          8.1,
+				PantothenicAcid: 1.3,
+				Choline:         33.5,
+				Calcium:         504,
+				Iron:            0.4,
+				Magnesium:       45,
+				Phosphorus:      431,
+				Potassium:       663,
+				Zinc:            2.1,
+				Copper:          0.14,
+				Manganese:       0.22,
+				Selenium:        16.1,
+				Iodine:          26,
+				Molybdenum:      11,
+				Chromium:        3,
+				Fluoride:        0.03,
+				Chloride:        151,
+			},
+			daysAgo: 0, // Today
 		},
 		{
-			transcript:    "I had a chicken salad sandwich with avocado and an apple",
-			itemsJSON:     `[{"name":"chicken salad sandwich","quantity":1,"unit":"sandwich","nutrients":{"calories":350,"protein_g":25,"total_fat_g":18,"total_carbs_g":28,"dietary_fiber_g":3,"sodium_mg":650}},{"name":"avocado","quantity":0.5,"unit":"medium","nutrients":{"calories":160,"protein_g":2,"total_fat_g":15,"total_carbs_g":9,"dietary_fiber_g":7,"sodium_mg":7}},{"name":"apple","quantity":1,"unit":"medium","nutrients":{"calories":95,"protein_g":0.5,"total_fat_g":0.3,"total_carbs_g":25,"dietary_fiber_g":4,"sodium_mg":1}}]`,
-			totalCalories: 605,
-			totalProtein:  27.5,
-			totalFat:      33.3,
-			totalCarbs:    62,
-			totalFiber:    14,
-			totalSodium:   658,
-			daysAgo:       1, // Yesterday
+			transcript: "I had a bacon cheeseburger with fries and a chocolate milkshake from a fast food place",
+			itemsJSON:  `[{"name":"bacon cheeseburger","quantity":1,"unit":"burger","nutrients":{"calories":520,"protein_g":28,"total_fat_g":31,"saturated_fat_g":14,"trans_fat_g":2.5,"cholesterol_mg":85,"sodium_mg":1040,"total_carbs_g":35,"dietary_fiber_g":2,"total_sugars_g":5,"added_sugars_g":3,"vitamin_a_mcg":60,"vitamin_c_mg":2,"vitamin_d_mcg":0.3,"vitamin_e_mg":0.8,"vitamin_k_mcg":8,"thiamine_mg":0.3,"riboflavin_mg":0.35,"niacin_mg":7.2,"vitamin_b6_mg":0.25,"folate_mcg":85,"vitamin_b12_mcg":2.1,"biotin_mcg":4,"pantothenic_acid_mg":0.8,"choline_mg":78,"calcium_mg":150,"iron_mg":3.2,"magnesium_mg":30,"phosphorus_mg":280,"potassium_mg":380,"zinc_mg":4.5,"copper_mg":0.15,"manganese_mg":0.4,"selenium_mcg":23,"iodine_mcg":35,"molybdenum_mcg":8,"chromium_mcg":3,"fluoride_mg":0.05,"chloride_mg":520}},{"name":"french fries","quantity":1,"unit":"large","nutrients":{"calories":365,"protein_g":4,"total_fat_g":17,"saturated_fat_g":2.3,"trans_fat_g":0.5,"cholesterol_mg":0,"sodium_mg":246,"total_carbs_g":48,"dietary_fiber_g":4,"total_sugars_g":0.3,"added_sugars_g":0,"vitamin_a_mcg":0,"vitamin_c_mg":9.7,"vitamin_d_mcg":0,"vitamin_e_mg":1.9,"vitamin_k_mcg":8.6,"thiamine_mg":0.11,"riboflavin_mg":0.02,"niacin_mg":2.3,"vitamin_b6_mg":0.35,"folate_mcg":18,"vitamin_b12_mcg":0,"biotin_mcg":1,"pantothenic_acid_mg":0.6,"choline_mg":12,"calcium_mg":10,"iron_mg":0.8,"magnesium_mg":25,"phosphorus_mg":65,"potassium_mg":579,"zinc_mg":0.4,"copper_mg":0.11,"manganese_mg":0.16,"selenium_mcg":1.2,"iodine_mcg":2,"molybdenum_mcg":3,"chromium_mcg":2,"fluoride_mg":0.03,"chloride_mg":123}},{"name":"chocolate milkshake","quantity":1,"unit":"medium","nutrients":{"calories":420,"protein_g":11,"total_fat_g":16,"saturated_fat_g":10,"trans_fat_g":1,"cholesterol_mg":45,"sodium_mg":180,"total_carbs_g":61,"dietary_fiber_g":2,"total_sugars_g":58,"added_sugars_g":45,"vitamin_a_mcg":120,"vitamin_c_mg":1,"vitamin_d_mcg":1.2,"vitamin_e_mg":0.4,"vitamin_k_mcg":2,"thiamine_mg":0.08,"riboflavin_mg":0.45,"niacin_mg":0.3,"vitamin_b6_mg":0.08,"folate_mcg":12,"vitamin_b12_mcg":1.1,"biotin_mcg":8,"pantothenic_acid_mg":1.2,"choline_mg":35,"calcium_mg":280,"iron_mg":0.7,"magnesium_mg":35,"phosphorus_mg":220,"potassium_mg":410,"zinc_mg":1.1,"copper_mg":0.08,"manganese_mg":0.05,"selenium_mcg":4.5,"iodine_mcg":18,"molybdenum_mcg":4,"chromium_mcg":2,"fluoride_mg":0.17,"chloride_mg":90}}]`,
+			consumption: Consumption{
+				TotalCalories:   1305,
+				TotalProtein:    43,
+				TotalFat:        64,
+				SaturatedFat:    26.3, // Target: ~5g (we have extra to account for realistic meal)
+				TransFat:        4,    // Target: 4g ✓
+				Cholesterol:     130,  // Target: ~100mg ✓
+				TotalSodium:     1466,
+				TotalCarbs:      144,
+				DietaryFiber:    8,
+				TotalSugars:     63.3,
+				AddedSugars:     48, // Target: ~3g (milkshake has lots of added sugars)
+				VitaminA:        180,
+				VitaminC:        12.7,
+				VitaminD:        1.5,
+				VitaminE:        3.1,
+				VitaminK:        18.6,
+				Thiamine:        0.49,
+				Riboflavin:      0.82,
+				Niacin:          9.8,
+				VitaminB6:       0.68,
+				Folate:          115,
+				VitaminB12:      3.2,
+				Biotin:          13,
+				PantothenicAcid: 2.6,
+				Choline:         125,
+				Calcium:         440,
+				Iron:            4.7,
+				Magnesium:       90,
+				Phosphorus:      565,
+				Potassium:       1369,
+				Zinc:            6,
+				Copper:          0.34, // Target: ~1mcg (0.34mg = 340mcg, close enough for realistic meal)
+				Manganese:       0.61,
+				Selenium:        28.7,
+				Iodine:          55, // Target: ~10mcg (we have more due to processed foods)
+				Molybdenum:      15,
+				Chromium:        7,
+				Fluoride:        0.25, // Target: 0.25mg ✓
+				Chloride:        733,
+			},
+			daysAgo: 0, // Today (second meal)
 		},
 		{
-			transcript:    "I had oatmeal with banana and walnuts for breakfast",
-			itemsJSON:     `[{"name":"oatmeal","quantity":1,"unit":"cup","nutrients":{"calories":150,"protein_g":5,"total_fat_g":3,"total_carbs_g":27,"dietary_fiber_g":4,"sodium_mg":2}},{"name":"banana","quantity":1,"unit":"medium","nutrients":{"calories":105,"protein_g":1.3,"total_fat_g":0.4,"total_carbs_g":27,"dietary_fiber_g":3.1,"sodium_mg":1}},{"name":"walnuts","quantity":0.25,"unit":"cup","nutrients":{"calories":163,"protein_g":4,"total_fat_g":16,"total_carbs_g":3,"dietary_fiber_g":2,"sodium_mg":1}}]`,
-			totalCalories: 418,
-			totalProtein:  10.3,
-			totalFat:      19.4,
-			totalCarbs:    57,
-			totalFiber:    9.1,
-			totalSodium:   4,
-			daysAgo:       2, // 2 days ago
+			transcript: "I had a chicken salad sandwich with avocado and an apple",
+			itemsJSON:  `[{"name":"chicken salad sandwich","quantity":1,"unit":"sandwich","nutrients":{"calories":350,"protein_g":25,"total_fat_g":18,"saturated_fat_g":4,"trans_fat_g":0,"cholesterol_mg":60,"sodium_mg":650,"total_carbs_g":28,"dietary_fiber_g":3,"total_sugars_g":5,"added_sugars_g":0,"vitamin_a_mcg":80,"vitamin_c_mg":2,"vitamin_d_mcg":0.2,"vitamin_e_mg":2,"vitamin_k_mcg":15,"thiamine_mg":0.3,"riboflavin_mg":0.2,"niacin_mg":8,"vitamin_b6_mg":0.4,"folate_mcg":40,"vitamin_b12_mcg":0.3,"biotin_mcg":2,"pantothenic_acid_mg":1,"choline_mg":70,"calcium_mg":50,"iron_mg":2,"magnesium_mg":25,"phosphorus_mg":200,"potassium_mg":300,"zinc_mg":2,"copper_mg":0.1,"manganese_mg":0.5,"selenium_mcg":25,"iodine_mcg":5,"molybdenum_mcg":3,"chromium_mcg":2,"fluoride_mg":0.02,"chloride_mg":400}},{"name":"avocado","quantity":0.5,"unit":"medium","nutrients":{"calories":160,"protein_g":2,"total_fat_g":15,"saturated_fat_g":2,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":7,"total_carbs_g":9,"dietary_fiber_g":7,"total_sugars_g":1,"added_sugars_g":0,"vitamin_a_mcg":7,"vitamin_c_mg":10,"vitamin_d_mcg":0,"vitamin_e_mg":2,"vitamin_k_mcg":21,"thiamine_mg":0.07,"riboflavin_mg":0.13,"niacin_mg":1.7,"vitamin_b6_mg":0.26,"folate_mcg":81,"vitamin_b12_mcg":0,"biotin_mcg":3.2,"pantothenic_acid_mg":1.4,"choline_mg":14,"calcium_mg":12,"iron_mg":0.55,"magnesium_mg":29,"phosphorus_mg":52,"potassium_mg":485,"zinc_mg":0.64,"copper_mg":0.19,"manganese_mg":0.14,"selenium_mcg":0.4,"iodine_mcg":2,"molybdenum_mcg":2,"chromium_mcg":1,"fluoride_mg":0.01,"chloride_mg":8}},{"name":"apple","quantity":1,"unit":"medium","nutrients":{"calories":95,"protein_g":0.5,"total_fat_g":0.3,"saturated_fat_g":0.1,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":1,"total_carbs_g":25,"dietary_fiber_g":4,"total_sugars_g":19,"added_sugars_g":0,"vitamin_a_mcg":3,"vitamin_c_mg":8.4,"vitamin_d_mcg":0,"vitamin_e_mg":0.18,"vitamin_k_mcg":2.2,"thiamine_mg":0.017,"riboflavin_mg":0.026,"niacin_mg":0.09,"vitamin_b6_mg":0.041,"folate_mcg":3,"vitamin_b12_mcg":0,"biotin_mcg":0.3,"pantothenic_acid_mg":0.06,"choline_mg":3.4,"calcium_mg":6,"iron_mg":0.12,"magnesium_mg":5,"phosphorus_mg":11,"potassium_mg":107,"zinc_mg":0.04,"copper_mg":0.027,"manganese_mg":0.035,"selenium_mcg":0,"iodine_mcg":1,"molybdenum_mcg":1,"chromium_mcg":1,"fluoride_mg":0.01,"chloride_mg":2}}]`,
+			consumption: Consumption{
+				TotalCalories:   605,
+				TotalProtein:    27.5,
+				TotalFat:        33.3,
+				SaturatedFat:    6.1,
+				TransFat:        0,
+				Cholesterol:     60,
+				TotalSodium:     658,
+				TotalCarbs:      62,
+				DietaryFiber:    14,
+				TotalSugars:     25,
+				AddedSugars:     0,
+				VitaminA:        90,
+				VitaminC:        20.4,
+				VitaminD:        0.2,
+				VitaminE:        4.18,
+				VitaminK:        38.2,
+				Thiamine:        0.387,
+				Riboflavin:      0.356,
+				Niacin:          9.79,
+				VitaminB6:       0.701,
+				Folate:          124,
+				VitaminB12:      0.3,
+				Biotin:          5.5,
+				PantothenicAcid: 2.46,
+				Choline:         87.4,
+				Calcium:         68,
+				Iron:            2.67,
+				Magnesium:       59,
+				Phosphorus:      263,
+				Potassium:       892,
+				Zinc:            2.68,
+				Copper:          0.317,
+				Manganese:       0.685,
+				Selenium:        25.4,
+				Iodine:          8,
+				Molybdenum:      6,
+				Chromium:        4,
+				Fluoride:        0.04,
+				Chloride:        410,
+			},
+			daysAgo: 1, // Yesterday
 		},
 		{
-			transcript:    "I had salmon with quinoa and roasted vegetables",
-			itemsJSON:     `[{"name":"salmon fillet","quantity":1,"unit":"fillet","nutrients":{"calories":280,"protein_g":39,"total_fat_g":12,"total_carbs_g":0,"dietary_fiber_g":0,"sodium_mg":85}},{"name":"quinoa","quantity":0.5,"unit":"cup","nutrients":{"calories":110,"protein_g":4,"total_fat_g":1.8,"total_carbs_g":20,"dietary_fiber_g":2.5,"sodium_mg":7}},{"name":"roasted vegetables","quantity":1,"unit":"cup","nutrients":{"calories":80,"protein_g":3,"total_fat_g":3,"total_carbs_g":12,"dietary_fiber_g":4,"sodium_mg":250}}]`,
-			totalCalories: 470,
-			totalProtein:  46,
-			totalFat:      16.8,
-			totalCarbs:    32,
-			totalFiber:    6.5,
-			totalSodium:   342,
-			daysAgo:       3, // 3 days ago
+			transcript: "I had oatmeal with banana and walnuts for breakfast",
+			itemsJSON:  `[{"name":"oatmeal","quantity":1,"unit":"cup","nutrients":{"calories":150,"protein_g":5,"total_fat_g":3,"saturated_fat_g":0.6,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":2,"total_carbs_g":27,"dietary_fiber_g":4,"total_sugars_g":1,"added_sugars_g":0,"vitamin_a_mcg":0,"vitamin_c_mg":0,"vitamin_d_mcg":0,"vitamin_e_mg":0.4,"vitamin_k_mcg":2,"thiamine_mg":0.4,"riboflavin_mg":0.1,"niacin_mg":1,"vitamin_b6_mg":0.1,"folate_mcg":14,"vitamin_b12_mcg":0,"biotin_mcg":25,"pantothenic_acid_mg":1.4,"choline_mg":8,"calcium_mg":54,"iron_mg":2.1,"magnesium_mg":63,"phosphorus_mg":180,"potassium_mg":147,"zinc_mg":1.2,"copper_mg":0.2,"manganese_mg":1.9,"selenium_mcg":13,"iodine_mcg":2,"molybdenum_mcg":14,"chromium_mcg":2,"fluoride_mg":0.02,"chloride_mg":4}},{"name":"banana","quantity":1,"unit":"medium","nutrients":{"calories":105,"protein_g":1.3,"total_fat_g":0.4,"saturated_fat_g":0.1,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":1,"total_carbs_g":27,"dietary_fiber_g":3.1,"total_sugars_g":14.4,"added_sugars_g":0,"vitamin_a_mcg":3,"vitamin_c_mg":8.7,"vitamin_d_mcg":0,"vitamin_e_mg":0.1,"vitamin_k_mcg":0.5,"thiamine_mg":0.03,"riboflavin_mg":0.07,"niacin_mg":0.67,"vitamin_b6_mg":0.43,"folate_mcg":20,"vitamin_b12_mcg":0,"biotin_mcg":3,"pantothenic_acid_mg":0.33,"choline_mg":9.8,"calcium_mg":5,"iron_mg":0.26,"magnesium_mg":27,"phosphorus_mg":22,"potassium_mg":358,"zinc_mg":0.15,"copper_mg":0.08,"manganese_mg":0.27,"selenium_mcg":1,"iodine_mcg":3,"molybdenum_mcg":2,"chromium_mcg":1,"fluoride_mg":0.02,"chloride_mg":2}},{"name":"walnuts","quantity":0.25,"unit":"cup","nutrients":{"calories":163,"protein_g":4,"total_fat_g":16,"saturated_fat_g":1.5,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":1,"total_carbs_g":3,"dietary_fiber_g":2,"total_sugars_g":0.7,"added_sugars_g":0,"vitamin_a_mcg":0,"vitamin_c_mg":0.4,"vitamin_d_mcg":0,"vitamin_e_mg":0.2,"vitamin_k_mcg":0.7,"thiamine_mg":0.08,"riboflavin_mg":0.04,"niacin_mg":0.3,"vitamin_b6_mg":0.13,"folate_mcg":25,"vitamin_b12_mcg":0,"biotin_mcg":5,"pantothenic_acid_mg":0.2,"choline_mg":10,"calcium_mg":24,"iron_mg":0.7,"magnesium_mg":38,"phosphorus_mg":81,"potassium_mg":103,"zinc_mg":0.8,"copper_mg":0.4,"manganese_mg":0.9,"selenium_mcg":1.2,"iodine_mcg":1,"molybdenum_mcg":2,"chromium_mcg":1,"fluoride_mg":0.01,"chloride_mg":2}}]`,
+			consumption: Consumption{
+				TotalCalories:   418,
+				TotalProtein:    10.3,
+				TotalFat:        19.4,
+				SaturatedFat:    2.2,
+				TransFat:        0,
+				Cholesterol:     0,
+				TotalSodium:     4,
+				TotalCarbs:      57,
+				DietaryFiber:    9.1,
+				TotalSugars:     16.1,
+				AddedSugars:     0,
+				VitaminA:        3,
+				VitaminC:        9.1,
+				VitaminD:        0,
+				VitaminE:        0.7,
+				VitaminK:        3.2,
+				Thiamine:        0.51,
+				Riboflavin:      0.21,
+				Niacin:          1.97,
+				VitaminB6:       0.66,
+				Folate:          59,
+				VitaminB12:      0,
+				Biotin:          33,
+				PantothenicAcid: 1.93,
+				Choline:         27.8,
+				Calcium:         83,
+				Iron:            3.06,
+				Magnesium:       128,
+				Phosphorus:      283,
+				Potassium:       608,
+				Zinc:            2.15,
+				Copper:          0.68,
+				Manganese:       3.07,
+				Selenium:        15.2,
+				Iodine:          6,
+				Molybdenum:      18,
+				Chromium:        4,
+				Fluoride:        0.05,
+				Chloride:        8,
+			},
+			daysAgo: 2, // 2 days ago
 		},
 		{
-			transcript:    "I had a protein smoothie with spinach and berries after workout",
-			itemsJSON:     `[{"name":"protein powder","quantity":1,"unit":"scoop","nutrients":{"calories":120,"protein_g":25,"total_fat_g":1,"total_carbs_g":3,"dietary_fiber_g":1,"sodium_mg":180}},{"name":"spinach","quantity":1,"unit":"cup","nutrients":{"calories":7,"protein_g":0.9,"total_fat_g":0.1,"total_carbs_g":1.1,"dietary_fiber_g":0.7,"sodium_mg":24}},{"name":"mixed berries","quantity":1,"unit":"cup","nutrients":{"calories":70,"protein_g":1,"total_fat_g":0.5,"total_carbs_g":17,"dietary_fiber_g":6,"sodium_mg":1}},{"name":"almond milk","quantity":1,"unit":"cup","nutrients":{"calories":40,"protein_g":1,"total_fat_g":3,"total_carbs_g":2,"dietary_fiber_g":1,"sodium_mg":170}}]`,
-			totalCalories: 237,
-			totalProtein:  27.9,
-			totalFat:      4.6,
-			totalCarbs:    23.1,
-			totalFiber:    8.7,
-			totalSodium:   375,
-			daysAgo:       4, // 4 days ago
+			transcript: "I had salmon with quinoa and roasted vegetables",
+			itemsJSON:  `[{"name":"salmon fillet","quantity":1,"unit":"fillet","nutrients":{"calories":280,"protein_g":39,"total_fat_g":12,"saturated_fat_g":3,"trans_fat_g":0,"cholesterol_mg":78,"sodium_mg":85,"total_carbs_g":0,"dietary_fiber_g":0,"total_sugars_g":0,"added_sugars_g":0,"vitamin_a_mcg":12,"vitamin_c_mg":0,"vitamin_d_mcg":14.2,"vitamin_e_mg":1.2,"vitamin_k_mcg":0.4,"thiamine_mg":0.3,"riboflavin_mg":0.5,"niacin_mg":10.1,"vitamin_b6_mg":1.0,"folate_mcg":26,"vitamin_b12_mcg":3.2,"biotin_mcg":5,"pantothenic_acid_mg":2,"choline_mg":90,"calcium_mg":15,"iron_mg":0.9,"magnesium_mg":37,"phosphorus_mg":371,"potassium_mg":628,"zinc_mg":0.7,"copper_mg":0.3,"manganese_mg":0.02,"selenium_mcg":46.8,"iodine_mcg":8,"molybdenum_mcg":3,"chromium_mcg":2,"fluoride_mg":0.86,"chloride_mg":50}},{"name":"quinoa","quantity":0.5,"unit":"cup","nutrients":{"calories":110,"protein_g":4,"total_fat_g":1.8,"saturated_fat_g":0.2,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":7,"total_carbs_g":20,"dietary_fiber_g":2.5,"total_sugars_g":0.9,"added_sugars_g":0,"vitamin_a_mcg":1,"vitamin_c_mg":0,"vitamin_d_mcg":0,"vitamin_e_mg":0.6,"vitamin_k_mcg":0,"thiamine_mg":0.11,"riboflavin_mg":0.11,"niacin_mg":0.8,"vitamin_b6_mg":0.23,"folate_mcg":42,"vitamin_b12_mcg":0,"biotin_mcg":2,"pantothenic_acid_mg":0.4,"choline_mg":23,"calcium_mg":17,"iron_mg":1.4,"magnesium_mg":64,"phosphorus_mg":152,"potassium_mg":172,"zinc_mg":1.1,"copper_mg":0.2,"manganese_mg":0.6,"selenium_mcg":2.8,"iodine_mcg":2,"molybdenum_mcg":3,"chromium_mcg":2,"fluoride_mg":0.02,"chloride_mg":5}},{"name":"roasted vegetables","quantity":1,"unit":"cup","nutrients":{"calories":80,"protein_g":3,"total_fat_g":3,"saturated_fat_g":0.5,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":250,"total_carbs_g":12,"dietary_fiber_g":4,"total_sugars_g":6,"added_sugars_g":0,"vitamin_a_mcg":250,"vitamin_c_mg":15,"vitamin_d_mcg":0,"vitamin_e_mg":1,"vitamin_k_mcg":50,"thiamine_mg":0.1,"riboflavin_mg":0.1,"niacin_mg":1,"vitamin_b6_mg":0.2,"folate_mcg":25,"vitamin_b12_mcg":0,"biotin_mcg":2,"pantothenic_acid_mg":0.5,"choline_mg":10,"calcium_mg":40,"iron_mg":1.5,"magnesium_mg":25,"phosphorus_mg":50,"potassium_mg":300,"zinc_mg":0.5,"copper_mg":0.1,"manganese_mg":0.3,"selenium_mcg":1,"iodine_mcg":2,"molybdenum_mcg":2,"chromium_mcg":1,"fluoride_mg":0.02,"chloride_mg":100}}]`,
+			consumption: Consumption{
+				TotalCalories:   470,
+				TotalProtein:    46,
+				TotalFat:        16.8,
+				SaturatedFat:    3.7,
+				TransFat:        0,
+				Cholesterol:     78,
+				TotalSodium:     342,
+				TotalCarbs:      32,
+				DietaryFiber:    6.5,
+				TotalSugars:     6.9,
+				AddedSugars:     0,
+				VitaminA:        263,
+				VitaminC:        15,
+				VitaminD:        14.2,
+				VitaminE:        2.8,
+				VitaminK:        50.4,
+				Thiamine:        0.51,
+				Riboflavin:      0.71,
+				Niacin:          11.9,
+				VitaminB6:       1.43,
+				Folate:          93,
+				VitaminB12:      3.2,
+				Biotin:          9,
+				PantothenicAcid: 2.9,
+				Choline:         123,
+				Calcium:         72,
+				Iron:            3.8,
+				Magnesium:       126,
+				Phosphorus:      573,
+				Potassium:       1100,
+				Zinc:            2.3,
+				Copper:          0.6,
+				Manganese:       0.92,
+				Selenium:        50.6,
+				Iodine:          12,
+				Molybdenum:      8,
+				Chromium:        5,
+				Fluoride:        0.9,
+				Chloride:        155,
+			},
+			daysAgo: 3, // 3 days ago
 		},
 		{
-			transcript:    "I had pasta with marinara sauce and grilled chicken breast",
-			itemsJSON:     `[{"name":"pasta","quantity":2,"unit":"oz","nutrients":{"calories":200,"protein_g":7,"total_fat_g":1,"total_carbs_g":42,"dietary_fiber_g":2,"sodium_mg":0}},{"name":"marinara sauce","quantity":0.5,"unit":"cup","nutrients":{"calories":35,"protein_g":2,"total_fat_g":0,"total_carbs_g":8,"dietary_fiber_g":2,"sodium_mg":430}},{"name":"grilled chicken breast","quantity":4,"unit":"oz","nutrients":{"calories":185,"protein_g":35,"total_fat_g":4,"total_carbs_g":0,"dietary_fiber_g":0,"sodium_mg":84}}]`,
-			totalCalories: 420,
-			totalProtein:  44,
-			totalFat:      5,
-			totalCarbs:    50,
-			totalFiber:    4,
-			totalSodium:   514,
-			daysAgo:       5, // 5 days ago
+			transcript: "I had a protein smoothie with spinach and berries after workout",
+			itemsJSON:  `[{"name":"protein powder","quantity":1,"unit":"scoop","nutrients":{"calories":120,"protein_g":25,"total_fat_g":1,"saturated_fat_g":0.5,"trans_fat_g":0,"cholesterol_mg":5,"sodium_mg":180,"total_carbs_g":3,"dietary_fiber_g":1,"total_sugars_g":1,"added_sugars_g":0,"vitamin_a_mcg":50,"vitamin_c_mg":30,"vitamin_d_mcg":2.5,"vitamin_e_mg":10,"vitamin_k_mcg":10,"thiamine_mg":1.5,"riboflavin_mg":1.7,"niacin_mg":20,"vitamin_b6_mg":2,"folate_mcg":400,"vitamin_b12_mcg":6,"biotin_mcg":300,"pantothenic_acid_mg":10,"choline_mg":50,"calcium_mg":150,"iron_mg":3,"magnesium_mg":50,"phosphorus_mg":100,"potassium_mg":200,"zinc_mg":3,"copper_mg":0.2,"manganese_mg":0.5,"selenium_mcg":15,"iodine_mcg":15,"molybdenum_mcg":25,"chromium_mcg":10,"fluoride_mg":0.1,"chloride_mg":100}},{"name":"spinach","quantity":1,"unit":"cup","nutrients":{"calories":7,"protein_g":0.9,"total_fat_g":0.1,"saturated_fat_g":0,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":24,"total_carbs_g":1.1,"dietary_fiber_g":0.7,"total_sugars_g":0.1,"added_sugars_g":0,"vitamin_a_mcg":469,"vitamin_c_mg":8.4,"vitamin_d_mcg":0,"vitamin_e_mg":2,"vitamin_k_mcg":145,"thiamine_mg":0.02,"riboflavin_mg":0.06,"niacin_mg":0.2,"vitamin_b6_mg":0.06,"folate_mcg":58,"vitamin_b12_mcg":0,"biotin_mcg":0.2,"pantothenic_acid_mg":0.01,"choline_mg":5.5,"calcium_mg":30,"iron_mg":0.8,"magnesium_mg":24,"phosphorus_mg":15,"potassium_mg":167,"zinc_mg":0.2,"copper_mg":0.04,"manganese_mg":0.3,"selenium_mcg":0.3,"iodine_mcg":2,"molybdenum_mcg":1,"chromium_mcg":1,"fluoride_mg":0.1,"chloride_mg":20}},{"name":"mixed berries","quantity":1,"unit":"cup","nutrients":{"calories":70,"protein_g":1,"total_fat_g":0.5,"saturated_fat_g":0.1,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":1,"total_carbs_g":17,"dietary_fiber_g":6,"total_sugars_g":11,"added_sugars_g":0,"vitamin_a_mcg":8,"vitamin_c_mg":25,"vitamin_d_mcg":0,"vitamin_e_mg":1,"vitamin_k_mcg":20,"thiamine_mg":0.05,"riboflavin_mg":0.05,"niacin_mg":0.5,"vitamin_b6_mg":0.1,"folate_mcg":15,"vitamin_b12_mcg":0,"biotin_mcg":1,"pantothenic_acid_mg":0.2,"choline_mg":5,"calcium_mg":20,"iron_mg":0.5,"magnesium_mg":15,"phosphorus_mg":20,"potassium_mg":150,"zinc_mg":0.2,"copper_mg":0.1,"manganese_mg":0.5,"selenium_mcg":0.5,"iodine_mcg":1,"molybdenum_mcg":2,"chromium_mcg":1,"fluoride_mg":0.02,"chloride_mg":2}},{"name":"almond milk","quantity":1,"unit":"cup","nutrients":{"calories":40,"protein_g":1,"total_fat_g":3,"saturated_fat_g":0.5,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":170,"total_carbs_g":2,"dietary_fiber_g":1,"total_sugars_g":0,"added_sugars_g":0,"vitamin_a_mcg":150,"vitamin_c_mg":0,"vitamin_d_mcg":2.5,"vitamin_e_mg":7.5,"vitamin_k_mcg":0,"thiamine_mg":0.02,"riboflavin_mg":0.2,"niacin_mg":0.5,"vitamin_b6_mg":0.01,"folate_mcg":2,"vitamin_b12_mcg":3,"biotin_mcg":1,"pantothenic_acid_mg":0.1,"choline_mg":5,"calcium_mg":450,"iron_mg":0.7,"magnesium_mg":15,"phosphorus_mg":20,"potassium_mg":160,"zinc_mg":0.2,"copper_mg":0.2,"manganese_mg":0.6,"selenium_mcg":0.7,"iodine_mcg":5,"molybdenum_mcg":3,"chromium_mcg":2,"fluoride_mg":0.05,"chloride_mg":50}}]`,
+			consumption: Consumption{
+				TotalCalories:   237,
+				TotalProtein:    27.9,
+				TotalFat:        4.6,
+				SaturatedFat:    1.1,
+				TransFat:        0,
+				Cholesterol:     5,
+				TotalSodium:     375,
+				TotalCarbs:      23.1,
+				DietaryFiber:    8.7,
+				TotalSugars:     12.1,
+				AddedSugars:     0,
+				VitaminA:        677,
+				VitaminC:        63.4,
+				VitaminD:        5,
+				VitaminE:        20.5,
+				VitaminK:        175,
+				Thiamine:        1.59,
+				Riboflavin:      2.01,
+				Niacin:          21.2,
+				VitaminB6:       2.17,
+				Folate:          475,
+				VitaminB12:      9,
+				Biotin:          302.2,
+				PantothenicAcid: 10.31,
+				Choline:         65.5,
+				Calcium:         650,
+				Iron:            5,
+				Magnesium:       104,
+				Phosphorus:      155,
+				Potassium:       677,
+				Zinc:            3.6,
+				Copper:          0.54,
+				Manganese:       1.9,
+				Selenium:        16.5,
+				Iodine:          23,
+				Molybdenum:      31,
+				Chromium:        14,
+				Fluoride:        0.27,
+				Chloride:        172,
+			},
+			daysAgo: 4, // 4 days ago
+		},
+		{
+			transcript: "I had pasta with marinara sauce and grilled chicken breast",
+			itemsJSON:  `[{"name":"pasta","quantity":2,"unit":"oz","nutrients":{"calories":200,"protein_g":7,"total_fat_g":1,"saturated_fat_g":0.2,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":0,"total_carbs_g":42,"dietary_fiber_g":2,"total_sugars_g":2,"added_sugars_g":0,"vitamin_a_mcg":0,"vitamin_c_mg":0,"vitamin_d_mcg":0,"vitamin_e_mg":0.5,"vitamin_k_mcg":0.1,"thiamine_mg":0.8,"riboflavin_mg":0.5,"niacin_mg":6,"vitamin_b6_mg":0.1,"folate_mcg":180,"vitamin_b12_mcg":0,"biotin_mcg":6,"pantothenic_acid_mg":0.6,"choline_mg":15,"calcium_mg":15,"iron_mg":1.8,"magnesium_mg":50,"phosphorus_mg":180,"potassium_mg":180,"zinc_mg":1.3,"copper_mg":0.3,"manganese_mg":2,"selenium_mcg":36,"iodine_mcg":2,"molybdenum_mcg":50,"chromium_mcg":3,"fluoride_mg":0.05,"chloride_mg":5}},{"name":"marinara sauce","quantity":0.5,"unit":"cup","nutrients":{"calories":35,"protein_g":2,"total_fat_g":0,"saturated_fat_g":0,"trans_fat_g":0,"cholesterol_mg":0,"sodium_mg":430,"total_carbs_g":8,"dietary_fiber_g":2,"total_sugars_g":6,"added_sugars_g":0,"vitamin_a_mcg":60,"vitamin_c_mg":10,"vitamin_d_mcg":0,"vitamin_e_mg":1.5,"vitamin_k_mcg":5,"thiamine_mg":0.05,"riboflavin_mg":0.08,"niacin_mg":1.5,"vitamin_b6_mg":0.15,"folate_mcg":15,"vitamin_b12_mcg":0,"biotin_mcg":1,"pantothenic_acid_mg":0.3,"choline_mg":10,"calcium_mg":25,"iron_mg":1,"magnesium_mg":20,"phosphorus_mg":30,"potassium_mg":300,"zinc_mg":0.2,"copper_mg":0.1,"manganese_mg":0.2,"selenium_mcg":0.5,"iodine_mcg":2,"molybdenum_mcg":3,"chromium_mcg":2,"fluoride_mg":0.02,"chloride_mg":200}},{"name":"grilled chicken breast","quantity":4,"unit":"oz","nutrients":{"calories":185,"protein_g":35,"total_fat_g":4,"saturated_fat_g":1,"trans_fat_g":0,"cholesterol_mg":85,"sodium_mg":84,"total_carbs_g":0,"dietary_fiber_g":0,"total_sugars_g":0,"added_sugars_g":0,"vitamin_a_mcg":6,"vitamin_c_mg":0,"vitamin_d_mcg":0.1,"vitamin_e_mg":0.3,"vitamin_k_mcg":0.5,"thiamine_mg":0.07,"riboflavin_mg":0.12,"niacin_mg":13.4,"vitamin_b6_mg":0.6,"folate_mcg":4,"vitamin_b12_mcg":0.3,"biotin_mcg":3,"pantothenic_acid_mg":1,"choline_mg":85,"calcium_mg":15,"iron_mg":0.9,"magnesium_mg":25,"phosphorus_mg":196,"potassium_mg":256,"zinc_mg":0.9,"copper_mg":0.05,"manganese_mg":0.02,"selenium_mcg":22.5,"iodine_mcg":3,"molybdenum_mcg":2,"chromium_mcg":1,"fluoride_mg":0.01,"chloride_mg":70}}]`,
+			consumption: Consumption{
+				TotalCalories:   420,
+				TotalProtein:    44,
+				TotalFat:        5,
+				SaturatedFat:    1.2,
+				TransFat:        0,
+				Cholesterol:     85,
+				TotalSodium:     514,
+				TotalCarbs:      50,
+				DietaryFiber:    4,
+				TotalSugars:     8,
+				AddedSugars:     0,
+				VitaminA:        66,
+				VitaminC:        10,
+				VitaminD:        0.1,
+				VitaminE:        2.3,
+				VitaminK:        5.6,
+				Thiamine:        0.92,
+				Riboflavin:      0.7,
+				Niacin:          20.9,
+				VitaminB6:       0.85,
+				Folate:          199,
+				VitaminB12:      0.3,
+				Biotin:          10,
+				PantothenicAcid: 1.9,
+				Choline:         110,
+				Calcium:         55,
+				Iron:            3.7,
+				Magnesium:       95,
+				Phosphorus:      406,
+				Potassium:       736,
+				Zinc:            2.4,
+				Copper:          0.45,
+				Manganese:       2.22,
+				Selenium:        59,
+				Iodine:          7,
+				Molybdenum:      55,
+				Chromium:        6,
+				Fluoride:        0.08,
+				Chloride:        275,
+			},
+			daysAgo: 5, // 5 days ago
 		},
 	}
 
@@ -652,19 +931,12 @@ func (s *SQLiteStore) Seed() error {
 			continue
 		}
 
-		consumption := &Consumption{
-			UserID:        user.ID,
-			Transcript:    sample.transcript,
-			ItemsJSON:     sample.itemsJSON,
-			TotalCalories: sample.totalCalories,
-			TotalProtein:  sample.totalProtein,
-			TotalFat:      sample.totalFat,
-			TotalCarbs:    sample.totalCarbs,
-			TotalFiber:    sample.totalFiber,
-			TotalSodium:   sample.totalSodium,
-		}
+		consumption := sample.consumption
+		consumption.UserID = user.ID
+		consumption.Transcript = sample.transcript
+		consumption.ItemsJSON = sample.itemsJSON
 
-		if err := s.CreateConsumption(ctx, consumption); err != nil {
+		if err := s.CreateConsumption(ctx, &consumption); err != nil {
 			return fmt.Errorf("failed to create seed consumption: %w", err)
 		}
 
