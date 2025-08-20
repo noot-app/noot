@@ -154,6 +154,10 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 				nutrition := s.convertCachedToNutrients(cached, item)
 				item.Nutrients = &nutrition
+
+				// Calculate grams equivalent
+				s.calculateGramsEquivalent(&item)
+
 				return item, nil
 			} else {
 				LogDebug("Cache expired for item", "name", item.Name, "expires_at", cached.ExpiresAt)
@@ -185,6 +189,10 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 	}
 
 	item.Nutrients = &nutrition
+
+	// Calculate grams equivalent
+	s.calculateGramsEquivalent(&item)
+
 	return item, nil
 }
 
@@ -289,4 +297,34 @@ func (s *NutritionService) convertNutrientsToCache(item Item, nutrients Complete
 		FetchedAt:            time.Now().UTC(),
 		ExpiresAt:            time.Now().UTC().Add(30 * 24 * time.Hour), // 30 day TTL
 	}
+}
+
+// calculateGramsEquivalent calculates and sets the grams equivalent for an item
+func (s *NutritionService) calculateGramsEquivalent(item *Item) {
+	// If no quantity or unit, skip calculation
+	if item.Quantity == nil {
+		return
+	}
+
+	quantity := *item.Quantity
+	unit := ""
+	if item.Unit != nil {
+		unit = *item.Unit
+	}
+
+	// If already in grams or no unit, set as-is
+	if unit == "" || unit == "g" || unit == "gram" || unit == "grams" {
+		item.GramsEquivalent = &quantity
+		return
+	}
+
+	// Try to convert to grams using the unit converter
+	if grams, err := s.converter.ConvertToGrams(quantity, unit); err == nil {
+		// Only set if we got a different value (i.e., conversion happened)
+		if grams != quantity {
+			item.GramsEquivalent = &grams
+		}
+	}
+	// For units that can't be converted (like "pieces", "medium", etc.),
+	// we don't set grams_equivalent since it would be meaningless
 }

@@ -78,7 +78,7 @@
     if (goals?.upper_limits?.[nutrient] !== undefined) {
       const limit = goals.upper_limits[nutrient];
       if (limit === 0 && current > 0) {
-        return "⚠️ Should be 0";
+        return "⚠️";
       }
       if (current > limit) {
         const overage = ((current / limit) - 1) * 100;
@@ -285,8 +285,8 @@
                           <progress 
                             class="progress flex-1"
                             class:progress-success={progress <= 50}
-                            class:progress-warning={progress > 50 && progress <= 80}
-                            class:progress-error={progress > 80}
+                            class:progress-warning={progress > 50 && progress <= 100}
+                            class:progress-error={progress > 100}
                             value={progress} 
                             max="100"
                           ></progress>
