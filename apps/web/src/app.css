@@ -50,6 +50,26 @@
   --noise: 1;
 }
 
+/* Global focus styles for consistency */
+.focus-ring:focus,
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px oklch(var(--p) / 0.3);
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+/* Common animation keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /*
   Tailwind CSS v4 Migration:
   The default border color has changed to `currentColor` in Tailwind CSS v4,

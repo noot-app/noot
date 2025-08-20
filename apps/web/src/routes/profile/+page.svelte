@@ -388,3 +388,48 @@
     ></div>
   </div>
 {/if}
+
+<style>
+  /* Better focus styling for inputs and interactive elements */
+  .input:focus,
+  .input:focus-visible {
+    outline: none;
+    border-color: oklch(var(--p));
+    box-shadow: 0 0 0 2px oklch(var(--p) / 0.2);
+  }
+
+  /* Card focus styling */
+  .card:focus,
+  .card:focus-visible {
+    outline: none;
+    border: 2px solid oklch(var(--p) / 0.3);
+    box-shadow: 0 0 0 1px oklch(var(--p) / 0.1);
+  }
+
+  /* Button focus improvements */
+  .btn:focus,
+  .btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px oklch(var(--p) / 0.3);
+  }
+
+  /* Radio button focus */
+  .radio:focus,
+  .radio:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px oklch(var(--p) / 0.4);
+  }
+
+  /* Modal backdrop - remove focus styles since it's not meant to be keyboard navigable in normal use */
+  .modal-backdrop:focus {
+    outline: none;
+  }
+
+  /* Smooth transitions for focus states */
+  .input,
+  .card,
+  .btn,
+  .radio {
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+</style>
