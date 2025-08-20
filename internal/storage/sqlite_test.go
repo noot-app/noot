@@ -491,4 +491,81 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Equal(t, 2, dailySummary.ConsumptionCount)
 		assert.Equal(t, float64(800), dailySummary.Calories)
 	})
+
+	t.Run("UserBiometricsOperations", func(t *testing.T) {
+		// Create a user first
+		user := &User{
+			Provider: "github",
+			Subject:  "biometrics_user",
+			Email:    "biometrics@example.com",
+		}
+		err := store.CreateUser(ctx, user)
+		require.NoError(t, err)
+
+		// Initially no biometrics should exist
+		biometrics, err := store.GetUserBiometrics(ctx, user.ID)
+		require.NoError(t, err)
+		assert.Nil(t, biometrics)
+
+		// Create biometrics
+		birthDate := time.Date(1990, 5, 15, 0, 0, 0, 0, time.UTC)
+		heightCm := 175.0
+		weightKg := 70.5
+		
+		newBiometrics := &UserBiometrics{
+			UserID:        user.ID,
+			BirthDate:     &birthDate,
+			Sex:           "male",
+			HeightCm:      &heightCm,
+			WeightKg:      &weightKg,
+			ActivityLevel: "moderately_active",
+		}
+
+		err = store.UpsertUserBiometrics(ctx, newBiometrics)
+		require.NoError(t, err)
+		assert.NotZero(t, newBiometrics.ID)
+		assert.False(t, newBiometrics.CreatedAt.IsZero())
+		assert.False(t, newBiometrics.UpdatedAt.IsZero())
+
+		// Get biometrics
+		retrieved, err := store.GetUserBiometrics(ctx, user.ID)
+		require.NoError(t, err)
+		require.NotNil(t, retrieved)
+		
+		assert.Equal(t, newBiometrics.UserID, retrieved.UserID)
+		assert.Equal(t, "male", retrieved.Sex)
+		assert.Equal(t, birthDate, *retrieved.BirthDate)
+		assert.Equal(t, heightCm, *retrieved.HeightCm)
+		assert.Equal(t, weightKg, *retrieved.WeightKg)
+		assert.Equal(t, "moderately_active", retrieved.ActivityLevel)
+
+		// Update biometrics (should upsert)
+		newWeight := 68.0
+		retrieved.WeightKg = &newWeight
+		retrieved.ActivityLevel = "very_active"
+
+		err = store.UpsertUserBiometrics(ctx, retrieved)
+		require.NoError(t, err)
+
+		// Verify update
+		updated, err := store.GetUserBiometrics(ctx, user.ID)
+		require.NoError(t, err)
+		require.NotNil(t, updated)
+		assert.Equal(t, newWeight, *updated.WeightKg)
+		assert.Equal(t, "very_active", updated.ActivityLevel)
+
+		// Delete biometrics
+		err = store.DeleteUserBiometrics(ctx, user.ID)
+		require.NoError(t, err)
+
+		// Verify deletion
+		deleted, err := store.GetUserBiometrics(ctx, user.ID)
+		require.NoError(t, err)
+		assert.Nil(t, deleted)
+
+		// Try to delete non-existent biometrics (should error)
+		err = store.DeleteUserBiometrics(ctx, user.ID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "user biometrics not found")
+	})
 }

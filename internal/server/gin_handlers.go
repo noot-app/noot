@@ -512,8 +512,25 @@ func (s *APIServer) GetGoals(c *gin.Context) {
 		}
 	}
 
-	// Resolve goals based on user profile
-	resolvedGoals, err := s.goalResolver.ResolveGoals(user.Sex, user.BirthDate, customOverrides)
+	// Get user's biometrics for personalized goals
+	userBiometrics, err := s.store.GetUserBiometrics(ctx, user.ID)
+	if err != nil {
+		LogError("Failed to get user biometrics", err, "user_id", user.ID)
+		// Continue with default values
+	}
+
+	// Extract sex and birth_date from biometrics, with defaults
+	sex := "male" // Default fallback
+	var birthDate *time.Time
+	if userBiometrics != nil {
+		if userBiometrics.Sex != "" && userBiometrics.Sex != "prefer_not_to_say" {
+			sex = userBiometrics.Sex
+		}
+		birthDate = userBiometrics.BirthDate
+	}
+
+	// Resolve goals based on biometrics or defaults
+	resolvedGoals, err := s.goalResolver.ResolveGoals(sex, birthDate, customOverrides)
 	if err != nil {
 		appErr := NewAppError("Failed to resolve nutrition goals", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)

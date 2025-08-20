@@ -104,8 +104,8 @@ func (s *SQLiteStore) Reset() error {
 // CreateUser creates a new user
 func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 	query := `
-		INSERT INTO users (id, provider, subject, email, subscription_tier, sex, birth_date, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+		INSERT INTO users (id, provider, subject, email, subscription_tier, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
 	user.ID = generateULID()
@@ -116,13 +116,8 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 		user.SubscriptionTier = SubscriptionTierFree
 	}
 
-	// Set default sex if not provided
-	if user.Sex == "" {
-		user.Sex = "unspecified"
-	}
-
 	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email,
-		user.SubscriptionTier, user.Sex, user.BirthDate, now)
+		user.SubscriptionTier, now)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -132,11 +127,11 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 
 // GetUser retrieves a user by ID
 func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
-	query := `SELECT id, provider, subject, email, subscription_tier, sex, birth_date, created_at FROM users WHERE id = ?`
+	query := `SELECT id, provider, subject, email, subscription_tier, created_at FROM users WHERE id = ?`
 
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, id).
-		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.Sex, &user.BirthDate, &user.CreatedAt)
+		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // User not found
@@ -149,11 +144,11 @@ func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
 
 // GetUserBySubject retrieves a user by provider and subject
 func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject string) (*User, error) {
-	query := `SELECT id, provider, subject, email, subscription_tier, sex, birth_date, created_at FROM users WHERE provider = ? AND subject = ?`
+	query := `SELECT id, provider, subject, email, subscription_tier, created_at FROM users WHERE provider = ? AND subject = ?`
 
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, provider, subject).
-		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.Sex, &user.BirthDate, &user.CreatedAt)
+		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // User not found
@@ -1199,6 +1194,77 @@ func (s *SQLiteStore) DeleteUserGoal(ctx context.Context, userID, name string) e
 
 	if rowsAffected == 0 {
 		return fmt.Errorf("user goal not found")
+	}
+
+	return nil
+}
+
+// UpsertUserBiometrics creates or updates user biometrics
+func (s *SQLiteStore) UpsertUserBiometrics(ctx context.Context, biometrics *UserBiometrics) error {
+	query := `
+		INSERT INTO user_biometrics (id, user_id, birth_date, sex, height_cm, weight_kg, activity_level, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(user_id) DO UPDATE SET
+			birth_date = excluded.birth_date,
+			sex = excluded.sex,
+			height_cm = excluded.height_cm,
+			weight_kg = excluded.weight_kg,
+			activity_level = excluded.activity_level,
+			updated_at = excluded.updated_at`
+
+	now := time.Now().UTC()
+	if biometrics.ID == "" {
+		biometrics.ID = generateULID()
+		biometrics.CreatedAt = now
+	}
+	biometrics.UpdatedAt = now
+
+	_, err := s.db.ExecContext(ctx, query, biometrics.ID, biometrics.UserID, biometrics.BirthDate,
+		biometrics.Sex, biometrics.HeightCm, biometrics.WeightKg, biometrics.ActivityLevel, 
+		biometrics.CreatedAt, biometrics.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to upsert user biometrics: %w", err)
+	}
+
+	return nil
+}
+
+// GetUserBiometrics retrieves user biometrics by user ID
+func (s *SQLiteStore) GetUserBiometrics(ctx context.Context, userID string) (*UserBiometrics, error) {
+	query := `SELECT id, user_id, birth_date, sex, height_cm, weight_kg, activity_level, created_at, updated_at 
+			  FROM user_biometrics WHERE user_id = ?`
+
+	biometrics := &UserBiometrics{}
+	err := s.db.QueryRowContext(ctx, query, userID).
+		Scan(&biometrics.ID, &biometrics.UserID, &biometrics.BirthDate, &biometrics.Sex,
+			&biometrics.HeightCm, &biometrics.WeightKg, &biometrics.ActivityLevel,
+			&biometrics.CreatedAt, &biometrics.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Biometrics not found
+		}
+		return nil, fmt.Errorf("failed to get user biometrics: %w", err)
+	}
+
+	return biometrics, nil
+}
+
+// DeleteUserBiometrics deletes user biometrics
+func (s *SQLiteStore) DeleteUserBiometrics(ctx context.Context, userID string) error {
+	query := `DELETE FROM user_biometrics WHERE user_id = ?`
+
+	result, err := s.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete user biometrics: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user biometrics not found")
 	}
 
 	return nil
