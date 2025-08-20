@@ -127,19 +127,6 @@
       <p class="text-base-content/70">Track your nutrition intake over time</p>
     </div>
 
-    <!-- Navigation -->
-    <div class="flex justify-center mb-8">
-      <div class="btn-group">
-        <a href="/" class="btn btn-ghost">
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Home
-        </a>
-        <a href="/record" class="btn btn-primary">Record</a>
-      </div>
-    </div>
-
     <!-- View Toggle -->
     <div class="flex justify-center mb-8">
       <div class="btn-group">

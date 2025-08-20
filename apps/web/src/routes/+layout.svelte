@@ -5,6 +5,7 @@
   import { slide } from "svelte/transition"
   import { onMount } from "svelte"
   import { units } from "$lib/stores/units"
+  import Navbar from "$lib/components/Navbar.svelte"
 
   interface Props {
     children?: import("svelte").Snippet
@@ -30,4 +31,8 @@
     in:slide={{ delay: 100, duration: 12000, axis: "x", easing: expoOut }}
   ></div>
 {/if}
-{@render children?.()}
+
+<Navbar />
+<main>
+  {@render children?.()}
+</main>
