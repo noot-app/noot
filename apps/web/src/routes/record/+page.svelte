@@ -336,9 +336,9 @@
   }
   
   .record-button.recording {
-    border-color: hsl(var(--er));
-    background-color: hsl(var(--er));
-    color: hsl(var(--erc));
+    border-color: var(--color-dark);
+    background-color: var(--color-dark);
+    color: var(--color-dark-content);
     animation: pulse-recording 1.5s ease-in-out infinite;
   }
   
@@ -352,11 +352,11 @@
   @keyframes pulse-recording {
     0%, 100% {
       transform: scale(1);
-      box-shadow: 0 0 0 0 hsla(var(--er), 0.7);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-dark) 70%, transparent);
     }
     50% {
       transform: scale(1.05);
-      box-shadow: 0 0 0 20px hsla(var(--er), 0);
+      box-shadow: 0 0 0 20px color-mix(in srgb, var(--color-dark) 0%, transparent);
     }
   }
   
@@ -434,7 +434,7 @@
         {#if status.includes("Processing")}
           <p class="text-lg text-warning font-medium">Processing your meal...</p>
         {:else if isRecording}
-          <p class="text-lg text-error font-medium">Recording... Tap to stop</p>
+          <p class="text-lg font-medium" style="color: var(--color-dark);">Recording... Tap to stop</p>
         {:else if status === "✅ Complete"}
           <p class="text-lg text-success font-medium">Complete! Scroll down for results</p>
         {:else if status === "✅ Updated"}
