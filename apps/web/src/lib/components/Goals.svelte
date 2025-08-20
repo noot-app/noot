@@ -7,6 +7,8 @@
   type Goals = GoalsResponse["goals"];
 
   export let currentNutrition: Record<string, number> = {};
+  export let showMealContribution = false; // New prop to indicate meal-specific view
+  export let title = "Nutrition Goals"; // Customizable title
 
   let goals: Goals | null = null;
   let loading = true;
@@ -71,7 +73,7 @@
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
-      Nutrition Goals
+      {title}
     </h2>
 
     {#if loading}
@@ -117,14 +119,27 @@
                   </span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <progress 
-                    class="progress flex-1"
-                    class:progress-primary={progress < 50}
-                    class:progress-warning={progress >= 50 && progress < 80}
-                    class:progress-success={progress >= 80}
-                    value={progress} 
-                    max="100"
-                  ></progress>
+                  {#if showMealContribution}
+                    <!-- Stacked progress bar showing meal contribution -->
+                    <div class="flex-1 relative">
+                      <progress 
+                        class="progress progress-accent absolute inset-0"
+                        value={progress} 
+                        max="100"
+                        title="This meal's contribution: {progress.toFixed(0)}%"
+                      ></progress>
+                    </div>
+                  {:else}
+                    <!-- Standard progress bar -->
+                    <progress 
+                      class="progress flex-1"
+                      class:progress-primary={progress < 50}
+                      class:progress-warning={progress >= 50 && progress < 80}
+                      class:progress-success={progress >= 80}
+                      value={progress} 
+                      max="100"
+                    ></progress>
+                  {/if}
                   <span class="text-xs text-base-content/60 min-w-[3rem]">
                     {progress.toFixed(0)}%
                   </span>
