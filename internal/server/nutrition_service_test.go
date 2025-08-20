@@ -157,12 +157,3 @@ func TestNutritionService_RoundingPrecision(t *testing.T) {
 	assert.Equal(t, 3.52, result.VitaminB12) // 2.3456789 * 1.5 = 3.5185... rounded to 2 decimals
 	assert.Equal(t, 1.85, result.Zinc)       // 1.23456789 * 1.5 = 1.8518... rounded to 2 decimals
 }
-
-// Helper function to convert string to float64 pointer
-func stringToFloat64Ptr(s string) *float64 {
-	if s == "200" {
-		v := 200.0
-		return &v
-	}
-	return nil
-}
