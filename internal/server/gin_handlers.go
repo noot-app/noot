@@ -9,6 +9,7 @@ import (
 	"github.com/grantbirki/noot/internal/api"
 	"github.com/grantbirki/noot/internal/goals"
 	"github.com/grantbirki/noot/internal/storage"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // APIServer implements the generated ServerInterface
@@ -779,6 +780,362 @@ func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
 		}
 		c.JSON(http.StatusOK, response)
 	}
+}
+
+// GetUserBiometrics retrieves user biometrics data
+func (s *APIServer) GetUserBiometrics(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+	if user == nil {
+		appErr := NewAppError("User not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get user biometrics
+	biometrics, err := s.store.GetUserBiometrics(ctx, user.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to get user biometrics", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Calculate metrics from biometrics
+	calculations := CalculateMetrics(biometrics)
+
+	// Convert to API response format
+	var apiBiometrics *api.UserBiometrics
+	if biometrics != nil {
+		apiBiometrics = &api.UserBiometrics{}
+		
+		if biometrics.BirthDate != nil {
+			apiDate := openapi_types.Date{Time: *biometrics.BirthDate}
+			apiBiometrics.BirthDate = &apiDate
+		}
+		
+		if biometrics.Sex != "" {
+			switch biometrics.Sex {
+			case "male":
+				sex := api.Male
+				apiBiometrics.Sex = &sex
+			case "female":
+				sex := api.Female
+				apiBiometrics.Sex = &sex
+			case "other":
+				sex := api.Other
+				apiBiometrics.Sex = &sex
+			case "prefer_not_to_say":
+				sex := api.PreferNotToSay
+				apiBiometrics.Sex = &sex
+			}
+		}
+		
+		if biometrics.HeightCm != nil {
+			heightFloat32 := float32(*biometrics.HeightCm)
+			apiBiometrics.HeightCm = &heightFloat32
+		}
+		if biometrics.WeightKg != nil {
+			weightFloat32 := float32(*biometrics.WeightKg)
+			apiBiometrics.WeightKg = &weightFloat32
+		}
+		
+		if biometrics.ActivityLevel != "" {
+			switch biometrics.ActivityLevel {
+			case "sedentary":
+				level := api.UserBiometricsActivityLevelSedentary
+				apiBiometrics.ActivityLevel = &level
+			case "lightly_active":
+				level := api.UserBiometricsActivityLevelLightlyActive
+				apiBiometrics.ActivityLevel = &level
+			case "moderately_active":
+				level := api.UserBiometricsActivityLevelModeratelyActive
+				apiBiometrics.ActivityLevel = &level
+			case "very_active":
+				level := api.UserBiometricsActivityLevelVeryActive
+				apiBiometrics.ActivityLevel = &level
+			case "extra_active":
+				level := api.UserBiometricsActivityLevelExtraActive
+				apiBiometrics.ActivityLevel = &level
+			}
+		}
+	}
+
+	// Build calculated metrics inline struct
+	var calculatedMetrics *struct {
+		AgeYears *int     `json:"age_years,omitempty"`
+		Bmi      *float32 `json:"bmi,omitempty"`
+		Bmr      *float32 `json:"bmr,omitempty"`
+		Tdee     *float32 `json:"tdee,omitempty"`
+	}
+	if calculations != nil {
+		calculatedMetrics = &struct {
+			AgeYears *int     `json:"age_years,omitempty"`
+			Bmi      *float32 `json:"bmi,omitempty"`
+			Bmr      *float32 `json:"bmr,omitempty"`
+			Tdee     *float32 `json:"tdee,omitempty"`
+		}{}
+		
+		calculatedMetrics.AgeYears = calculations.AgeYears
+		if calculations.BMR != nil {
+			bmrFloat32 := float32(*calculations.BMR)
+			calculatedMetrics.Bmr = &bmrFloat32
+		}
+		if calculations.TDEE != nil {
+			tdeeFloat32 := float32(*calculations.TDEE)
+			calculatedMetrics.Tdee = &tdeeFloat32
+		}
+		if calculations.BMI != nil {
+			bmiFloat32 := float32(*calculations.BMI)
+			calculatedMetrics.Bmi = &bmiFloat32
+		}
+	}
+
+	response := api.BiometricsResponse{
+		Biometrics:         apiBiometrics,
+		CalculatedMetrics:  calculatedMetrics,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// UpdateUserBiometrics creates or updates user biometrics
+func (s *APIServer) UpdateUserBiometrics(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+	if user == nil {
+		appErr := NewAppError("User not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse request body
+	var req api.UpdateBiometricsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert API request to storage biometrics
+	biometrics := &storage.UserBiometrics{
+		UserID: user.ID,
+	}
+
+	// Convert birth date
+	if req.BirthDate != nil {
+		biometrics.BirthDate = &req.BirthDate.Time
+	}
+
+	// Convert sex
+	if req.Sex != nil {
+		switch *req.Sex {
+		case api.UpdateBiometricsRequestSexMale:
+			biometrics.Sex = "male"
+		case api.UpdateBiometricsRequestSexFemale:
+			biometrics.Sex = "female"
+		case api.UpdateBiometricsRequestSexOther:
+			biometrics.Sex = "other"
+		case api.UpdateBiometricsRequestSexPreferNotToSay:
+			biometrics.Sex = "prefer_not_to_say"
+		}
+	} else {
+		biometrics.Sex = "prefer_not_to_say" // Default
+	}
+
+	// Convert height and weight
+	if req.HeightCm != nil {
+		heightFloat64 := float64(*req.HeightCm)
+		biometrics.HeightCm = &heightFloat64
+	}
+	if req.WeightKg != nil {
+		weightFloat64 := float64(*req.WeightKg)
+		biometrics.WeightKg = &weightFloat64
+	}
+
+	// Convert activity level
+	if req.ActivityLevel != nil {
+		switch *req.ActivityLevel {
+		case api.UpdateBiometricsRequestActivityLevelSedentary:
+			biometrics.ActivityLevel = "sedentary"
+		case api.UpdateBiometricsRequestActivityLevelLightlyActive:
+			biometrics.ActivityLevel = "lightly_active"
+		case api.UpdateBiometricsRequestActivityLevelModeratelyActive:
+			biometrics.ActivityLevel = "moderately_active"
+		case api.UpdateBiometricsRequestActivityLevelVeryActive:
+			biometrics.ActivityLevel = "very_active"
+		case api.UpdateBiometricsRequestActivityLevelExtraActive:
+			biometrics.ActivityLevel = "extra_active"
+		}
+	} else {
+		biometrics.ActivityLevel = "lightly_active" // Default
+	}
+
+	// Upsert biometrics
+	err = s.store.UpsertUserBiometrics(ctx, biometrics)
+	if err != nil {
+		appErr := NewAppError("Failed to save user biometrics", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Return the updated biometrics with calculations
+	// Re-fetch to get the complete data with timestamps
+	updatedBiometrics, err := s.store.GetUserBiometrics(ctx, user.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve updated biometrics", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	calculations := CalculateMetrics(updatedBiometrics)
+
+	// Convert to API response (same logic as GetUserBiometrics)
+	var apiBiometrics *api.UserBiometrics
+	if updatedBiometrics != nil {
+		apiBiometrics = &api.UserBiometrics{}
+		
+		if updatedBiometrics.BirthDate != nil {
+			apiDate := openapi_types.Date{Time: *updatedBiometrics.BirthDate}
+			apiBiometrics.BirthDate = &apiDate
+		}
+		
+		if updatedBiometrics.Sex != "" {
+			switch updatedBiometrics.Sex {
+			case "male":
+				sex := api.Male
+				apiBiometrics.Sex = &sex
+			case "female":
+				sex := api.Female
+				apiBiometrics.Sex = &sex
+			case "other":
+				sex := api.Other
+				apiBiometrics.Sex = &sex
+			case "prefer_not_to_say":
+				sex := api.PreferNotToSay
+				apiBiometrics.Sex = &sex
+			}
+		}
+		
+		if updatedBiometrics.HeightCm != nil {
+			heightFloat32 := float32(*updatedBiometrics.HeightCm)
+			apiBiometrics.HeightCm = &heightFloat32
+		}
+		if updatedBiometrics.WeightKg != nil {
+			weightFloat32 := float32(*updatedBiometrics.WeightKg)
+			apiBiometrics.WeightKg = &weightFloat32
+		}
+		
+		if updatedBiometrics.ActivityLevel != "" {
+			switch updatedBiometrics.ActivityLevel {
+			case "sedentary":
+				level := api.UserBiometricsActivityLevelSedentary
+				apiBiometrics.ActivityLevel = &level
+			case "lightly_active":
+				level := api.UserBiometricsActivityLevelLightlyActive
+				apiBiometrics.ActivityLevel = &level
+			case "moderately_active":
+				level := api.UserBiometricsActivityLevelModeratelyActive
+				apiBiometrics.ActivityLevel = &level
+			case "very_active":
+				level := api.UserBiometricsActivityLevelVeryActive
+				apiBiometrics.ActivityLevel = &level
+			case "extra_active":
+				level := api.UserBiometricsActivityLevelExtraActive
+				apiBiometrics.ActivityLevel = &level
+			}
+		}
+	}
+
+	var calculatedMetrics *struct {
+		AgeYears *int     `json:"age_years,omitempty"`
+		Bmi      *float32 `json:"bmi,omitempty"`
+		Bmr      *float32 `json:"bmr,omitempty"`
+		Tdee     *float32 `json:"tdee,omitempty"`
+	}
+	if calculations != nil {
+		calculatedMetrics = &struct {
+			AgeYears *int     `json:"age_years,omitempty"`
+			Bmi      *float32 `json:"bmi,omitempty"`
+			Bmr      *float32 `json:"bmr,omitempty"`
+			Tdee     *float32 `json:"tdee,omitempty"`
+		}{}
+		
+		calculatedMetrics.AgeYears = calculations.AgeYears
+		if calculations.BMR != nil {
+			bmrFloat32 := float32(*calculations.BMR)
+			calculatedMetrics.Bmr = &bmrFloat32
+		}
+		if calculations.TDEE != nil {
+			tdeeFloat32 := float32(*calculations.TDEE)
+			calculatedMetrics.Tdee = &tdeeFloat32
+		}
+		if calculations.BMI != nil {
+			bmiFloat32 := float32(*calculations.BMI)
+			calculatedMetrics.Bmi = &bmiFloat32
+		}
+	}
+
+	response := api.BiometricsResponse{
+		Biometrics:        apiBiometrics,
+		CalculatedMetrics: calculatedMetrics,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// DeleteUserBiometrics deletes user biometrics data
+func (s *APIServer) DeleteUserBiometrics(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+	if user == nil {
+		appErr := NewAppError("User not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Delete biometrics
+	err = s.store.DeleteUserBiometrics(ctx, user.ID)
+	if err != nil {
+		if err.Error() == "user biometrics not found" {
+			appErr := NewAppError("User biometrics not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+		appErr := NewAppError("Failed to delete user biometrics", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	response := api.DeleteResponse{
+		Message: "User biometrics deleted successfully",
+		Id:      user.ID,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // OpenAPISpecHandler serves the OpenAPI specification

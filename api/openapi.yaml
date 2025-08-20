@@ -435,6 +435,85 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /biometrics:
+    get:
+      summary: Get user biometrics
+      description: Retrieve current biometric data for the authenticated user
+      operationId: getUserBiometrics
+      responses:
+        "200":
+          description: User biometrics data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BiometricsResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    
+    put:
+      summary: Update user biometrics
+      description: Create or update biometric data for the authenticated user
+      operationId: updateUserBiometrics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBiometricsRequest"
+      responses:
+        "200":
+          description: Biometrics updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BiometricsResponse"
+        "400":
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    
+    delete:
+      summary: Delete user biometrics
+      description: Delete all biometric data for the authenticated user
+      operationId: deleteUserBiometrics
+      responses:
+        "200":
+          description: Biometrics deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Biometrics not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     ErrorResponse:
@@ -1277,3 +1356,72 @@ components:
         id:
           type: string
           description: ID of the deleted consumption
+
+    BiometricsResponse:
+      type: object
+      properties:
+        biometrics:
+          $ref: "#/components/schemas/UserBiometrics"
+        calculated_metrics:
+          type: object
+          properties:
+            age_years:
+              type: integer
+              description: Calculated age in years
+            bmr:
+              type: number
+              description: Basal Metabolic Rate (calories/day)
+            tdee:
+              type: number
+              description: Total Daily Energy Expenditure (calories/day)
+            bmi:
+              type: number
+              description: Body Mass Index
+
+    UserBiometrics:
+      type: object
+      properties:
+        birth_date:
+          type: string
+          format: date
+          description: Date of birth
+        sex:
+          type: string
+          enum: [male, female, other, prefer_not_to_say]
+          description: Biological sex for DRI calculations
+        height_cm:
+          type: number
+          description: Height in centimeters
+        weight_kg:
+          type: number
+          description: Weight in kilograms
+        activity_level:
+          type: string
+          enum: [sedentary, lightly_active, moderately_active, very_active, extra_active]
+          description: Physical activity level
+
+    UpdateBiometricsRequest:
+      type: object
+      properties:
+        birth_date:
+          type: string
+          format: date
+          description: Date of birth
+        sex:
+          type: string
+          enum: [male, female, other, prefer_not_to_say]
+          description: Biological sex for DRI calculations
+        height_cm:
+          type: number
+          minimum: 50
+          maximum: 300
+          description: Height in centimeters
+        weight_kg:
+          type: number
+          minimum: 20
+          maximum: 500
+          description: Weight in kilograms
+        activity_level:
+          type: string
+          enum: [sedentary, lightly_active, moderately_active, very_active, extra_active]
+          description: Physical activity level

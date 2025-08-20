@@ -13,6 +13,15 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Delete user biometrics
+	// (DELETE /biometrics)
+	DeleteUserBiometrics(c *gin.Context)
+	// Get user biometrics
+	// (GET /biometrics)
+	GetUserBiometrics(c *gin.Context)
+	// Update user biometrics
+	// (PUT /biometrics)
+	UpdateUserBiometrics(c *gin.Context)
 	// Log a consumption via audio
 	// (POST /consumption)
 	CreateConsumption(c *gin.Context)
@@ -53,6 +62,45 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// DeleteUserBiometrics operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUserBiometrics(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteUserBiometrics(c)
+}
+
+// GetUserBiometrics operation middleware
+func (siw *ServerInterfaceWrapper) GetUserBiometrics(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetUserBiometrics(c)
+}
+
+// UpdateUserBiometrics operation middleware
+func (siw *ServerInterfaceWrapper) UpdateUserBiometrics(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.UpdateUserBiometrics(c)
+}
 
 // CreateConsumption operation middleware
 func (siw *ServerInterfaceWrapper) CreateConsumption(c *gin.Context) {
@@ -343,6 +391,9 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
+	router.DELETE(options.BaseURL+"/biometrics", wrapper.DeleteUserBiometrics)
+	router.GET(options.BaseURL+"/biometrics", wrapper.GetUserBiometrics)
+	router.PUT(options.BaseURL+"/biometrics", wrapper.UpdateUserBiometrics)
 	router.POST(options.BaseURL+"/consumption", wrapper.CreateConsumption)
 	router.DELETE(options.BaseURL+"/consumption/:id", wrapper.DeleteConsumption)
 	router.PUT(options.BaseURL+"/consumption/:id", wrapper.UpdateConsumption)

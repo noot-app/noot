@@ -23,9 +23,26 @@ const (
 
 // Defines values for LifeStageSex.
 const (
-	Female      LifeStageSex = "female"
-	Male        LifeStageSex = "male"
-	Unspecified LifeStageSex = "unspecified"
+	LifeStageSexFemale      LifeStageSex = "female"
+	LifeStageSexMale        LifeStageSex = "male"
+	LifeStageSexUnspecified LifeStageSex = "unspecified"
+)
+
+// Defines values for UpdateBiometricsRequestActivityLevel.
+const (
+	UpdateBiometricsRequestActivityLevelExtraActive      UpdateBiometricsRequestActivityLevel = "extra_active"
+	UpdateBiometricsRequestActivityLevelLightlyActive    UpdateBiometricsRequestActivityLevel = "lightly_active"
+	UpdateBiometricsRequestActivityLevelModeratelyActive UpdateBiometricsRequestActivityLevel = "moderately_active"
+	UpdateBiometricsRequestActivityLevelSedentary        UpdateBiometricsRequestActivityLevel = "sedentary"
+	UpdateBiometricsRequestActivityLevelVeryActive       UpdateBiometricsRequestActivityLevel = "very_active"
+)
+
+// Defines values for UpdateBiometricsRequestSex.
+const (
+	UpdateBiometricsRequestSexFemale         UpdateBiometricsRequestSex = "female"
+	UpdateBiometricsRequestSexMale           UpdateBiometricsRequestSex = "male"
+	UpdateBiometricsRequestSexOther          UpdateBiometricsRequestSex = "other"
+	UpdateBiometricsRequestSexPreferNotToSay UpdateBiometricsRequestSex = "prefer_not_to_say"
 )
 
 // Defines values for UserSubscriptionTier.
@@ -34,11 +51,46 @@ const (
 	Pro  UserSubscriptionTier = "pro"
 )
 
+// Defines values for UserBiometricsActivityLevel.
+const (
+	UserBiometricsActivityLevelExtraActive      UserBiometricsActivityLevel = "extra_active"
+	UserBiometricsActivityLevelLightlyActive    UserBiometricsActivityLevel = "lightly_active"
+	UserBiometricsActivityLevelModeratelyActive UserBiometricsActivityLevel = "moderately_active"
+	UserBiometricsActivityLevelSedentary        UserBiometricsActivityLevel = "sedentary"
+	UserBiometricsActivityLevelVeryActive       UserBiometricsActivityLevel = "very_active"
+)
+
+// Defines values for UserBiometricsSex.
+const (
+	Female         UserBiometricsSex = "female"
+	Male           UserBiometricsSex = "male"
+	Other          UserBiometricsSex = "other"
+	PreferNotToSay UserBiometricsSex = "prefer_not_to_say"
+)
+
 // Defines values for ExportDataParamsFormat.
 const (
 	ExportDataParamsFormatCsv  ExportDataParamsFormat = "csv"
 	ExportDataParamsFormatJson ExportDataParamsFormat = "json"
 )
+
+// BiometricsResponse defines model for BiometricsResponse.
+type BiometricsResponse struct {
+	Biometrics        *UserBiometrics `json:"biometrics,omitempty"`
+	CalculatedMetrics *struct {
+		// AgeYears Calculated age in years
+		AgeYears *int `json:"age_years,omitempty"`
+
+		// Bmi Body Mass Index
+		Bmi *float32 `json:"bmi,omitempty"`
+
+		// Bmr Basal Metabolic Rate (calories/day)
+		Bmr *float32 `json:"bmr,omitempty"`
+
+		// Tdee Total Daily Energy Expenditure (calories/day)
+		Tdee *float32 `json:"tdee,omitempty"`
+	} `json:"calculated_metrics,omitempty"`
+}
 
 // CompleteNutrient defines model for CompleteNutrient.
 type CompleteNutrient struct {
@@ -551,6 +603,30 @@ type TrendsResponse struct {
 	User   User                   `json:"user"`
 }
 
+// UpdateBiometricsRequest defines model for UpdateBiometricsRequest.
+type UpdateBiometricsRequest struct {
+	// ActivityLevel Physical activity level
+	ActivityLevel *UpdateBiometricsRequestActivityLevel `json:"activity_level,omitempty"`
+
+	// BirthDate Date of birth
+	BirthDate *openapi_types.Date `json:"birth_date,omitempty"`
+
+	// HeightCm Height in centimeters
+	HeightCm *float32 `json:"height_cm,omitempty"`
+
+	// Sex Biological sex for DRI calculations
+	Sex *UpdateBiometricsRequestSex `json:"sex,omitempty"`
+
+	// WeightKg Weight in kilograms
+	WeightKg *float32 `json:"weight_kg,omitempty"`
+}
+
+// UpdateBiometricsRequestActivityLevel Physical activity level
+type UpdateBiometricsRequestActivityLevel string
+
+// UpdateBiometricsRequestSex Biological sex for DRI calculations
+type UpdateBiometricsRequestSex string
+
 // UpdateConsumptionRequest defines model for UpdateConsumptionRequest.
 type UpdateConsumptionRequest struct {
 	// Items Updated items with nutrition information
@@ -589,6 +665,30 @@ type User struct {
 
 // UserSubscriptionTier User subscription level
 type UserSubscriptionTier string
+
+// UserBiometrics defines model for UserBiometrics.
+type UserBiometrics struct {
+	// ActivityLevel Physical activity level
+	ActivityLevel *UserBiometricsActivityLevel `json:"activity_level,omitempty"`
+
+	// BirthDate Date of birth
+	BirthDate *openapi_types.Date `json:"birth_date,omitempty"`
+
+	// HeightCm Height in centimeters
+	HeightCm *float32 `json:"height_cm,omitempty"`
+
+	// Sex Biological sex for DRI calculations
+	Sex *UserBiometricsSex `json:"sex,omitempty"`
+
+	// WeightKg Weight in kilograms
+	WeightKg *float32 `json:"weight_kg,omitempty"`
+}
+
+// UserBiometricsActivityLevel Physical activity level
+type UserBiometricsActivityLevel string
+
+// UserBiometricsSex Biological sex for DRI calculations
+type UserBiometricsSex string
 
 // CreateConsumptionMultipartBody defines parameters for CreateConsumption.
 type CreateConsumptionMultipartBody struct {
@@ -640,6 +740,9 @@ type GetTrendsParams struct {
 	// Days Number of days to look back from today (alternative to start/end)
 	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
+
+// UpdateUserBiometricsJSONRequestBody defines body for UpdateUserBiometrics for application/json ContentType.
+type UpdateUserBiometricsJSONRequestBody = UpdateBiometricsRequest
 
 // CreateConsumptionMultipartRequestBody defines body for CreateConsumption for multipart/form-data ContentType.
 type CreateConsumptionMultipartRequestBody CreateConsumptionMultipartBody
