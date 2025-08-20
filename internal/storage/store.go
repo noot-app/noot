@@ -15,9 +15,16 @@ type Store interface {
 	// Consumption operations
 	CreateConsumption(ctx context.Context, consumption *Consumption) error
 	GetConsumption(ctx context.Context, id string) (*Consumption, error)
+	UpdateConsumption(ctx context.Context, consumption *Consumption) error
+	DeleteConsumption(ctx context.Context, id string) error
 	GetConsumptionsByUser(ctx context.Context, userID string, limit, offset int) ([]*Consumption, error)
 	GetConsumptionsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Consumption, error)
 	GetNutritionSummary(ctx context.Context, userID string, start, end time.Time) (*NutritionSummary, error)
+
+	// User goal operations
+	UpsertUserGoal(ctx context.Context, goal *UserGoal) error
+	GetUserGoal(ctx context.Context, userID, name string) (*UserGoal, error)
+	DeleteUserGoal(ctx context.Context, userID, name string) error
 
 	// Item cache operations (soft TTL)
 	GetItemFromCache(ctx context.Context, normalizedName, normalizedBrand string) (*ItemCache, error)
@@ -38,27 +45,55 @@ type Store interface {
 
 // User represents a user in the system
 type User struct {
-	ID               string    `json:"id"`
-	Provider         string    `json:"provider"`
-	Subject          string    `json:"subject"`
-	Email            string    `json:"email"`
-	SubscriptionTier string    `json:"subscription_tier"` // "free", "pro"
-	CreatedAt        time.Time `json:"created_at"`
+	ID               string     `json:"id"`
+	Provider         string     `json:"provider"`
+	Subject          string     `json:"subject"`
+	Email            string     `json:"email"`
+	SubscriptionTier string     `json:"subscription_tier"` // "free", "pro"
+	Sex              string     `json:"sex"`               // "male", "female", "unspecified"
+	BirthDate        *time.Time `json:"birth_date"`        // nullable for age-based DRI calculation
+	CreatedAt        time.Time  `json:"created_at"`
 }
 
 // Consumption represents a logged consumption with nutrition data
 type Consumption struct {
-	ID            string    `json:"id"`
-	UserID        string    `json:"user_id"`
-	Transcript    string    `json:"transcript"`
-	ItemsJSON     string    `json:"items_json"` // JSON serialized items array
-	TotalCalories float64   `json:"total_calories"`
-	TotalProtein  float64   `json:"total_protein_g"`
-	TotalFat      float64   `json:"total_fat_g"`
-	TotalCarbs    float64   `json:"total_carbs_g"`
-	TotalFiber    float64   `json:"total_fiber_g"`
-	TotalSodium   float64   `json:"total_sodium_mg"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID            string  `json:"id"`
+	UserID        string  `json:"user_id"`
+	Transcript    string  `json:"transcript"`
+	ItemsJSON     string  `json:"items_json"` // JSON serialized items array
+	TotalCalories float64 `json:"total_calories"`
+	TotalProtein  float64 `json:"total_protein_g"`
+	TotalFat      float64 `json:"total_fat_g"`
+	TotalCarbs    float64 `json:"total_carbs_g"`
+	TotalFiber    float64 `json:"total_fiber_g"`
+	TotalSodium   float64 `json:"total_sodium_mg"`
+	// Additional micronutrient totals
+	SaturatedFat float64   `json:"saturated_fat_g"`
+	TransFat     float64   `json:"trans_fat_g"`
+	Cholesterol  float64   `json:"cholesterol_mg"`
+	TotalSugars  float64   `json:"total_sugars_g"`
+	AddedSugars  float64   `json:"added_sugars_g"`
+	VitaminA     float64   `json:"vitamin_a_mcg"`
+	VitaminC     float64   `json:"vitamin_c_mg"`
+	VitaminD     float64   `json:"vitamin_d_mcg"`
+	VitaminE     float64   `json:"vitamin_e_mg"`
+	VitaminK     float64   `json:"vitamin_k_mcg"`
+	Thiamine     float64   `json:"thiamine_mg"`
+	Riboflavin   float64   `json:"riboflavin_mg"`
+	Niacin       float64   `json:"niacin_mg"`
+	VitaminB6    float64   `json:"vitamin_b6_mg"`
+	Folate       float64   `json:"folate_mcg"`
+	VitaminB12   float64   `json:"vitamin_b12_mcg"`
+	Calcium      float64   `json:"calcium_mg"`
+	Iron         float64   `json:"iron_mg"`
+	Magnesium    float64   `json:"magnesium_mg"`
+	Phosphorus   float64   `json:"phosphorus_mg"`
+	Potassium    float64   `json:"potassium_mg"`
+	Zinc         float64   `json:"zinc_mg"`
+	Copper       float64   `json:"copper_mg"`
+	Manganese    float64   `json:"manganese_mg"`
+	Selenium     float64   `json:"selenium_mcg"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 // ItemCache represents cached nutrition data for a food item with soft TTL
@@ -124,7 +159,7 @@ type NutritionSummary struct {
 	EndDate          time.Time `json:"end_date"`
 	ConsumptionCount int       `json:"consumption_count"`
 
-	// Totals for the time period
+	// Totals for the time period - basic macronutrients
 	TotalCalories float64 `json:"total_calories"`
 	TotalProtein  float64 `json:"total_protein_g"`
 	TotalFat      float64 `json:"total_fat_g"`
@@ -132,7 +167,38 @@ type NutritionSummary struct {
 	TotalFiber    float64 `json:"total_fiber_g"`
 	TotalSodium   float64 `json:"total_sodium_mg"`
 
-	// Averages per day
+	// Additional macronutrients
+	TotalSaturatedFat float64 `json:"total_saturated_fat_g"`
+	TotalTransFat     float64 `json:"total_trans_fat_g"`
+	TotalCholesterol  float64 `json:"total_cholesterol_mg"`
+	TotalSugars       float64 `json:"total_sugars_g"`
+	TotalAddedSugars  float64 `json:"total_added_sugars_g"`
+
+	// Vitamins
+	TotalVitaminA   float64 `json:"total_vitamin_a_mcg"`
+	TotalVitaminC   float64 `json:"total_vitamin_c_mg"`
+	TotalVitaminD   float64 `json:"total_vitamin_d_mcg"`
+	TotalVitaminE   float64 `json:"total_vitamin_e_mg"`
+	TotalVitaminK   float64 `json:"total_vitamin_k_mcg"`
+	TotalThiamine   float64 `json:"total_thiamine_mg"`
+	TotalRiboflavin float64 `json:"total_riboflavin_mg"`
+	TotalNiacin     float64 `json:"total_niacin_mg"`
+	TotalVitaminB6  float64 `json:"total_vitamin_b6_mg"`
+	TotalFolate     float64 `json:"total_folate_mcg"`
+	TotalVitaminB12 float64 `json:"total_vitamin_b12_mcg"`
+
+	// Minerals
+	TotalCalcium    float64 `json:"total_calcium_mg"`
+	TotalIron       float64 `json:"total_iron_mg"`
+	TotalMagnesium  float64 `json:"total_magnesium_mg"`
+	TotalPhosphorus float64 `json:"total_phosphorus_mg"`
+	TotalPotassium  float64 `json:"total_potassium_mg"`
+	TotalZinc       float64 `json:"total_zinc_mg"`
+	TotalCopper     float64 `json:"total_copper_mg"`
+	TotalManganese  float64 `json:"total_manganese_mg"`
+	TotalSelenium   float64 `json:"total_selenium_mcg"`
+
+	// Averages per day - basic macronutrients
 	AvgCaloriesPerDay float64 `json:"avg_calories_per_day"`
 	AvgProteinPerDay  float64 `json:"avg_protein_per_day"`
 	AvgFatPerDay      float64 `json:"avg_fat_per_day"`
@@ -154,4 +220,14 @@ type DailySummary struct {
 	Carbs            float64   `json:"total_carbs_g"`
 	Fiber            float64   `json:"fiber_g"`
 	Sodium           float64   `json:"sodium_mg"`
+}
+
+// UserGoal represents custom nutrition goals for Pro users
+type UserGoal struct {
+	ID            string    `json:"id"`
+	UserID        string    `json:"user_id"`
+	Name          string    `json:"name"`           // typically "custom", allows for future goal presets
+	OverridesJSON string    `json:"overrides_json"` // JSON map of nutrient_key -> target value
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }

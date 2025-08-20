@@ -7,47 +7,47 @@
 }
 
 @plugin "daisyui/theme" {
-  name: "saasstartertheme";
+  name: "noot";
   default: true; /* set as default */
   prefersdark: false; /* set as default dark mode (prefers-color-scheme:dark) */
   color-scheme: light; /* color of browser-provided UI */
 
-  --color-primary: #180042;
-  --color-primary-content: #fefbf6;
-  --color-secondary: #c7b9f8;
-  --color-secondary-content: oklch(95% 0 0);
-  --color-accent: #db2777;
-  --color-accent-content: #180042;
-  --color-neutral: #180042;
-  --color-neutral-content: #fefbf6;
-  --color-base-100: #fefbf6;
-  --color-base-200: #faedd6;
-  --color-base-300: oklch(92% 0.04 240);
-  --color-base-content: #180042;
-  --color-info: oklch(70% 0.2 220);
-  --color-info-content: oklch(98% 0.01 220);
-  --color-success: #37d399;
-  --color-success-content: oklch(98% 0.01 140);
-  --color-warning: oklch(80% 0.25 80);
-  --color-warning-content: oklch(20% 0.05 80);
-  --color-error: #f77272;
-  --color-error-content: oklch(98% 0.01 30);
+  --color-base-100: #fdf8ee;
+  --color-base-200: #f2ede3;
+  --color-base-300: #ddd9d0;
+  --color-base-content: #3c3d42;
+  --color-primary: #be7454;
+  --color-primary-content: #ffffff;
+  --color-secondary: #657280;
+  --color-secondary-content: #ffffff;
+  --color-accent: #74b986;
+  --color-accent-content: #ffffff;
+  --color-neutral: #3a3b40;
+  --color-neutral-content: #fdf8ee;
+  --color-info: #667584;
+  --color-info-content: #ffffff;
+  --color-success: #74b986;
+  --color-success-content: #ffffff;
+  --color-warning: #bb704f;
+  --color-warning-content: #ffffff;
+  --color-error: #2b2621;
+  --color-error-content: #fdf8ee;
 
   /* border radius */
   --radius-selector: 1rem;
-  --radius-field: 0.5rem;
-  --radius-box: 0.5rem;
+  --radius-field: 1rem;
+  --radius-box: 1rem;
 
   /* base sizes */
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
+  --size-selector: 0.3125rem;
+  --size-field: 0.3125rem;
 
   /* border size */
   --border: 1px;
 
   /* effects */
   --depth: 1;
-  --noise: 0;
+  --noise: 1;
 }
 
 /*

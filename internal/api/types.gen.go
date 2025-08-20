@@ -9,10 +9,35 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for ExportResponseFormat.
+const (
+	ExportResponseFormatCsv  ExportResponseFormat = "csv"
+	ExportResponseFormatJson ExportResponseFormat = "json"
+)
+
+// Defines values for GoalsSource.
+const (
+	Custom GoalsSource = "custom"
+	Dri    GoalsSource = "dri"
+)
+
+// Defines values for LifeStageSex.
+const (
+	Female      LifeStageSex = "female"
+	Male        LifeStageSex = "male"
+	Unspecified LifeStageSex = "unspecified"
+)
+
 // Defines values for UserSubscriptionTier.
 const (
 	Free UserSubscriptionTier = "free"
 	Pro  UserSubscriptionTier = "pro"
+)
+
+// Defines values for ExportDataParamsFormat.
+const (
+	ExportDataParamsFormatCsv  ExportDataParamsFormat = "csv"
+	ExportDataParamsFormatJson ExportDataParamsFormat = "json"
 )
 
 // CompleteNutrient defines model for CompleteNutrient.
@@ -130,6 +155,9 @@ type Consumption struct {
 
 // ConsumptionResponse defines model for ConsumptionResponse.
 type ConsumptionResponse struct {
+	// Id Consumption ID (for future edits/deletes)
+	Id string `json:"id"`
+
 	// Items Items with complete nutrition information
 	Items []ItemWithNutrition `json:"items"`
 
@@ -180,6 +208,24 @@ type DailySummary struct {
 	TotalFatG float32 `json:"total_fat_g"`
 }
 
+// DataPoint defines model for DataPoint.
+type DataPoint struct {
+	// Date Date for this data point
+	Date time.Time `json:"date"`
+
+	// Value Nutrient value for this date
+	Value float32 `json:"value"`
+}
+
+// DeleteResponse defines model for DeleteResponse.
+type DeleteResponse struct {
+	// Id ID of the deleted consumption
+	Id string `json:"id"`
+
+	// Message Confirmation message
+	Message string `json:"message"`
+}
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	// Code HTTP status code
@@ -196,6 +242,52 @@ type ErrorResponse struct {
 
 	// TraceId Request trace ID
 	TraceId *string `json:"trace_id,omitempty"`
+}
+
+// ExportResponse defines model for ExportResponse.
+type ExportResponse struct {
+	DateRange struct {
+		End   *time.Time `json:"end,omitempty"`
+		Start *time.Time `json:"start,omitempty"`
+	} `json:"date_range"`
+
+	// Format Export format used
+	Format ExportResponseFormat `json:"format"`
+
+	// Series Time series data for each requested metric
+	Series map[string][]DataPoint `json:"series"`
+	User   User                   `json:"user"`
+}
+
+// ExportResponseFormat Export format used
+type ExportResponseFormat string
+
+// Goals defines model for Goals.
+type Goals struct {
+	// CustomName Name of the custom goal set (only present when source is "custom")
+	CustomName *string   `json:"custom_name,omitempty"`
+	LifeStage  LifeStage `json:"life_stage"`
+
+	// Source Source of the goals (DRI defaults or custom overrides)
+	Source GoalsSource `json:"source"`
+
+	// Targets Target amounts for each nutrient
+	Targets map[string]float32 `json:"targets"`
+
+	// Units Units for each nutrient
+	Units map[string]string `json:"units"`
+
+	// UpperLimits Upper limit amounts for each nutrient (where defined)
+	UpperLimits map[string]float32 `json:"upper_limits"`
+}
+
+// GoalsSource Source of the goals (DRI defaults or custom overrides)
+type GoalsSource string
+
+// GoalsResponse defines model for GoalsResponse.
+type GoalsResponse struct {
+	Goals Goals `json:"goals"`
+	User  User  `json:"user"`
 }
 
 // HealthResponse defines model for HealthResponse.
@@ -229,6 +321,18 @@ type ItemWithNutrition struct {
 	Note *string `json:"note,omitempty"`
 }
 
+// LifeStage defines model for LifeStage.
+type LifeStage struct {
+	// AgeBracket Age bracket used for DRI lookup
+	AgeBracket string `json:"age_bracket"`
+
+	// Sex User sex for DRI calculation
+	Sex LifeStageSex `json:"sex"`
+}
+
+// LifeStageSex User sex for DRI calculation
+type LifeStageSex string
+
 // NutritionSummary defines model for NutritionSummary.
 type NutritionSummary struct {
 	// AvgCaloriesPerDay Average calories per day
@@ -261,11 +365,23 @@ type NutritionSummary struct {
 	// StartDate Start date of the summary period
 	StartDate time.Time `json:"start_date"`
 
+	// TotalAddedSugarsG Total added sugars in grams
+	TotalAddedSugarsG float32 `json:"total_added_sugars_g"`
+
+	// TotalCalciumMg Total calcium in milligrams
+	TotalCalciumMg float32 `json:"total_calcium_mg"`
+
 	// TotalCalories Total calories consumed
 	TotalCalories float32 `json:"total_calories"`
 
 	// TotalCarbsG Total carbohydrates in grams
 	TotalCarbsG float32 `json:"total_carbs_g"`
+
+	// TotalCholesterolMg Total cholesterol in milligrams
+	TotalCholesterolMg float32 `json:"total_cholesterol_mg"`
+
+	// TotalCopperMg Total copper in milligrams
+	TotalCopperMg float32 `json:"total_copper_mg"`
 
 	// TotalFatG Total fat in grams
 	TotalFatG float32 `json:"total_fat_g"`
@@ -273,11 +389,74 @@ type NutritionSummary struct {
 	// TotalFiberG Total fiber in grams
 	TotalFiberG float32 `json:"total_fiber_g"`
 
+	// TotalFolateMcg Total folate in micrograms
+	TotalFolateMcg float32 `json:"total_folate_mcg"`
+
+	// TotalIronMg Total iron in milligrams
+	TotalIronMg float32 `json:"total_iron_mg"`
+
+	// TotalMagnesiumMg Total magnesium in milligrams
+	TotalMagnesiumMg float32 `json:"total_magnesium_mg"`
+
+	// TotalManganeseMg Total manganese in milligrams
+	TotalManganeseMg float32 `json:"total_manganese_mg"`
+
+	// TotalNiacinMg Total niacin (B3) in milligrams
+	TotalNiacinMg float32 `json:"total_niacin_mg"`
+
+	// TotalPhosphorusMg Total phosphorus in milligrams
+	TotalPhosphorusMg float32 `json:"total_phosphorus_mg"`
+
+	// TotalPotassiumMg Total potassium in milligrams
+	TotalPotassiumMg float32 `json:"total_potassium_mg"`
+
 	// TotalProteinG Total protein in grams
 	TotalProteinG float32 `json:"total_protein_g"`
 
+	// TotalRiboflavinMg Total riboflavin (B2) in milligrams
+	TotalRiboflavinMg float32 `json:"total_riboflavin_mg"`
+
+	// TotalSaturatedFatG Total saturated fat in grams
+	TotalSaturatedFatG float32 `json:"total_saturated_fat_g"`
+
+	// TotalSeleniumMcg Total selenium in micrograms
+	TotalSeleniumMcg float32 `json:"total_selenium_mcg"`
+
 	// TotalSodiumMg Total sodium in milligrams
 	TotalSodiumMg float32 `json:"total_sodium_mg"`
+
+	// TotalSugarsG Total sugars in grams
+	TotalSugarsG float32 `json:"total_sugars_g"`
+
+	// TotalThiamineMg Total thiamine (B1) in milligrams
+	TotalThiamineMg float32 `json:"total_thiamine_mg"`
+
+	// TotalTransFatG Total trans fat in grams
+	TotalTransFatG float32 `json:"total_trans_fat_g"`
+
+	// TotalVitaminAMcg Total vitamin A in micrograms
+	TotalVitaminAMcg float32 `json:"total_vitamin_a_mcg"`
+
+	// TotalVitaminB12Mcg Total vitamin B12 in micrograms
+	TotalVitaminB12Mcg float32 `json:"total_vitamin_b12_mcg"`
+
+	// TotalVitaminB6Mg Total vitamin B6 in milligrams
+	TotalVitaminB6Mg float32 `json:"total_vitamin_b6_mg"`
+
+	// TotalVitaminCMg Total vitamin C in milligrams
+	TotalVitaminCMg float32 `json:"total_vitamin_c_mg"`
+
+	// TotalVitaminDMcg Total vitamin D in micrograms
+	TotalVitaminDMcg float32 `json:"total_vitamin_d_mcg"`
+
+	// TotalVitaminEMg Total vitamin E in milligrams
+	TotalVitaminEMg float32 `json:"total_vitamin_e_mg"`
+
+	// TotalVitaminKMcg Total vitamin K in micrograms
+	TotalVitaminKMcg float32 `json:"total_vitamin_k_mcg"`
+
+	// TotalZincMg Total zinc in milligrams
+	TotalZincMg float32 `json:"total_zinc_mg"`
 
 	// UserId User ID
 	UserId string `json:"user_id"`
@@ -304,6 +483,36 @@ type Summary struct {
 	// PercentOfDaily Percentage of daily values for each nutrient
 	PercentOfDaily map[string]int   `json:"percent_of_daily"`
 	Totals         CompleteNutrient `json:"totals"`
+}
+
+// TrendsResponse defines model for TrendsResponse.
+type TrendsResponse struct {
+	DateRange struct {
+		End   *time.Time `json:"end,omitempty"`
+		Start *time.Time `json:"start,omitempty"`
+	} `json:"date_range"`
+
+	// Days Number of days in the time series
+	Days int `json:"days"`
+
+	// Series Time series data for each requested metric
+	Series map[string][]DataPoint `json:"series"`
+	User   User                   `json:"user"`
+}
+
+// UpdateConsumptionRequest defines model for UpdateConsumptionRequest.
+type UpdateConsumptionRequest struct {
+	// Items Updated items with nutrition information
+	Items []ItemWithNutrition `json:"items"`
+}
+
+// UpdateGoalsRequest defines model for UpdateGoalsRequest.
+type UpdateGoalsRequest struct {
+	// Name Custom name for the goal set (optional, defaults to "custom")
+	Name *string `json:"name,omitempty"`
+
+	// Overrides Custom nutrition goal overrides
+	Overrides map[string]float32 `json:"overrides"`
 }
 
 // User defines model for User.
@@ -336,6 +545,24 @@ type CreateConsumptionMultipartBody struct {
 	Audio openapi_types.File `json:"audio"`
 }
 
+// ExportDataParams defines parameters for ExportData.
+type ExportDataParams struct {
+	// Format Export format
+	Format ExportDataParamsFormat `form:"format" json:"format"`
+
+	// Start Start date (RFC3339 format)
+	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
+
+	// End End date (RFC3339 format)
+	End *time.Time `form:"end,omitempty" json:"end,omitempty"`
+
+	// Metrics Comma-separated list of metrics to include (defaults to common macros)
+	Metrics *string `form:"metrics,omitempty" json:"metrics,omitempty"`
+}
+
+// ExportDataParamsFormat defines parameters for ExportData.
+type ExportDataParamsFormat string
+
 // GetNutritionSummaryParams defines parameters for GetNutritionSummary.
 type GetNutritionSummaryParams struct {
 	// Start Start date (RFC3339 format)
@@ -348,5 +575,26 @@ type GetNutritionSummaryParams struct {
 	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
 
+// GetTrendsParams defines parameters for GetTrends.
+type GetTrendsParams struct {
+	// Metrics Comma-separated list of metrics to include
+	Metrics *string `form:"metrics,omitempty" json:"metrics,omitempty"`
+
+	// Start Start date (RFC3339 format)
+	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
+
+	// End End date (RFC3339 format)
+	End *time.Time `form:"end,omitempty" json:"end,omitempty"`
+
+	// Days Number of days to look back from today (alternative to start/end)
+	Days *int `form:"days,omitempty" json:"days,omitempty"`
+}
+
 // CreateConsumptionMultipartRequestBody defines body for CreateConsumption for multipart/form-data ContentType.
 type CreateConsumptionMultipartRequestBody CreateConsumptionMultipartBody
+
+// UpdateConsumptionJSONRequestBody defines body for UpdateConsumption for application/json ContentType.
+type UpdateConsumptionJSONRequestBody = UpdateConsumptionRequest
+
+// UpdateGoalsJSONRequestBody defines body for UpdateGoals for application/json ContentType.
+type UpdateGoalsJSONRequestBody = UpdateGoalsRequest

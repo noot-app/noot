@@ -1,24 +1,33 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/grantbirki/noot/internal/api"
+	"github.com/grantbirki/noot/internal/goals"
 	"github.com/grantbirki/noot/internal/storage"
 )
 
 // APIServer implements the generated ServerInterface
 type APIServer struct {
-	store storage.Store
+	store        storage.Store
+	goalResolver *goals.GoalResolver
 }
 
 // NewAPIServer creates a new API server instance
-func NewAPIServer(store storage.Store) *APIServer {
-	return &APIServer{
-		store: store,
+func NewAPIServer(store storage.Store) (*APIServer, error) {
+	goalResolver, err := goals.NewGoalResolver()
+	if err != nil {
+		return nil, err
 	}
+
+	return &APIServer{
+		store:        store,
+		goalResolver: goalResolver,
+	}, nil
 }
 
 // GetHealth implements ServerInterface.GetHealth
@@ -141,6 +150,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	apiSummary := convertInternalSummaryToAPI(summary)
 
 	// 6) Save consumption to database if store is available
+	var consumptionID string
 	if s.store != nil {
 		// For now, use the default user if no authentication
 		// In the future, this would come from authentication middleware
@@ -155,6 +165,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 				LogError("Failed to save consumption to database", err)
 				// Don't fail the request if storage fails
 			} else {
+				consumptionID = consumption.ID
 				LogInfo("Consumption saved to database", "consumption_id", consumption.ID, "user_id", user.ID, "request_id", requestID)
 			}
 		}
@@ -162,6 +173,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 
 	// Create the API response
 	resp := api.ConsumptionResponse{
+		Id:          consumptionID, // Include consumption ID for editing
 		Transcript:  transcript,
 		ParsedItems: apiItems,
 		Items:       itemsWithNutrition,
@@ -176,6 +188,122 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 		"request_id", requestID,
 	)
 
+	c.JSON(http.StatusOK, resp)
+}
+
+// UpdateConsumption implements ServerInterface.UpdateConsumption
+func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	LogInfo("Update consumption request received", "consumption_id", id, "request_id", requestID)
+
+	if s.store == nil {
+		appErr := NewAppError("Storage not available", http.StatusInternalServerError, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse the request body
+	var updateReq api.UpdateConsumptionRequest
+	if err := c.ShouldBindJSON(&updateReq); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get the existing consumption
+	existingConsumption, err := s.store.GetConsumption(ctx, id)
+	if err != nil {
+		appErr := NewAppError("Failed to get consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+	if existingConsumption == nil {
+		appErr := NewAppError("Consumption not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert API items to internal format and calculate new summary
+	internalItems := convertAPIItemsToInternal(updateReq.Items)
+
+	// Recalculate summary from updated items
+	summary := summarize(internalItems)
+
+	// Update the consumption record (keep original transcript, user_id, created_at)
+	updatedConsumption := itemWithNutritionToConsumption(existingConsumption.UserID, existingConsumption.Transcript, internalItems, summary)
+	updatedConsumption.ID = existingConsumption.ID
+	updatedConsumption.CreatedAt = existingConsumption.CreatedAt
+
+	if err := s.store.UpdateConsumption(ctx, updatedConsumption); err != nil {
+		appErr := NewAppError("Failed to update consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert updated consumption back to API format for response
+	apiItems := make([]api.Item, len(internalItems))
+	for i, item := range internalItems {
+		apiItems[i] = convertInternalItemToAPI(item.Item)
+	}
+
+	apiSummary := convertInternalSummaryToAPI(summary)
+
+	// Create the API response
+	resp := api.ConsumptionResponse{
+		Id:          updatedConsumption.ID,
+		Transcript:  updatedConsumption.Transcript,
+		ParsedItems: apiItems,
+		Items:       updateReq.Items,
+		Summary:     apiSummary,
+		RequestId:   requestID,
+	}
+
+	LogInfo("Consumption updated successfully", "consumption_id", id, "request_id", requestID)
+	c.JSON(http.StatusOK, resp)
+}
+
+// DeleteConsumption implements ServerInterface.DeleteConsumption
+func (s *APIServer) DeleteConsumption(c *gin.Context, id string) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	LogInfo("Delete consumption request received", "consumption_id", id, "request_id", requestID)
+
+	if s.store == nil {
+		appErr := NewAppError("Storage not available", http.StatusInternalServerError, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check if consumption exists before trying to delete
+	existingConsumption, err := s.store.GetConsumption(ctx, id)
+	if err != nil {
+		appErr := NewAppError("Failed to get consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+	if existingConsumption == nil {
+		appErr := NewAppError("Consumption not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Delete the consumption
+	if err := s.store.DeleteConsumption(ctx, id); err != nil {
+		appErr := NewAppError("Failed to delete consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Create success response
+	resp := api.DeleteResponse{
+		Message: "Consumption deleted successfully",
+		Id:      id,
+	}
+
+	LogInfo("Consumption deleted successfully", "consumption_id", id, "request_id", requestID)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -354,6 +482,286 @@ func (s *APIServer) SwaggerUIHandler(c *gin.Context) {
 </html>`
 
 	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+}
+
+// GetGoals implements ServerInterface.GetGoals
+func (s *APIServer) GetGoals(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get user's custom goals if they're a Pro user
+	var customOverrides *goals.UserOverrides
+	if user.SubscriptionTier == storage.SubscriptionTierPro {
+		userGoal, err := s.store.GetUserGoal(ctx, user.ID, "custom")
+		if err != nil {
+			LogError("Failed to get user goal", err, "user_id", user.ID)
+		} else if userGoal != nil {
+			customOverrides = &goals.UserOverrides{}
+			if err := json.Unmarshal([]byte(userGoal.OverridesJSON), &customOverrides); err != nil {
+				LogError("Failed to parse user goal overrides", err, "user_id", user.ID)
+				customOverrides = nil
+			}
+		}
+	}
+
+	// Resolve goals based on user profile
+	resolvedGoals, err := s.goalResolver.ResolveGoals(user.Sex, user.BirthDate, customOverrides)
+	if err != nil {
+		appErr := NewAppError("Failed to resolve nutrition goals", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert to API response format
+	apiTargets := make(map[string]float32)
+	for k, v := range resolvedGoals.Targets {
+		apiTargets[k] = float32(v)
+	}
+
+	apiUpperLimits := make(map[string]float32)
+	for k, v := range resolvedGoals.UpperLimits {
+		apiUpperLimits[k] = float32(v)
+	}
+
+	apiGoals := api.Goals{
+		Targets:     apiTargets,
+		UpperLimits: apiUpperLimits,
+		Units:       resolvedGoals.Units,
+		Source:      api.GoalsSource(resolvedGoals.Source),
+		LifeStage: api.LifeStage{
+			Sex:        api.LifeStageSex(resolvedGoals.LifeStage.Sex),
+			AgeBracket: resolvedGoals.LifeStage.AgeBracket,
+		},
+	}
+
+	// Set custom name if available
+	if resolvedGoals.CustomName != "" {
+		apiGoals.CustomName = &resolvedGoals.CustomName
+	}
+
+	response := api.GoalsResponse{
+		Goals: apiGoals,
+		User:  convertUser(user),
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// UpdateGoals implements ServerInterface.UpdateGoals
+func (s *APIServer) UpdateGoals(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check subscription tier
+	if user.SubscriptionTier != storage.SubscriptionTierPro {
+		appErr := NewAppError("Pro subscription required for custom goals", http.StatusForbidden, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse request body
+	var req api.UpdateGoalsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Validate overrides (basic validation)
+	if len(req.Overrides) == 0 {
+		appErr := NewAppError("At least one override must be provided", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Validate and set goal name
+	goalDisplayName := "Custom Goals" // default display name
+	if req.Name != nil && *req.Name != "" {
+		if len(*req.Name) > 50 {
+			appErr := NewAppError("Goal name must be 50 characters or less", http.StatusBadRequest, nil)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+		goalDisplayName = *req.Name
+	}
+
+	// Create the user overrides structure with both name and overrides
+	userOverrides := goals.UserOverrides{
+		Name:      goalDisplayName,
+		Overrides: make(map[string]float64),
+	}
+
+	// Convert from float32 to float64
+	for k, v := range req.Overrides {
+		userOverrides.Overrides[k] = float64(v)
+	}
+
+	// Store the complete structure as JSON
+	overridesJSON, err := json.Marshal(userOverrides)
+	if err != nil {
+		appErr := NewAppError("Failed to serialize goal overrides", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	userGoal := &storage.UserGoal{
+		UserID:        user.ID,
+		Name:          "custom", // Keep as "custom" for database constraint
+		OverridesJSON: string(overridesJSON),
+	}
+
+	if err := s.store.UpsertUserGoal(ctx, userGoal); err != nil {
+		appErr := NewAppError("Failed to save custom goals", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Return updated goals
+	s.GetGoals(c)
+}
+
+// GetTrends implements ServerInterface.GetTrends
+func (s *APIServer) GetTrends(c *gin.Context, params api.GetTrendsParams) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse date range parameters
+	start, end, days, err := parseTrendsDateRangeParams(params.Start, params.End, params.Days)
+	if err != nil {
+		appErr := NewAppError("Invalid date range parameters", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Apply subscription-based limits
+	if err := validateTrendsSubscriptionAccess(user.SubscriptionTier, start, end); err != nil {
+		appErr := NewAppError(err.Error(), http.StatusForbidden, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get consumption data
+	consumptions, err := s.store.GetConsumptionsByUserSince(ctx, user.ID, start)
+	if err != nil {
+		appErr := NewAppError("Failed to get consumptions", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse requested metrics (default to common macros)
+	metrics := []string{"calories", "protein_g", "total_fat_g", "total_carbs_g"}
+	if params.Metrics != nil && *params.Metrics != "" {
+		// Parse comma-separated metrics
+		// TODO: Implement proper parsing and validation
+	}
+
+	// Generate time series data
+	series := generateTimeSeries(consumptions, metrics, start, end)
+
+	response := api.TrendsResponse{
+		Series: series,
+		User:   convertUser(user),
+		DateRange: struct {
+			End   *time.Time `json:"end,omitempty"`
+			Start *time.Time `json:"start,omitempty"`
+		}{
+			Start: &start,
+			End:   &end,
+		},
+		Days: days,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// ExportData implements ServerInterface.ExportData
+func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check subscription tier
+	if user.SubscriptionTier != storage.SubscriptionTierPro {
+		appErr := NewAppError("Pro subscription required for data export", http.StatusForbidden, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse date range parameters
+	start, end, _, err := parseTrendsDateRangeParams(params.Start, params.End, nil)
+	if err != nil {
+		appErr := NewAppError("Invalid date range parameters", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get consumption data
+	consumptions, err := s.store.GetConsumptionsByUserSince(ctx, user.ID, start)
+	if err != nil {
+		appErr := NewAppError("Failed to get consumptions", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse requested metrics (default to common macros)
+	metrics := []string{"calories", "protein_g", "total_fat_g", "total_carbs_g"}
+	if params.Metrics != nil && *params.Metrics != "" {
+		// TODO: Implement proper parsing and validation
+	}
+
+	if params.Format == "csv" {
+		// Generate CSV export
+		csvData := generateCSVExport(consumptions, metrics, start, end)
+		c.Header("Content-Disposition", "attachment; filename=\"nutrition-export.csv\"")
+		c.Data(http.StatusOK, "text/csv", []byte(csvData))
+	} else {
+		// Generate JSON export (same as trends response)
+		series := generateTimeSeries(consumptions, metrics, start, end)
+		response := api.ExportResponse{
+			Series: series,
+			User:   convertUser(user),
+			DateRange: struct {
+				End   *time.Time `json:"end,omitempty"`
+				Start *time.Time `json:"start,omitempty"`
+			}{
+				Start: &start,
+				End:   &end,
+			},
+			Format: api.ExportResponseFormat(params.Format),
+		}
+		c.JSON(http.StatusOK, response)
+	}
 }
 
 // OpenAPISpecHandler serves the OpenAPI specification

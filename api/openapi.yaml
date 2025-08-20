@@ -56,6 +56,81 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /consumption/{id}:
+    put:
+      summary: Update a consumption record
+      description: Update an existing consumption with edited nutrition data
+      operationId: updateConsumption
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateConsumptionRequest"
+      responses:
+        "200":
+          description: Consumption updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsumptionResponse"
+        "400":
+          description: Bad request (invalid request body, validation errors)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Consumption not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    
+    delete:
+      summary: Delete a consumption record
+      description: Delete a consumption record by ID (used for redo functionality)
+      operationId: deleteConsumption
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Consumption deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Consumption not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /health:
     get:
       summary: Health check
@@ -163,6 +238,203 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /goals:
+    get:
+      summary: Get nutrition goals
+      description: Get resolved nutrition goals based on user profile (DRI) and any custom overrides
+      operationId: getGoals
+      responses:
+        "200":
+          description: User nutrition goals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoalsResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    
+    put:
+      summary: Update nutrition goals (Pro only)
+      description: Set custom nutrition goal overrides for Pro users
+      operationId: updateGoals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGoalsRequest"
+      responses:
+        "200":
+          description: Goals updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoalsResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Access denied (Pro subscription required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /trends:
+    get:
+      summary: Get nutrition trends
+      description: Get time series data for nutrition metrics over a specified period
+      operationId: getTrends
+      parameters:
+        - name: metrics
+          in: query
+          description: Comma-separated list of metrics to include
+          schema:
+            type: string
+            example: "calories,protein_g,total_fat_g"
+        - name: start
+          in: query
+          description: Start date (RFC3339 format)
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          description: End date (RFC3339 format)
+          schema:
+            type: string
+            format: date-time
+        - name: days
+          in: query
+          description: Number of days to look back from today (alternative to start/end)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+      responses:
+        "200":
+          description: Nutrition trends data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendsResponse"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Access denied (subscription limitation)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /export:
+    get:
+      summary: Export nutrition data (Pro only)
+      description: Export nutrition data in CSV or JSON format for a specified date range
+      operationId: exportData
+      parameters:
+        - name: format
+          in: query
+          required: true
+          description: Export format
+          schema:
+            type: string
+            enum: [csv, json]
+        - name: start
+          in: query
+          description: Start date (RFC3339 format)
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          description: End date (RFC3339 format)
+          schema:
+            type: string
+            format: date-time
+        - name: metrics
+          in: query
+          description: Comma-separated list of metrics to include (defaults to common macros)
+          schema:
+            type: string
+            example: "calories,protein_g,total_fat_g,total_carbs_g"
+      responses:
+        "200":
+          description: Exported data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportResponse"
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Access denied (Pro subscription required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     ErrorResponse:
@@ -211,12 +483,16 @@ components:
     ConsumptionResponse:
       type: object
       required:
+        - id
         - transcript
         - parsedItems
         - items
         - summary
         - request_id
       properties:
+        id:
+          type: string
+          description: Consumption ID (for future edits/deletes)
         transcript:
           type: string
           description: Transcribed text from audio
@@ -535,6 +811,31 @@ components:
         - total_carbs_g
         - total_fiber_g
         - total_sodium_mg
+        - total_saturated_fat_g
+        - total_trans_fat_g
+        - total_cholesterol_mg
+        - total_sugars_g
+        - total_added_sugars_g
+        - total_vitamin_a_mcg
+        - total_vitamin_c_mg
+        - total_vitamin_d_mcg
+        - total_vitamin_e_mg
+        - total_vitamin_k_mcg
+        - total_thiamine_mg
+        - total_riboflavin_mg
+        - total_niacin_mg
+        - total_vitamin_b6_mg
+        - total_folate_mcg
+        - total_vitamin_b12_mcg
+        - total_calcium_mg
+        - total_iron_mg
+        - total_magnesium_mg
+        - total_phosphorus_mg
+        - total_potassium_mg
+        - total_zinc_mg
+        - total_copper_mg
+        - total_manganese_mg
+        - total_selenium_mcg
         - avg_calories_per_day
         - avg_protein_per_day
         - avg_fat_per_day
@@ -575,6 +876,81 @@ components:
         total_sodium_mg:
           type: number
           description: Total sodium in milligrams
+        total_saturated_fat_g:
+          type: number
+          description: Total saturated fat in grams
+        total_trans_fat_g:
+          type: number
+          description: Total trans fat in grams
+        total_cholesterol_mg:
+          type: number
+          description: Total cholesterol in milligrams
+        total_sugars_g:
+          type: number
+          description: Total sugars in grams
+        total_added_sugars_g:
+          type: number
+          description: Total added sugars in grams
+        total_vitamin_a_mcg:
+          type: number
+          description: Total vitamin A in micrograms
+        total_vitamin_c_mg:
+          type: number
+          description: Total vitamin C in milligrams
+        total_vitamin_d_mcg:
+          type: number
+          description: Total vitamin D in micrograms
+        total_vitamin_e_mg:
+          type: number
+          description: Total vitamin E in milligrams
+        total_vitamin_k_mcg:
+          type: number
+          description: Total vitamin K in micrograms
+        total_thiamine_mg:
+          type: number
+          description: Total thiamine (B1) in milligrams
+        total_riboflavin_mg:
+          type: number
+          description: Total riboflavin (B2) in milligrams
+        total_niacin_mg:
+          type: number
+          description: Total niacin (B3) in milligrams
+        total_vitamin_b6_mg:
+          type: number
+          description: Total vitamin B6 in milligrams
+        total_folate_mcg:
+          type: number
+          description: Total folate in micrograms
+        total_vitamin_b12_mcg:
+          type: number
+          description: Total vitamin B12 in micrograms
+        total_calcium_mg:
+          type: number
+          description: Total calcium in milligrams
+        total_iron_mg:
+          type: number
+          description: Total iron in milligrams
+        total_magnesium_mg:
+          type: number
+          description: Total magnesium in milligrams
+        total_phosphorus_mg:
+          type: number
+          description: Total phosphorus in milligrams
+        total_potassium_mg:
+          type: number
+          description: Total potassium in milligrams
+        total_zinc_mg:
+          type: number
+          description: Total zinc in milligrams
+        total_copper_mg:
+          type: number
+          description: Total copper in milligrams
+        total_manganese_mg:
+          type: number
+          description: Total manganese in milligrams
+        total_selenium_mcg:
+          type: number
+          description: Total selenium in micrograms
         avg_calories_per_day:
           type: number
           description: Average calories per day
@@ -636,3 +1012,200 @@ components:
         sodium_mg:
           type: number
           description: Total sodium in milligrams for the day
+
+    GoalsResponse:
+      type: object
+      required:
+        - goals
+        - user
+      properties:
+        goals:
+          $ref: "#/components/schemas/Goals"
+        user:
+          $ref: "#/components/schemas/User"
+
+    Goals:
+      type: object
+      required:
+        - targets
+        - upper_limits
+        - units
+        - source
+        - life_stage
+      properties:
+        targets:
+          type: object
+          additionalProperties:
+            type: number
+          description: Target amounts for each nutrient
+          example:
+            calories: 2000
+            protein_g: 50
+            vitamin_c_mg: 90
+        upper_limits:
+          type: object
+          additionalProperties:
+            type: number
+          description: Upper limit amounts for each nutrient (where defined)
+          example:
+            sodium_mg: 2300
+        units:
+          type: object
+          additionalProperties:
+            type: string
+          description: Units for each nutrient
+          example:
+            calories: "kcal"
+            protein_g: "g"
+            vitamin_c_mg: "mg"
+        source:
+          type: string
+          enum: [dri, custom]
+          description: Source of the goals (DRI defaults or custom overrides)
+        custom_name:
+          type: string
+          description: Name of the custom goal set (only present when source is "custom")
+          example: "Bulk Season"
+        life_stage:
+          $ref: "#/components/schemas/LifeStage"
+
+    LifeStage:
+      type: object
+      required:
+        - sex
+        - age_bracket
+      properties:
+        sex:
+          type: string
+          enum: [male, female, unspecified]
+          description: User sex for DRI calculation
+        age_bracket:
+          type: string
+          description: Age bracket used for DRI lookup
+          example: "19-30 y"
+
+    UpdateGoalsRequest:
+      type: object
+      required:
+        - overrides
+      properties:
+        name:
+          type: string
+          maxLength: 50
+          description: Custom name for the goal set (optional, defaults to "custom")
+          example: "Bulk Season"
+        overrides:
+          type: object
+          additionalProperties:
+            type: number
+          description: Custom nutrition goal overrides
+          example:
+            calories: 3000
+            protein_g: 180
+            vitamin_c_mg: 120
+
+    TrendsResponse:
+      type: object
+      required:
+        - series
+        - user
+        - date_range
+        - days
+      properties:
+        series:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/DataPoint"
+          description: Time series data for each requested metric
+          example:
+            calories:
+              - date: "2023-01-01T00:00:00Z"
+                value: 2100
+              - date: "2023-01-02T00:00:00Z"
+                value: 2250
+        user:
+          $ref: "#/components/schemas/User"
+        date_range:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time
+        days:
+          type: integer
+          description: Number of days in the time series
+
+    DataPoint:
+      type: object
+      required:
+        - date
+        - value
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: Date for this data point
+        value:
+          type: number
+          description: Nutrient value for this date
+
+    ExportResponse:
+      type: object
+      required:
+        - series
+        - user
+        - date_range
+        - format
+      properties:
+        series:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/DataPoint"
+          description: Time series data for each requested metric
+        user:
+          $ref: "#/components/schemas/User"
+        date_range:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time
+        format:
+          type: string
+          enum: [csv, json]
+          description: Export format used
+
+    UpdateConsumptionRequest:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemWithNutrition"
+          description: Updated items with nutrition information
+
+    DeleteResponse:
+      type: object
+      required:
+        - message
+        - id
+      properties:
+        message:
+          type: string
+          description: Confirmation message
+          example: "Consumption deleted successfully"
+        id:
+          type: string
+          description: ID of the deleted consumption

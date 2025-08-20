@@ -102,3 +102,9 @@ func RoundToDecimalPlaces(value float64, places int) float64 {
 	multiplier := math.Pow(10, float64(places))
 	return math.Round(value*multiplier) / multiplier
 }
+
+// RoundCaloriesUp rounds calorie values up to the nearest whole number
+// This ensures clients always receive whole calorie counts
+func RoundCaloriesUp(calories float64) float32 {
+	return float32(math.Ceil(calories))
+}

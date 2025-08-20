@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+# Validate and generate API types from OpenAPI specification
+#
+# This script:
+# 1. Validates the OpenAPI specification
+# 2. Generates Go types from the OpenAPI spec using oapi-codegen
+# 3. Ensures generated types are up to date
+
+set -euo pipefail
+
+source script/env "$@"
+
+echo "==> Validating and generating API types..."
+
+# Create output directory if it doesn't exist
+mkdir -p internal/api
+
+# Generate API types from OpenAPI specification
+echo "Generating API types from OpenAPI specification..."
+go tool oapi-codegen -generate types -package api -o internal/api/types.gen.go api/openapi.yaml
+
+# Generate Gin server interfaces (optional validation middleware)
+echo "Generating Gin server interfaces..."
+go tool oapi-codegen -generate gin -package api -o internal/api/gin.gen.go api/openapi.yaml
+
+echo "==> API type generation completed successfully"
+
+# Check if generated files exist and validate they are up to date
+if [ -f internal/api/types.gen.go ] && [ -f internal/api/gin.gen.go ]; then
+    if ! git diff --exit-code internal/api/types.gen.go >/dev/null 2>&1; then
+        echo "Warning: Generated types have changes. This is expected during development."
+    fi
+    
+    if ! git diff --exit-code internal/api/gin.gen.go >/dev/null 2>&1; then
+        echo "Warning: Generated Gin interfaces have changes. This is expected during development."
+    fi
+fi
+
+echo "==> All API types generated successfully"
+
+# Generate frontend API types if the web app exists
+if [ -d "apps/web" ]; then
+    echo "==> Generating frontend API types..."
+    
+    # Store current directory
+    original_dir="$PWD"
+    
+    # Change to web app directory and generate types
+    if cd apps/web; then
+        echo "Generating TypeScript API types from OpenAPI specification..."
+        
+        # Check if package.json exists and has the generate:api script
+        if [ -f package.json ] && npm run --silent 2>/dev/null | grep -q "generate:api"; then
+            if npm run generate:api; then
+                echo "Frontend API types generated successfully"
+            else
+                echo "Warning: Failed to generate frontend API types"
+                cd "$original_dir"
+                exit 1
+            fi
+        else
+            echo "Warning: No generate:api script found in apps/web/package.json"
+        fi
+        
+        # Return to original directory
+        cd "$original_dir"
+    else
+        echo "Warning: Could not change to apps/web directory"
+        exit 1
+    fi
+    
+    echo "==> Frontend API type generation completed"
+else
+    echo "==> Skipping frontend type generation (apps/web directory not found)"
+fi
+
+echo "==> All API types (backend and frontend) generated successfully"

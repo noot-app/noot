@@ -61,10 +61,14 @@ func Run(ctx context.Context, port string) error {
 	r.Use(RequestIDMiddleware())
 	r.Use(LoggingMiddleware())
 	r.Use(RecoveryMiddleware())
+	r.Use(CORSMiddleware())
 	r.Use(StoreMiddleware(store))
 
 	// Create API server
-	apiServer := NewAPIServer(store)
+	apiServer, err := NewAPIServer(store)
+	if err != nil {
+		return fmt.Errorf("failed to create API server: %w", err)
+	}
 
 	// API v1 routes with OpenAPI generated routing
 	v1 := r.Group("/api/v1")
@@ -75,7 +79,13 @@ func Run(ctx context.Context, port string) error {
 		}
 
 		v1.POST("/consumption", wrapper.CreateConsumption)
+		v1.PUT("/consumption/:id", wrapper.UpdateConsumption)
+		v1.DELETE("/consumption/:id", wrapper.DeleteConsumption)
 		v1.GET("/health", wrapper.GetHealth)
+		v1.GET("/goals", wrapper.GetGoals)
+		v1.PUT("/goals", wrapper.UpdateGoals)
+		v1.GET("/trends", wrapper.GetTrends)
+		v1.GET("/export", wrapper.ExportData)
 
 		// Development-only routes
 		if env == "development" {
@@ -85,9 +95,6 @@ func Run(ctx context.Context, port string) error {
 			v1.GET("/openapi.yaml", apiServer.OpenAPISpecHandler)
 		}
 	}
-
-	// Static frontend (embedded)
-	r.NoRoute(gin.WrapH(StaticHandler()))
 
 	LogInfo("Starting server", "port", port, "debug", isDebugMode(), "env", getenv("ENV", "production"))
 
