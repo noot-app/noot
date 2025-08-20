@@ -351,6 +351,9 @@ type NutritionSummary struct {
 	// StartDate Start date of the summary period
 	StartDate time.Time `json:"start_date"`
 
+	// TotalCalciumMg Total calcium in milligrams
+	TotalCalciumMg float32 `json:"total_calcium_mg"`
+
 	// TotalCalories Total calories consumed
 	TotalCalories float32 `json:"total_calories"`
 
@@ -363,11 +366,17 @@ type NutritionSummary struct {
 	// TotalFiberG Total fiber in grams
 	TotalFiberG float32 `json:"total_fiber_g"`
 
+	// TotalIronMg Total iron in milligrams
+	TotalIronMg float32 `json:"total_iron_mg"`
+
 	// TotalProteinG Total protein in grams
 	TotalProteinG float32 `json:"total_protein_g"`
 
 	// TotalSodiumMg Total sodium in milligrams
 	TotalSodiumMg float32 `json:"total_sodium_mg"`
+
+	// TotalVitaminCMg Total vitamin C in milligrams
+	TotalVitaminCMg float32 `json:"total_vitamin_c_mg"`
 
 	// UserId User ID
 	UserId string `json:"user_id"`

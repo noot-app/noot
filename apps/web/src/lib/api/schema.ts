@@ -357,6 +357,12 @@ export interface components {
             total_fiber_g: number;
             /** @description Total sodium in milligrams */
             total_sodium_mg: number;
+            /** @description Total vitamin C in milligrams */
+            total_vitamin_c_mg: number;
+            /** @description Total calcium in milligrams */
+            total_calcium_mg: number;
+            /** @description Total iron in milligrams */
+            total_iron_mg: number;
             /** @description Average calories per day */
             avg_calories_per_day: number;
             /** @description Average protein per day in grams */

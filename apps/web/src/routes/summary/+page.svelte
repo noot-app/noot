@@ -79,9 +79,9 @@
     dietary_fiber_g: summaryData.summary.total_fiber_g || 0,
     sodium_mg: summaryData.summary.total_sodium_mg || 0,
     // Add micronutrients if available in summary
-    vitamin_c_mg: summaryData.summary.vitamin_c_mg || 0,
-    calcium_mg: summaryData.summary.calcium_mg || 0,
-    iron_mg: summaryData.summary.iron_mg || 0,
+    vitamin_c_mg: summaryData.summary.total_vitamin_c_mg || 0,
+    calcium_mg: summaryData.summary.total_calcium_mg || 0,
+    iron_mg: summaryData.summary.total_iron_mg || 0,
   } : undefined;
 </script>
 

@@ -157,7 +157,7 @@ type NutritionSummary struct {
 	EndDate          time.Time `json:"end_date"`
 	ConsumptionCount int       `json:"consumption_count"`
 
-	// Totals for the time period
+	// Totals for the time period - basic macronutrients
 	TotalCalories float64 `json:"total_calories"`
 	TotalProtein  float64 `json:"total_protein_g"`
 	TotalFat      float64 `json:"total_fat_g"`
@@ -165,7 +165,38 @@ type NutritionSummary struct {
 	TotalFiber    float64 `json:"total_fiber_g"`
 	TotalSodium   float64 `json:"total_sodium_mg"`
 
-	// Averages per day
+	// Additional macronutrients
+	TotalSaturatedFat float64 `json:"total_saturated_fat_g"`
+	TotalTransFat     float64 `json:"total_trans_fat_g"`
+	TotalCholesterol  float64 `json:"total_cholesterol_mg"`
+	TotalSugars       float64 `json:"total_sugars_g"`
+	TotalAddedSugars  float64 `json:"total_added_sugars_g"`
+
+	// Vitamins
+	TotalVitaminA   float64 `json:"total_vitamin_a_mcg"`
+	TotalVitaminC   float64 `json:"total_vitamin_c_mg"`
+	TotalVitaminD   float64 `json:"total_vitamin_d_mcg"`
+	TotalVitaminE   float64 `json:"total_vitamin_e_mg"`
+	TotalVitaminK   float64 `json:"total_vitamin_k_mcg"`
+	TotalThiamine   float64 `json:"total_thiamine_mg"`
+	TotalRiboflavin float64 `json:"total_riboflavin_mg"`
+	TotalNiacin     float64 `json:"total_niacin_mg"`
+	TotalVitaminB6  float64 `json:"total_vitamin_b6_mg"`
+	TotalFolate     float64 `json:"total_folate_mcg"`
+	TotalVitaminB12 float64 `json:"total_vitamin_b12_mcg"`
+
+	// Minerals
+	TotalCalcium    float64 `json:"total_calcium_mg"`
+	TotalIron       float64 `json:"total_iron_mg"`
+	TotalMagnesium  float64 `json:"total_magnesium_mg"`
+	TotalPhosphorus float64 `json:"total_phosphorus_mg"`
+	TotalPotassium  float64 `json:"total_potassium_mg"`
+	TotalZinc       float64 `json:"total_zinc_mg"`
+	TotalCopper     float64 `json:"total_copper_mg"`
+	TotalManganese  float64 `json:"total_manganese_mg"`
+	TotalSelenium   float64 `json:"total_selenium_mcg"`
+
+	// Averages per day - basic macronutrients
 	AvgCaloriesPerDay float64 `json:"avg_calories_per_day"`
 	AvgProteinPerDay  float64 `json:"avg_protein_per_day"`
 	AvgFatPerDay      float64 `json:"avg_fat_per_day"`

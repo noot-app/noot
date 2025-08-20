@@ -732,6 +732,9 @@ components:
         - total_carbs_g
         - total_fiber_g
         - total_sodium_mg
+        - total_vitamin_c_mg
+        - total_calcium_mg
+        - total_iron_mg
         - avg_calories_per_day
         - avg_protein_per_day
         - avg_fat_per_day
@@ -772,6 +775,15 @@ components:
         total_sodium_mg:
           type: number
           description: Total sodium in milligrams
+        total_vitamin_c_mg:
+          type: number
+          description: Total vitamin C in milligrams
+        total_calcium_mg:
+          type: number
+          description: Total calcium in milligrams
+        total_iron_mg:
+          type: number
+          description: Total iron in milligrams
         avg_calories_per_day:
           type: number
           description: Average calories per day
