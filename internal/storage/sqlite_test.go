@@ -221,6 +221,77 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Nil(t, userBySubject)
 	})
 
+	t.Run("UpdateAndDeleteConsumption", func(t *testing.T) {
+		// Create a user first
+		user := &User{
+			Provider: "github",
+			Subject:  "updatedeleteuser",
+			Email:    "updatedelete@example.com",
+		}
+		err := store.CreateUser(ctx, user)
+		require.NoError(t, err)
+
+		// Create consumption
+		consumption := &Consumption{
+			UserID:        user.ID,
+			Transcript:    "I had a banana",
+			ItemsJSON:     `[{"name":"banana","quantity":1,"unit":"medium"}]`,
+			TotalCalories: 105,
+			TotalProtein:  1.3,
+			TotalFat:      0.4,
+			TotalCarbs:    27,
+		}
+		err = store.CreateConsumption(ctx, consumption)
+		require.NoError(t, err)
+		require.NotEmpty(t, consumption.ID)
+
+		originalID := consumption.ID
+
+		// Test UpdateConsumption - change to 2 bananas
+		consumption.TotalCalories = 210
+		consumption.TotalProtein = 2.6
+		consumption.TotalFat = 0.8
+		consumption.TotalCarbs = 54
+		consumption.ItemsJSON = `[{"name":"banana","quantity":2,"unit":"medium"}]`
+
+		err = store.UpdateConsumption(ctx, consumption)
+		require.NoError(t, err)
+
+		// Verify the update
+		updated, err := store.GetConsumption(ctx, originalID)
+		require.NoError(t, err)
+		require.NotNil(t, updated)
+		assert.Equal(t, float64(210), updated.TotalCalories)
+		assert.Equal(t, 2.6, updated.TotalProtein)
+		assert.Contains(t, updated.ItemsJSON, "quantity\":2")
+
+		// Test updating non-existent consumption
+		nonExistentConsumption := &Consumption{
+			ID:            "01JAPP9999XXXXXXXXXXXXXX", // Non-existent ULID
+			UserID:        user.ID,
+			Transcript:    "test",
+			ItemsJSON:     "[]",
+			TotalCalories: 100,
+		}
+		err = store.UpdateConsumption(ctx, nonExistentConsumption)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "consumption not found")
+
+		// Test DeleteConsumption
+		err = store.DeleteConsumption(ctx, originalID)
+		require.NoError(t, err)
+
+		// Verify deletion
+		deleted, err := store.GetConsumption(ctx, originalID)
+		require.NoError(t, err)
+		assert.Nil(t, deleted)
+
+		// Test deleting non-existent consumption
+		err = store.DeleteConsumption(ctx, "01JAPP9999XXXXXXXXXXXXXX")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "consumption not found")
+	})
+
 	t.Run("ItemCacheOperations", func(t *testing.T) {
 		// Test getting non-existent item from cache
 		item, err := store.GetItemFromCache(ctx, "apple", "generic")

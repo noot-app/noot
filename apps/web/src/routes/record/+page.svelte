@@ -11,6 +11,9 @@
   let transcript = "";
   let result: any = null;
   let error: string = "";
+  let consumptionId: string | null = null;
+  let isEditing = false;
+  let isSubmitting = false;
 
   async function startRecording() {
     try {
@@ -90,6 +93,7 @@
       error = "";
       transcript = "";
       result = null;
+      consumptionId = null;
 
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio.webm');
@@ -105,6 +109,7 @@
       const data = response.data;
       transcript = data?.transcript || "";
       result = data;
+      consumptionId = data?.id || null;
       status = "✅ Complete";
     } catch (err) {
       error = `Error processing audio: ${err}`;
@@ -116,6 +121,96 @@
   // Auto-upload when recording stops
   $: if (audioBlob && status === "Processing...") {
     uploadAudio();
+  }
+
+  // Functions for editing and deleting consumption records
+  function startEdit() {
+    isEditing = true;
+  }
+
+  function cancelEdit() {
+    isEditing = false;
+  }
+
+  async function saveEdit() {
+    if (!consumptionId || !result?.items) return;
+    
+    try {
+      isSubmitting = true;
+      error = "";
+
+      const updateResponse = await apiClient.PUT('/consumption/{id}', {
+        params: { path: { id: consumptionId } },
+        body: { items: result.items }
+      });
+
+      if (updateResponse.error) {
+        throw new Error(`Update failed: ${updateResponse.error}`);
+      }
+
+      // Update the local result with the response
+      result = updateResponse.data;
+      isEditing = false;
+      status = "✅ Updated";
+    } catch (err) {
+      error = `Error updating consumption: ${err}`;
+      console.error("Update error:", err);
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
+  async function redoRecording() {
+    if (!consumptionId) return;
+    
+    const confirmed = confirm("Delete this entry and record again? This action cannot be undone.");
+    if (!confirmed) return;
+    
+    try {
+      error = "";
+      const deleteResponse = await apiClient.DELETE('/consumption/{id}', {
+        params: { path: { id: consumptionId } }
+      });
+
+      if (deleteResponse.error) {
+        throw new Error(`Delete failed: ${deleteResponse.error}`);
+      }
+
+      // Reset the interface to recording state
+      result = null;
+      transcript = "";
+      consumptionId = null;
+      isEditing = false;
+      status = "Ready to record";
+    } catch (err) {
+      error = `Error deleting consumption: ${err}`;
+      console.error("Delete error:", err);
+    }
+  }
+
+  // Function to update quantity and recalculate nutrition
+  function updateItemQuantity(itemIndex: number, newQuantity: number) {
+    if (!result?.items || !result.items[itemIndex]) return;
+    
+    const item = result.items[itemIndex];
+    const currentQuantity = item.item.quantity || 1;
+    const scalingFactor = newQuantity / currentQuantity;
+    
+    // Scale all nutrition values
+    if (item.item.nutrients) {
+      const nutrients = item.item.nutrients;
+      Object.keys(nutrients).forEach(key => {
+        if (typeof nutrients[key] === 'number') {
+          nutrients[key] *= scalingFactor;
+        }
+      });
+    }
+    
+    // Update quantity
+    item.item.quantity = newQuantity;
+    
+    // Trigger reactivity
+    result = { ...result, items: [...result.items] };
   }
 
   // Sound effects
@@ -338,6 +433,8 @@
           <p class="text-lg text-error font-medium">Recording... Tap to stop</p>
         {:else if status === "✅ Complete"}
           <p class="text-lg text-success font-medium">Complete! Scroll down for results</p>
+        {:else if status === "✅ Updated"}
+          <p class="text-lg text-success font-medium">Updated! Changes saved</p>
         {:else if error}
           <p class="text-lg text-error font-medium">{error}</p>
         {:else}
@@ -355,6 +452,56 @@
   {#if transcript || result}
     <div class="bg-base-100 border-t border-base-200 p-6 fade-in">
       <div class="container mx-auto max-w-4xl space-y-6">
+        
+        <!-- Action buttons (Edit/Redo) - only show if we have a consumption ID -->
+        {#if consumptionId && status === "✅ Complete"}
+          <div class="flex justify-center gap-4 mb-6">
+            {#if !isEditing}
+              <button
+                class="btn btn-outline btn-primary"
+                on:click={startEdit}
+                disabled={isSubmitting}
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                ✏️ Edit
+              </button>
+              <button
+                class="btn btn-outline btn-error"
+                on:click={redoRecording}
+                disabled={isSubmitting}
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                🔄 Redo
+              </button>
+            {:else}
+              <button
+                class="btn btn-primary"
+                on:click={saveEdit}
+                disabled={isSubmitting}
+              >
+                {#if isSubmitting}
+                  <span class="loading loading-spinner loading-sm mr-2"></span>
+                {:else}
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                {/if}
+                💾 Save Changes
+              </button>
+              <button
+                class="btn btn-outline btn-ghost"
+                on:click={cancelEdit}
+                disabled={isSubmitting}
+              >
+                ❌ Cancel
+              </button>
+            {/if}
+          </div>
+        {/if}
         
         <!-- Transcript -->
         {#if transcript}
@@ -387,20 +534,61 @@
         {#if result?.items && result.items.length > 0}
           <div class="card bg-base-200 shadow-lg">
             <div class="card-body">
-              <h3 class="card-title text-sm mb-4">Food Items</h3>
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="card-title text-sm">Food Items</h3>
+                {#if isEditing}
+                  <span class="badge badge-warning">Editing Mode</span>
+                {/if}
+              </div>
               <div class="space-y-3">
-                {#each result.items as item}
+                {#each result.items as item, index}
                   <div class="card bg-base-100 shadow">
                     <div class="card-body p-4">
                       <h4 class="font-semibold">{item.item.name}</h4>
-                      {#if item.item.quantity && item.item.unit}
-                        <p class="text-sm text-base-content/70">
-                          {item.item.quantity} {item.item.unit}
-                        </p>
-                      {/if}
+                      
+                      <!-- Quantity controls (editable in edit mode) -->
+                      <div class="flex items-center gap-2 mt-2">
+                        {#if isEditing}
+                          <div class="flex items-center gap-2">
+                            <label for="quantity-{index}" class="text-sm font-medium">Quantity:</label>
+                            <button
+                              class="btn btn-circle btn-sm btn-outline"
+                              on:click={() => updateItemQuantity(index, Math.max(0.1, (item.item.quantity || 1) - 0.5))}
+                            >
+                              -
+                            </button>
+                            <input
+                              id="quantity-{index}"
+                              type="number"
+                              class="input input-sm input-bordered w-20 text-center"
+                              value={item.item.quantity}
+                              on:input={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                updateItemQuantity(index, parseFloat(target.value) || 1);
+                              }}
+                              min="0.1"
+                              step="0.5"
+                            />
+                            <button
+                              class="btn btn-circle btn-sm btn-outline"
+                              on:click={() => updateItemQuantity(index, (item.item.quantity || 1) + 0.5)}
+                            >
+                              +
+                            </button>
+                            {#if item.item.unit}
+                              <span class="text-sm text-base-content/70">{item.item.unit}</span>
+                            {/if}
+                          </div>
+                        {:else if item.item.quantity && item.item.unit}
+                          <p class="text-sm text-base-content/70">
+                            {item.item.quantity} {item.item.unit}
+                          </p>
+                        {/if}
+                      </div>
+                      
                       {#if item.item.nutrients}
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-2">
-                          <span>Cal: {item.item.nutrients.calories}</span>
+                          <span>Cal: {Math.round(item.item.nutrients.calories)}</span>
                           <span>Pro: {item.item.nutrients.protein_g.toFixed(1)}g</span>
                           <span>Carb: {item.item.nutrients.total_carbs_g.toFixed(1)}g</span>
                           <span>Fat: {item.item.nutrients.total_fat_g.toFixed(1)}g</span>
@@ -411,6 +599,34 @@
                 {/each}
               </div>
             </div>
+          </div>
+        {/if}
+
+        <!-- Navigation buttons -->
+        {#if status === "✅ Complete" || status === "✅ Updated"}
+          <div class="flex justify-center gap-4 mt-8">
+            <a href="/summary" class="btn btn-outline">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              View Summary
+            </a>
+            <button
+              class="btn btn-primary"
+              on:click={() => {
+                result = null;
+                transcript = "";
+                consumptionId = null;
+                isEditing = false;
+                status = "Ready to record";
+                error = "";
+              }}
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Record Another
+            </button>
           </div>
         {/if}
 

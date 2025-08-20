@@ -56,6 +56,81 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /consumption/{id}:
+    put:
+      summary: Update a consumption record
+      description: Update an existing consumption with edited nutrition data
+      operationId: updateConsumption
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateConsumptionRequest"
+      responses:
+        "200":
+          description: Consumption updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsumptionResponse"
+        "400":
+          description: Bad request (invalid request body, validation errors)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Consumption not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    
+    delete:
+      summary: Delete a consumption record
+      description: Delete a consumption record by ID (used for redo functionality)
+      operationId: deleteConsumption
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Consumption deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Consumption not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /health:
     get:
       summary: Health check
@@ -408,12 +483,16 @@ components:
     ConsumptionResponse:
       type: object
       required:
+        - id
         - transcript
         - parsedItems
         - items
         - summary
         - request_id
       properties:
+        id:
+          type: string
+          description: Consumption ID (for future edits/deletes)
         transcript:
           type: string
           description: Transcribed text from audio
@@ -1096,3 +1175,28 @@ components:
           type: string
           enum: [csv, json]
           description: Export format used
+
+    UpdateConsumptionRequest:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemWithNutrition"
+          description: Updated items with nutrition information
+
+    DeleteResponse:
+      type: object
+      required:
+        - message
+        - id
+      properties:
+        message:
+          type: string
+          description: Confirmation message
+          example: "Consumption deleted successfully"
+        id:
+          type: string
+          description: ID of the deleted consumption

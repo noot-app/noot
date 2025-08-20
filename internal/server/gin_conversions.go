@@ -28,7 +28,7 @@ func convertInternalItemToAPI(internal Item) api.Item {
 // convertInternalCompleteNutrientToAPI converts internal CompleteNutrient to API CompleteNutrient
 func convertInternalCompleteNutrientToAPI(internal CompleteNutrient) *api.CompleteNutrient {
 	return &api.CompleteNutrient{
-		Calories:      float32(internal.Calories),
+		Calories:      RoundCaloriesUp(internal.Calories),
 		ProteinG:      float32(internal.Protein),
 		TotalFatG:     float32(internal.TotalFat),
 		SaturatedFatG: float32(internal.SaturatedFat),
@@ -150,7 +150,7 @@ func convertInternalNutritionSummaryToAPI(internal *storage.NutritionSummary) ap
 	for _, day := range internal.DailyBreakdown {
 		dailyBreakdown = append(dailyBreakdown, api.DailySummary{
 			Date:             day.Date,
-			Calories:         float32(day.Calories),
+			Calories:         RoundCaloriesUp(day.Calories),
 			ProteinG:         float32(day.Protein),
 			TotalCarbsG:      float32(day.Carbs),
 			TotalFatG:        float32(day.Fat),
@@ -164,7 +164,7 @@ func convertInternalNutritionSummaryToAPI(internal *storage.NutritionSummary) ap
 		UserId:             internal.UserID,
 		StartDate:          internal.StartDate,
 		EndDate:            internal.EndDate,
-		TotalCalories:      float32(internal.TotalCalories),
+		TotalCalories:      RoundCaloriesUp(internal.TotalCalories),
 		TotalProteinG:      float32(internal.TotalProtein),
 		TotalCarbsG:        float32(internal.TotalCarbs),
 		TotalFatG:          float32(internal.TotalFat),
@@ -195,7 +195,7 @@ func convertInternalNutritionSummaryToAPI(internal *storage.NutritionSummary) ap
 		TotalCopperMg:      float32(internal.TotalCopper),
 		TotalManganeseMg:   float32(internal.TotalManganese),
 		TotalSeleniumMcg:   float32(internal.TotalSelenium),
-		AvgCaloriesPerDay:  float32(internal.AvgCaloriesPerDay),
+		AvgCaloriesPerDay:  RoundCaloriesUp(internal.AvgCaloriesPerDay),
 		AvgProteinPerDay:   float32(internal.AvgProteinPerDay),
 		AvgCarbsPerDay:     float32(internal.AvgCarbsPerDay),
 		AvgFatPerDay:       float32(internal.AvgFatPerDay),

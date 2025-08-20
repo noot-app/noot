@@ -1,11 +1,13 @@
 # GitHub Copilot Guidelines
 
-This is a Go based repository that is a minimal web app to log meals by voice. The repository is structured to support a single binary web server with embedded assets using Go's `embed` package.
+This is a Go based repository that is a minimal web app to log meals by voice. The repository is structured as a mono repo that is a GoLang REST API backend and a SvelteKit with TypeScript frontend that is build and served out of the `apps/web` directory. 
 
 ## Code Standards
 
 ### Development Flow
 
+- Bootstrap: `script/bootstrap`
+- Generate types: `script/generate-types`
 - Test: `script/test`
 - Lint: `script/lint`
 - Build: `script/build`
@@ -14,9 +16,11 @@ This is a Go based repository that is a minimal web app to log meals by voice. T
 
 ## Repository Structure
 
-- `cmd/*`: Main cli entry points and executables
-- `internal/`: Logic related to the core functionality of the CLI
-- `script/`: Scripts for building, testing, and releasing the CLI
+- `cmd/*`: Main entry points for the REST server
+- `internal/`: Logic related to the core functionality of the REST API server
+- `script/`: Scripts for building, testing, and releasing the REST API server
+- `apps/web/`: The SvelteKit with TypeScript frontend
+- `api/`: The openapi spec for the REST API backend
 - `.github/`: GitHub Actions workflows for CI/CD
 - `vendor/`: Vendor directory for Go modules (committed to the repository for reproducibility)
 
