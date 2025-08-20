@@ -505,7 +505,7 @@ func (s *APIServer) GetGoals(c *gin.Context) {
 			LogError("Failed to get user goal", err, "user_id", user.ID)
 		} else if userGoal != nil {
 			customOverrides = &goals.UserOverrides{}
-			if err := json.Unmarshal([]byte(userGoal.OverridesJSON), &customOverrides.Overrides); err != nil {
+			if err := json.Unmarshal([]byte(userGoal.OverridesJSON), &customOverrides); err != nil {
 				LogError("Failed to parse user goal overrides", err, "user_id", user.ID)
 				customOverrides = nil
 			}
@@ -540,6 +540,11 @@ func (s *APIServer) GetGoals(c *gin.Context) {
 			Sex:        api.LifeStageSex(resolvedGoals.LifeStage.Sex),
 			AgeBracket: resolvedGoals.LifeStage.AgeBracket,
 		},
+	}
+
+	// Set custom name if available
+	if resolvedGoals.CustomName != "" {
+		apiGoals.CustomName = &resolvedGoals.CustomName
 	}
 
 	response := api.GoalsResponse{
@@ -585,8 +590,30 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 		return
 	}
 
-	// Store the custom overrides
-	overridesJSON, err := json.Marshal(req.Overrides)
+	// Validate and set goal name
+	goalDisplayName := "Custom Goals" // default display name
+	if req.Name != nil && *req.Name != "" {
+		if len(*req.Name) > 50 {
+			appErr := NewAppError("Goal name must be 50 characters or less", http.StatusBadRequest, nil)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+		goalDisplayName = *req.Name
+	}
+
+	// Create the user overrides structure with both name and overrides
+	userOverrides := goals.UserOverrides{
+		Name:      goalDisplayName,
+		Overrides: make(map[string]float64),
+	}
+	
+	// Convert from float32 to float64
+	for k, v := range req.Overrides {
+		userOverrides.Overrides[k] = float64(v)
+	}
+
+	// Store the complete structure as JSON
+	overridesJSON, err := json.Marshal(userOverrides)
 	if err != nil {
 		appErr := NewAppError("Failed to serialize goal overrides", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -595,7 +622,7 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 
 	userGoal := &storage.UserGoal{
 		UserID:        user.ID,
-		Name:          "custom",
+		Name:          "custom", // Keep as "custom" for database constraint
 		OverridesJSON: string(overridesJSON),
 	}
 

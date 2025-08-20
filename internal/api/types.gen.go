@@ -264,7 +264,9 @@ type ExportResponseFormat string
 
 // Goals defines model for Goals.
 type Goals struct {
-	LifeStage LifeStage `json:"life_stage"`
+	// CustomName Name of the custom goal set (only present when source is "custom")
+	CustomName *string   `json:"custom_name,omitempty"`
+	LifeStage  LifeStage `json:"life_stage"`
 
 	// Source Source of the goals (DRI defaults or custom overrides)
 	Source GoalsSource `json:"source"`
@@ -506,6 +508,9 @@ type UpdateConsumptionRequest struct {
 
 // UpdateGoalsRequest defines model for UpdateGoalsRequest.
 type UpdateGoalsRequest struct {
+	// Name Custom name for the goal set (optional, defaults to "custom")
+	Name *string `json:"name,omitempty"`
+
 	// Overrides Custom nutrition goal overrides
 	Overrides map[string]float32 `json:"overrides"`
 }

@@ -95,7 +95,9 @@
               {goals.life_stage.sex} • {goals.life_stage.age_bracket}
             </span>
             <span class="badge badge-primary ml-2">
-              {goals.source === "custom" ? "Custom Goals" : "DRI Guidelines"}
+              {goals.source === "custom" 
+                ? (goals.custom_name || "Custom Goals") 
+                : "DRI Guidelines"}
             </span>
           </div>
         </div>
@@ -151,7 +153,9 @@
             <div class="stat">
               <div class="stat-title">Source</div>
               <div class="stat-value text-lg">
-                {goals.source === "custom" ? "Custom" : "DRI"}
+                {goals.source === "custom" 
+                  ? (goals.custom_name || "Custom") 
+                  : "DRI"}
               </div>
               <div class="stat-desc">Nutrition guidelines</div>
             </div>

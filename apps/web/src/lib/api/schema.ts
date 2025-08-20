@@ -510,6 +510,11 @@ export interface components {
              * @enum {string}
              */
             source: "dri" | "custom";
+            /**
+             * @description Name of the custom goal set (only present when source is "custom")
+             * @example Bulk Season
+             */
+            custom_name?: string;
             life_stage: components["schemas"]["LifeStage"];
         };
         LifeStage: {
@@ -525,6 +530,11 @@ export interface components {
             age_bracket: string;
         };
         UpdateGoalsRequest: {
+            /**
+             * @description Custom name for the goal set (optional, defaults to "custom")
+             * @example Bulk Season
+             */
+            name?: string;
             /**
              * @description Custom nutrition goal overrides
              * @example {
