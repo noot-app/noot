@@ -95,17 +95,6 @@
     return isFinite(overage) ? `+${overage.toFixed(0)}% over` : "+Over";
   }
 
-  function isUpperLimit(nutrient: string): boolean {
-    return goals?.upper_limits?.[nutrient] !== undefined;
-  }
-
-  function getGoalValue(nutrient: string): number {
-    if (goals?.upper_limits?.[nutrient] !== undefined) {
-      return goals.upper_limits[nutrient];
-    }
-    return goals?.targets?.[nutrient] || 0;
-  }
-
   function formatNutrientName(key: string): string {
     return key
       .replace(/_/g, " ")
