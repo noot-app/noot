@@ -561,8 +561,11 @@
                               id="quantity-{index}"
                               type="number"
                               class="input input-sm input-bordered w-20 text-center"
-                              bind:value={item.item.quantity}
-                              on:input={(e) => updateItemQuantity(index, parseFloat(e.target.value) || 1)}
+                              value={item.item.quantity}
+                              on:input={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                updateItemQuantity(index, parseFloat(target.value) || 1);
+                              }}
                               min="0.1"
                               step="0.5"
                             />
