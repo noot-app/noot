@@ -172,6 +172,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/biometrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user biometrics
+         * @description Retrieve current biometric data for the authenticated user
+         */
+        get: operations["getUserBiometrics"];
+        /**
+         * Update user biometrics
+         * @description Create or update biometric data for the authenticated user
+         */
+        put: operations["updateUserBiometrics"];
+        post?: never;
+        /**
+         * Delete user biometrics
+         * @description Delete all biometric data for the authenticated user
+         */
+        delete: operations["deleteUserBiometrics"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -233,10 +261,12 @@ export interface components {
         Item: {
             /** @description Name of the food item */
             name: string;
-            /** @description Quantity consumed */
-            quantity?: number | null;
-            /** @description Unit of measurement */
-            unit?: string | null;
+            /** @description Weight in grams (standardized internally) */
+            grams: number;
+            /** @description Original user input quantity for display */
+            user_quantity?: number | null;
+            /** @description Original user input unit for display */
+            user_unit?: string | null;
             /** @description Brand name */
             brand?: string | null;
             nutrients?: components["schemas"]["CompleteNutrient"];
@@ -647,6 +677,61 @@ export interface components {
             message: string;
             /** @description ID of the deleted consumption */
             id: string;
+        };
+        BiometricsResponse: {
+            biometrics?: components["schemas"]["UserBiometrics"];
+            calculated_metrics?: {
+                /** @description Calculated age in years */
+                age_years?: number;
+                /** @description Basal Metabolic Rate (calories/day) */
+                bmr?: number;
+                /** @description Total Daily Energy Expenditure (calories/day) */
+                tdee?: number;
+                /** @description Body Mass Index */
+                bmi?: number;
+            };
+        };
+        UserBiometrics: {
+            /**
+             * Format: date
+             * @description Date of birth
+             */
+            birth_date?: string;
+            /**
+             * @description Biological sex for DRI calculations
+             * @enum {string}
+             */
+            sex?: "male" | "female" | "other" | "prefer_not_to_say";
+            /** @description Height in centimeters */
+            height_cm?: number;
+            /** @description Weight in kilograms */
+            weight_kg?: number;
+            /**
+             * @description Physical activity level
+             * @enum {string}
+             */
+            activity_level?: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active";
+        };
+        UpdateBiometricsRequest: {
+            /**
+             * Format: date
+             * @description Date of birth
+             */
+            birth_date?: string;
+            /**
+             * @description Biological sex for DRI calculations
+             * @enum {string}
+             */
+            sex?: "male" | "female" | "other" | "prefer_not_to_say";
+            /** @description Height in centimeters */
+            height_cm?: number;
+            /** @description Weight in kilograms */
+            weight_kg?: number;
+            /**
+             * @description Physical activity level
+             * @enum {string}
+             */
+            activity_level?: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active";
         };
     };
     responses: never;
@@ -1158,6 +1243,124 @@ export interface operations {
                 };
             };
             /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getUserBiometrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User biometrics data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BiometricsResponse"];
+                };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateUserBiometrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateBiometricsRequest"];
+            };
+        };
+        responses: {
+            /** @description Biometrics updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BiometricsResponse"];
+                };
+            };
+            /** @description Invalid request data */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteUserBiometrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Biometrics deleted successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResponse"];
+                };
+            };
+            /** @description Biometrics not found */
             404: {
                 headers: {
                     [name: string]: unknown;

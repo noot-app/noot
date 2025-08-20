@@ -7,12 +7,21 @@
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
   type Goals = GoalsResponse["goals"];
-
+  type BiometricsResponse = paths["/biometrics"]["get"]["responses"]["200"]["content"]["application/json"];
+  type UserBiometrics = paths["/biometrics"]["get"]["responses"]["200"]["content"]["application/json"]["biometrics"];
+  type UpdateBiometricsRequest = paths["/biometrics"]["put"]["requestBody"]["content"]["application/json"];
+  
   let goals: Goals | null = null;
+  let biometrics: UserBiometrics | null = null;
+  let calculatedMetrics: BiometricsResponse["calculated_metrics"] | null = null;
   let loading = true;
+  let biometricsLoading = false;
   let error = "";
+  let biometricsError = "";
   let success = "";
+  let biometricsSuccess = "";
   let saving = false;
+  let savingBiometrics = false;
 
   // Form state
   let customName = "";
@@ -20,8 +29,15 @@
   let showImperialModal = false;
   let selectedUnits = "metric"; // Track unit system selection
 
+  // Biometrics form state
+  let birthDate = "";
+  let sex: "male" | "female" | "other" | "prefer_not_to_say" = "prefer_not_to_say";
+  let heightCm = "";
+  let weightKg = "";
+  let activityLevel: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active" = "lightly_active";
+
   onMount(async () => {
-    await loadGoals();
+    await Promise.all([loadGoals(), loadBiometrics()]);
   });
 
   async function loadGoals() {
@@ -44,6 +60,39 @@
       console.error("Goals error:", err);
     } finally {
       loading = false;
+    }
+  }
+
+  async function loadBiometrics() {
+    try {
+      biometricsLoading = true;
+      biometricsError = "";
+      
+      const response = await apiClient.GET("/biometrics");
+      
+      if (response.error) {
+        throw new Error(`API Error: ${response.error}`);
+      }
+
+      biometrics = response.data.biometrics;
+      calculatedMetrics = response.data.calculated_metrics;
+      
+      // Initialize form with current values
+      if (biometrics) {
+        birthDate = biometrics.birth_date || "";
+        sex = biometrics.sex || "prefer_not_to_say";
+        heightCm = biometrics.height_cm?.toString() || "";
+        weightKg = biometrics.weight_kg?.toString() || "";
+        activityLevel = biometrics.activity_level || "lightly_active";
+      }
+    } catch (err) {
+      // Don't show error if biometrics just don't exist yet
+      if (!err?.toString().includes("404") && !err?.toString().includes("not found")) {
+        biometricsError = `Failed to load biometrics: ${err}`;
+        console.error("Biometrics error:", err);
+      }
+    } finally {
+      biometricsLoading = false;
     }
   }
 
@@ -134,6 +183,91 @@
       }
     } finally {
       saving = false;
+    }
+  }
+
+  async function saveBiometrics() {
+    try {
+      savingBiometrics = true;
+      biometricsError = "";
+      biometricsSuccess = "";
+
+      // Prepare the request payload
+      const payload: UpdateBiometricsRequest = {};
+      
+      if (birthDate.trim()) {
+        payload.birth_date = birthDate.trim();
+      }
+      
+      if (sex && sex !== "prefer_not_to_say") {
+        payload.sex = sex;
+      }
+      
+      if (heightCm && !isNaN(parseFloat(heightCm.toString()))) {
+        payload.height_cm = parseFloat(heightCm.toString());
+      }
+      
+      if (weightKg && !isNaN(parseFloat(weightKg.toString()))) {
+        payload.weight_kg = parseFloat(weightKg.toString());
+      }
+      
+      if (activityLevel) {
+        payload.activity_level = activityLevel;
+      }
+
+      const response = await apiClient.PUT("/biometrics", {
+        body: payload
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      biometricsSuccess = "Biometrics saved successfully!";
+      await Promise.all([loadBiometrics(), loadGoals()]); // Reload both since goals may have changed
+    } catch (err) {
+      biometricsError = formatErrorForUser(err);
+      if (dev) {
+        console.error("Biometrics save error details:", err);
+      }
+    } finally {
+      savingBiometrics = false;
+    }
+  }
+
+  async function deleteBiometrics() {
+    if (!confirm("Are you sure you want to delete all your biometric data? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      savingBiometrics = true;
+      biometricsError = "";
+      biometricsSuccess = "";
+
+      const response = await apiClient.DELETE("/biometrics");
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      biometricsSuccess = "Biometrics deleted successfully!";
+      
+      // Clear form
+      birthDate = "";
+      sex = "prefer_not_to_say";
+      heightCm = "";
+      weightKg = "";
+      activityLevel = "lightly_active";
+      
+      await Promise.all([loadBiometrics(), loadGoals()]); // Reload both since goals may have changed
+    } catch (err) {
+      biometricsError = formatErrorForUser(err);
+      if (dev) {
+        console.error("Biometrics delete error details:", err);
+      }
+    } finally {
+      savingBiometrics = false;
     }
   }
 
@@ -237,10 +371,29 @@
       </div>
     {/if}
 
+    {#if biometricsSuccess}
+      <div class="alert alert-success mb-6">
+        <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{biometricsSuccess}</span>
+      </div>
+    {/if}
+
+    {#if biometricsError}
+      <div class="alert alert-error mb-6">
+        <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{biometricsError}</span>
+      </div>
+    {/if}
+
     {#if goals}
-      <div class="grid gap-8 lg:grid-cols-2">
+      <!-- Main Profile Grid -->
+      <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         <!-- Current Goals Overview -->
-        <div class="card bg-base-200 shadow-lg">
+        <div class="card bg-base-200 shadow-lg md:col-span-1">
           <div class="card-body">
             <h2 class="card-title">Current Goals</h2>
             <div class="space-y-4">
@@ -270,8 +423,174 @@
           </div>
         </div>
 
+        <!-- User Biometrics -->
+        <div class="card bg-base-200 shadow-lg md:col-span-1">
+          <div class="card-body">
+            <h2 class="card-title flex items-center gap-2">
+              📊 Biometrics
+              {#if calculatedMetrics?.age_years}
+                <div class="badge badge-primary badge-sm">{calculatedMetrics.age_years}y</div>
+              {/if}
+            </h2>
+            
+            {#if biometricsLoading}
+              <div class="text-center py-4">
+                <span class="loading loading-spinner loading-sm"></span>
+                <p class="text-sm text-base-content/70 mt-2">Loading biometrics...</p>
+              </div>
+            {:else}
+              <div class="space-y-4">
+                <!-- Current Biometrics Display -->
+                {#if biometrics}
+                  <div class="grid grid-cols-2 gap-4">
+                    {#if calculatedMetrics?.bmi}
+                      <div class="stat bg-base-100 rounded-box p-3">
+                        <div class="stat-title text-xs">BMI</div>
+                        <div class="stat-value text-lg">{calculatedMetrics.bmi}</div>
+                      </div>
+                    {/if}
+                    {#if calculatedMetrics?.bmr}
+                      <div class="stat bg-base-100 rounded-box p-3">
+                        <div class="stat-title text-xs">BMR</div>
+                        <div class="stat-value text-lg">{Math.round(calculatedMetrics.bmr)}</div>
+                        <div class="stat-desc text-xs">cal/day</div>
+                      </div>
+                    {/if}
+                    {#if calculatedMetrics?.tdee}
+                      <div class="stat bg-base-100 rounded-box p-3">
+                        <div class="stat-title text-xs">TDEE</div>
+                        <div class="stat-value text-lg">{Math.round(calculatedMetrics.tdee)}</div>
+                        <div class="stat-desc text-xs">cal/day</div>
+                      </div>
+                    {/if}
+                    {#if biometrics.activity_level}
+                      <div class="stat bg-base-100 rounded-box p-3">
+                        <div class="stat-title text-xs">Activity</div>
+                        <div class="stat-value text-sm capitalize">{biometrics.activity_level.replace('_', ' ')}</div>
+                      </div>
+                    {/if}
+                  </div>
+                {:else}
+                  <div class="alert alert-info">
+                    <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>No biometric data yet. Add your details below for personalized nutrition goals!</span>
+                  </div>
+                {/if}
+
+                <!-- Quick Form -->
+                <div class="space-y-3">
+                  <!-- Birth Date -->
+                  <div class="form-control">
+                    <label class="label" for="birthDate">
+                      <span class="label-text text-sm">Birth Date</span>
+                    </label>
+                    <input 
+                      id="birthDate"
+                      type="date" 
+                      class="input input-bordered input-sm"
+                      bind:value={birthDate}
+                      max={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+
+                  <!-- Sex -->
+                  <div class="form-control">
+                    <label class="label" for="sex">
+                      <span class="label-text text-sm">Sex (for DRI calculations)</span>
+                    </label>
+                    <select id="sex" class="select select-bordered select-sm" bind:value={sex}>
+                      <option value="prefer_not_to_say">Prefer not to say</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <!-- Height & Weight Row -->
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="form-control">
+                      <label class="label" for="height">
+                        <span class="label-text text-sm">Height (cm)</span>
+                      </label>
+                      <input 
+                        id="height"
+                        type="number"
+                        class="input input-bordered input-sm"
+                        placeholder="175"
+                        min="50"
+                        max="300"
+                        step="0.1"
+                        bind:value={heightCm}
+                      />
+                    </div>
+                    <div class="form-control">
+                      <label class="label" for="weight">
+                        <span class="label-text text-sm">Weight (kg)</span>
+                      </label>
+                      <input 
+                        id="weight"
+                        type="number"
+                        class="input input-bordered input-sm"
+                        placeholder="70"
+                        min="20"
+                        max="500"
+                        step="0.1"
+                        bind:value={weightKg}
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Activity Level -->
+                  <div class="form-control">
+                    <label class="label" for="activity">
+                      <span class="label-text text-sm">Activity Level</span>
+                    </label>
+                    <select id="activity" class="select select-bordered select-sm" bind:value={activityLevel}>
+                      <option value="sedentary">Sedentary (little/no exercise)</option>
+                      <option value="lightly_active">Lightly Active (1-3 days/week)</option>
+                      <option value="moderately_active">Moderately Active (3-5 days/week)</option>
+                      <option value="very_active">Very Active (6-7 days/week)</option>
+                      <option value="extra_active">Extra Active (very hard exercise daily)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-2 justify-between">
+                  {#if biometrics}
+                    <button 
+                      class="btn btn-outline btn-error btn-sm"
+                      on:click={deleteBiometrics}
+                      disabled={savingBiometrics}
+                    >
+                      🗑️ Delete
+                    </button>
+                  {:else}
+                    <div></div>
+                  {/if}
+                  
+                  <button 
+                    class="btn btn-primary btn-sm"
+                    on:click={saveBiometrics}
+                    disabled={savingBiometrics}
+                  >
+                    {#if savingBiometrics}
+                      <span class="loading loading-spinner loading-xs"></span>
+                      Saving...
+                    {:else}
+                      💾 Save
+                    {/if}
+                  </button>
+                </div>
+              </div>
+            {/if}
+          </div>
+        </div>
+
         <!-- Custom Goals Form -->
-        <div class="card bg-base-200 shadow-lg">
+        <div class="card bg-base-200 shadow-lg md:col-span-2 lg:col-span-1">
           <div class="card-body">
             <h2 class="card-title">Customize Goals</h2>
             
