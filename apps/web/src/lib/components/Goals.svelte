@@ -36,13 +36,27 @@
     return Math.min((current / goals.targets[nutrient]) * 100, 100);
   }
 
+  function getActualProgress(nutrient: string, current: number): number {
+    if (!goals?.targets[nutrient]) return 0;
+    return (current / goals.targets[nutrient]) * 100;
+  }
+
+  function getOverageText(nutrient: string, current: number): string {
+    if (!goals?.targets[nutrient]) return "";
+    const actualProgress = (current / goals.targets[nutrient]) * 100;
+    if (actualProgress <= 100) return `${actualProgress.toFixed(0)}%`;
+    const overage = actualProgress - 100;
+    return `+${overage.toFixed(0)}% over`;
+  }
+
   function formatNutrientName(key: string): string {
     return key
       .replace(/_/g, " ")
       .replace(/\b\w/g, l => l.toUpperCase())
-      .replace(/Mcg/g, "mcg")
-      .replace(/Mg/g, "mg")
-      .replace(/G/g, "g");
+      // Remove unit suffixes since they're shown separately
+      .replace(/ Mcg$/, "")
+      .replace(/ Mg$/, "")
+      .replace(/ G$/, "");
   }
 
   function formatValue(value: number, unit: string): string {
@@ -96,9 +110,15 @@
             <span class="badge badge-outline">
               {goals.life_stage.sex} • {goals.life_stage.age_bracket}
             </span>
-            <span class="badge badge-primary ml-2">
-              {goals.source === "custom" ? "Custom Goals" : "DRI Guidelines"}
-            </span>
+            {#if goals.source === "custom"}
+              <span class="badge badge-primary ml-2">Custom Goals</span>
+            {:else}
+              <div class="tooltip tooltip-bottom ml-2" data-tip="Dietary Reference Intakes (DRI) are nutrient reference values developed by health experts. Visit your profile to customize your nutrition goals.">
+                <span class="badge badge-primary">
+                  DRI Guidelines
+                </span>
+              </div>
+            {/if}
           </div>
         </div>
 
@@ -141,7 +161,7 @@
                     ></progress>
                   {/if}
                   <span class="text-xs text-base-content/60 min-w-[3rem]">
-                    {progress.toFixed(0)}%
+                    {getOverageText(nutrient, current)}
                   </span>
                 </div>
               </div>
