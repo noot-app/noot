@@ -35,6 +35,110 @@ func NewOpenAIProvider(config AIProviderConfig) *OpenAIProvider {
 	}
 }
 
+func (p *OpenAIProvider) transcriptionPrompt() string {
+	return `The audio is a short dictation of foods and drinks consumed. Preserve exact brand and product names (e.g., "Clover Organic", "Trader Joe's", "Siggi's", "Icelandic skyr", "LaCroix"), coffee drink terms (espresso, latte, macchiato), tea terms (matcha), and ingredient names (goji berries, blueberries, Greek yogurt, European style yogurt). Keep numbers and units (cups, grams, ounces, tbsp, tsp, slices, pieces) and include standard punctuation.
+
+Do not add or infer items that were not spoken. If an item is given without a quantity, assume one standard serving size that would make logical sense in the context of the consumption:
+
+- Fruits: 1 medium (banana, apple, orange)
+- Eggs: 2 large eggs (not a dozen)
+- Yogurt: 1 cup or 1 container (not a gallon)
+- Coffee: 1 cup (not a pot)
+- Bread: 1-2 slices (not a loaf)
+- Meat/fish: 1 serving portion (3-4 oz)
+- Beverages: 1 glass/cup (8-12 oz)
+
+For coffee drinks, assume standard sizes: latte contains 2 shots espresso, cappuccino 1-2 shots. Preserve preparation methods when mentioned (grilled, baked, raw, steamed).`
+}
+
+func (p *OpenAIProvider) parseItemsSystemPrompt() string {
+	return `You extract individual food and drink items from a freeform meal, snack, beverage, or consumption description. Return strict JSON with the following structure:
+
+{
+  "items": [
+    {
+      "name": string,
+      "quantity": number | null,
+      "unit": string | null,
+      "brand": string | null
+    }
+  ]
+}
+
+IMPORTANT INSTRUCTIONS:
+1. EXTRACT INDIVIDUAL ITEMS: Separate each distinct food or drink item mentioned.
+2. INFER SERVING SIZES: If quantity is not specified, assume reasonable standard serving sizes based on context:
+   - Yogurt: 1 cup (245g)
+   - Banana: 1 medium (118g)  
+   - Eggs: 2 large eggs (100g)
+   - Coffee: 1 cup (240ml)
+   - Latte: 10oz with 2 shots espresso using standard 20g shots
+   - Apple: 1 medium (182g)
+   - Bread slice: 1 slice (28g)
+   - Chicken breast: 3.5oz (100g)
+   - Rice: 1 cup cooked (158g)
+
+3. PRESERVE BRANDS: Keep exact brand and product names (e.g., "Clover Sonoma", "Trader Joe's", "Siggi's", "KFC", "Starbucks").
+4. NORMALIZE UNITS: Use standard units (g, mg, ml, cups, tbsp, etc.).
+5. DO NOT ADD NUTRITION DATA: Only extract item identification, not nutrition information.`
+}
+
+func (p *OpenAIProvider) nutritionSystemPrompt() string {
+	return `You provide complete nutrition information for a single food item. Return strict JSON with the following structure:
+
+{
+  "nutrients": {
+    "calories": number,
+    "protein_g": number,
+    "total_fat_g": number,
+    "saturated_fat_g": number,
+    "trans_fat_g": number,
+    "cholesterol_mg": number,
+    "sodium_mg": number,
+    "total_carbs_g": number,
+    "dietary_fiber_g": number,
+    "total_sugars_g": number,
+    "added_sugars_g": number,
+    "vitamin_a_mcg": number,
+    "vitamin_c_mg": number,
+    "vitamin_d_mcg": number,
+    "vitamin_e_mg": number,
+    "vitamin_k_mcg": number,
+    "thiamine_mg": number,
+    "riboflavin_mg": number,
+    "niacin_mg": number,
+    "vitamin_b6_mg": number,
+    "folate_mcg": number,
+    "vitamin_b12_mcg": number,
+    "biotin_mcg": number,
+    "pantothenic_acid_mg": number,
+    "choline_mg": number,
+    "calcium_mg": number,
+    "iron_mg": number,
+    "magnesium_mg": number,
+    "phosphorus_mg": number,
+    "potassium_mg": number,
+    "zinc_mg": number,
+    "copper_mg": number,
+    "manganese_mg": number,
+    "selenium_mcg": number,
+    "iodine_mcg": number,
+    "molybdenum_mcg": number,
+    "chromium_mcg": number,
+    "fluoride_mg": number,
+    "chloride_mg": number
+  }
+}
+
+IMPORTANT INSTRUCTIONS:
+1. NUTRITION DATA ACCURACY: Provide accurate nutrition data per serving for the specified quantity and unit. Use your knowledge of food composition databases, USDA data, and nutrition labels.
+2. HANDLE COMPLEX ITEMS: For prepared foods, estimate based on typical recipes and ingredients. For restaurant items, use available nutrition information or estimate based on similar items.
+3. ZERO VALUES: Use 0 for nutrients that are truly absent (like vitamin B12 in plants), but provide realistic non-zero values for nutrients that are typically present even in small amounts.
+4. BRANDED VS GENERIC: Prioritize branded nutrition data when brand is specified, otherwise use generic USDA-style data for the food type.
+5. QUANTITY-ADJUSTED: Provide nutrition values for the exact quantity/unit specified, not per 100g.
+6. DOUBLE CHECK: Ensure the nutrition profile is accurate. For example, if the user had 1tbsp of butter (14.2g) and you think that is 5 calories, that is incorrect. It should be around 102 calories.`
+}
+
 // TranscribeAudio implements AIProvider.TranscribeAudio
 func (p *OpenAIProvider) TranscribeAudio(ctx context.Context, filePath, mimeType string) (string, error) {
 	LogDebug("Starting OpenAI transcription", "model", p.config.TranscribeModel, "file", filePath)
@@ -273,89 +377,4 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 	}
 
 	return result.Nutrients, nil
-}
-
-// Private helper methods for prompts
-
-func (p *OpenAIProvider) transcriptionPrompt() string {
-	return `The audio is a short dictation of foods and drinks consumed. Preserve exact brand and product names (e.g., "Clover Organic", "Trader Joe's", "Siggi's", "Icelandic skyr", "LaCroix"), coffee drink terms (espresso, latte, macchiato), tea terms (matcha), and ingredient names (goji berries, blueberries, Greek yogurt, European style yogurt). Keep numbers and units (cups, grams, ounces, tbsp) and include standard punctuation. Do not add or infer items that were not spoken. If an item is given without a quantity, assume it is one standard serving size of that item which would make logical sense in the context of the consumption. For example, if a user says "I had a banana", assume it is one banana, not a bunch. If they say "I had some eggs", assume it is two eggs, not a dozen. If they say "I had some yogurt", assume it is one standard serving size of yogurt, not a gallon. If they say "I had some coffee", assume it is one standard cup of coffee, not a pot. If the user says "I had a latte" assume it contains two shots of espresso.`
-}
-
-func (p *OpenAIProvider) parseItemsSystemPrompt() string {
-	return `You extract individual food and drink items from a freeform meal, snack, beverage, or consumption description. Return strict JSON with the following structure:
-
-{
-  "items": [
-    {
-      "name": string,
-      "quantity": number | null,
-      "unit": string | null,
-      "brand": string | null
-    }
-  ]
-}
-
-IMPORTANT INSTRUCTIONS:
-1. EXTRACT INDIVIDUAL ITEMS: Separate each distinct food or drink item mentioned.
-2. INFER SERVING SIZES: If quantity is not specified, assume reasonable standard serving sizes based on context:
-   - Yogurt: 1 cup (245g)
-   - Banana: 1 medium (118g)  
-   - Eggs: 2 large eggs (100g)
-   - Coffee: 1 cup (240ml)
-   - Latte: 10oz with 2 shots espresso using standard 20g shots
-   - Apple: 1 medium (182g)
-   - Bread slice: 1 slice (28g)
-   - Chicken breast: 3.5oz (100g)
-   - Rice: 1 cup cooked (158g)
-
-3. PRESERVE BRANDS: Keep exact brand and product names (e.g., "Clover Sonoma", "Trader Joe's", "Siggi's", "KFC", "Starbucks").
-4. NORMALIZE UNITS: Use standard units (g, mg, ml, cups, tbsp, etc.).
-5. DO NOT ADD NUTRITION DATA: Only extract item identification, not nutrition information.`
-}
-
-func (p *OpenAIProvider) nutritionSystemPrompt() string {
-	return `You provide complete nutrition information for a single food item. Return strict JSON with the following structure:
-
-{
-  "nutrients": {
-    "calories": number,
-    "protein_g": number,
-    "total_fat_g": number,
-    "saturated_fat_g": number,
-    "trans_fat_g": number,
-    "cholesterol_mg": number,
-    "sodium_mg": number,
-    "total_carbs_g": number,
-    "dietary_fiber_g": number,
-    "total_sugars_g": number,
-    "added_sugars_g": number,
-    "vitamin_a_mcg": number,
-    "vitamin_c_mg": number,
-    "vitamin_d_mcg": number,
-    "vitamin_e_mg": number,
-    "vitamin_k_mcg": number,
-    "thiamine_mg": number,
-    "riboflavin_mg": number,
-    "niacin_mg": number,
-    "vitamin_b6_mg": number,
-    "folate_mcg": number,
-    "vitamin_b12_mcg": number,
-    "calcium_mg": number,
-    "iron_mg": number,
-    "magnesium_mg": number,
-    "phosphorus_mg": number,
-    "potassium_mg": number,
-    "zinc_mg": number,
-    "copper_mg": number,
-    "manganese_mg": number,
-    "selenium_mcg": number
-  }
-}
-
-IMPORTANT INSTRUCTIONS:
-1. NUTRITION DATA ACCURACY: Provide accurate nutrition data per serving for the specified quantity and unit. Use your knowledge of food composition databases, USDA data, and nutrition labels.
-2. HANDLE COMPLEX ITEMS: For prepared foods, estimate based on typical recipes and ingredients. For restaurant items, use available nutrition information or estimate based on similar items.
-3. ZERO VALUES: Use 0 for nutrients that are truly absent (like vitamin B12 in plants), but provide realistic non-zero values for nutrients that are typically present even in small amounts.
-4. BRANDED VS GENERIC: Prioritize branded nutrition data when brand is specified, otherwise use generic USDA-style data for the food type.
-5. QUANTITY-ADJUSTED: Provide nutrition values for the exact quantity/unit specified, not per 100g.`
 }

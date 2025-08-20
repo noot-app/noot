@@ -260,7 +260,7 @@
                       <div class="flex justify-between items-center text-sm">
                         <span class="font-medium">
                           {formatNutrientName(nutrient)}
-                          <span class="badge badge-outline badge-warning badge-xs ml-1">Limit</span>
+                          <span class="badge badge-outline badge-info badge-xs ml-1">Limit</span>
                           {#if getOverageText(nutrient, current)}
                             <span class="text-xs text-warning ml-1">{getOverageText(nutrient, current)}</span>
                           {/if}
