@@ -84,6 +84,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get nutrition goals
+         * @description Get resolved nutrition goals based on user profile (DRI) and any custom overrides
+         */
+        get: operations["getGoals"];
+        /**
+         * Update nutrition goals (Pro only)
+         * @description Set custom nutrition goal overrides for Pro users
+         */
+        put: operations["updateGoals"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/trends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get nutrition trends
+         * @description Get time series data for nutrition metrics over a specified period
+         */
+        get: operations["getTrends"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export nutrition data (Pro only)
+         * @description Export nutrition data in CSV or JSON format for a specified date range
+         */
+        get: operations["exportData"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -293,6 +357,56 @@ export interface components {
             total_fiber_g: number;
             /** @description Total sodium in milligrams */
             total_sodium_mg: number;
+            /** @description Total saturated fat in grams */
+            total_saturated_fat_g: number;
+            /** @description Total trans fat in grams */
+            total_trans_fat_g: number;
+            /** @description Total cholesterol in milligrams */
+            total_cholesterol_mg: number;
+            /** @description Total sugars in grams */
+            total_sugars_g: number;
+            /** @description Total added sugars in grams */
+            total_added_sugars_g: number;
+            /** @description Total vitamin A in micrograms */
+            total_vitamin_a_mcg: number;
+            /** @description Total vitamin C in milligrams */
+            total_vitamin_c_mg: number;
+            /** @description Total vitamin D in micrograms */
+            total_vitamin_d_mcg: number;
+            /** @description Total vitamin E in milligrams */
+            total_vitamin_e_mg: number;
+            /** @description Total vitamin K in micrograms */
+            total_vitamin_k_mcg: number;
+            /** @description Total thiamine (B1) in milligrams */
+            total_thiamine_mg: number;
+            /** @description Total riboflavin (B2) in milligrams */
+            total_riboflavin_mg: number;
+            /** @description Total niacin (B3) in milligrams */
+            total_niacin_mg: number;
+            /** @description Total vitamin B6 in milligrams */
+            total_vitamin_b6_mg: number;
+            /** @description Total folate in micrograms */
+            total_folate_mcg: number;
+            /** @description Total vitamin B12 in micrograms */
+            total_vitamin_b12_mcg: number;
+            /** @description Total calcium in milligrams */
+            total_calcium_mg: number;
+            /** @description Total iron in milligrams */
+            total_iron_mg: number;
+            /** @description Total magnesium in milligrams */
+            total_magnesium_mg: number;
+            /** @description Total phosphorus in milligrams */
+            total_phosphorus_mg: number;
+            /** @description Total potassium in milligrams */
+            total_potassium_mg: number;
+            /** @description Total zinc in milligrams */
+            total_zinc_mg: number;
+            /** @description Total copper in milligrams */
+            total_copper_mg: number;
+            /** @description Total manganese in milligrams */
+            total_manganese_mg: number;
+            /** @description Total selenium in micrograms */
+            total_selenium_mcg: number;
             /** @description Average calories per day */
             avg_calories_per_day: number;
             /** @description Average protein per day in grams */
@@ -328,6 +442,130 @@ export interface components {
             fiber_g: number;
             /** @description Total sodium in milligrams for the day */
             sodium_mg: number;
+        };
+        GoalsResponse: {
+            goals: components["schemas"]["Goals"];
+            user: components["schemas"]["User"];
+        };
+        Goals: {
+            /**
+             * @description Target amounts for each nutrient
+             * @example {
+             *       "calories": 2000,
+             *       "protein_g": 50,
+             *       "vitamin_c_mg": 90
+             *     }
+             */
+            targets: {
+                [key: string]: number;
+            };
+            /**
+             * @description Upper limit amounts for each nutrient (where defined)
+             * @example {
+             *       "sodium_mg": 2300
+             *     }
+             */
+            upper_limits: {
+                [key: string]: number;
+            };
+            /**
+             * @description Units for each nutrient
+             * @example {
+             *       "calories": "kcal",
+             *       "protein_g": "g",
+             *       "vitamin_c_mg": "mg"
+             *     }
+             */
+            units: {
+                [key: string]: string;
+            };
+            /**
+             * @description Source of the goals (DRI defaults or custom overrides)
+             * @enum {string}
+             */
+            source: "dri" | "custom";
+            life_stage: components["schemas"]["LifeStage"];
+        };
+        LifeStage: {
+            /**
+             * @description User sex for DRI calculation
+             * @enum {string}
+             */
+            sex: "male" | "female" | "unspecified";
+            /**
+             * @description Age bracket used for DRI lookup
+             * @example 19-30 y
+             */
+            age_bracket: string;
+        };
+        UpdateGoalsRequest: {
+            /**
+             * @description Custom nutrition goal overrides
+             * @example {
+             *       "calories": 3000,
+             *       "protein_g": 180,
+             *       "vitamin_c_mg": 120
+             *     }
+             */
+            overrides: {
+                [key: string]: number;
+            };
+        };
+        TrendsResponse: {
+            /**
+             * @description Time series data for each requested metric
+             * @example {
+             *       "calories": [
+             *         {
+             *           "date": "2023-01-01T00:00:00Z",
+             *           "value": 2100
+             *         },
+             *         {
+             *           "date": "2023-01-02T00:00:00Z",
+             *           "value": 2250
+             *         }
+             *       ]
+             *     }
+             */
+            series: {
+                [key: string]: components["schemas"]["DataPoint"][];
+            };
+            user: components["schemas"]["User"];
+            date_range: {
+                /** Format: date-time */
+                start?: string;
+                /** Format: date-time */
+                end?: string;
+            };
+            /** @description Number of days in the time series */
+            days: number;
+        };
+        DataPoint: {
+            /**
+             * Format: date-time
+             * @description Date for this data point
+             */
+            date: string;
+            /** @description Nutrient value for this date */
+            value: number;
+        };
+        ExportResponse: {
+            /** @description Time series data for each requested metric */
+            series: {
+                [key: string]: components["schemas"]["DataPoint"][];
+            };
+            user: components["schemas"]["User"];
+            date_range: {
+                /** Format: date-time */
+                start?: string;
+                /** Format: date-time */
+                end?: string;
+            };
+            /**
+             * @description Export format used
+             * @enum {string}
+             */
+            format: "csv" | "json";
         };
     };
     responses: never;
@@ -516,6 +754,235 @@ export interface operations {
             };
             /** @description Method not allowed */
             405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getGoals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User nutrition goals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalsResponse"];
+                };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateGoals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGoalsRequest"];
+            };
+        };
+        responses: {
+            /** @description Goals updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalsResponse"];
+                };
+            };
+            /** @description Invalid request body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getTrends: {
+        parameters: {
+            query?: {
+                /** @description Comma-separated list of metrics to include */
+                metrics?: string;
+                /** @description Start date (RFC3339 format) */
+                start?: string;
+                /** @description End date (RFC3339 format) */
+                end?: string;
+                /** @description Number of days to look back from today (alternative to start/end) */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Nutrition trends data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrendsResponse"];
+                };
+            };
+            /** @description Invalid parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Access denied (subscription limitation) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description User not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    exportData: {
+        parameters: {
+            query: {
+                /** @description Export format */
+                format: "csv" | "json";
+                /** @description Start date (RFC3339 format) */
+                start?: string;
+                /** @description End date (RFC3339 format) */
+                end?: string;
+                /** @description Comma-separated list of metrics to include (defaults to common macros) */
+                metrics?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Exported data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportResponse"];
+                    "text/csv": string;
+                };
+            };
+            /** @description Invalid parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description User not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

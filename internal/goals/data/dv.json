@@ -1,0 +1,120 @@
+{
+  "metadata": {
+    "description": "Enriched dataset combining your DRI brackets with FDA Daily Values (DV) for a 2,000 kcal reference diet plus conversion rules and examples to compute %DV. Use fdaDailyValues to convert any measured nutrient amount -> percent Daily Value for label-style reporting.",
+    "lastUpdatedFromSources": "FDA Daily Value reference guide (Aug 2023), FDA Nutrition Facts guidance, NIH ODS Daily Value summary",
+    "sources": [
+      { "name": "FDA - Daily Value Reference Guide (PDF)", "ref": "turn1view0" },
+      { "name": "FDA - Which nutrients must be listed on the label", "ref": "turn0search1" },
+      { "name": "FDA - Lows and Highs of %DV guidance", "ref": "turn0search7" },
+      { "name": "NIH ODS - Daily Values summary", "ref": "turn0search8" },
+      { "name": "FDA - What's on the Nutrition Facts Label (guide)", "ref": "turn0search4" }
+    ],
+    "notes": [
+      "DV values are the single reference numbers used for %DV on the Nutrition Facts label (2,000 kcal reference).",
+      "%DV formula is: (amount_in_serving / DV_amount) * 100. See conversion.unitHandling for microgram/milligram handling.",
+      "Some nutrients (vitamin D, calcium, iron, potassium) must show both amount and %DV on the label; others may be voluntary.",
+      "Guidance: <=5% DV per serving is considered low; >=20% DV per serving is considered high."
+    ]
+  },
+
+  "fdaDailyValues": {
+    "added_sugars": { "value": 50, "unit": "g", "note": "FDA 2,000 kcal reference added sugars DV" },
+    "biotin": { "value": 30, "unit": "µg" },
+    "calcium": { "value": 1300, "unit": "mg" },
+    "chloride": { "value": 2300, "unit": "mg" },
+    "choline": { "value": 550, "unit": "mg" },
+    "cholesterol": { "value": 300, "unit": "mg", "note": "historical labeling DV (declared amount required if present)" },
+    "chromium": { "value": 35, "unit": "µg" },
+    "copper": { "value": 0.9, "unit": "mg" },
+    "dietary_fiber": { "value": 28, "unit": "g" },
+    "fat_total": { "value": 78, "unit": "g" },
+    "folate_folic_acid": { "value": 400, "unit": "µg DFE" },
+    "iodine": { "value": 150, "unit": "µg" },
+    "iron": { "value": 18, "unit": "mg" },
+    "magnesium": { "value": 420, "unit": "mg" },
+    "manganese": { "value": 2.3, "unit": "mg" },
+    "molybdenum": { "value": 45, "unit": "µg" },
+    "niacin": { "value": 16, "unit": "mg NE" },
+    "pantothenic_acid": { "value": 5, "unit": "mg" },
+    "phosphorus": { "value": 1250, "unit": "mg" },
+    "potassium": { "value": 4700, "unit": "mg" },
+    "protein": { "value": 50, "unit": "g" },
+    "riboflavin": { "value": 1.3, "unit": "mg" },
+    "saturated_fat": { "value": 20, "unit": "g" },
+    "selenium": { "value": 55, "unit": "µg" },
+    "sodium": { "value": 2300, "unit": "mg" },
+    "thiamin": { "value": 1.2, "unit": "mg" },
+    "total_carbohydrate": { "value": 275, "unit": "g" },
+    "vitamin_A": { "value": 900, "unit": "µg RAE" },
+    "vitamin_B6": { "value": 1.7, "unit": "mg" },
+    "vitamin_B12": { "value": 2.4, "unit": "µg" },
+    "vitamin_C": { "value": 90, "unit": "mg" },
+    "vitamin_D": { "value": 20, "unit": "µg (800 IU)", "note": "DV set to 20 µg (800 IU) per FDA guidance" },
+    "vitamin_E": { "value": 15, "unit": "mg α-tocopherol" },
+    "vitamin_K": { "value": 120, "unit": "µg" },
+    "zinc": { "value": 11, "unit": "mg" }
+  },
+
+  "conversion": {
+    "percentDV_formula": "percentDV = (amount_in_serving / DV_value_for_nutrient) * 100",
+    "unitHandling": {
+      "micrograms": "if input is in 'µg' (micrograms) ensure DV is in µg; if input is in 'mg' convert to µg by multiplying mg*1000 or vice versa, matching the DV unit.",
+      "example": "If user supplies 5 µg vitamin D and DV is 20 µg -> percentDV = (5/20)*100 = 25%",
+      "recommendedNormalization": "Prefer normalizing numeric inputs to the DV unit before division. Provide explicit unit in API payload to avoid ambiguity."
+    },
+    "roundingRecommendations": {
+      "percentDV_display": "Round to nearest whole percent for label-like displays; optionally show one decimal in UI.",
+      "smallAmounts": "Follow your UI/consumer rules; FDA label rules specify rounding conventions for amounts on labels (not directly for %DV): follow regulatory guidance if producing regulatory labels."
+    },
+    "interpretationGuidance": {
+      "low_threshold": { "percent": 5, "meaning": "5% DV or less per serving is considered low" },
+      "high_threshold": { "percent": 20, "meaning": "20% DV or more per serving is considered high" }
+    },
+    "mandatoryDeclarationOnLabel": [
+      "Vitamin D",
+      "Calcium",
+      "Iron",
+      "Potassium"
+    ],
+    "notes": [
+      "Not every nutrient on the DRI dataset has an FDA DV (FDA may allow voluntary declaration). Use fdaDailyValues keys as authoritative for %DV computation.",
+      "Added Sugars has a DV of 50 g (2016 label update)."
+    ]
+  },
+
+  "mappingHints": {
+    "keyAliases": {
+      "vitamin_D": ["vitaminD", "vitD", "vitamin_D_µg"],
+      "vitamin_A": ["vitA", "vitamin_A_µgRAE"],
+      "iron": ["Fe", "iron_mg"],
+      "fiber": ["dietary_fiber", "fibre"]
+    },
+    "unitsNormalization": {
+      "preferedUnits": {
+        "mass": "mg for minerals and mg/µg as appropriate; check fdaDailyValues.unit",
+        "vitamins": "match unit in fdaDailyValues (µg or mg as shown)"
+      }
+    }
+  },
+
+  "examples": [
+    {
+      "nutrient": "dietary_fiber",
+      "servingAmount": 7,
+      "servingUnit": "g",
+      "dv": 28,
+      "dvUnit": "g",
+      "percentDV": 25,
+      "calculation": "7 / 28 * 100 = 25%"
+    },
+    {
+      "nutrient": "vitamin_D",
+      "servingAmount": 5,
+      "servingUnit": "µg",
+      "dv": 20,
+      "dvUnit": "µg",
+      "percentDV": 25,
+      "calculation": "5 / 20 * 100 = 25%"
+    }
+  ]
+}

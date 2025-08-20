@@ -1,19 +1,16 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client";
-  import { units, convertWeight, formatWeight, type Units } from "$lib/stores/units";
   import { PUBLIC_APP_NAME } from "$env/static/public";
   import { onMount } from "svelte";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
+  import Goals from "$lib/components/Goals.svelte";
 
   let currentView: 'today' | 'week' = 'today';
   let isLoading = false;
   let error = "";
   let summaryData: any = null;
 
-  $: currentUnits = $units;
-
   onMount(() => {
-    units.init();
     loadSummary();
   });
 
@@ -73,13 +70,49 @@
     }
   }
 
-  function toggleUnits() {
-    units.set(currentUnits === 'grams' ? 'ounces' : 'grams');
-  }
-
-  function convertNutrientValue(value: number): number {
-    return convertWeight(value, 'grams', currentUnits);
-  }
+  // Extract current nutrition values for goals comparison
+  $: currentNutrition = summaryData?.summary ? {
+    // Basic macronutrients
+    calories: summaryData.summary.total_calories || 0,
+    protein_g: summaryData.summary.total_protein_g || 0,
+    total_carbs_g: summaryData.summary.total_carbs_g || 0,
+    total_fat_g: summaryData.summary.total_fat_g || 0,
+    dietary_fiber_g: summaryData.summary.total_fiber_g || 0,
+    sodium_mg: summaryData.summary.total_sodium_mg || 0,
+    
+    // Fat types
+    saturated_fat_g: summaryData.summary.total_saturated_fat_g || 0,
+    trans_fat_g: summaryData.summary.total_trans_fat_g || 0,
+    cholesterol_mg: summaryData.summary.total_cholesterol_mg || 0,
+    
+    // Sugar types
+    total_sugars_g: summaryData.summary.total_sugars_g || 0,
+    added_sugars_g: summaryData.summary.total_added_sugars_g || 0,
+    
+    // Vitamins
+    vitamin_a_mcg: summaryData.summary.total_vitamin_a_mcg || 0,
+    vitamin_c_mg: summaryData.summary.total_vitamin_c_mg || 0,
+    vitamin_d_mcg: summaryData.summary.total_vitamin_d_mcg || 0,
+    vitamin_e_mg: summaryData.summary.total_vitamin_e_mg || 0,
+    vitamin_k_mcg: summaryData.summary.total_vitamin_k_mcg || 0,
+    thiamine_mg: summaryData.summary.total_thiamine_mg || 0,
+    riboflavin_mg: summaryData.summary.total_riboflavin_mg || 0,
+    niacin_mg: summaryData.summary.total_niacin_mg || 0,
+    vitamin_b6_mg: summaryData.summary.total_vitamin_b6_mg || 0,
+    folate_mcg: summaryData.summary.total_folate_mcg || 0,
+    vitamin_b12_mcg: summaryData.summary.total_vitamin_b12_mcg || 0,
+    
+    // Minerals
+    calcium_mg: summaryData.summary.total_calcium_mg || 0,
+    iron_mg: summaryData.summary.total_iron_mg || 0,
+    magnesium_mg: summaryData.summary.total_magnesium_mg || 0,
+    phosphorus_mg: summaryData.summary.total_phosphorus_mg || 0,
+    potassium_mg: summaryData.summary.total_potassium_mg || 0,
+    zinc_mg: summaryData.summary.total_zinc_mg || 0,
+    copper_mg: summaryData.summary.total_copper_mg || 0,
+    manganese_mg: summaryData.summary.total_manganese_mg || 0,
+    selenium_mcg: summaryData.summary.total_selenium_mcg || 0,
+  } : undefined;
 </script>
 
 <svelte:head>
@@ -104,9 +137,6 @@
           Home
         </a>
         <a href="/record" class="btn btn-primary">Record</a>
-        <button class="btn btn-ghost" on:click={toggleUnits}>
-          Units: {currentUnits === 'grams' ? 'Grams' : 'Ounces'}
-        </button>
       </div>
     </div>
 
@@ -156,9 +186,11 @@
           protein={summaryData.summary.total_protein_g || 0}
           carbs={summaryData.summary.total_carbs_g || 0}
           fat={summaryData.summary.total_fat_g || 0}
-          units={currentUnits}
           size="normal"
         />
+
+        <!-- Nutrition Goals -->
+        <Goals {currentNutrition} />
 
         <!-- Daily Breakdown (for week view) -->
         {#if currentView === 'week' && summaryData.summary.daily_breakdown && summaryData.summary.daily_breakdown.length > 0}
@@ -181,9 +213,9 @@
                       <tr>
                         <td>{new Date(day.date).toLocaleDateString()}</td>
                         <td>{day.calories}</td>
-                        <td>{formatWeight(convertNutrientValue(day.protein_g), currentUnits)}</td>
-                        <td>{formatWeight(convertNutrientValue(day.total_carbs_g), currentUnits)}</td>
-                        <td>{formatWeight(convertNutrientValue(day.total_fat_g), currentUnits)}</td>
+                        <td>{day.protein_g?.toFixed(1) || 0}g</td>
+                        <td>{day.total_carbs_g?.toFixed(1) || 0}g</td>
+                        <td>{day.total_fat_g?.toFixed(1) || 0}g</td>
                       </tr>
                     {/each}
                   </tbody>
@@ -211,7 +243,7 @@
                 </div>
                 <div class="stat">
                   <div class="stat-title">Fiber</div>
-                  <div class="stat-value text-lg">{formatWeight(convertNutrientValue(summaryData.summary.total_fiber_g || 0), currentUnits)}</div>
+                  <div class="stat-value text-lg">{(summaryData.summary.total_fiber_g || 0).toFixed(1)}g</div>
                   <div class="stat-desc">Total</div>
                 </div>
                 <div class="stat">

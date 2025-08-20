@@ -1,11 +1,14 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/grantbirki/noot/internal/api"
+	"github.com/grantbirki/noot/internal/storage"
 )
 
 // handleAppErrorGin handles application errors in Gin context
@@ -71,4 +74,194 @@ func parseDateRangeParamsFromAPI(params api.GetNutritionSummaryParams) (*DateRan
 	}
 
 	return result, nil
+}
+
+// convertUser converts a storage.User to api.User
+func convertUser(user *storage.User) api.User {
+	return api.User{
+		Id:               user.ID,
+		Provider:         user.Provider,
+		Subject:          user.Subject,
+		Email:            user.Email,
+		SubscriptionTier: api.UserSubscriptionTier(user.SubscriptionTier),
+		CreatedAt:        user.CreatedAt,
+	}
+}
+
+// generateTimeSeries creates time series data from consumption records
+func generateTimeSeries(consumptions []*storage.Consumption, metrics []string, start, end time.Time) map[string][]api.DataPoint {
+	series := make(map[string][]api.DataPoint)
+
+	// Initialize series for each metric
+	for _, metric := range metrics {
+		series[metric] = make([]api.DataPoint, 0)
+	}
+
+	// Group consumptions by date
+	dailyTotals := make(map[string]map[string]float64)
+
+	for _, consumption := range consumptions {
+		dateKey := consumption.CreatedAt.Format("2006-01-02")
+
+		if dailyTotals[dateKey] == nil {
+			dailyTotals[dateKey] = make(map[string]float64)
+		}
+
+		// Add consumption values to daily totals
+		for _, metric := range metrics {
+			dailyTotals[dateKey][metric] += getConsumptionMetric(consumption, metric)
+		}
+	}
+
+	// Generate data points for each day in the range
+	current := start
+	for current.Before(end) || current.Equal(end) {
+		dateKey := current.Format("2006-01-02")
+
+		for _, metric := range metrics {
+			value := dailyTotals[dateKey][metric] // defaults to 0 if no data
+			series[metric] = append(series[metric], api.DataPoint{
+				Date:  current,
+				Value: float32(value),
+			})
+		}
+
+		current = current.Add(24 * time.Hour)
+	}
+
+	return series
+}
+
+// generateCSVExport creates CSV export data
+func generateCSVExport(consumptions []*storage.Consumption, metrics []string, start, end time.Time) string {
+	// Simple CSV generation - one row per date/metric combination
+	csv := "date,metric,value\n"
+
+	series := generateTimeSeries(consumptions, metrics, start, end)
+
+	for metric, dataPoints := range series {
+		for _, point := range dataPoints {
+			csv += fmt.Sprintf("%s,%s,%.2f\n",
+				point.Date.Format("2006-01-02"),
+				metric,
+				point.Value)
+		}
+	}
+
+	return csv
+}
+
+// getConsumptionMetric extracts a specific metric value from a consumption record
+func getConsumptionMetric(consumption *storage.Consumption, metric string) float64 {
+	switch metric {
+	case "calories":
+		return consumption.TotalCalories
+	case "protein_g":
+		return consumption.TotalProtein
+	case "total_fat_g":
+		return consumption.TotalFat
+	case "total_carbs_g":
+		return consumption.TotalCarbs
+	case "dietary_fiber_g":
+		return consumption.TotalFiber
+	case "sodium_mg":
+		return consumption.TotalSodium
+	case "saturated_fat_g":
+		return consumption.SaturatedFat
+	case "trans_fat_g":
+		return consumption.TransFat
+	case "cholesterol_mg":
+		return consumption.Cholesterol
+	case "total_sugars_g":
+		return consumption.TotalSugars
+	case "added_sugars_g":
+		return consumption.AddedSugars
+	case "vitamin_a_mcg":
+		return consumption.VitaminA
+	case "vitamin_c_mg":
+		return consumption.VitaminC
+	case "vitamin_d_mcg":
+		return consumption.VitaminD
+	case "vitamin_e_mg":
+		return consumption.VitaminE
+	case "vitamin_k_mcg":
+		return consumption.VitaminK
+	case "thiamine_mg":
+		return consumption.Thiamine
+	case "riboflavin_mg":
+		return consumption.Riboflavin
+	case "niacin_mg":
+		return consumption.Niacin
+	case "vitamin_b6_mg":
+		return consumption.VitaminB6
+	case "folate_mcg":
+		return consumption.Folate
+	case "vitamin_b12_mcg":
+		return consumption.VitaminB12
+	case "calcium_mg":
+		return consumption.Calcium
+	case "iron_mg":
+		return consumption.Iron
+	case "magnesium_mg":
+		return consumption.Magnesium
+	case "phosphorus_mg":
+		return consumption.Phosphorus
+	case "potassium_mg":
+		return consumption.Potassium
+	case "zinc_mg":
+		return consumption.Zinc
+	case "copper_mg":
+		return consumption.Copper
+	case "manganese_mg":
+		return consumption.Manganese
+	case "selenium_mcg":
+		return consumption.Selenium
+	default:
+		return 0
+	}
+}
+
+// parseTrendsDateRangeParams converts trend API params to date range values
+func parseTrendsDateRangeParams(start, end *time.Time, days *int) (time.Time, time.Time, int, error) {
+	var startTime, endTime time.Time
+	var numDays int
+
+	if start != nil && end != nil {
+		// Direct date range provided
+		startTime = *start
+		endTime = *end
+		numDays = int(endTime.Sub(startTime).Hours()/24) + 1
+	} else if days != nil {
+		// Days parameter provided
+		numDays = *days
+		endTime = time.Now().UTC().Truncate(24 * time.Hour)
+		startTime = endTime.AddDate(0, 0, -numDays)
+	} else {
+		// Default to 7 days
+		numDays = 7
+		endTime = time.Now().UTC().Truncate(24 * time.Hour)
+		startTime = endTime.AddDate(0, 0, -numDays)
+	}
+
+	if startTime.After(endTime) {
+		return time.Time{}, time.Time{}, 0, fmt.Errorf("start date cannot be after end date")
+	}
+
+	return startTime, endTime, numDays, nil
+}
+
+// validateTrendsSubscriptionAccess checks if user has access based on subscription and date range
+func validateTrendsSubscriptionAccess(subscriptionTier string, start, end time.Time) error {
+	days := int(end.Sub(start).Hours()/24) + 1
+
+	if days > 7 && strings.ToLower(subscriptionTier) != storage.SubscriptionTierPro {
+		return fmt.Errorf("access to more than 7 days requires Pro subscription")
+	}
+
+	// Pro users can access up to 1 year of data
+	if days > 365 {
+		return fmt.Errorf("maximum date range is 365 days")
+	}
+
+	return nil
 }

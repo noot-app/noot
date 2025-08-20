@@ -4,11 +4,13 @@ package storage
 var TableNames = struct {
 	Users        string
 	Consumptions string
+	UserGoals    string
 	ItemsCache   string
 	ItemAliases  string
 }{
 	Users:        "users",
 	Consumptions: "consumptions",
+	UserGoals:    "user_goals",
 	ItemsCache:   "items_cache",
 	ItemAliases:  "item_aliases",
 }
@@ -18,6 +20,7 @@ func GetDropTableOrder() []string {
 	return []string{
 		TableNames.ItemAliases,
 		TableNames.ItemsCache,
+		TableNames.UserGoals,
 		TableNames.Consumptions,
 		TableNames.Users,
 	}

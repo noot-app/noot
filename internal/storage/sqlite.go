@@ -104,8 +104,8 @@ func (s *SQLiteStore) Reset() error {
 // CreateUser creates a new user
 func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 	query := `
-		INSERT INTO users (id, provider, subject, email, subscription_tier, created_at)
-		VALUES (?, ?, ?, ?, ?, ?)`
+		INSERT INTO users (id, provider, subject, email, subscription_tier, sex, birth_date, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
 	user.ID = generateULID()
@@ -116,7 +116,13 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 		user.SubscriptionTier = SubscriptionTierFree
 	}
 
-	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email, user.SubscriptionTier, now)
+	// Set default sex if not provided
+	if user.Sex == "" {
+		user.Sex = "unspecified"
+	}
+
+	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email,
+		user.SubscriptionTier, user.Sex, user.BirthDate, now)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -126,11 +132,11 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 
 // GetUser retrieves a user by ID
 func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
-	query := `SELECT id, provider, subject, email, subscription_tier, created_at FROM users WHERE id = ?`
+	query := `SELECT id, provider, subject, email, subscription_tier, sex, birth_date, created_at FROM users WHERE id = ?`
 
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, id).
-		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.CreatedAt)
+		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.Sex, &user.BirthDate, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // User not found
@@ -143,11 +149,11 @@ func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
 
 // GetUserBySubject retrieves a user by provider and subject
 func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject string) (*User, error) {
-	query := `SELECT id, provider, subject, email, subscription_tier, created_at FROM users WHERE provider = ? AND subject = ?`
+	query := `SELECT id, provider, subject, email, subscription_tier, sex, birth_date, created_at FROM users WHERE provider = ? AND subject = ?`
 
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, provider, subject).
-		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.CreatedAt)
+		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.Sex, &user.BirthDate, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // User not found
@@ -162,8 +168,13 @@ func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject st
 func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consumption) error {
 	query := `
 		INSERT INTO consumptions (id, user_id, transcript, items_json, total_calories, total_protein_g, 
-						  total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+						  total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg,
+						  saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
+						  vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
+						  thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg, vitamin_b12_mcg,
+						  calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
+						  zinc_mg, copper_mg, manganese_mg, selenium_mcg, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
 	consumption.ID = generateULID()
@@ -172,7 +183,14 @@ func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consum
 	_, err := s.db.ExecContext(ctx, query,
 		consumption.ID, consumption.UserID, consumption.Transcript, consumption.ItemsJSON,
 		consumption.TotalCalories, consumption.TotalProtein, consumption.TotalFat,
-		consumption.TotalCarbs, consumption.TotalFiber, consumption.TotalSodium, now)
+		consumption.TotalCarbs, consumption.TotalFiber, consumption.TotalSodium,
+		consumption.SaturatedFat, consumption.TransFat, consumption.Cholesterol,
+		consumption.TotalSugars, consumption.AddedSugars, consumption.VitaminA, consumption.VitaminC,
+		consumption.VitaminD, consumption.VitaminE, consumption.VitaminK, consumption.Thiamine,
+		consumption.Riboflavin, consumption.Niacin, consumption.VitaminB6, consumption.Folate,
+		consumption.VitaminB12, consumption.Calcium, consumption.Iron, consumption.Magnesium,
+		consumption.Phosphorus, consumption.Potassium, consumption.Zinc, consumption.Copper,
+		consumption.Manganese, consumption.Selenium, now)
 	if err != nil {
 		return fmt.Errorf("failed to create consumption: %w", err)
 	}
@@ -184,14 +202,26 @@ func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consum
 func (s *SQLiteStore) GetConsumption(ctx context.Context, id string) (*Consumption, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
-			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
+			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg,
+			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
+			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
+			   thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg, vitamin_b12_mcg,
+			   calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
+			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, created_at
 		FROM consumptions WHERE id = ?`
 
 	consumption := &Consumption{}
 	err := s.db.QueryRowContext(ctx, query, id).
 		Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
-			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium, &consumption.CreatedAt)
+			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium,
+			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
+			&consumption.TotalSugars, &consumption.AddedSugars, &consumption.VitaminA, &consumption.VitaminC,
+			&consumption.VitaminD, &consumption.VitaminE, &consumption.VitaminK, &consumption.Thiamine,
+			&consumption.Riboflavin, &consumption.Niacin, &consumption.VitaminB6, &consumption.Folate,
+			&consumption.VitaminB12, &consumption.Calcium, &consumption.Iron, &consumption.Magnesium,
+			&consumption.Phosphorus, &consumption.Potassium, &consumption.Zinc, &consumption.Copper,
+			&consumption.Manganese, &consumption.Selenium, &consumption.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Consumption not found
@@ -206,7 +236,12 @@ func (s *SQLiteStore) GetConsumption(ctx context.Context, id string) (*Consumpti
 func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, limit, offset int) ([]*Consumption, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
-			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
+			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg,
+			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
+			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
+			   thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg, vitamin_b12_mcg,
+			   calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
+			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, created_at
 		FROM consumptions WHERE user_id = ?
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
@@ -222,7 +257,14 @@ func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, 
 		consumption := &Consumption{}
 		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
-			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium, &consumption.CreatedAt)
+			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium,
+			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
+			&consumption.TotalSugars, &consumption.AddedSugars, &consumption.VitaminA, &consumption.VitaminC,
+			&consumption.VitaminD, &consumption.VitaminE, &consumption.VitaminK, &consumption.Thiamine,
+			&consumption.Riboflavin, &consumption.Niacin, &consumption.VitaminB6, &consumption.Folate,
+			&consumption.VitaminB12, &consumption.Calcium, &consumption.Iron, &consumption.Magnesium,
+			&consumption.Phosphorus, &consumption.Potassium, &consumption.Zinc, &consumption.Copper,
+			&consumption.Manganese, &consumption.Selenium, &consumption.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
@@ -240,7 +282,12 @@ func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, 
 func (s *SQLiteStore) GetConsumptionsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Consumption, error) {
 	query := `
 		SELECT id, user_id, transcript, items_json, total_calories, total_protein_g,
-			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg, created_at
+			   total_fat_g, total_carbs_g, total_fiber_g, total_sodium_mg,
+			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
+			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
+			   thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg, vitamin_b12_mcg,
+			   calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
+			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, created_at
 		FROM consumptions WHERE user_id = ? AND created_at >= ?
 		ORDER BY created_at DESC`
 
@@ -255,7 +302,14 @@ func (s *SQLiteStore) GetConsumptionsByUserSince(ctx context.Context, userID str
 		consumption := &Consumption{}
 		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
-			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium, &consumption.CreatedAt)
+			&consumption.TotalCarbs, &consumption.TotalFiber, &consumption.TotalSodium,
+			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
+			&consumption.TotalSugars, &consumption.AddedSugars, &consumption.VitaminA, &consumption.VitaminC,
+			&consumption.VitaminD, &consumption.VitaminE, &consumption.VitaminK, &consumption.Thiamine,
+			&consumption.Riboflavin, &consumption.Niacin, &consumption.VitaminB6, &consumption.Folate,
+			&consumption.VitaminB12, &consumption.Calcium, &consumption.Iron, &consumption.Magnesium,
+			&consumption.Phosphorus, &consumption.Potassium, &consumption.Zinc, &consumption.Copper,
+			&consumption.Manganese, &consumption.Selenium, &consumption.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
@@ -280,7 +334,32 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 			COALESCE(SUM(total_fat_g), 0) as total_fat,
 			COALESCE(SUM(total_carbs_g), 0) as total_carbs,
 			COALESCE(SUM(total_fiber_g), 0) as total_fiber,
-			COALESCE(SUM(total_sodium_mg), 0) as total_sodium
+			COALESCE(SUM(total_sodium_mg), 0) as total_sodium,
+			COALESCE(SUM(saturated_fat_g), 0) as total_saturated_fat,
+			COALESCE(SUM(trans_fat_g), 0) as total_trans_fat,
+			COALESCE(SUM(cholesterol_mg), 0) as total_cholesterol,
+			COALESCE(SUM(total_sugars_g), 0) as total_sugars,
+			COALESCE(SUM(added_sugars_g), 0) as total_added_sugars,
+			COALESCE(SUM(vitamin_a_mcg), 0) as total_vitamin_a,
+			COALESCE(SUM(vitamin_c_mg), 0) as total_vitamin_c,
+			COALESCE(SUM(vitamin_d_mcg), 0) as total_vitamin_d,
+			COALESCE(SUM(vitamin_e_mg), 0) as total_vitamin_e,
+			COALESCE(SUM(vitamin_k_mcg), 0) as total_vitamin_k,
+			COALESCE(SUM(thiamine_mg), 0) as total_thiamine,
+			COALESCE(SUM(riboflavin_mg), 0) as total_riboflavin,
+			COALESCE(SUM(niacin_mg), 0) as total_niacin,
+			COALESCE(SUM(vitamin_b6_mg), 0) as total_vitamin_b6,
+			COALESCE(SUM(folate_mcg), 0) as total_folate,
+			COALESCE(SUM(vitamin_b12_mcg), 0) as total_vitamin_b12,
+			COALESCE(SUM(calcium_mg), 0) as total_calcium,
+			COALESCE(SUM(iron_mg), 0) as total_iron,
+			COALESCE(SUM(magnesium_mg), 0) as total_magnesium,
+			COALESCE(SUM(phosphorus_mg), 0) as total_phosphorus,
+			COALESCE(SUM(potassium_mg), 0) as total_potassium,
+			COALESCE(SUM(zinc_mg), 0) as total_zinc,
+			COALESCE(SUM(copper_mg), 0) as total_copper,
+			COALESCE(SUM(manganese_mg), 0) as total_manganese,
+			COALESCE(SUM(selenium_mcg), 0) as total_selenium
 		FROM consumptions 
 		WHERE user_id = ? AND created_at >= ? AND created_at <= ?`
 
@@ -293,6 +372,31 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 		&summary.TotalCarbs,
 		&summary.TotalFiber,
 		&summary.TotalSodium,
+		&summary.TotalSaturatedFat,
+		&summary.TotalTransFat,
+		&summary.TotalCholesterol,
+		&summary.TotalSugars,
+		&summary.TotalAddedSugars,
+		&summary.TotalVitaminA,
+		&summary.TotalVitaminC,
+		&summary.TotalVitaminD,
+		&summary.TotalVitaminE,
+		&summary.TotalVitaminK,
+		&summary.TotalThiamine,
+		&summary.TotalRiboflavin,
+		&summary.TotalNiacin,
+		&summary.TotalVitaminB6,
+		&summary.TotalFolate,
+		&summary.TotalVitaminB12,
+		&summary.TotalCalcium,
+		&summary.TotalIron,
+		&summary.TotalMagnesium,
+		&summary.TotalPhosphorus,
+		&summary.TotalPotassium,
+		&summary.TotalZinc,
+		&summary.TotalCopper,
+		&summary.TotalManganese,
+		&summary.TotalSelenium,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nutrition summary totals: %w", err)
@@ -703,4 +807,69 @@ func (s *SQLiteStore) IsItemCacheExpired(item *ItemCache) bool {
 		return true
 	}
 	return time.Now().UTC().After(item.ExpiresAt)
+}
+
+// UpsertUserGoal creates or updates a user goal
+func (s *SQLiteStore) UpsertUserGoal(ctx context.Context, goal *UserGoal) error {
+	query := `
+		INSERT INTO user_goals (id, user_id, name, overrides_json, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?)
+		ON CONFLICT(user_id, name) DO UPDATE SET
+			overrides_json = excluded.overrides_json,
+			updated_at = excluded.updated_at`
+
+	now := time.Now().UTC()
+	if goal.ID == "" {
+		goal.ID = generateULID()
+		goal.CreatedAt = now
+	}
+	goal.UpdatedAt = now
+
+	_, err := s.db.ExecContext(ctx, query, goal.ID, goal.UserID, goal.Name,
+		goal.OverridesJSON, goal.CreatedAt, goal.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to upsert user goal: %w", err)
+	}
+
+	return nil
+}
+
+// GetUserGoal retrieves a user goal by user ID and name
+func (s *SQLiteStore) GetUserGoal(ctx context.Context, userID, name string) (*UserGoal, error) {
+	query := `SELECT id, user_id, name, overrides_json, created_at, updated_at 
+			  FROM user_goals WHERE user_id = ? AND name = ?`
+
+	goal := &UserGoal{}
+	err := s.db.QueryRowContext(ctx, query, userID, name).
+		Scan(&goal.ID, &goal.UserID, &goal.Name, &goal.OverridesJSON,
+			&goal.CreatedAt, &goal.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Goal not found
+		}
+		return nil, fmt.Errorf("failed to get user goal: %w", err)
+	}
+
+	return goal, nil
+}
+
+// DeleteUserGoal deletes a user goal
+func (s *SQLiteStore) DeleteUserGoal(ctx context.Context, userID, name string) error {
+	query := `DELETE FROM user_goals WHERE user_id = ? AND name = ?`
+
+	result, err := s.db.ExecContext(ctx, query, userID, name)
+	if err != nil {
+		return fmt.Errorf("failed to delete user goal: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user goal not found")
+	}
+
+	return nil
 }
