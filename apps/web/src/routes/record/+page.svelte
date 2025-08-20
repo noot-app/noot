@@ -3,6 +3,7 @@
   import { PUBLIC_APP_NAME } from "$env/static/public";
   import { onMount } from "svelte";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
+  import Goals from "$lib/components/Goals.svelte";
 
   let isRecording = false;
   let mediaRecorder: MediaRecorder | null = null;
@@ -270,6 +271,31 @@
       await startRecording();
     }
   }
+
+  // Function to aggregate nutrition from current meal for goals comparison
+  function getMealNutrition(): Record<string, number> {
+    if (!result?.items) {
+      return {};
+    }
+
+    const aggregated: Record<string, number> = {};
+    
+    result.items.forEach((item: any) => {
+      if (item.item?.nutrients) {
+        Object.keys(item.item.nutrients).forEach(key => {
+          const value = item.item.nutrients[key];
+          if (typeof value === 'number') {
+            aggregated[key] = (aggregated[key] || 0) + value;
+          }
+        });
+      }
+    });
+
+    return aggregated;
+  }
+
+  // Reactive statement to get current meal nutrition for Goals component
+  $: currentMealNutrition = result?.items ? getMealNutrition() : {};
 </script>
 
 <svelte:head>
@@ -599,6 +625,17 @@
                 {/each}
               </div>
             </div>
+          </div>
+        {/if}
+
+        <!-- Meal Goals Progress - Show how this meal contributes to daily goals -->
+        {#if result?.items && result.items.length > 0}
+          <div class="space-y-4">
+            <Goals 
+              currentNutrition={currentMealNutrition} 
+              showMealContribution={true}
+              title="How this meal contributes to your daily goals"
+            />
           </div>
         {/if}
 
