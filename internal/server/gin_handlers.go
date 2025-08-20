@@ -227,7 +227,7 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 
 	// Convert API items to internal format and calculate new summary
 	internalItems := convertAPIItemsToInternal(updateReq.Items)
-	
+
 	// Recalculate summary from updated items
 	summary := summarize(internalItems)
 
@@ -247,7 +247,7 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 	for i, item := range internalItems {
 		apiItems[i] = convertInternalItemToAPI(item.Item)
 	}
-	
+
 	apiSummary := convertInternalSummaryToAPI(summary)
 
 	// Create the API response
