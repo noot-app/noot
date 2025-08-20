@@ -24,6 +24,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/consumption/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update a consumption record
+         * @description Update an existing consumption with edited nutrition data
+         */
+        put: operations["updateConsumption"];
+        post?: never;
+        /**
+         * Delete a consumption record
+         * @description Delete a consumption record by ID (used for redo functionality)
+         */
+        delete: operations["deleteConsumption"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -176,6 +200,8 @@ export interface components {
             version: string;
         };
         ConsumptionResponse: {
+            /** @description Consumption ID (for future edits/deletes) */
+            id: string;
             /** @description Transcribed text from audio */
             transcript: string;
             /** @description Items parsed from transcript (without nutrition data) */
@@ -567,6 +593,19 @@ export interface components {
              */
             format: "csv" | "json";
         };
+        UpdateConsumptionRequest: {
+            /** @description Updated items with nutrition information */
+            items: components["schemas"]["ItemWithNutrition"][];
+        };
+        DeleteResponse: {
+            /**
+             * @description Confirmation message
+             * @example Consumption deleted successfully
+             */
+            message: string;
+            /** @description ID of the deleted consumption */
+            id: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -615,6 +654,101 @@ export interface operations {
             };
             /** @description Method not allowed */
             405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateConsumption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Consumption ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateConsumptionRequest"];
+            };
+        };
+        responses: {
+            /** @description Consumption updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsumptionResponse"];
+                };
+            };
+            /** @description Bad request (invalid request body, validation errors) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Consumption not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteConsumption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Consumption ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Consumption deleted successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResponse"];
+                };
+            };
+            /** @description Consumption not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
