@@ -194,7 +194,7 @@
     if (!result?.items || !result.items[itemIndex]) return;
     
     const item = result.items[itemIndex];
-    const currentQuantity = item.item.quantity || 1;
+    const currentQuantity = item.item.user_quantity || 1;
     const scalingFactor = newQuantity / currentQuantity;
     
     // Scale all nutrition values
@@ -207,8 +207,9 @@
       });
     }
     
-    // Update quantity
-    item.item.quantity = newQuantity;
+    // Update user quantity and grams
+    item.item.user_quantity = newQuantity;
+    item.item.grams = item.item.grams * scalingFactor;
     
     // Trigger reactivity
     result = { ...result, items: [...result.items] };
@@ -557,7 +558,7 @@
                             <label for="quantity-{index}" class="text-sm font-medium">Quantity:</label>
                             <button
                               class="btn btn-circle btn-sm btn-outline"
-                              on:click={() => updateItemQuantity(index, Math.max(0.1, (item.item.quantity || 1) - 0.5))}
+                              on:click={() => updateItemQuantity(index, Math.max(0.1, (item.item.user_quantity || 1) - 0.5))}
                             >
                               -
                             </button>
@@ -565,7 +566,7 @@
                               id="quantity-{index}"
                               type="number"
                               class="input input-sm input-bordered w-20 text-center"
-                              value={item.item.quantity}
+                              value={item.item.user_quantity}
                               on:input={(e) => {
                                 const target = e.target as HTMLInputElement;
                                 updateItemQuantity(index, parseFloat(target.value) || 1);
@@ -575,24 +576,31 @@
                             />
                             <button
                               class="btn btn-circle btn-sm btn-outline"
-                              on:click={() => updateItemQuantity(index, (item.item.quantity || 1) + 0.5)}
+                              on:click={() => updateItemQuantity(index, (item.item.user_quantity || 1) + 0.5)}
                             >
                               +
                             </button>
-                            {#if item.item.unit}
-                              <span class="text-sm text-base-content/70">{item.item.unit}</span>
+                            {#if item.item.user_unit}
+                              <span class="text-sm text-base-content/70">{item.item.user_unit}</span>
                             {/if}
                           </div>
-                        {:else if item.item.quantity && item.item.unit}
-                          <p class="text-sm text-base-content/70">
-                            {item.item.quantity} {item.item.unit}
-                            <!-- Display grams equivalent from the backend if available -->
-                            {#if item.item.grams_equivalent && item.item.unit !== 'g' && item.item.unit !== 'gram' && item.item.unit !== 'grams'}
-                              <span class="text-xs text-base-content/50">
-                                ({Math.round(item.item.grams_equivalent)}g)
-                              </span>
+                        {:else}
+                          <div class="flex items-center gap-2">
+                            {#if item.item.user_quantity && item.item.user_unit}
+                              <p class="text-sm text-base-content/70">
+                                {item.item.user_quantity} {item.item.user_unit}
+                                {#if item.item.user_unit !== 'g' && item.item.user_unit !== 'gram' && item.item.user_unit !== 'grams'}
+                                  <span class="text-xs text-base-content/50">
+                                    ({Math.round(item.item.grams)}g)
+                                  </span>
+                                {/if}
+                              </p>
+                            {:else}
+                              <p class="text-sm text-base-content/70">
+                                {Math.round(item.item.grams)}g
+                              </p>
                             {/if}
-                          </p>
+                          </div>
                         {/if}
                       </div>
                       

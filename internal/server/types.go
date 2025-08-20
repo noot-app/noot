@@ -28,17 +28,20 @@ type CompleteNutrient struct {
 	AddedSugars  float64 `json:"added_sugars_g"`
 
 	// Key vitamins
-	VitaminA   float64 `json:"vitamin_a_mcg"`
-	VitaminC   float64 `json:"vitamin_c_mg"`
-	VitaminD   float64 `json:"vitamin_d_mcg"`
-	VitaminE   float64 `json:"vitamin_e_mg"`
-	VitaminK   float64 `json:"vitamin_k_mcg"`
-	Thiamine   float64 `json:"thiamine_mg"`   // B1
-	Riboflavin float64 `json:"riboflavin_mg"` // B2
-	Niacin     float64 `json:"niacin_mg"`     // B3
-	VitaminB6  float64 `json:"vitamin_b6_mg"`
-	Folate     float64 `json:"folate_mcg"`
-	VitaminB12 float64 `json:"vitamin_b12_mcg"`
+	VitaminA        float64 `json:"vitamin_a_mcg"`
+	VitaminC        float64 `json:"vitamin_c_mg"`
+	VitaminD        float64 `json:"vitamin_d_mcg"`
+	VitaminE        float64 `json:"vitamin_e_mg"`
+	VitaminK        float64 `json:"vitamin_k_mcg"`
+	Thiamine        float64 `json:"thiamine_mg"`   // B1
+	Riboflavin      float64 `json:"riboflavin_mg"` // B2
+	Niacin          float64 `json:"niacin_mg"`     // B3
+	VitaminB6       float64 `json:"vitamin_b6_mg"`
+	Folate          float64 `json:"folate_mcg"`
+	VitaminB12      float64 `json:"vitamin_b12_mcg"`
+	Biotin          float64 `json:"biotin_mcg"`
+	PantothenicAcid float64 `json:"pantothenic_acid_mg"`
+	Choline         float64 `json:"choline_mg"`
 
 	// Key minerals
 	Calcium    float64 `json:"calcium_mg"`
@@ -50,6 +53,11 @@ type CompleteNutrient struct {
 	Copper     float64 `json:"copper_mg"`
 	Manganese  float64 `json:"manganese_mg"`
 	Selenium   float64 `json:"selenium_mcg"`
+	Iodine     float64 `json:"iodine_mcg"`
+	Molybdenum float64 `json:"molybdenum_mcg"`
+	Chromium   float64 `json:"chromium_mcg"`
+	Fluoride   float64 `json:"fluoride_mg"`
+	Chloride   float64 `json:"chloride_mg"`
 }
 
 type ItemWithNutrition struct {
