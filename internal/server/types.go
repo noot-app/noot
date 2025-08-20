@@ -5,11 +5,12 @@ type ParsedItems struct {
 }
 
 type Item struct {
-	Name      string            `json:"name"`
-	Quantity  *float64          `json:"quantity"` // null -> nil
-	Unit      *string           `json:"unit"`
-	Brand     *string           `json:"brand"`
-	Nutrients *CompleteNutrient `json:"nutrients,omitempty"`
+	Name            string            `json:"name"`
+	Quantity        *float64          `json:"quantity"` // null -> nil
+	Unit            *string           `json:"unit"`
+	GramsEquivalent *float64          `json:"grams_equivalent,omitempty"` // calculated equivalent in grams
+	Brand           *string           `json:"brand"`
+	Nutrients       *CompleteNutrient `json:"nutrients,omitempty"`
 }
 
 type CompleteNutrient struct {

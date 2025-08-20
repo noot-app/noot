@@ -586,16 +586,30 @@
                         {:else if item.item.quantity && item.item.unit}
                           <p class="text-sm text-base-content/70">
                             {item.item.quantity} {item.item.unit}
+                            <!-- Display grams equivalent from the backend if available -->
+                            {#if item.item.grams_equivalent && item.item.unit !== 'g' && item.item.unit !== 'gram' && item.item.unit !== 'grams'}
+                              <span class="text-xs text-base-content/50">
+                                ({Math.round(item.item.grams_equivalent)}g)
+                              </span>
+                            {/if}
                           </p>
                         {/if}
                       </div>
                       
                       {#if item.item.nutrients}
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-2">
-                          <span>Cal: {Math.round(item.item.nutrients.calories)}</span>
-                          <span>Pro: {item.item.nutrients.protein_g.toFixed(1)}g</span>
-                          <span>Carb: {item.item.nutrients.total_carbs_g.toFixed(1)}g</span>
-                          <span>Fat: {item.item.nutrients.total_fat_g.toFixed(1)}g</span>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mt-3">
+                          <div class="bg-base-200 rounded p-2">
+                            <span class="font-medium">Calories:</span> {Math.round(item.item.nutrients.calories)}
+                          </div>
+                          <div class="bg-base-200 rounded p-2">
+                            <span class="font-medium">Protein:</span> {item.item.nutrients.protein_g.toFixed(1)}g
+                          </div>
+                          <div class="bg-base-200 rounded p-2">
+                            <span class="font-medium">Carbohydrates:</span> {item.item.nutrients.total_carbs_g.toFixed(1)}g
+                          </div>
+                          <div class="bg-base-200 rounded p-2">
+                            <span class="font-medium">Total Fat:</span> {item.item.nutrients.total_fat_g.toFixed(1)}g
+                          </div>
                         </div>
                       {/if}
                     </div>

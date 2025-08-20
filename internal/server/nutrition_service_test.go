@@ -160,6 +160,106 @@ func TestNutritionService_RoundingPrecision(t *testing.T) {
 	assert.Equal(t, 1.85, result.Zinc)       // 1.23456789 * 1.5 = 1.8518... rounded to 2 decimals
 }
 
+func TestNutritionService_CalculateGramsEquivalent(t *testing.T) {
+	service := NewNutritionService(nil)
+
+	testCases := []struct {
+		name          string
+		item          Item
+		expectedGrams *float64
+		description   string
+	}{
+		{
+			name: "tablespoons to grams",
+			item: Item{
+				Name:     "Test Butter",
+				Quantity: float64Ptr(3),
+				Unit:     stringPtr("tbsp"),
+			},
+			expectedGrams: float64Ptr(45.0), // 3 * 15
+			description:   "3 tablespoons should convert to 45 grams",
+		},
+		{
+			name: "cups to grams",
+			item: Item{
+				Name:     "Test Flour",
+				Quantity: float64Ptr(2),
+				Unit:     stringPtr("cups"),
+			},
+			expectedGrams: float64Ptr(480.0), // 2 * 240
+			description:   "2 cups should convert to 480 grams",
+		},
+		{
+			name: "ounces to grams",
+			item: Item{
+				Name:     "Test Almonds",
+				Quantity: float64Ptr(1),
+				Unit:     stringPtr("oz"),
+			},
+			expectedGrams: float64Ptr(28.3495), // 1 * 28.3495
+			description:   "1 ounce should convert to 28.3495 grams",
+		},
+		{
+			name: "already in grams",
+			item: Item{
+				Name:     "Test Rice",
+				Quantity: float64Ptr(150),
+				Unit:     stringPtr("g"),
+			},
+			expectedGrams: float64Ptr(150.0), // Should be set as-is
+			description:   "150g should remain 150g",
+		},
+		{
+			name: "pieces - no conversion",
+			item: Item{
+				Name:     "Test Bread",
+				Quantity: float64Ptr(2),
+				Unit:     stringPtr("pieces"),
+			},
+			expectedGrams: nil, // Should not be set for non-convertible units
+			description:   "2 pieces should not have grams equivalent",
+		},
+		{
+			name: "no quantity",
+			item: Item{
+				Name:     "Test Food",
+				Quantity: nil,
+				Unit:     stringPtr("cups"),
+			},
+			expectedGrams: nil, // Should not be set when no quantity
+			description:   "No quantity should not have grams equivalent",
+		},
+		{
+			name: "no unit",
+			item: Item{
+				Name:     "Test Food",
+				Quantity: float64Ptr(100),
+				Unit:     nil,
+			},
+			expectedGrams: float64Ptr(100.0), // Should default to grams
+			description:   "No unit should default to grams",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Make a copy to avoid modifying the test case
+			item := tc.item
+
+			// Call the method
+			service.calculateGramsEquivalent(&item)
+
+			// Check result
+			if tc.expectedGrams == nil {
+				assert.Nil(t, item.GramsEquivalent, tc.description)
+			} else {
+				assert.NotNil(t, item.GramsEquivalent, tc.description)
+				assert.Equal(t, *tc.expectedGrams, *item.GramsEquivalent, tc.description)
+			}
+		})
+	}
+}
+
 // Helper function to convert string to float64 pointer
 func stringToFloat64Ptr(s string) *float64 {
 	if s == "200" {

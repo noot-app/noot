@@ -143,24 +143,48 @@
   }
 
   // Key nutrients that users might want to customize
-  const editableNutrients = [
-    { key: "protein_g", label: "Protein", unit: "g" },
-    { key: "total_carbs_g", label: "Total Carbs", unit: "g" },
-    { key: "dietary_fiber_g", label: "Dietary Fiber", unit: "g" },
-    { key: "sodium_mg", label: "Sodium", unit: "mg" },
-    { key: "vitamin_c_mg", label: "Vitamin C", unit: "mg" },
-    { key: "vitamin_d_mcg", label: "Vitamin D", unit: "mcg" },
-    { key: "calcium_mg", label: "Calcium", unit: "mg" },
-    { key: "iron_mg", label: "Iron", unit: "mg" },
-    { key: "potassium_mg", label: "Potassium", unit: "mg" }
-  ];
+  // Generate dynamically from available goals instead of hardcoding
+  $: editableTargets = goals ? Object.keys(goals.targets).map(key => ({
+    key,
+    label: formatNutrientName(key),
+    unit: goals?.units[key] || ""
+  })).sort((a, b) => a.label.localeCompare(b.label)) : [];
+
+  $: editableUpperLimits = goals ? Object.keys(goals.upper_limits || {}).map(key => ({
+    key,
+    label: formatNutrientName(key),
+    unit: goals?.units[key] || ""
+  })).sort((a, b) => a.label.localeCompare(b.label)) : [];
+
+  function formatNutrientName(key: string): string {
+    return key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, l => l.toUpperCase())
+      // Remove unit suffixes since they're shown separately
+      .replace(/ Mcg$/, "")
+      .replace(/ Mg$/, "")
+      .replace(/ G$/, "");
+  }
 
   function getNutrientValue(key: string): number {
     return customTargets[key] || goals?.targets[key] || 0;
   }
 
+  function getUpperLimitValue(key: string): number {
+    return customTargets[key] || goals?.upper_limits?.[key] || 0;
+  }
+
   function updateNutrient(key: string, value: number) {
     if (value <= 0) {
+      delete customTargets[key];
+    } else {
+      customTargets[key] = value;
+    }
+    customTargets = { ...customTargets }; // Trigger reactivity
+  }
+
+  function updateUpperLimit(key: string, value: number) {
+    if (value < 0) {
       delete customTargets[key];
     } else {
       customTargets[key] = value;
@@ -270,43 +294,62 @@
 
             <div class="divider">Nutrition Targets</div>
             
-            <div class="space-y-4 max-h-96 overflow-y-auto">
-              {#each editableNutrients as nutrient}
-                <div class="form-control">
-                  <label class="label" for={nutrient.key}>
-                    <span class="label-text">{nutrient.label}</span>
-                    <span class="label-text-alt">{nutrient.unit}</span>
-                  </label>
-                  <div class="flex gap-2 items-center">
-                    <input 
-                      id={nutrient.key}
-                      type="number" 
-                      class="input input-bordered flex-1" 
-                      min="0"
-                      step="0.1"
-                      value={getNutrientValue(nutrient.key)}
-                      on:input={(e) => updateNutrient(nutrient.key, parseFloat(e.currentTarget.value) || 0)}
-                    />
-                    {#if customTargets[nutrient.key]}
-                      <button 
-                        class="btn btn-ghost btn-sm"
-                        on:click={() => updateNutrient(nutrient.key, 0)}
-                        title="Reset to default"
-                      >
-                        ↺
-                      </button>
-                    {/if}
+            <div class="space-y-6 max-h-96 overflow-y-auto">
+              <!-- Regular Nutrition Targets -->
+              {#if editableTargets.length > 0}
+                <div>
+                  <h4 class="font-semibold text-base mb-3 text-primary">Daily Targets</h4>
+                  <div class="space-y-4">
+                    {#each editableTargets as nutrient}
+                      <div class="form-control">
+                        <label class="label" for={nutrient.key}>
+                          <span class="label-text">{nutrient.label}</span>
+                          <span class="label-text-alt">{nutrient.unit}</span>
+                        </label>
+                        <input 
+                          type="number"
+                          id={nutrient.key}
+                          class="input input-bordered input-sm"
+                          min="0"
+                          step="0.1"
+                          placeholder={getNutrientValue(nutrient.key).toString()}
+                          value={getNutrientValue(nutrient.key)}
+                          on:input={(e) => updateNutrient(nutrient.key, parseFloat(e.currentTarget.value) || 0)}
+                        />
+                      </div>
+                    {/each}
                   </div>
-                  {#if !customTargets[nutrient.key] && goals.targets[nutrient.key]}
-                    <div class="label">
-                      <span class="label-text-alt">Default: {goals.targets[nutrient.key]} {nutrient.unit}</span>
-                    </div>
-                  {/if}
                 </div>
-              {/each}
-            </div>
+              {/if}
 
-            <div class="card-actions justify-between mt-6">
+              <!-- Upper Limits (Minimize These) -->
+              {#if editableUpperLimits.length > 0}
+                <div>
+                  <h4 class="font-semibold text-base mb-3 text-warning">Upper Limits</h4>
+                  <p class="text-xs text-base-content/70 mb-3">Set maximum daily limits for nutrients that should be minimized.</p>
+                  <div class="space-y-4">
+                    {#each editableUpperLimits as nutrient}
+                      <div class="form-control">
+                        <label class="label" for={`limit_${nutrient.key}`}>
+                          <span class="label-text">{nutrient.label}</span>
+                          <span class="label-text-alt">{nutrient.unit} (max)</span>
+                        </label>
+                        <input 
+                          type="number"
+                          id={`limit_${nutrient.key}`}
+                          class="input input-bordered input-warning input-sm"
+                          min="0"
+                          step="0.1"
+                          placeholder={getUpperLimitValue(nutrient.key).toString()}
+                          value={getUpperLimitValue(nutrient.key)}
+                          on:input={(e) => updateUpperLimit(nutrient.key, parseFloat(e.currentTarget.value) || 0)}
+                        />
+                      </div>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            </div>            <div class="card-actions justify-between mt-6">
               <button 
                 class="btn btn-outline"
                 on:click={resetToDefaults}

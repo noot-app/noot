@@ -214,18 +214,34 @@ func (r *GoalResolver) getDRIGoals(sex, ageBracket string) (*Goals, error) {
 		r.extractNutrientValues(minerals, goals, "mineral")
 	}
 
+	// Add nutrients from FDA Daily Values that aren't covered by DRI
+	r.addDVNutrients(goals)
+
 	return goals, nil
 }
 
 // extractNutrientValues extracts nutrient values from DRI data
 func (r *GoalResolver) extractNutrientValues(data map[string]interface{}, goals *Goals, category string) {
+	// Define nutrients that should be upper limits (minimize intake)
+	upperLimitNutrients := map[string]bool{
+		"added_sugars_g":  true,
+		"saturated_fat_g": true,
+		"trans_fat_g":     true,
+		"cholesterol_mg":  true,
+	}
+
 	for nutrient, valueData := range data {
 		if valueMap, ok := valueData.(map[string]interface{}); ok {
 			if value, ok := valueMap["value"].(float64); ok && value > 0 {
 				// Map DRI nutrient names to API nutrient keys
 				apiKey := r.mapNutrientToAPIKey(nutrient)
 				if apiKey != "" {
-					goals.Targets[apiKey] = value
+					// Check if this should be an upper limit or a target
+					if upperLimitNutrients[apiKey] {
+						goals.UpperLimits[apiKey] = value
+					} else {
+						goals.Targets[apiKey] = value
+					}
 
 					// Extract unit
 					if unit, ok := valueMap["unit"].(string); ok {
@@ -248,18 +264,28 @@ func (r *GoalResolver) mapNutrientToAPIKey(driName string) string {
 		"fat":          "total_fat_g",
 		"fiber":        "dietary_fiber_g",
 
+		// Additional macronutrients (using FDA DV data)
+		"saturated_fat": "saturated_fat_g",
+		"trans_fat":     "trans_fat_g",
+		"cholesterol":   "cholesterol_mg",
+		"total_sugars":  "total_sugars_g",
+		"added_sugars":  "added_sugars_g",
+
 		// Vitamins - map to API field names
-		"vitamin_A":     "vitamin_a_mcg",
-		"vitamin_C":     "vitamin_c_mg",
-		"vitamin_D":     "vitamin_d_mcg",
-		"vitamin_E":     "vitamin_e_mg",
-		"vitamin_K":     "vitamin_k_mcg",
-		"thiamin_B1":    "thiamine_mg",
-		"riboflavin_B2": "riboflavin_mg",
-		"niacin_B3":     "niacin_mg",
-		"vitamin_B6":    "vitamin_b6_mg",
-		"folate_B9":     "folate_mcg",
-		"vitamin_B12":   "vitamin_b12_mcg",
+		"vitamin_A":           "vitamin_a_mcg",
+		"vitamin_C":           "vitamin_c_mg",
+		"vitamin_D":           "vitamin_d_mcg",
+		"vitamin_E":           "vitamin_e_mg",
+		"vitamin_K":           "vitamin_k_mcg",
+		"thiamin_B1":          "thiamine_mg",
+		"riboflavin_B2":       "riboflavin_mg",
+		"niacin_B3":           "niacin_mg",
+		"vitamin_B6":          "vitamin_b6_mg",
+		"folate_B9":           "folate_mcg",
+		"vitamin_B12":         "vitamin_b12_mcg",
+		"biotin_B7":           "biotin_mcg",
+		"pantothenic_acid_B5": "pantothenic_acid_mg",
+		"choline":             "choline_mg",
 
 		// Minerals - map to API field names
 		"calcium":    "calcium_mg",
@@ -272,6 +298,11 @@ func (r *GoalResolver) mapNutrientToAPIKey(driName string) string {
 		"manganese":  "manganese_mg",
 		"selenium":   "selenium_mcg",
 		"sodium":     "sodium_mg",
+		"chloride":   "chloride_mg",
+		"chromium":   "chromium_mcg",
+		"fluoride":   "fluoride_mg",
+		"iodine":     "iodine_mcg",
+		"molybdenum": "molybdenum_mcg",
 	}
 
 	if apiKey, exists := mapping[driName]; exists {
@@ -284,6 +315,88 @@ func (r *GoalResolver) mapNutrientToAPIKey(driName string) string {
 	}
 
 	return "" // No mapping found
+}
+
+// addDVNutrients adds nutrients from FDA Daily Values that aren't covered by DRI
+func (r *GoalResolver) addDVNutrients(goals *Goals) {
+	// Nutrients to add from DV data that typically aren't in DRI
+	dvNutrients := map[string]string{
+		"calories":      "calories", // Standard calorie target for adults
+		"fat_total":     "total_fat_g",
+		"saturated_fat": "saturated_fat_g",
+		"trans_fat":     "trans_fat_g",
+		"cholesterol":   "cholesterol_mg",
+		"total_sugars":  "total_sugars_g",
+		"added_sugars":  "added_sugars_g",
+		"chloride":      "chloride_mg",
+	}
+
+	// Define nutrients that should be upper limits (minimize intake)
+	upperLimitNutrients := map[string]bool{
+		"added_sugars_g":  true,
+		"saturated_fat_g": true,
+		"trans_fat_g":     true,
+		"cholesterol_mg":  true,
+	}
+
+	for dvKey, apiKey := range dvNutrients {
+		// Only add if not already present from DRI data (in either targets or upper limits)
+		if _, existsInTargets := goals.Targets[apiKey]; !existsInTargets {
+			if _, existsInUpperLimits := goals.UpperLimits[apiKey]; !existsInUpperLimits {
+				if entry, exists := r.dvData.FDADailyValues[dvKey]; exists {
+					// Check if this should be an upper limit or a target
+					if upperLimitNutrients[apiKey] {
+						goals.UpperLimits[apiKey] = entry.Value
+					} else {
+						goals.Targets[apiKey] = entry.Value
+					}
+					goals.Units[apiKey] = r.normalizeUnit(entry.Unit)
+				}
+			}
+		}
+	}
+
+	// Special handling for calories - use a standard 2000 kcal for adults if not present
+	if _, exists := goals.Targets["calories"]; !exists {
+		goals.Targets["calories"] = 2000
+		goals.Units["calories"] = "kcal"
+	}
+
+	// Add nutrients that don't have FDA DV but should be tracked
+	// These are nutrients in CompleteNutrient that need values for completeness
+	if _, existsInTargets := goals.Targets["total_sugars_g"]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits["total_sugars_g"]; !existsInUpperLimits {
+			goals.Targets["total_sugars_g"] = 0 // No specific recommendation, track for awareness
+			goals.Units["total_sugars_g"] = "g"
+		}
+	}
+
+	if _, existsInTargets := goals.Targets["trans_fat_g"]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits["trans_fat_g"]; !existsInUpperLimits {
+			// Trans fat should be an upper limit of 0 (minimize intake)
+			goals.UpperLimits["trans_fat_g"] = 0
+			goals.Units["trans_fat_g"] = "g"
+		}
+	}
+
+	// Add default upper limits for nutrients that should be minimized if not already set
+	if _, exists := goals.UpperLimits["added_sugars_g"]; !exists {
+		// WHO/IOM recommendation: <10% of total calories, using 2000 kcal = 50g
+		goals.UpperLimits["added_sugars_g"] = 50
+		goals.Units["added_sugars_g"] = "g"
+	}
+
+	if _, exists := goals.UpperLimits["saturated_fat_g"]; !exists {
+		// AHA recommendation: <10% of total calories, using 2000 kcal = ~22g
+		goals.UpperLimits["saturated_fat_g"] = 22
+		goals.Units["saturated_fat_g"] = "g"
+	}
+
+	if _, exists := goals.UpperLimits["cholesterol_mg"]; !exists {
+		// AHA recommendation: <300mg per day
+		goals.UpperLimits["cholesterol_mg"] = 300
+		goals.Units["cholesterol_mg"] = "mg"
+	}
 }
 
 // normalizeUnit standardizes units to match API expectations

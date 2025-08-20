@@ -622,6 +622,14 @@ components:
         - copper_mg
         - manganese_mg
         - selenium_mcg
+        - biotin_mcg
+        - pantothenic_acid_mg
+        - choline_mg
+        - chloride_mg
+        - chromium_mcg
+        - fluoride_mg
+        - iodine_mcg
+        - molybdenum_mcg
       properties:
         calories:
           type: number
@@ -716,6 +724,30 @@ components:
         selenium_mcg:
           type: number
           description: Selenium in micrograms
+        biotin_mcg:
+          type: number
+          description: Biotin in micrograms
+        pantothenic_acid_mg:
+          type: number
+          description: Pantothenic Acid (B5) in milligrams
+        choline_mg:
+          type: number
+          description: Choline in milligrams
+        chloride_mg:
+          type: number
+          description: Chloride in milligrams
+        chromium_mcg:
+          type: number
+          description: Chromium in micrograms
+        fluoride_mg:
+          type: number
+          description: Fluoride in milligrams
+        iodine_mcg:
+          type: number
+          description: Iodine in micrograms
+        molybdenum_mcg:
+          type: number
+          description: Molybdenum in micrograms
 
     Summary:
       type: object
@@ -836,6 +868,14 @@ components:
         - total_copper_mg
         - total_manganese_mg
         - total_selenium_mcg
+        - total_biotin_mcg
+        - total_pantothenic_acid_mg
+        - total_choline_mg
+        - total_chloride_mg
+        - total_chromium_mcg
+        - total_fluoride_mg
+        - total_iodine_mcg
+        - total_molybdenum_mcg
         - avg_calories_per_day
         - avg_protein_per_day
         - avg_fat_per_day
@@ -951,6 +991,30 @@ components:
         total_selenium_mcg:
           type: number
           description: Total selenium in micrograms
+        total_biotin_mcg:
+          type: number
+          description: Total biotin in micrograms
+        total_pantothenic_acid_mg:
+          type: number
+          description: Total pantothenic acid (B5) in milligrams
+        total_choline_mg:
+          type: number
+          description: Total choline in milligrams
+        total_chloride_mg:
+          type: number
+          description: Total chloride in milligrams
+        total_chromium_mcg:
+          type: number
+          description: Total chromium in micrograms
+        total_fluoride_mg:
+          type: number
+          description: Total fluoride in milligrams
+        total_iodine_mcg:
+          type: number
+          description: Total iodine in micrograms
+        total_molybdenum_mcg:
+          type: number
+          description: Total molybdenum in micrograms
         avg_calories_per_day:
           type: number
           description: Average calories per day

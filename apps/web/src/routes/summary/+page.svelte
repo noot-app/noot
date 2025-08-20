@@ -89,20 +89,27 @@
     total_sugars_g: summaryData.summary.total_sugars_g || 0,
     added_sugars_g: summaryData.summary.total_added_sugars_g || 0,
     
-    // Vitamins
-    vitamin_a_mcg: summaryData.summary.total_vitamin_a_mcg || 0,
-    vitamin_c_mg: summaryData.summary.total_vitamin_c_mg || 0,
-    vitamin_d_mcg: summaryData.summary.total_vitamin_d_mcg || 0,
-    vitamin_e_mg: summaryData.summary.total_vitamin_e_mg || 0,
-    vitamin_k_mcg: summaryData.summary.total_vitamin_k_mcg || 0,
+    // B-Complex vitamins
     thiamine_mg: summaryData.summary.total_thiamine_mg || 0,
     riboflavin_mg: summaryData.summary.total_riboflavin_mg || 0,
     niacin_mg: summaryData.summary.total_niacin_mg || 0,
     vitamin_b6_mg: summaryData.summary.total_vitamin_b6_mg || 0,
     folate_mcg: summaryData.summary.total_folate_mcg || 0,
     vitamin_b12_mcg: summaryData.summary.total_vitamin_b12_mcg || 0,
+    biotin_mcg: summaryData.summary.total_biotin_mcg || 0,
+    pantothenic_acid_mg: summaryData.summary.total_pantothenic_acid_mg || 0,
     
-    // Minerals
+    // Fat-soluble vitamins
+    vitamin_a_mcg: summaryData.summary.total_vitamin_a_mcg || 0,
+    vitamin_d_mcg: summaryData.summary.total_vitamin_d_mcg || 0,
+    vitamin_e_mg: summaryData.summary.total_vitamin_e_mg || 0,
+    vitamin_k_mcg: summaryData.summary.total_vitamin_k_mcg || 0,
+    
+    // Water-soluble vitamins
+    vitamin_c_mg: summaryData.summary.total_vitamin_c_mg || 0,
+    choline_mg: summaryData.summary.total_choline_mg || 0,
+    
+    // Essential minerals
     calcium_mg: summaryData.summary.total_calcium_mg || 0,
     iron_mg: summaryData.summary.total_iron_mg || 0,
     magnesium_mg: summaryData.summary.total_magnesium_mg || 0,
@@ -112,6 +119,11 @@
     copper_mg: summaryData.summary.total_copper_mg || 0,
     manganese_mg: summaryData.summary.total_manganese_mg || 0,
     selenium_mcg: summaryData.summary.total_selenium_mcg || 0,
+    iodine_mcg: summaryData.summary.total_iodine_mcg || 0,
+    molybdenum_mcg: summaryData.summary.total_molybdenum_mcg || 0,
+    chromium_mcg: summaryData.summary.total_chromium_mcg || 0,
+    fluoride_mg: summaryData.summary.total_fluoride_mg || 0,
+    chloride_mg: summaryData.summary.total_chloride_mg || 0,
   } : undefined;
 </script>
 
