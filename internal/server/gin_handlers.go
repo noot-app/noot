@@ -606,7 +606,7 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 		Name:      goalDisplayName,
 		Overrides: make(map[string]float64),
 	}
-	
+
 	// Convert from float32 to float64
 	for k, v := range req.Overrides {
 		userOverrides.Overrides[k] = float64(v)

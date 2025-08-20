@@ -54,10 +54,10 @@ type DailyValueEntry struct {
 
 // Goals represents resolved nutrition goals for a user
 type Goals struct {
-	Targets     map[string]float64 `json:"targets"`      // nutrient_key -> target amount
-	UpperLimits map[string]float64 `json:"upper_limits"` // nutrient_key -> upper limit
-	Units       map[string]string  `json:"units"`        // nutrient_key -> unit
-	Source      string             `json:"source"`       // "dri", "custom", etc.
+	Targets     map[string]float64 `json:"targets"`               // nutrient_key -> target amount
+	UpperLimits map[string]float64 `json:"upper_limits"`          // nutrient_key -> upper limit
+	Units       map[string]string  `json:"units"`                 // nutrient_key -> unit
+	Source      string             `json:"source"`                // "dri", "custom", etc.
 	CustomName  string             `json:"custom_name,omitempty"` // name of custom goal (only when source is "custom")
 	LifeStage   LifeStage          `json:"life_stage"`
 }
