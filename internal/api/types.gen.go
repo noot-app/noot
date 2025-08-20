@@ -326,15 +326,18 @@ type Item struct {
 	// Brand Brand name
 	Brand *string `json:"brand"`
 
+	// Grams Weight in grams (standardized internally)
+	Grams float32 `json:"grams"`
+
 	// Name Name of the food item
 	Name      string            `json:"name"`
 	Nutrients *CompleteNutrient `json:"nutrients,omitempty"`
 
-	// Quantity Quantity consumed
-	Quantity *float32 `json:"quantity"`
+	// UserQuantity Original user input quantity for display
+	UserQuantity *float32 `json:"user_quantity"`
 
-	// Unit Unit of measurement
-	Unit *string `json:"unit"`
+	// UserUnit Original user input unit for display
+	UserUnit *string `json:"user_unit"`
 }
 
 // ItemWithNutrition defines model for ItemWithNutrition.

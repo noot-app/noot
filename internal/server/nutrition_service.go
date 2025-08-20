@@ -149,14 +149,11 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		cached, err := s.store.GetItemFromCache(ctx, normalizedName, normalizedBrand)
 		if err == nil && cached != nil {
 			if !s.store.IsItemCacheExpired(cached) {
-				LogDebug("Using cached nutrition data - scaling per-100g data to serving size",
-					"name", item.Name, "quantity", item.Quantity, "unit", item.Unit)
+				LogDebug("Using cached nutrition data - scaling per-100g data to actual weight",
+					"name", item.Name, "grams", item.Grams)
 
 				nutrition := s.convertCachedToNutrients(cached, item)
 				item.Nutrients = &nutrition
-
-				// Calculate grams equivalent
-				s.calculateGramsEquivalent(&item)
 
 				return item, nil
 			} else {
@@ -190,141 +187,97 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 	item.Nutrients = &nutrition
 
-	// Calculate grams equivalent
-	s.calculateGramsEquivalent(&item)
-
 	return item, nil
 }
 
-// convertCachedToNutrients converts cached per-100g data to actual serving size
+// convertCachedToNutrients converts cached per-100g data to actual weight
 func (s *NutritionService) convertCachedToNutrients(cached *storage.ItemCache, item Item) CompleteNutrient {
-	// Estimate serving weight for scaling
-	servingGrams, err := s.converter.EstimateServingWeight(item)
-	if err != nil {
-		LogWarn("Failed to estimate serving weight for cached item", "item", item.Name, "error", err.Error())
-		servingGrams = 100.0 // Default to 100g
-	}
+	// Use the actual grams from the item
+	actualGrams := item.Grams
 
-	// Convert from per-100g cache data to actual serving size
+	// Convert from per-100g cache data to actual weight
 	return CompleteNutrient{
-		Calories:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.CaloriesPer100g, servingGrams), 1),
-		Protein:      RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.ProteinGPer100g, servingGrams), 1),
-		TotalFat:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.TotalFatGPer100g, servingGrams), 1),
-		SaturatedFat: RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.SaturatedFatGPer100g, servingGrams), 1),
-		TransFat:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.TransFatGPer100g, servingGrams), 1),
-		Cholesterol:  RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.CholesterolMgPer100g, servingGrams), 1),
-		Sodium:       RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.SodiumMgPer100g, servingGrams), 1),
-		TotalCarbs:   RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.TotalCarbsGPer100g, servingGrams), 1),
-		DietaryFiber: RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.DietaryFiberGPer100g, servingGrams), 1),
-		TotalSugars:  RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.TotalSugarsGPer100g, servingGrams), 1),
-		AddedSugars:  RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.AddedSugarsGPer100g, servingGrams), 1),
-		VitaminA:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminAMcgPer100g, servingGrams), 1),
-		VitaminC:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminCMgPer100g, servingGrams), 1),
-		VitaminD:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminDMcgPer100g, servingGrams), 1),
-		VitaminE:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminEMgPer100g, servingGrams), 1),
-		VitaminK:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminKMcgPer100g, servingGrams), 1),
-		Thiamine:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.ThiamineMgPer100g, servingGrams), 3),
-		Riboflavin:   RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.RiboflavinMgPer100g, servingGrams), 3),
-		Niacin:       RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.NiacinMgPer100g, servingGrams), 1),
-		VitaminB6:    RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminB6MgPer100g, servingGrams), 3),
-		Folate:       RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.FolateMcgPer100g, servingGrams), 1),
-		VitaminB12:   RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminB12McgPer100g, servingGrams), 2),
-		Calcium:      RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.CalciumMgPer100g, servingGrams), 1),
-		Iron:         RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.IronMgPer100g, servingGrams), 1),
-		Magnesium:    RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.MagnesiumMgPer100g, servingGrams), 1),
-		Phosphorus:   RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.PhosphorusMgPer100g, servingGrams), 1),
-		Potassium:    RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.PotassiumMgPer100g, servingGrams), 1),
-		Zinc:         RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.ZincMgPer100g, servingGrams), 2),
-		Copper:       RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.CopperMgPer100g, servingGrams), 3),
-		Manganese:    RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.ManganeseMgPer100g, servingGrams), 3),
-		Selenium:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.SeleniumMcgPer100g, servingGrams), 1),
+		Calories:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.CaloriesPer100g, actualGrams), 1),
+		Protein:      RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.ProteinGPer100g, actualGrams), 1),
+		TotalFat:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.TotalFatGPer100g, actualGrams), 1),
+		SaturatedFat: RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.SaturatedFatGPer100g, actualGrams), 1),
+		TransFat:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.TransFatGPer100g, actualGrams), 1),
+		Cholesterol:  RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.CholesterolMgPer100g, actualGrams), 1),
+		Sodium:       RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.SodiumMgPer100g, actualGrams), 1),
+		TotalCarbs:   RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.TotalCarbsGPer100g, actualGrams), 1),
+		DietaryFiber: RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.DietaryFiberGPer100g, actualGrams), 1),
+		TotalSugars:  RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.TotalSugarsGPer100g, actualGrams), 1),
+		AddedSugars:  RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.AddedSugarsGPer100g, actualGrams), 1),
+		VitaminA:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminAMcgPer100g, actualGrams), 1),
+		VitaminC:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminCMgPer100g, actualGrams), 1),
+		VitaminD:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminDMcgPer100g, actualGrams), 1),
+		VitaminE:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminEMgPer100g, actualGrams), 1),
+		VitaminK:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminKMcgPer100g, actualGrams), 1),
+		Thiamine:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.ThiamineMgPer100g, actualGrams), 3),
+		Riboflavin:   RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.RiboflavinMgPer100g, actualGrams), 3),
+		Niacin:       RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.NiacinMgPer100g, actualGrams), 1),
+		VitaminB6:    RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminB6MgPer100g, actualGrams), 3),
+		Folate:       RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.FolateMcgPer100g, actualGrams), 1),
+		VitaminB12:   RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.VitaminB12McgPer100g, actualGrams), 2),
+		Calcium:      RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.CalciumMgPer100g, actualGrams), 1),
+		Iron:         RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.IronMgPer100g, actualGrams), 1),
+		Magnesium:    RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.MagnesiumMgPer100g, actualGrams), 1),
+		Phosphorus:   RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.PhosphorusMgPer100g, actualGrams), 1),
+		Potassium:    RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.PotassiumMgPer100g, actualGrams), 1),
+		Zinc:         RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.ZincMgPer100g, actualGrams), 2),
+		Copper:       RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.CopperMgPer100g, actualGrams), 3),
+		Manganese:    RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.ManganeseMgPer100g, actualGrams), 3),
+		Selenium:     RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(cached.SeleniumMcgPer100g, actualGrams), 1),
 	}
 }
 
-// convertNutrientsToCache converts serving size nutrition data to per-100g for cache storage
-// The LLM provides nutrition for the exact serving, so we need to normalize to per-100g
+// convertNutrientsToCache converts actual weight nutrition data to per-100g for cache storage
+// The LLM provides nutrition for the exact weight in grams, so we need to normalize to per-100g
 func (s *NutritionService) convertNutrientsToCache(item Item, nutrients CompleteNutrient) *storage.ItemCache {
 	normalizedName := normalizeItemName(item.Name)
 	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
 
-	// The key insight: since the LLM already provided nutrition for the exact serving size,
-	// we need to estimate what that serving weighs to convert to per-100g for caching
-	servingGrams, err := s.converter.EstimateServingWeight(item)
-	if err != nil {
-		LogWarn("Failed to estimate serving weight for cache storage", "item", item.Name, "error", err.Error())
-		// If we can't estimate the weight, we'll store as-is and assume 100g equivalent
-		// This isn't perfect but prevents cache failures
-		servingGrams = 100.0
-	}
+	// Use the actual grams from the item since LLM already provided nutrition for that exact weight
+	actualGrams := item.Grams
 
-	// Convert from serving size nutrition data to per-100g for consistent cache storage
+	// Convert from actual weight nutrition data to per-100g for consistent cache storage
 	return &storage.ItemCache{
 		NormalizedName:       normalizedName,
 		NormalizedBrand:      normalizedBrand,
 		DisplayName:          item.Name,
 		DisplayBrand:         getBrandOrEmpty(item.Brand),
-		CaloriesPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Calories, servingGrams), 1),
-		ProteinGPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Protein, servingGrams), 1),
-		TotalFatGPer100g:     RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.TotalFat, servingGrams), 1),
-		SaturatedFatGPer100g: RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.SaturatedFat, servingGrams), 1),
-		TransFatGPer100g:     RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.TransFat, servingGrams), 1),
-		CholesterolMgPer100g: RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Cholesterol, servingGrams), 1),
-		SodiumMgPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Sodium, servingGrams), 1),
-		TotalCarbsGPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.TotalCarbs, servingGrams), 1),
-		DietaryFiberGPer100g: RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.DietaryFiber, servingGrams), 1),
-		TotalSugarsGPer100g:  RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.TotalSugars, servingGrams), 1),
-		AddedSugarsGPer100g:  RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.AddedSugars, servingGrams), 1),
-		VitaminAMcgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminA, servingGrams), 1),
-		VitaminCMgPer100g:    RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminC, servingGrams), 1),
-		VitaminDMcgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminD, servingGrams), 1),
-		VitaminEMgPer100g:    RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminE, servingGrams), 1),
-		VitaminKMcgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminK, servingGrams), 1),
-		ThiamineMgPer100g:    RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Thiamine, servingGrams), 3),
-		RiboflavinMgPer100g:  RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Riboflavin, servingGrams), 3),
-		NiacinMgPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Niacin, servingGrams), 1),
-		VitaminB6MgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminB6, servingGrams), 3),
-		FolateMcgPer100g:     RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Folate, servingGrams), 1),
-		VitaminB12McgPer100g: RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminB12, servingGrams), 2),
-		CalciumMgPer100g:     RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Calcium, servingGrams), 1),
-		IronMgPer100g:        RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Iron, servingGrams), 1),
-		MagnesiumMgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Magnesium, servingGrams), 1),
-		PhosphorusMgPer100g:  RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Phosphorus, servingGrams), 1),
-		PotassiumMgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Potassium, servingGrams), 1),
-		ZincMgPer100g:        RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Zinc, servingGrams), 2),
-		CopperMgPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Copper, servingGrams), 3),
-		ManganeseMgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Manganese, servingGrams), 3),
-		SeleniumMcgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Selenium, servingGrams), 1),
+		CaloriesPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Calories, actualGrams), 1),
+		ProteinGPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Protein, actualGrams), 1),
+		TotalFatGPer100g:     RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.TotalFat, actualGrams), 1),
+		SaturatedFatGPer100g: RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.SaturatedFat, actualGrams), 1),
+		TransFatGPer100g:     RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.TransFat, actualGrams), 1),
+		CholesterolMgPer100g: RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Cholesterol, actualGrams), 1),
+		SodiumMgPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Sodium, actualGrams), 1),
+		TotalCarbsGPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.TotalCarbs, actualGrams), 1),
+		DietaryFiberGPer100g: RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.DietaryFiber, actualGrams), 1),
+		TotalSugarsGPer100g:  RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.TotalSugars, actualGrams), 1),
+		AddedSugarsGPer100g:  RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.AddedSugars, actualGrams), 1),
+		VitaminAMcgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminA, actualGrams), 1),
+		VitaminCMgPer100g:    RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminC, actualGrams), 1),
+		VitaminDMcgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminD, actualGrams), 1),
+		VitaminEMgPer100g:    RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminE, actualGrams), 1),
+		VitaminKMcgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminK, actualGrams), 1),
+		ThiamineMgPer100g:    RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Thiamine, actualGrams), 3),
+		RiboflavinMgPer100g:  RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Riboflavin, actualGrams), 3),
+		NiacinMgPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Niacin, actualGrams), 1),
+		VitaminB6MgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminB6, actualGrams), 3),
+		FolateMcgPer100g:     RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Folate, actualGrams), 1),
+		VitaminB12McgPer100g: RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminB12, actualGrams), 2),
+		CalciumMgPer100g:     RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Calcium, actualGrams), 1),
+		IronMgPer100g:        RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Iron, actualGrams), 1),
+		MagnesiumMgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Magnesium, actualGrams), 1),
+		PhosphorusMgPer100g:  RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Phosphorus, actualGrams), 1),
+		PotassiumMgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Potassium, actualGrams), 1),
+		ZincMgPer100g:        RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Zinc, actualGrams), 2),
+		CopperMgPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Copper, actualGrams), 3),
+		ManganeseMgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Manganese, actualGrams), 3),
+		SeleniumMcgPer100g:   RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Selenium, actualGrams), 1),
 		FetchedAt:            time.Now().UTC(),
 		ExpiresAt:            time.Now().UTC().Add(30 * 24 * time.Hour), // 30 day TTL
 	}
-}
-
-// calculateGramsEquivalent calculates and sets the grams equivalent for an item
-func (s *NutritionService) calculateGramsEquivalent(item *Item) {
-	// If no quantity or unit, skip calculation
-	if item.Quantity == nil {
-		return
-	}
-
-	quantity := *item.Quantity
-	unit := ""
-	if item.Unit != nil {
-		unit = *item.Unit
-	}
-
-	// If already in grams or no unit, set as-is
-	if unit == "" || unit == "g" || unit == "gram" || unit == "grams" {
-		item.GramsEquivalent = &quantity
-		return
-	}
-
-	// Try to convert to grams using the unit converter
-	if grams, err := s.converter.ConvertToGrams(quantity, unit); err == nil {
-		// Only set if we got a different value (i.e., conversion happened)
-		if grams != quantity {
-			item.GramsEquivalent = &grams
-		}
-	}
-	// For units that can't be converted (like "pieces", "medium", etc.),
-	// we don't set grams_equivalent since it would be meaningless
 }

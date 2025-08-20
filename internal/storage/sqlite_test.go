@@ -72,7 +72,7 @@ func TestSQLiteStore(t *testing.T) {
 			TotalProtein:  2,
 			TotalFat:      0.5,
 			TotalCarbs:    50,
-			TotalFiber:    8,
+			DietaryFiber:  8,
 			TotalSodium:   2,
 		}
 
@@ -446,7 +446,7 @@ func TestSQLiteStore(t *testing.T) {
 			TotalProtein:  10,
 			TotalFat:      5,
 			TotalCarbs:    60,
-			TotalFiber:    8,
+			DietaryFiber:  8,
 			TotalSodium:   100,
 		}
 		err = store.CreateConsumption(ctx, consumption1)
@@ -460,7 +460,7 @@ func TestSQLiteStore(t *testing.T) {
 			TotalProtein:  25,
 			TotalFat:      20,
 			TotalCarbs:    45,
-			TotalFiber:    5,
+			DietaryFiber:  5,
 			TotalSodium:   800,
 		}
 		err = store.CreateConsumption(ctx, consumption2)
@@ -480,7 +480,7 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Equal(t, float64(35), summary.TotalProtein)
 		assert.Equal(t, float64(25), summary.TotalFat)
 		assert.Equal(t, float64(105), summary.TotalCarbs)
-		assert.Equal(t, float64(13), summary.TotalFiber)
+		assert.Equal(t, float64(13), summary.DietaryFiber)
 		assert.Equal(t, float64(900), summary.TotalSodium)
 
 		// Check daily breakdown is populated

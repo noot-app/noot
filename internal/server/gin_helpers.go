@@ -163,7 +163,7 @@ func getConsumptionMetric(consumption *storage.Consumption, metric string) float
 	case "total_carbs_g":
 		return consumption.TotalCarbs
 	case "dietary_fiber_g":
-		return consumption.TotalFiber
+		return consumption.DietaryFiber
 	case "sodium_mg":
 		return consumption.TotalSodium
 	case "saturated_fat_g":

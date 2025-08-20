@@ -10,12 +10,16 @@ func convertInternalItemToAPI(internal Item) api.Item {
 	apiItem := api.Item{
 		Name:  internal.Name,
 		Brand: internal.Brand,
-		Unit:  internal.Unit,
+		Grams: float32(internal.Grams),
 	}
 
-	if internal.Quantity != nil {
-		qty := float32(*internal.Quantity)
-		apiItem.Quantity = &qty
+	// Include user display information if available
+	if internal.UserQuantity != nil {
+		qty := float32(*internal.UserQuantity)
+		apiItem.UserQuantity = &qty
+	}
+	if internal.UserUnit != nil {
+		apiItem.UserUnit = internal.UserUnit
 	}
 
 	if internal.Nutrients != nil {
@@ -92,12 +96,15 @@ func convertAPIItemToInternal(apiItem api.Item) Item {
 	internal := Item{
 		Name:  apiItem.Name,
 		Brand: apiItem.Brand,
-		Unit:  apiItem.Unit,
+		Grams: float64(apiItem.Grams),
 	}
 
-	if apiItem.Quantity != nil {
-		qty := float64(*apiItem.Quantity)
-		internal.Quantity = &qty
+	if apiItem.UserQuantity != nil {
+		qty := float64(*apiItem.UserQuantity)
+		internal.UserQuantity = &qty
+	}
+	if apiItem.UserUnit != nil {
+		internal.UserUnit = apiItem.UserUnit
 	}
 
 	if apiItem.Nutrients != nil {
@@ -168,7 +175,7 @@ func convertInternalNutritionSummaryToAPI(internal *storage.NutritionSummary) ap
 		TotalProteinG:      float32(internal.TotalProtein),
 		TotalCarbsG:        float32(internal.TotalCarbs),
 		TotalFatG:          float32(internal.TotalFat),
-		TotalFiberG:        float32(internal.TotalFiber),
+		TotalFiberG:        float32(internal.DietaryFiber),
 		TotalSodiumMg:      float32(internal.TotalSodium),
 		TotalSaturatedFatG: float32(internal.TotalSaturatedFat),
 		TotalTransFatG:     float32(internal.TotalTransFat),

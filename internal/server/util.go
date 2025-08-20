@@ -300,3 +300,22 @@ func summarize(items []ItemWithNutrition) Summary {
 		DailyValuesUsed: dailyValues,
 	}
 }
+
+// Pointer utility functions for easier test data creation and API handling
+
+// stringPtr returns a pointer to the string value
+func stringPtr(s string) *string {
+	return &s
+}
+
+// strPtrOrNil returns a trimmed string pointer or nil if empty
+func strPtrOrNil(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	v := strings.TrimSpace(*s)
+	if v == "" {
+		return nil
+	}
+	return &v
+}

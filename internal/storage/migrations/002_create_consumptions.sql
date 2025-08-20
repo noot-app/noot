@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS consumptions (
     total_protein_g REAL NOT NULL DEFAULT 0,
     total_fat_g REAL NOT NULL DEFAULT 0,
     total_carbs_g REAL NOT NULL DEFAULT 0,
-    total_fiber_g REAL NOT NULL DEFAULT 0,
+    dietary_fiber_g REAL NOT NULL DEFAULT 0,
     total_sodium_mg REAL NOT NULL DEFAULT 0,
     -- Additional micronutrients for complete nutrition tracking
     saturated_fat_g REAL NOT NULL DEFAULT 0,
@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS consumptions (
     vitamin_b6_mg REAL NOT NULL DEFAULT 0,
     folate_mcg REAL NOT NULL DEFAULT 0,
     vitamin_b12_mcg REAL NOT NULL DEFAULT 0,
+    biotin_mcg REAL NOT NULL DEFAULT 0,
+    pantothenic_acid_mg REAL NOT NULL DEFAULT 0,
+    choline_mg REAL NOT NULL DEFAULT 0,
     calcium_mg REAL NOT NULL DEFAULT 0,
     iron_mg REAL NOT NULL DEFAULT 0,
     magnesium_mg REAL NOT NULL DEFAULT 0,
@@ -36,7 +39,15 @@ CREATE TABLE IF NOT EXISTS consumptions (
     copper_mg REAL NOT NULL DEFAULT 0,
     manganese_mg REAL NOT NULL DEFAULT 0,
     selenium_mcg REAL NOT NULL DEFAULT 0,
+    iodine_mcg REAL NOT NULL DEFAULT 0,
+    molybdenum_mcg REAL NOT NULL DEFAULT 0,
+    chromium_mcg REAL NOT NULL DEFAULT 0,
+    fluoride_mg REAL NOT NULL DEFAULT 0,
+    chloride_mg REAL NOT NULL DEFAULT 0,
+    user_quantity REAL, -- Original user input quantity for display (e.g., 3.0 for "3 sticks")
+    user_unit TEXT,     -- Original user input unit for display (e.g., "sticks")
     created_at DATETIME NOT NULL,
+    updated_at DATETIME, -- When the consumption was last modified
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

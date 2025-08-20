@@ -19,7 +19,7 @@ func itemWithNutritionToConsumption(userID string, transcript string, items []It
 		TotalProtein:  summary.Totals.Protein,
 		TotalFat:      summary.Totals.TotalFat,
 		TotalCarbs:    summary.Totals.TotalCarbs,
-		TotalFiber:    summary.Totals.DietaryFiber,
+		DietaryFiber:  summary.Totals.DietaryFiber,
 		TotalSodium:   summary.Totals.Sodium,
 		// Additional micronutrients
 		SaturatedFat: summary.Totals.SaturatedFat,

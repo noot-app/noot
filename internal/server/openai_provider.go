@@ -52,14 +52,15 @@ For coffee drinks, assume standard sizes: latte contains 2 shots espresso, cappu
 }
 
 func (p *OpenAIProvider) parseItemsSystemPrompt() string {
-	return `You extract individual food and drink items from a freeform meal, snack, beverage, or consumption description. Return strict JSON with the following structure:
+	return `You extract individual food and drink items from a freeform meal, snack, beverage, or consumption description. Convert all quantities to grams for internal processing while preserving the original user input for display. Return strict JSON with the following structure:
 
 {
   "items": [
     {
       "name": string,
-      "quantity": number | null,
-      "unit": string | null,
+      "grams": number,
+      "user_quantity": number | null,
+      "user_unit": string | null,
       "brand": string | null
     }
   ]
@@ -67,24 +68,25 @@ func (p *OpenAIProvider) parseItemsSystemPrompt() string {
 
 IMPORTANT INSTRUCTIONS:
 1. EXTRACT INDIVIDUAL ITEMS: Separate each distinct food or drink item mentioned.
-2. INFER SERVING SIZES: If quantity is not specified, assume reasonable standard serving sizes based on context:
-   - Yogurt: 1 cup (245g)
-   - Banana: 1 medium (118g)  
-   - Eggs: 2 large eggs (100g)
-   - Coffee: 1 cup (240ml)
-   - Latte: 10oz with 2 shots espresso using standard 20g shots
-   - Apple: 1 medium (182g)
-   - Bread slice: 1 slice (28g)
-   - Chicken breast: 3.5oz (100g)
-   - Rice: 1 cup cooked (158g)
+2. CONVERT TO GRAMS: Always provide the "grams" field with the equivalent weight in grams. Use standard food weights:
+   - Butter: 1 stick = 113g, 1 tbsp = 14.2g, 1 cup = 227g
+   - Yogurt: 1 cup = 245g, 1 container (typical) = 170g
+   - Banana: 1 medium = 118g, 1 large = 136g
+   - Eggs: 1 large egg = 50g, 2 large eggs = 100g
+   - Coffee/liquids: 1 cup = 240ml = 240g, 1 tbsp = 15ml = 15g
+   - Apple: 1 medium = 182g, 1 large = 223g
+   - Bread: 1 slice = 28g, 1 thick slice = 35g
+   - Chicken breast: 3.5oz = 100g, 1 breast (typical) = 140g
+   - Rice: 1 cup cooked = 158g, 1 cup uncooked = 185g
 
-3. PRESERVE BRANDS: Keep exact brand and product names (e.g., "Clover Sonoma", "Trader Joe's", "Siggi's", "KFC", "Starbucks").
-4. NORMALIZE UNITS: Use standard units (g, mg, ml, cups, tbsp, etc.).
-5. DO NOT ADD NUTRITION DATA: Only extract item identification, not nutrition information.`
+3. PRESERVE USER INPUT: Store the original quantity and unit in "user_quantity" and "user_unit" for display purposes.
+4. INFER SERVING SIZES: If quantity is not specified, assume reasonable standard serving sizes and convert to grams.
+5. PRESERVE BRANDS: Keep exact brand and product names (e.g., "Clover Sonoma", "Trader Joe's", "Siggi's", "KFC", "Starbucks").
+6. DO NOT ADD NUTRITION DATA: Only extract item identification and weight conversion, not nutrition information.`
 }
 
 func (p *OpenAIProvider) nutritionSystemPrompt() string {
-	return `You provide complete nutrition information for a single food item. Return strict JSON with the following structure:
+	return `You provide complete nutrition information for a single food item based on its weight in grams. Return strict JSON with the following structure:
 
 {
   "nutrients": {
@@ -131,12 +133,27 @@ func (p *OpenAIProvider) nutritionSystemPrompt() string {
 }
 
 IMPORTANT INSTRUCTIONS:
-1. NUTRITION DATA ACCURACY: Provide accurate nutrition data per serving for the specified quantity and unit. Use your knowledge of food composition databases, USDA data, and nutrition labels.
-2. HANDLE COMPLEX ITEMS: For prepared foods, estimate based on typical recipes and ingredients. For restaurant items, use available nutrition information or estimate based on similar items.
-3. ZERO VALUES: Use 0 for nutrients that are truly absent (like vitamin B12 in plants), but provide realistic non-zero values for nutrients that are typically present even in small amounts.
-4. BRANDED VS GENERIC: Prioritize branded nutrition data when brand is specified, otherwise use generic USDA-style data for the food type.
-5. QUANTITY-ADJUSTED: Provide nutrition values for the exact quantity/unit specified, not per 100g.
-6. DOUBLE CHECK: Ensure the nutrition profile is accurate. For example, if the user had 1tbsp of butter (14.2g) and you think that is 5 calories, that is incorrect. It should be around 102 calories.`
+1. WEIGHT-BASED NUTRITION: Provide accurate nutrition data for the exact gram weight specified. Use your knowledge of food composition databases and USDA data.
+2. BRANDED VS GENERIC: Prioritize branded nutrition data when brand is specified, otherwise use generic USDA-style data for the food type.
+3. ZERO VALUES: Use 0 for nutrients that are truly absent, but provide realistic non-zero values for nutrients that are typically present.
+4. ACCURACY REFERENCE: Use these as accuracy checkpoints for common foods per 100g:
+   - Butter (salted): ~717 calories, ~81 g fat, ~0.9 g protein
+   - Whole eggs (raw, whole): ~143 calories, ~9.5 g fat, ~12.6 g protein
+   - Banana (raw): ~89 calories, ~0.3 g fat, ~1.1 g protein
+   - White bread (commercial): ~265 calories, ~3.2 g fat, ~9 g protein
+   - Whole milk (3.25 percent fat): ~61 calories, ~3.3 g fat, ~3.2 g protein
+   - Rice, white (cooked): ~130 calories, ~0.3 g fat, ~2.7 g protein
+   - Skim milk (~0.5 percent fat or less): ~34 calories, ~0.1 g fat, ~3.4 g protein
+   - Chicken breast (cooked, skinless): ~165 calories, ~3.6 g fat, ~31 g protein
+   - Potato (raw, white): ~77 calories, ~0.1 g fat, ~2 g protein
+   - Onion (raw): ~40 calories, ~0.1 g fat, ~1.1 g protein
+   - Blueberries (raw): ~57 calories, ~0.3 g fat, ~0.7 g protein
+   - Apple (raw): ~52 calories, ~0.2 g fat, ~0.3 g protein
+   - Beef, ground (85% lean, cooked): ~250 calories, ~17 g fat, ~26 g protein
+   - Tomato (raw): ~18 calories, ~0.2 g fat, ~0.9 g protein
+   - Cheddar cheese (aged): ~403 calories, ~33.1 g fat, ~24.9 g protein
+   - Carrot (raw): ~41 calories, ~0.2 g fat, ~0.9 g protein
+5. CALCULATE FROM WEIGHT: Scale nutrition values proportionally based on the gram weight provided.`
 }
 
 // TranscribeAudio implements AIProvider.TranscribeAudio
@@ -272,10 +289,33 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 
 	LogDebug("OpenAI item parsing response received", "content_length", len(content), "content", content)
 
-	var parsed ParsedItems
+	// Temporary struct for parsing OpenAI response
+	var parsed struct {
+		Items []struct {
+			Name         string   `json:"name"`
+			Grams        float64  `json:"grams"`
+			UserQuantity *float64 `json:"user_quantity"`
+			UserUnit     *string  `json:"user_unit"`
+			Brand        *string  `json:"brand"`
+		} `json:"items"`
+	}
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
 		LogWarn("Failed to parse OpenAI JSON response", "content", content, "error", err.Error())
-		parsed = ParsedItems{Items: []Item{}}
+		parsed = struct {
+			Items []struct {
+				Name         string   `json:"name"`
+				Grams        float64  `json:"grams"`
+				UserQuantity *float64 `json:"user_quantity"`
+				UserUnit     *string  `json:"user_unit"`
+				Brand        *string  `json:"brand"`
+			} `json:"items"`
+		}{Items: []struct {
+			Name         string   `json:"name"`
+			Grams        float64  `json:"grams"`
+			UserQuantity *float64 `json:"user_quantity"`
+			UserUnit     *string  `json:"user_unit"`
+			Brand        *string  `json:"brand"`
+		}{}}
 	}
 
 	// Normalize items (no nutrition data at this stage)
@@ -285,12 +325,18 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 		if name == "" {
 			continue
 		}
+		// Ensure grams is positive
+		if i.Grams <= 0 {
+			LogWarn("Invalid grams value for item", "name", name, "grams", i.Grams)
+			continue
+		}
 		clean = append(clean, Item{
-			Name:      name,
-			Quantity:  i.Quantity,
-			Unit:      strPtrOrNil(i.Unit),
-			Brand:     strPtrOrNil(i.Brand),
-			Nutrients: nil, // No nutrition data in phase 1
+			Name:         name,
+			Grams:        i.Grams,
+			UserQuantity: i.UserQuantity,
+			UserUnit:     strPtrOrNil(i.UserUnit),
+			Brand:        strPtrOrNil(i.Brand),
+			Nutrients:    nil, // No nutrition data in phase 1
 		})
 	}
 
@@ -304,20 +350,17 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 
 	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name)
 
-	// Build user message with item details
+	// Build user message with item details in grams
 	var userMsg strings.Builder
 	userMsg.WriteString("Item: ")
 	userMsg.WriteString(item.Name)
+	userMsg.WriteString(fmt.Sprintf("\nWeight: %.1fg", item.Grams))
 
-	if item.Quantity != nil {
-		userMsg.WriteString(fmt.Sprintf("\nQuantity: %v", *item.Quantity))
-	}
-	if item.Unit != nil {
-		userMsg.WriteString(fmt.Sprintf("\nUnit: %s", *item.Unit))
-	}
 	if item.Brand != nil {
 		userMsg.WriteString(fmt.Sprintf("\nBrand: %s", *item.Brand))
 	}
+
+	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name, "user_message", userMsg.String())
 
 	payload := map[string]any{
 		"model":       p.config.ParseModel,
