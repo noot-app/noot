@@ -10,6 +10,14 @@
   let networkType = '';
   let isHidden = false;
   let navigationStartTime = 0;
+  let errorCount = 0;
+  let warningCount = 0;
+  
+  // Original console methods
+  let originalError: typeof console.error;
+  let originalWarn: typeof console.warn;
+  let errorHandler: ((event: ErrorEvent) => void) | undefined;
+  let rejectionHandler: ((event: PromiseRejectionEvent) => void) | undefined;
   
   function copyDebugInfo() {
     const debugInfo = `
@@ -18,12 +26,64 @@ Dev Info:
 - Load Time: ${pageLoadTime}ms
 - Memory: ${memoryUsage}
 - Network: ${networkType}
+- Errors: ${errorCount}
+- Warnings: ${warningCount}
 - User: ${currentUser}
     `.trim();
     
     navigator.clipboard.writeText(debugInfo).then(() => {
       console.log('Debug info copied to clipboard');
     });
+  }
+  
+  function setupConsoleMonitoring() {
+    // Store original methods
+    originalError = console.error;
+    originalWarn = console.warn;
+    
+    // Override console.error
+    console.error = (...args: any[]) => {
+      errorCount++;
+      originalError.apply(console, args);
+    };
+    
+    // Override console.warn
+    console.warn = (...args: any[]) => {
+      warningCount++;
+      originalWarn.apply(console, args);
+    };
+    
+    // Listen for unhandled errors
+    errorHandler = () => {
+      errorCount++;
+    };
+    window.addEventListener('error', errorHandler);
+    
+    // Listen for unhandled promise rejections
+    rejectionHandler = () => {
+      errorCount++;
+    };
+    window.addEventListener('unhandledrejection', rejectionHandler);
+  }
+  
+  function restoreConsoleMonitoring() {
+    if (originalError && originalWarn) {
+      console.error = originalError;
+      console.warn = originalWarn;
+    }
+    
+    if (errorHandler) {
+      window.removeEventListener('error', errorHandler);
+    }
+    
+    if (rejectionHandler) {
+      window.removeEventListener('unhandledrejection', rejectionHandler);
+    }
+  }
+  
+  function clearCounts() {
+    errorCount = 0;
+    warningCount = 0;
   }
   
   function handleKeydown(event: KeyboardEvent) {
@@ -40,6 +100,9 @@ Dev Info:
   onMount(() => {
     // Initial page load time
     pageLoadTime = Math.round(performance.now());
+    
+    // Setup console monitoring
+    setupConsoleMonitoring();
     
     // Get memory usage if available
     if ('memory' in performance) {
@@ -61,6 +124,7 @@ Dev Info:
     
     return () => {
       window.removeEventListener('keydown', handleKeydown);
+      restoreConsoleMonitoring();
     };
   });
   
@@ -107,6 +171,14 @@ Dev Info:
         <span class="dev-item">Network: <strong>{networkType}</strong></span>
       {/if}
       <span class="dev-separator">•</span>
+      <span class="dev-item">
+        Errors: <strong class="error-count" class:has-errors={errorCount > 0}>{errorCount}</strong>
+      </span>
+      <span class="dev-separator">•</span>
+      <span class="dev-item">
+        Warnings: <strong class="warning-count" class:has-warnings={warningCount > 0}>{warningCount}</strong>
+      </span>
+      <span class="dev-separator">•</span>
       <span class="dev-item">User: <strong>{currentUser}</strong></span>
       <span class="dev-separator">•</span>
       <button 
@@ -116,6 +188,16 @@ Dev Info:
       >
         📋 Copy
       </button>
+      {#if errorCount > 0 || warningCount > 0}
+        <span class="dev-separator">•</span>
+        <button 
+          class="dev-button clear-button" 
+          on:click={clearCounts}
+          title="Clear error and warning counts"
+        >
+          🧹 Clear
+        </button>
+      {/if}
       <span class="dev-separator">•</span>
       <span class="dev-item dev-hint">Press ` to hide</span>
     </div>
@@ -171,6 +253,39 @@ Dev Info:
   .dev-hint {
     opacity: 0.6;
     font-size: 10px;
+  }
+  
+  .error-count {
+    color: #c0c0c0;
+  }
+  
+  .error-count.has-errors {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+    padding: 0 3px;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+  }
+  
+  .warning-count {
+    color: #c0c0c0;
+  }
+  
+  .warning-count.has-warnings {
+    color: #ffd93d;
+    background: rgba(255, 217, 61, 0.1);
+    padding: 0 3px;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 217, 61, 0.3);
+  }
+  
+  .clear-button {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+  
+  .clear-button:hover {
+    background: rgba(255, 255, 255, 0.25);
   }
   
   .dev-separator {
