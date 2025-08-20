@@ -1,6 +1,5 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client";
-  import { units, convertWeight, formatWeight, type Units } from "$lib/stores/units";
   import { PUBLIC_APP_NAME } from "$env/static/public";
   import { onMount } from "svelte";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
@@ -11,10 +10,7 @@
   let error = "";
   let summaryData: any = null;
 
-  $: currentUnits = $units;
-
   onMount(() => {
-    units.init();
     loadSummary();
   });
 
@@ -74,14 +70,6 @@
     }
   }
 
-  function toggleUnits() {
-    units.set(currentUnits === 'grams' ? 'ounces' : 'grams');
-  }
-
-  function convertNutrientValue(value: number): number {
-    return convertWeight(value, 'grams', currentUnits);
-  }
-
   // Extract current nutrition values for goals comparison
   $: currentNutrition = summaryData?.summary ? {
     calories: summaryData.summary.total_calories || 0,
@@ -94,7 +82,7 @@
     vitamin_c_mg: summaryData.summary.vitamin_c_mg || 0,
     calcium_mg: summaryData.summary.calcium_mg || 0,
     iron_mg: summaryData.summary.iron_mg || 0,
-  } : {};
+  } : undefined;
 </script>
 
 <svelte:head>
@@ -119,9 +107,6 @@
           Home
         </a>
         <a href="/record" class="btn btn-primary">Record</a>
-        <button class="btn btn-ghost" on:click={toggleUnits}>
-          Units: {currentUnits === 'grams' ? 'Grams' : 'Ounces'}
-        </button>
       </div>
     </div>
 
@@ -171,7 +156,6 @@
           protein={summaryData.summary.total_protein_g || 0}
           carbs={summaryData.summary.total_carbs_g || 0}
           fat={summaryData.summary.total_fat_g || 0}
-          units={currentUnits}
           size="normal"
         />
 
@@ -199,9 +183,9 @@
                       <tr>
                         <td>{new Date(day.date).toLocaleDateString()}</td>
                         <td>{day.calories}</td>
-                        <td>{formatWeight(convertNutrientValue(day.protein_g), currentUnits)}</td>
-                        <td>{formatWeight(convertNutrientValue(day.total_carbs_g), currentUnits)}</td>
-                        <td>{formatWeight(convertNutrientValue(day.total_fat_g), currentUnits)}</td>
+                        <td>{day.protein_g?.toFixed(1) || 0}g</td>
+                        <td>{day.total_carbs_g?.toFixed(1) || 0}g</td>
+                        <td>{day.total_fat_g?.toFixed(1) || 0}g</td>
                       </tr>
                     {/each}
                   </tbody>
@@ -229,7 +213,7 @@
                 </div>
                 <div class="stat">
                   <div class="stat-title">Fiber</div>
-                  <div class="stat-value text-lg">{formatWeight(convertNutrientValue(summaryData.summary.total_fiber_g || 0), currentUnits)}</div>
+                  <div class="stat-value text-lg">{(summaryData.summary.total_fiber_g || 0).toFixed(1)}g</div>
                   <div class="stat-desc">Total</div>
                 </div>
                 <div class="stat">

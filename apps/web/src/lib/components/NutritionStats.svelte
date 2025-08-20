@@ -1,17 +1,10 @@
 <script lang="ts">
-  import { formatWeight, convertWeight, type Units } from "$lib/stores/units";
-
   export let calories: number;
   export let protein: number;
   export let carbs: number;
   export let fat: number;
-  export let units: Units = 'grams';
   export let size: 'normal' | 'compact' = 'normal';
   export let className: string = '';
-
-  function convertNutrientValue(value: number): number {
-    return convertWeight(value, 'grams', units);
-  }
 </script>
 
 <div class="stats stats-vertical lg:stats-horizontal shadow-xl w-full {className}">
@@ -38,7 +31,7 @@
     </div>
     <div class="stat-title">Protein</div>
     <div class="stat-value text-secondary {size === 'compact' ? 'text-lg' : ''}">
-      {formatWeight(convertNutrientValue(protein), units)}
+      {protein.toFixed(1)}g
     </div>
     {#if size === 'normal'}
       <div class="stat-desc">Essential for muscle</div>
@@ -54,7 +47,7 @@
     </div>
     <div class="stat-title">Fat</div>
     <div class="stat-value text-accent {size === 'compact' ? 'text-lg' : ''}">
-      {formatWeight(convertNutrientValue(fat), units)}
+      {fat.toFixed(1)}g
     </div>
     {#if size === 'normal'}
       <div class="stat-desc">Healthy fats</div>
@@ -70,7 +63,7 @@
     </div>
     <div class="stat-title">Carbs</div>
     <div class="stat-value text-warning {size === 'compact' ? 'text-lg' : ''}">
-      {formatWeight(convertNutrientValue(carbs), units)}
+      {carbs.toFixed(1)}g
     </div>
     {#if size === 'normal'}
       <div class="stat-desc">Energy source</div>

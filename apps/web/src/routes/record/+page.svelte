@@ -1,6 +1,5 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client";
-  import { units, convertWeight, formatWeight, type Units } from "$lib/stores/units";
   import { PUBLIC_APP_NAME } from "$env/static/public";
   import { onMount } from "svelte";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
@@ -12,13 +11,6 @@
   let transcript = "";
   let result: any = null;
   let error: string = "";
-
-  $: currentUnits = $units;
-
-  onMount(() => {
-    // Initialize units store
-    units.init();
-  });
 
   async function startRecording() {
     try {
@@ -125,14 +117,6 @@
   $: if (audioBlob && status === "Processing...") {
     uploadAudio();
   }
-
-  function toggleUnits() {
-    units.set(currentUnits === 'grams' ? 'ounces' : 'grams');
-  }
-
-  function convertNutrientValue(value: number): number {
-    return convertWeight(value, 'grams', currentUnits);
-  }
 </script>
 
 <svelte:head>
@@ -157,9 +141,6 @@
           Home
         </a>
         <a href="/summary" class="btn btn-outline">Summary</a>
-        <button class="btn btn-ghost" on:click={toggleUnits}>
-          Units: {currentUnits === 'grams' ? 'Grams' : 'Ounces'}
-        </button>
       </div>
     </div>
 
@@ -217,7 +198,6 @@
                 protein={result.summary.totals.protein_g}
                 carbs={result.summary.totals.total_carbs_g}
                 fat={result.summary.totals.total_fat_g}
-                units={currentUnits}
                 size="compact"
                 className="bg-transparent shadow-none"
               />
@@ -243,9 +223,9 @@
                       {#if item.item.nutrients}
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-2">
                           <span>Cal: {item.item.nutrients.calories}</span>
-                          <span>Pro: {formatWeight(convertNutrientValue(item.item.nutrients.protein_g), currentUnits)}</span>
-                          <span>Carb: {formatWeight(convertNutrientValue(item.item.nutrients.total_carbs_g), currentUnits)}</span>
-                          <span>Fat: {formatWeight(convertNutrientValue(item.item.nutrients.total_fat_g), currentUnits)}</span>
+                          <span>Pro: {item.item.nutrients.protein_g.toFixed(1)}g</span>
+                          <span>Carb: {item.item.nutrients.total_carbs_g.toFixed(1)}g</span>
+                          <span>Fat: {item.item.nutrients.total_fat_g.toFixed(1)}g</span>
                         </div>
                       {/if}
                     </div>
