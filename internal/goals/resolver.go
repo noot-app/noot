@@ -214,6 +214,9 @@ func (r *GoalResolver) getDRIGoals(sex, ageBracket string) (*Goals, error) {
 		r.extractNutrientValues(minerals, goals, "mineral")
 	}
 
+	// Add nutrients from FDA Daily Values that aren't covered by DRI
+	r.addDVNutrients(goals)
+
 	return goals, nil
 }
 
@@ -248,30 +251,45 @@ func (r *GoalResolver) mapNutrientToAPIKey(driName string) string {
 		"fat":          "total_fat_g",
 		"fiber":        "dietary_fiber_g",
 
+		// Additional macronutrients (using FDA DV data)
+		"saturated_fat": "saturated_fat_g",
+		"trans_fat":     "trans_fat_g",
+		"cholesterol":   "cholesterol_mg",
+		"total_sugars":  "total_sugars_g",
+		"added_sugars":  "added_sugars_g",
+
 		// Vitamins - map to API field names
-		"vitamin_A":     "vitamin_a_mcg",
-		"vitamin_C":     "vitamin_c_mg",
-		"vitamin_D":     "vitamin_d_mcg",
-		"vitamin_E":     "vitamin_e_mg",
-		"vitamin_K":     "vitamin_k_mcg",
-		"thiamin_B1":    "thiamine_mg",
-		"riboflavin_B2": "riboflavin_mg",
-		"niacin_B3":     "niacin_mg",
-		"vitamin_B6":    "vitamin_b6_mg",
-		"folate_B9":     "folate_mcg",
-		"vitamin_B12":   "vitamin_b12_mcg",
+		"vitamin_A":           "vitamin_a_mcg",
+		"vitamin_C":           "vitamin_c_mg",
+		"vitamin_D":           "vitamin_d_mcg",
+		"vitamin_E":           "vitamin_e_mg",
+		"vitamin_K":           "vitamin_k_mcg",
+		"thiamin_B1":          "thiamine_mg",
+		"riboflavin_B2":       "riboflavin_mg",
+		"niacin_B3":           "niacin_mg",
+		"vitamin_B6":          "vitamin_b6_mg",
+		"folate_B9":           "folate_mcg",
+		"vitamin_B12":         "vitamin_b12_mcg",
+		"biotin_B7":           "biotin_mcg",
+		"pantothenic_acid_B5": "pantothenic_acid_mg",
+		"choline":             "choline_mg",
 
 		// Minerals - map to API field names
-		"calcium":    "calcium_mg",
-		"iron":       "iron_mg",
-		"magnesium":  "magnesium_mg",
-		"phosphorus": "phosphorus_mg",
-		"potassium":  "potassium_mg",
-		"zinc":       "zinc_mg",
-		"copper":     "copper_mg",
-		"manganese":  "manganese_mg",
-		"selenium":   "selenium_mcg",
-		"sodium":     "sodium_mg",
+		"calcium":     "calcium_mg",
+		"iron":        "iron_mg",
+		"magnesium":   "magnesium_mg",
+		"phosphorus":  "phosphorus_mg",
+		"potassium":   "potassium_mg",
+		"zinc":        "zinc_mg",
+		"copper":      "copper_mg",
+		"manganese":   "manganese_mg",
+		"selenium":    "selenium_mcg",
+		"sodium":      "sodium_mg",
+		"chloride":    "chloride_mg",
+		"chromium":    "chromium_mcg",
+		"fluoride":    "fluoride_mg",
+		"iodine":      "iodine_mcg",
+		"molybdenum":  "molybdenum_mcg",
 	}
 
 	if apiKey, exists := mapping[driName]; exists {
@@ -284,6 +302,36 @@ func (r *GoalResolver) mapNutrientToAPIKey(driName string) string {
 	}
 
 	return "" // No mapping found
+}
+
+// addDVNutrients adds nutrients from FDA Daily Values that aren't covered by DRI
+func (r *GoalResolver) addDVNutrients(goals *Goals) {
+	// Nutrients to add from DV data that typically aren't in DRI
+	dvNutrients := map[string]string{
+		"calories":        "calories",      // Standard calorie target for adults
+		"fat_total":       "total_fat_g",
+		"saturated_fat":   "saturated_fat_g",
+		"cholesterol":     "cholesterol_mg",
+		"total_sugars":    "total_sugars_g",
+		"added_sugars":    "added_sugars_g",
+		"chloride":        "chloride_mg",
+	}
+
+	for dvKey, apiKey := range dvNutrients {
+		// Only add if not already present from DRI data
+		if _, exists := goals.Targets[apiKey]; !exists {
+			if entry, exists := r.dvData.FDADailyValues[dvKey]; exists {
+				goals.Targets[apiKey] = entry.Value
+				goals.Units[apiKey] = r.normalizeUnit(entry.Unit)
+			}
+		}
+	}
+
+	// Special handling for calories - use a standard 2000 kcal for adults if not present
+	if _, exists := goals.Targets["calories"]; !exists {
+		goals.Targets["calories"] = 2000
+		goals.Units["calories"] = "kcal"
+	}
 }
 
 // normalizeUnit standardizes units to match API expectations

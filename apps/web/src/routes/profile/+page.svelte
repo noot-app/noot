@@ -143,17 +143,22 @@
   }
 
   // Key nutrients that users might want to customize
-  const editableNutrients = [
-    { key: "protein_g", label: "Protein", unit: "g" },
-    { key: "total_carbs_g", label: "Total Carbs", unit: "g" },
-    { key: "dietary_fiber_g", label: "Dietary Fiber", unit: "g" },
-    { key: "sodium_mg", label: "Sodium", unit: "mg" },
-    { key: "vitamin_c_mg", label: "Vitamin C", unit: "mg" },
-    { key: "vitamin_d_mcg", label: "Vitamin D", unit: "mcg" },
-    { key: "calcium_mg", label: "Calcium", unit: "mg" },
-    { key: "iron_mg", label: "Iron", unit: "mg" },
-    { key: "potassium_mg", label: "Potassium", unit: "mg" }
-  ];
+  // Generate dynamically from available goals instead of hardcoding
+  $: editableNutrients = goals ? Object.keys(goals.targets).map(key => ({
+    key,
+    label: formatNutrientName(key),
+    unit: goals.units[key] || ""
+  })).sort((a, b) => a.label.localeCompare(b.label)) : [];
+
+  function formatNutrientName(key: string): string {
+    return key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, l => l.toUpperCase())
+      // Remove unit suffixes since they're shown separately
+      .replace(/ Mcg$/, "")
+      .replace(/ Mg$/, "")
+      .replace(/ G$/, "");
+  }
 
   function getNutrientValue(key: string): number {
     return customTargets[key] || goals?.targets[key] || 0;

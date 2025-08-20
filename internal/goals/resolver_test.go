@@ -101,6 +101,12 @@ func TestResolveGoals(t *testing.T) {
 		t.Error("Expected some nutrition targets to be set")
 	}
 
+	// Verify we have comprehensive nutrient coverage
+	expectedMinimumNutrients := 35 // Should have at least 35 nutrients with DRI + DV data
+	if len(goals.Targets) < expectedMinimumNutrients {
+		t.Errorf("Expected at least %d nutrition targets, got %d", expectedMinimumNutrients, len(goals.Targets))
+	}
+
 	// Test with custom overrides
 	overrides := &UserOverrides{
 		Overrides: map[string]float64{
