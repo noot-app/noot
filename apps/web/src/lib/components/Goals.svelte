@@ -44,7 +44,7 @@
   function getOverageText(nutrient: string, current: number): string {
     if (!goals?.targets[nutrient]) return "";
     const actualProgress = (current / goals.targets[nutrient]) * 100;
-    if (actualProgress <= 100) return `${actualProgress.toFixed(0)}%`;
+    if (actualProgress <= 100) return "";
     const overage = actualProgress - 100;
     return `+${overage.toFixed(0)}% over`;
   }
@@ -133,7 +133,12 @@
               
               <div class="space-y-1">
                 <div class="flex justify-between items-center text-sm">
-                  <span class="font-medium">{formatNutrientName(nutrient)}</span>
+                  <span class="font-medium">
+                    {formatNutrientName(nutrient)}
+                    {#if getOverageText(nutrient, current)}
+                      <span class="text-xs text-info ml-1">({getOverageText(nutrient, current)})</span>
+                    {/if}
+                  </span>
                   <span class="text-base-content/70">
                     {formatValue(current, unit)}/{formatValue(target, unit)} {unit}
                   </span>
@@ -161,7 +166,7 @@
                     ></progress>
                   {/if}
                   <span class="text-xs text-base-content/60 min-w-[3rem]">
-                    {getOverageText(nutrient, current)}
+                    {getActualProgress(nutrient, current).toFixed(0)}%
                   </span>
                 </div>
               </div>
