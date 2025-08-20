@@ -2,6 +2,7 @@
   import { apiClient } from "$lib/api/client";
   import { PUBLIC_APP_NAME } from "$env/static/public";
   import { onMount } from "svelte";
+  import { dev } from '$app/environment';
   import type { paths } from "$lib/api/schema";
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
@@ -46,6 +47,62 @@
     }
   }
 
+  function parseErrorMessage(error: any): string {
+    // If it's a plain string, return it
+    if (typeof error === 'string') {
+      return error;
+    }
+
+    // If it has a message property, use that
+    if (error?.message && typeof error.message === 'string') {
+      return error.message;
+    }
+
+    // If it's an Error object, use its message
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    // Try to extract meaningful error from API response
+    if (error?.error && typeof error.error === 'string') {
+      return error.error;
+    }
+
+    // Fallback to JSON representation
+    return JSON.stringify(error);
+  }
+
+  function formatErrorForUser(rawError: any): string {
+    const errorMessage = parseErrorMessage(rawError);
+    
+    // Common backend error messages that need user-friendly translations
+    const errorTranslations: Record<string, string> = {
+      'At least one override must be provided': 'At least one nutrition target override must be provided',
+      'Invalid request': 'Please check your input and try again',
+      'Unauthorized': 'You need to be logged in to save goals',
+      'Forbidden': 'You don\'t have permission to perform this action'
+    };
+
+    // Check if we have a translation for this exact message
+    const translation = errorTranslations[errorMessage];
+    if (translation) {
+      return dev ? `${translation} (Dev: ${errorMessage})` : translation;
+    }
+
+    // Clean up nested error messages
+    const cleanError = errorMessage
+      .replace(/^Error: Failed to save goals: /, '')
+      .replace(/^Error saving goals: Error: /, '')
+      .replace(/^Error: /, '');
+
+    // If in development, add context
+    if (dev) {
+      return `${cleanError} (check browser console for details)`;
+    }
+
+    return cleanError;
+  }
+
   async function saveCustomGoals() {
     if (!goals) return;
     
@@ -65,14 +122,16 @@
       });
 
       if (response.error) {
-        throw new Error(`Failed to save goals: ${response.error}`);
+        throw response.error;
       }
 
       success = "Goals saved successfully!";
       await loadGoals(); // Reload to get updated data
     } catch (err) {
-      error = `Error saving goals: ${err}`;
-      console.error("Save error:", err);
+      error = formatErrorForUser(err);
+      if (dev) {
+        console.error("Save error details:", err);
+      }
     } finally {
       saving = false;
     }
