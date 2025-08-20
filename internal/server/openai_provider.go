@@ -137,10 +137,22 @@ IMPORTANT INSTRUCTIONS:
 2. BRANDED VS GENERIC: Prioritize branded nutrition data when brand is specified, otherwise use generic USDA-style data for the food type.
 3. ZERO VALUES: Use 0 for nutrients that are truly absent, but provide realistic non-zero values for nutrients that are typically present.
 4. ACCURACY REFERENCE: Use these as accuracy checkpoints for common foods per 100g:
-   - Butter: ~717 calories, ~81g fat, ~0.9g protein
-   - Whole eggs: ~155 calories, ~11g fat, ~13g protein  
-   - Banana: ~89 calories, ~23g carbs, ~1g protein
-   - White bread: ~265 calories, ~49g carbs, ~9g protein
+   - Butter (salted): ~717 calories, ~81 g fat, ~0.9 g protein
+   - Whole eggs (raw, whole): ~143 calories, ~9.5 g fat, ~12.6 g protein
+   - Banana (raw): ~89 calories, ~0.3 g fat, ~1.1 g protein
+   - White bread (commercial): ~265 calories, ~3.2 g fat, ~9 g protein
+   - Whole milk (3.25 percent fat): ~61 calories, ~3.3 g fat, ~3.2 g protein
+   - Rice, white (cooked): ~130 calories, ~0.3 g fat, ~2.7 g protein
+   - Skim milk (~0.5 percent fat or less): ~34 calories, ~0.1 g fat, ~3.4 g protein
+   - Chicken breast (cooked, skinless): ~165 calories, ~3.6 g fat, ~31 g protein
+   - Potato (raw, white): ~77 calories, ~0.1 g fat, ~2 g protein
+   - Onion (raw): ~40 calories, ~0.1 g fat, ~1.1 g protein
+   - Blueberries (raw): ~57 calories, ~0.3 g fat, ~0.7 g protein
+   - Apple (raw): ~52 calories, ~0.2 g fat, ~0.3 g protein
+   - Beef, ground (85% lean, cooked): ~250 calories, ~17 g fat, ~26 g protein
+   - Tomato (raw): ~18 calories, ~0.2 g fat, ~0.9 g protein
+   - Cheddar cheese (aged): ~403 calories, ~33.1 g fat, ~24.9 g protein
+   - Carrot (raw): ~41 calories, ~0.2 g fat, ~0.9 g protein
 5. CALCULATE FROM WEIGHT: Scale nutrition values proportionally based on the gram weight provided.`
 }
 
