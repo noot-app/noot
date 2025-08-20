@@ -117,82 +117,260 @@
   $: if (audioBlob && status === "Processing...") {
     uploadAudio();
   }
+
+  // Sound effects
+  function playStartSound() {
+    // Create a simple start sound effect
+    if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+      const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioContextConstructor();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(1000, audioContext.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
+    }
+  }
+
+  function playStopSound() {
+    // Create a simple stop sound effect
+    if (typeof window !== 'undefined' && (window.AudioContext || (window as any).webkitAudioContext)) {
+      const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioContextConstructor();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.15);
+      
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.15);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.15);
+    }
+  }
+
+  // Enhanced toggle function with sound effects
+  async function toggleRecordingWithSound() {
+    if (isRecording) {
+      playStopSound();
+      stopRecording();
+    } else {
+      playStartSound();
+      await startRecording();
+    }
+  }
 </script>
 
 <svelte:head>
   <title>Record - {PUBLIC_APP_NAME}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-base-100">
-  <div class="container mx-auto px-4 py-8 max-w-4xl">
-    <!-- Header -->
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-primary mb-4">Record Your Meal</h1>
-      <p class="text-base-content/70">Tap the microphone and describe what you ate</p>
-    </div>
+<style>
+  .record-button {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 4px solid;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+  
+  .record-button:not(.recording):not(.processing) {
+    border-color: hsl(var(--p));
+    background-color: hsl(var(--p));
+    color: hsl(var(--pc));
+    transform: scale(1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+  
+  .record-button:not(.recording):not(.processing):hover {
+    transform: scale(1.05);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 4px hsla(var(--p), 0.25);
+  }
+  
+  .record-button:not(.recording):not(.processing):active {
+    transform: scale(0.95);
+  }
+  
+  .record-button.recording {
+    border-color: hsl(var(--er));
+    background-color: hsl(var(--er));
+    color: hsl(var(--erc));
+    animation: pulse-recording 1.5s ease-in-out infinite;
+  }
+  
+  .record-button.processing {
+    border-color: hsl(var(--wa));
+    background-color: hsl(var(--wa));
+    color: hsl(var(--wac));
+    animation: spin 2s linear infinite;
+  }
+  
+  @keyframes pulse-recording {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 hsla(var(--er), 0.7);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 20px hsla(var(--er), 0);
+    }
+  }
+  
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .status-text {
+    transition: all 0.3s ease;
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
-    <!-- Navigation -->
-    <div class="flex justify-center mb-8">
-      <div class="btn-group">
-        <a href="/" class="btn btn-ghost">
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Home
-        </a>
-        <a href="/summary" class="btn btn-outline">Summary</a>
-      </div>
-    </div>
+  .gradient-bg {
+    background: linear-gradient(135deg, hsl(var(--b1)), hsl(var(--b2)));
+  }
 
-    <!-- Recording Controls -->
-    <div class="text-center mb-8">
-      <button 
-        class="btn btn-circle btn-lg {isRecording ? 'btn-error' : 'btn-primary'} mb-4"
-        on:click={toggleRecording}
-        disabled={status === "Processing..."}
-      >
-        {#if isRecording}
-          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-            <rect x="6" y="6" width="12" height="12" rx="2" />
-          </svg>
-        {:else}
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-          </svg>
-        {/if}
-      </button>
-      <div class="text-lg font-medium">{status}</div>
-    </div>
+  .navbar-glass {
+    background-color: hsla(var(--b1), 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid hsl(var(--b3));
+  }
+</style>
 
-    <!-- Error Display -->
-    {#if error}
-      <div class="alert alert-error mb-6">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+<div class="min-h-screen gradient-bg flex flex-col">
+  <!-- Minimal header with navigation -->
+  <div class="navbar navbar-glass">
+    <div class="navbar-start">
+      <a href="/" class="btn btn-ghost btn-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
-        <span>{error}</span>
-      </div>
-    {/if}
+        Home
+      </a>
+    </div>
+    <div class="navbar-center">
+      <span class="font-bold text-lg">Record</span>
+    </div>
+    <div class="navbar-end">
+      <a href="/summary" class="btn btn-ghost btn-sm">Summary</a>
+    </div>
+  </div>
 
-    <!-- Results -->
-    {#if transcript || result}
-      <div class="space-y-6">
+  <!-- Main recording interface -->
+  <div class="flex-1 flex items-center justify-center px-4">
+    <div class="text-center max-w-md w-full space-y-8">
+      
+      <!-- Main recording button -->
+      <div class="flex justify-center">
+        <button 
+          class="record-button {isRecording ? 'recording' : ''} {status.includes('Processing') ? 'processing' : ''}"
+          on:click={toggleRecordingWithSound}
+          disabled={status.includes("Processing")}
+          aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+        >
+          {#if status.includes("Processing")}
+            <!-- Processing spinner -->
+            <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          {:else if isRecording}
+            <!-- Stop icon (square) -->
+            <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24">
+              <rect x="6" y="6" width="12" height="12" rx="2" />
+            </svg>
+          {:else}
+            <!-- Microphone icon -->
+            <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" 
+                    d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+          {/if}
+        </button>
+      </div>
+
+      <!-- Status message -->
+      <div class="status-text">
+        {#if status.includes("Processing")}
+          <p class="text-lg text-warning font-medium">Processing your meal...</p>
+        {:else if isRecording}
+          <p class="text-lg text-error font-medium">Recording... Tap to stop</p>
+        {:else if status === "✅ Complete"}
+          <p class="text-lg text-success font-medium">Complete! Scroll down for results</p>
+        {:else if error}
+          <p class="text-lg text-error font-medium">{error}</p>
+        {:else}
+          <div class="space-y-2">
+            <p class="text-xl font-semibold text-base-content">Tap to record your meal</p>
+            <p class="text-sm text-base-content/70">Speak naturally about what you ate</p>
+          </div>
+        {/if}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Results section (only shown when there are results) -->
+  {#if transcript || result}
+    <div class="bg-base-100 border-t border-base-200 p-6 fade-in">
+      <div class="container mx-auto max-w-4xl space-y-6">
+        
         <!-- Transcript -->
         {#if transcript}
-          <div class="card bg-base-200 shadow-xl">
+          <div class="card bg-base-200 shadow-lg">
             <div class="card-body">
-              <h2 class="card-title">What you said:</h2>
+              <h3 class="card-title text-sm">What you said:</h3>
               <p class="text-lg italic">"{transcript}"</p>
             </div>
           </div>
         {/if}
 
-        <!-- Summary -->
+        <!-- Nutrition Summary -->
         {#if result?.summary}
-          <div class="card bg-primary/10 shadow-xl">
+          <div class="card bg-primary/10 shadow-lg">
             <div class="card-body">
-              <h2 class="card-title text-primary mb-4">Nutrition Summary</h2>
+              <h3 class="card-title text-primary mb-4">Nutrition Summary</h3>
               <NutritionStats 
                 calories={result.summary.totals.calories}
                 protein={result.summary.totals.protein_g}
@@ -205,16 +383,16 @@
           </div>
         {/if}
 
-        <!-- Items -->
+        <!-- Food Items -->
         {#if result?.items && result.items.length > 0}
-          <div class="card bg-base-200 shadow-xl">
+          <div class="card bg-base-200 shadow-lg">
             <div class="card-body">
-              <h2 class="card-title">Food Items</h2>
-              <div class="space-y-4">
+              <h3 class="card-title text-sm mb-4">Food Items</h3>
+              <div class="space-y-3">
                 {#each result.items as item}
                   <div class="card bg-base-100 shadow">
                     <div class="card-body p-4">
-                      <h3 class="text-lg font-semibold">{item.item.name}</h3>
+                      <h4 class="font-semibold">{item.item.name}</h4>
                       {#if item.item.quantity && item.item.unit}
                         <p class="text-sm text-base-content/70">
                           {item.item.quantity} {item.item.unit}
@@ -235,7 +413,8 @@
             </div>
           </div>
         {/if}
+
       </div>
-    {/if}
-  </div>
+    </div>
+  {/if}
 </div>
