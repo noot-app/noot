@@ -471,6 +471,64 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 	return &summary, nil
 }
 
+// UpdateConsumption updates an existing consumption record
+func (s *SQLiteStore) UpdateConsumption(ctx context.Context, consumption *Consumption) error {
+	query := `
+		UPDATE consumptions SET 
+			items_json = ?, total_calories = ?, total_protein_g = ?, 
+			total_fat_g = ?, total_carbs_g = ?, total_fiber_g = ?, total_sodium_mg = ?,
+			saturated_fat_g = ?, trans_fat_g = ?, cholesterol_mg = ?, total_sugars_g = ?, added_sugars_g = ?,
+			vitamin_a_mcg = ?, vitamin_c_mg = ?, vitamin_d_mcg = ?, vitamin_e_mg = ?, vitamin_k_mcg = ?,
+			thiamine_mg = ?, riboflavin_mg = ?, niacin_mg = ?, vitamin_b6_mg = ?, folate_mcg = ?, vitamin_b12_mcg = ?,
+			calcium_mg = ?, iron_mg = ?, magnesium_mg = ?, phosphorus_mg = ?, potassium_mg = ?,
+			zinc_mg = ?, copper_mg = ?, manganese_mg = ?, selenium_mcg = ?
+		WHERE id = ?`
+
+	result, err := s.db.ExecContext(ctx, query,
+		consumption.ItemsJSON, consumption.TotalCalories, consumption.TotalProtein,
+		consumption.TotalFat, consumption.TotalCarbs, consumption.TotalFiber, consumption.TotalSodium,
+		consumption.SaturatedFat, consumption.TransFat, consumption.Cholesterol,
+		consumption.TotalSugars, consumption.AddedSugars, consumption.VitaminA, consumption.VitaminC,
+		consumption.VitaminD, consumption.VitaminE, consumption.VitaminK, consumption.Thiamine,
+		consumption.Riboflavin, consumption.Niacin, consumption.VitaminB6, consumption.Folate,
+		consumption.VitaminB12, consumption.Calcium, consumption.Iron, consumption.Magnesium,
+		consumption.Phosphorus, consumption.Potassium, consumption.Zinc, consumption.Copper,
+		consumption.Manganese, consumption.Selenium, consumption.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update consumption: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("consumption not found")
+	}
+
+	return nil
+}
+
+// DeleteConsumption deletes a consumption record by ID
+func (s *SQLiteStore) DeleteConsumption(ctx context.Context, id string) error {
+	query := `DELETE FROM consumptions WHERE id = ?`
+
+	result, err := s.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete consumption: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("consumption not found")
+	}
+
+	return nil
+}
+
 // Seed adds development seed data
 func (s *SQLiteStore) Seed() error {
 	ctx := context.Background()

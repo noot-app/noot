@@ -155,6 +155,9 @@ type Consumption struct {
 
 // ConsumptionResponse defines model for ConsumptionResponse.
 type ConsumptionResponse struct {
+	// Id Consumption ID (for future edits/deletes)
+	Id string `json:"id"`
+
 	// Items Items with complete nutrition information
 	Items []ItemWithNutrition `json:"items"`
 
@@ -212,6 +215,15 @@ type DataPoint struct {
 
 	// Value Nutrient value for this date
 	Value float32 `json:"value"`
+}
+
+// DeleteResponse defines model for DeleteResponse.
+type DeleteResponse struct {
+	// Id ID of the deleted consumption
+	Id string `json:"id"`
+
+	// Message Confirmation message
+	Message string `json:"message"`
 }
 
 // ErrorResponse defines model for ErrorResponse.
@@ -486,6 +498,12 @@ type TrendsResponse struct {
 	User   User                   `json:"user"`
 }
 
+// UpdateConsumptionRequest defines model for UpdateConsumptionRequest.
+type UpdateConsumptionRequest struct {
+	// Items Updated items with nutrition information
+	Items []ItemWithNutrition `json:"items"`
+}
+
 // UpdateGoalsRequest defines model for UpdateGoalsRequest.
 type UpdateGoalsRequest struct {
 	// Overrides Custom nutrition goal overrides
@@ -569,6 +587,9 @@ type GetTrendsParams struct {
 
 // CreateConsumptionMultipartRequestBody defines body for CreateConsumption for multipart/form-data ContentType.
 type CreateConsumptionMultipartRequestBody CreateConsumptionMultipartBody
+
+// UpdateConsumptionJSONRequestBody defines body for UpdateConsumption for application/json ContentType.
+type UpdateConsumptionJSONRequestBody = UpdateConsumptionRequest
 
 // UpdateGoalsJSONRequestBody defines body for UpdateGoals for application/json ContentType.
 type UpdateGoalsJSONRequestBody = UpdateGoalsRequest

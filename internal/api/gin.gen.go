@@ -16,6 +16,12 @@ type ServerInterface interface {
 	// Log a consumption via audio
 	// (POST /consumption)
 	CreateConsumption(c *gin.Context)
+	// Delete a consumption record
+	// (DELETE /consumption/{id})
+	DeleteConsumption(c *gin.Context, id string)
+	// Update a consumption record
+	// (PUT /consumption/{id})
+	UpdateConsumption(c *gin.Context, id string)
 	// List consumptions (development only)
 	// (GET /consumptions)
 	GetConsumptions(c *gin.Context)
@@ -59,6 +65,54 @@ func (siw *ServerInterfaceWrapper) CreateConsumption(c *gin.Context) {
 	}
 
 	siw.Handler.CreateConsumption(c)
+}
+
+// DeleteConsumption operation middleware
+func (siw *ServerInterfaceWrapper) DeleteConsumption(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteConsumption(c, id)
+}
+
+// UpdateConsumption operation middleware
+func (siw *ServerInterfaceWrapper) UpdateConsumption(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.UpdateConsumption(c, id)
 }
 
 // GetConsumptions operation middleware
@@ -290,6 +344,8 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	}
 
 	router.POST(options.BaseURL+"/consumption", wrapper.CreateConsumption)
+	router.DELETE(options.BaseURL+"/consumption/:id", wrapper.DeleteConsumption)
+	router.PUT(options.BaseURL+"/consumption/:id", wrapper.UpdateConsumption)
 	router.GET(options.BaseURL+"/consumptions", wrapper.GetConsumptions)
 	router.GET(options.BaseURL+"/export", wrapper.ExportData)
 	router.GET(options.BaseURL+"/goals", wrapper.GetGoals)

@@ -150,6 +150,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	apiSummary := convertInternalSummaryToAPI(summary)
 
 	// 6) Save consumption to database if store is available
+	var consumptionID string
 	if s.store != nil {
 		// For now, use the default user if no authentication
 		// In the future, this would come from authentication middleware
@@ -164,6 +165,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 				LogError("Failed to save consumption to database", err)
 				// Don't fail the request if storage fails
 			} else {
+				consumptionID = consumption.ID
 				LogInfo("Consumption saved to database", "consumption_id", consumption.ID, "user_id", user.ID, "request_id", requestID)
 			}
 		}
@@ -171,6 +173,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 
 	// Create the API response
 	resp := api.ConsumptionResponse{
+		Id:          consumptionID, // Include consumption ID for editing
 		Transcript:  transcript,
 		ParsedItems: apiItems,
 		Items:       itemsWithNutrition,
@@ -185,6 +188,122 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 		"request_id", requestID,
 	)
 
+	c.JSON(http.StatusOK, resp)
+}
+
+// UpdateConsumption implements ServerInterface.UpdateConsumption
+func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	LogInfo("Update consumption request received", "consumption_id", id, "request_id", requestID)
+
+	if s.store == nil {
+		appErr := NewAppError("Storage not available", http.StatusInternalServerError, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse the request body
+	var updateReq api.UpdateConsumptionRequest
+	if err := c.ShouldBindJSON(&updateReq); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get the existing consumption
+	existingConsumption, err := s.store.GetConsumption(ctx, id)
+	if err != nil {
+		appErr := NewAppError("Failed to get consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+	if existingConsumption == nil {
+		appErr := NewAppError("Consumption not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert API items to internal format and calculate new summary
+	internalItems := convertAPIItemsToInternal(updateReq.Items)
+	
+	// Recalculate summary from updated items
+	summary := summarize(internalItems)
+
+	// Update the consumption record (keep original transcript, user_id, created_at)
+	updatedConsumption := itemWithNutritionToConsumption(existingConsumption.UserID, existingConsumption.Transcript, internalItems, summary)
+	updatedConsumption.ID = existingConsumption.ID
+	updatedConsumption.CreatedAt = existingConsumption.CreatedAt
+
+	if err := s.store.UpdateConsumption(ctx, updatedConsumption); err != nil {
+		appErr := NewAppError("Failed to update consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert updated consumption back to API format for response
+	apiItems := make([]api.Item, len(internalItems))
+	for i, item := range internalItems {
+		apiItems[i] = convertInternalItemToAPI(item.Item)
+	}
+	
+	apiSummary := convertInternalSummaryToAPI(summary)
+
+	// Create the API response
+	resp := api.ConsumptionResponse{
+		Id:          updatedConsumption.ID,
+		Transcript:  updatedConsumption.Transcript,
+		ParsedItems: apiItems,
+		Items:       updateReq.Items,
+		Summary:     apiSummary,
+		RequestId:   requestID,
+	}
+
+	LogInfo("Consumption updated successfully", "consumption_id", id, "request_id", requestID)
+	c.JSON(http.StatusOK, resp)
+}
+
+// DeleteConsumption implements ServerInterface.DeleteConsumption
+func (s *APIServer) DeleteConsumption(c *gin.Context, id string) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	LogInfo("Delete consumption request received", "consumption_id", id, "request_id", requestID)
+
+	if s.store == nil {
+		appErr := NewAppError("Storage not available", http.StatusInternalServerError, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check if consumption exists before trying to delete
+	existingConsumption, err := s.store.GetConsumption(ctx, id)
+	if err != nil {
+		appErr := NewAppError("Failed to get consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+	if existingConsumption == nil {
+		appErr := NewAppError("Consumption not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Delete the consumption
+	if err := s.store.DeleteConsumption(ctx, id); err != nil {
+		appErr := NewAppError("Failed to delete consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Create success response
+	resp := api.DeleteResponse{
+		Message: "Consumption deleted successfully",
+		Id:      id,
+	}
+
+	LogInfo("Consumption deleted successfully", "consumption_id", id, "request_id", requestID)
 	c.JSON(http.StatusOK, resp)
 }
 

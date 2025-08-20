@@ -79,6 +79,8 @@ func Run(ctx context.Context, port string) error {
 		}
 
 		v1.POST("/consumption", wrapper.CreateConsumption)
+		v1.PUT("/consumption/:id", wrapper.UpdateConsumption)
+		v1.DELETE("/consumption/:id", wrapper.DeleteConsumption)
 		v1.GET("/health", wrapper.GetHealth)
 		v1.GET("/goals", wrapper.GetGoals)
 		v1.PUT("/goals", wrapper.UpdateGoals)
