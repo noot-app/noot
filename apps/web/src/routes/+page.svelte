@@ -20,6 +20,48 @@
 <style>
   .gradient-hero {
     background: linear-gradient(135deg, hsl(var(--b1)), hsl(var(--b2)));
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .hero-content {
+    position: relative;
+    z-index: 2;
+  }
+  
+  /* Rising sun from horizon effect */
+  .rising-sun {
+    position: absolute;
+    bottom: -10vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140vw;
+    height: 80vh;
+    border-radius: 50%;
+    background: 
+      radial-gradient(ellipse 70vw 40vh at center bottom, #ff6b35 0%, #ff8c42 25%, transparent 70%),
+      radial-gradient(ellipse 60vw 35vh at center bottom, #f39c12 10%, transparent 60%),
+      radial-gradient(ellipse 50vw 30vh at center bottom, #e74c3c 5%, transparent 50%),
+      radial-gradient(ellipse 80vw 45vh at center bottom, 
+        #ff6b35 0%, 
+        #f39c12 20%, 
+        #e67e22 40%, 
+        #d35400 60%, 
+        transparent 85%);
+    background-blend-mode: screen, multiply, overlay, normal;
+    opacity: 0.6;
+    z-index: 1;
+  }
+  
+  .rising-sun::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.3;
+    mix-blend-mode: overlay;
+    pointer-events: none;
   }
   
   .phone-float {
@@ -62,7 +104,10 @@
 
 <!-- Hero Section -->
 <section class="min-h-screen gradient-hero flex items-center py-12">
-  <div class="container mx-auto px-4">
+  <!-- Rising Sun Background -->
+  <div class="rising-sun"></div>
+  
+  <div class="container mx-auto px-4 hero-content">
     <div class="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
       <!-- Hero Content -->
       <div class="text-center lg:text-left space-y-6 fade-in-up">
