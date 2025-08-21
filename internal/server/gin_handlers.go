@@ -776,32 +776,20 @@ func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
 		return
 	}
 
-	// Parse requested metrics (default to common macros)
-	metrics := []string{"calories", "protein_g", "total_fat_g", "total_carbs_g"}
-	if params.Metrics != nil && *params.Metrics != "" {
-		// TODO: Implement proper parsing and validation
-	}
-
 	if params.Format == "csv" {
-		// Generate CSV export
-		csvData := generateCSVExport(consumptions, metrics, start, end)
+		// Generate enhanced CSV export with more nutrients
+		csvData := generateEnhancedCSVExport(consumptions, start, end)
 		c.Header("Content-Disposition", "attachment; filename=\"nutrition-export.csv\"")
 		c.Data(http.StatusOK, "text/csv", []byte(csvData))
 	} else {
-		// Generate JSON export (same as trends response)
-		series := generateTimeSeries(consumptions, metrics, start, end)
-		response := api.ExportResponse{
-			Series: series,
-			User:   convertUser(user),
-			DateRange: struct {
-				End   *time.Time `json:"end,omitempty"`
-				Start *time.Time `json:"start,omitempty"`
-			}{
-				Start: &start,
-				End:   &end,
-			},
-			Format: api.ExportResponseFormat(params.Format),
-		}
+		// Generate comprehensive JSON export
+		// Get user biometrics
+		biometrics, _ := s.store.GetUserBiometrics(ctx, user.ID) // Don't fail if no biometrics
+
+		// Get user goals
+		goals, _ := s.store.GetUserGoals(ctx, user.ID) // Don't fail if no goals
+
+		response := generateComprehensiveJSONExport(user, consumptions, biometrics, goals, start, end)
 		c.JSON(http.StatusOK, response)
 	}
 }

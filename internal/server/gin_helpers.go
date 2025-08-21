@@ -265,3 +265,173 @@ func validateTrendsSubscriptionAccess(subscriptionTier string, start, end time.T
 
 	return nil
 }
+
+// generateEnhancedCSVExport creates enhanced CSV export data with more nutrients
+func generateEnhancedCSVExport(consumptions []*storage.Consumption, start, end time.Time) string {
+	// Create CSV with comprehensive columns
+	csv := "date,transcript,user_quantity,user_unit,calories,protein_g,total_fat_g,total_carbs_g," +
+		"dietary_fiber_g,sodium_mg,saturated_fat_g,trans_fat_g,cholesterol_mg,total_sugars_g," +
+		"added_sugars_g,vitamin_a_mcg,vitamin_c_mg,vitamin_d_mcg,vitamin_e_mg,vitamin_k_mcg," +
+		"thiamine_mg,riboflavin_mg,niacin_mg,vitamin_b6_mg,folate_mcg,vitamin_b12_mcg," +
+		"calcium_mg,iron_mg,magnesium_mg,phosphorus_mg,potassium_mg,zinc_mg,copper_mg," +
+		"manganese_mg,selenium_mcg\n"
+
+	for _, consumption := range consumptions {
+		// Format date
+		dateStr := consumption.CreatedAt.Format("2006-01-02")
+
+		// Handle optional fields
+		transcript := fmt.Sprintf("\"%s\"", strings.ReplaceAll(consumption.Transcript, "\"", "\"\""))
+		userQuantityStr := ""
+		userUnitStr := ""
+
+		if consumption.UserQuantity != nil {
+			userQuantityStr = fmt.Sprintf("%.2f", *consumption.UserQuantity)
+		}
+		if consumption.UserUnit != nil {
+			userUnitStr = fmt.Sprintf("\"%s\"", strings.ReplaceAll(*consumption.UserUnit, "\"", "\"\""))
+		}
+
+		csv += fmt.Sprintf("%s,%s,%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"+
+			"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"+
+			"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
+			dateStr, transcript, userQuantityStr, userUnitStr,
+			consumption.TotalCalories,
+			consumption.TotalProtein,
+			consumption.TotalFat,
+			consumption.TotalCarbs,
+			consumption.DietaryFiber,
+			consumption.TotalSodium,
+			consumption.SaturatedFat,
+			consumption.TransFat,
+			consumption.Cholesterol,
+			consumption.TotalSugars,
+			consumption.AddedSugars,
+			consumption.VitaminA,
+			consumption.VitaminC,
+			consumption.VitaminD,
+			consumption.VitaminE,
+			consumption.VitaminK,
+			consumption.Thiamine,
+			consumption.Riboflavin,
+			consumption.Niacin,
+			consumption.VitaminB6,
+			consumption.Folate,
+			consumption.VitaminB12,
+			consumption.Calcium,
+			consumption.Iron,
+			consumption.Magnesium,
+			consumption.Phosphorus,
+			consumption.Potassium,
+			consumption.Zinc,
+			consumption.Copper,
+			consumption.Manganese,
+			consumption.Selenium)
+	}
+
+	return csv
+}
+
+// generateComprehensiveJSONExport creates comprehensive JSON export with full nutrition data
+func generateComprehensiveJSONExport(user *storage.User, consumptions []*storage.Consumption,
+	biometrics *storage.UserBiometrics, goals []*storage.UserGoal, start, end time.Time) map[string]interface{} {
+	// Create comprehensive response structure
+	response := map[string]interface{}{
+		"date_range": map[string]interface{}{
+			"start": start,
+			"end":   end,
+		},
+		"format":       "json",
+		"consumptions": []map[string]interface{}{},
+		"user_context": map[string]interface{}{
+			"subscription_tier": user.SubscriptionTier,
+			"active_goal_name":  user.ActiveGoalName,
+		},
+	}
+
+	// Add biometrics if available
+	if biometrics != nil {
+		response["biometrics"] = map[string]interface{}{
+			"birth_date":     biometrics.BirthDate,
+			"sex":            biometrics.Sex,
+			"height_cm":      biometrics.HeightCm,
+			"weight_kg":      biometrics.WeightKg,
+			"activity_level": biometrics.ActivityLevel,
+			"created_at":     biometrics.CreatedAt,
+			"updated_at":     biometrics.UpdatedAt,
+		}
+	}
+
+	// Add goals if available
+	if goals != nil && len(goals) > 0 {
+		goalsList := []map[string]interface{}{}
+		for _, goal := range goals {
+			goalsList = append(goalsList, map[string]interface{}{
+				"name":           goal.Name,
+				"overrides_json": goal.OverridesJSON,
+				"created_at":     goal.CreatedAt,
+				"updated_at":     goal.UpdatedAt,
+			})
+		}
+		response["goals"] = goalsList
+	}
+
+	// Add comprehensive consumption data
+	consumptionsList := []map[string]interface{}{}
+	for _, consumption := range consumptions {
+		consumptionData := map[string]interface{}{
+			"id":            consumption.ID,
+			"transcript":    consumption.Transcript,
+			"items_json":    consumption.ItemsJSON,
+			"user_quantity": consumption.UserQuantity,
+			"user_unit":     consumption.UserUnit,
+			"created_at":    consumption.CreatedAt,
+			"updated_at":    consumption.UpdatedAt,
+			"nutrition": map[string]float64{
+				"calories":            consumption.TotalCalories,
+				"protein_g":           consumption.TotalProtein,
+				"total_fat_g":         consumption.TotalFat,
+				"total_carbs_g":       consumption.TotalCarbs,
+				"dietary_fiber_g":     consumption.DietaryFiber,
+				"sodium_mg":           consumption.TotalSodium,
+				"saturated_fat_g":     consumption.SaturatedFat,
+				"trans_fat_g":         consumption.TransFat,
+				"cholesterol_mg":      consumption.Cholesterol,
+				"total_sugars_g":      consumption.TotalSugars,
+				"added_sugars_g":      consumption.AddedSugars,
+				"vitamin_a_mcg":       consumption.VitaminA,
+				"vitamin_c_mg":        consumption.VitaminC,
+				"vitamin_d_mcg":       consumption.VitaminD,
+				"vitamin_e_mg":        consumption.VitaminE,
+				"vitamin_k_mcg":       consumption.VitaminK,
+				"thiamine_mg":         consumption.Thiamine,
+				"riboflavin_mg":       consumption.Riboflavin,
+				"niacin_mg":           consumption.Niacin,
+				"vitamin_b6_mg":       consumption.VitaminB6,
+				"folate_mcg":          consumption.Folate,
+				"vitamin_b12_mcg":     consumption.VitaminB12,
+				"biotin_mcg":          consumption.Biotin,
+				"pantothenic_acid_mg": consumption.PantothenicAcid,
+				"choline_mg":          consumption.Choline,
+				"calcium_mg":          consumption.Calcium,
+				"iron_mg":             consumption.Iron,
+				"magnesium_mg":        consumption.Magnesium,
+				"phosphorus_mg":       consumption.Phosphorus,
+				"potassium_mg":        consumption.Potassium,
+				"zinc_mg":             consumption.Zinc,
+				"copper_mg":           consumption.Copper,
+				"manganese_mg":        consumption.Manganese,
+				"selenium_mcg":        consumption.Selenium,
+				"iodine_mcg":          consumption.Iodine,
+				"molybdenum_mcg":      consumption.Molybdenum,
+				"chromium_mcg":        consumption.Chromium,
+				"fluoride_mg":         consumption.Fluoride,
+				"chloride_mg":         consumption.Chloride,
+			},
+		}
+		consumptionsList = append(consumptionsList, consumptionData)
+	}
+	response["consumptions"] = consumptionsList
+
+	return response
+}
