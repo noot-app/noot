@@ -201,7 +201,7 @@ func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consum
 // GetConsumption retrieves a consumption by ID
 func (s *SQLiteStore) GetConsumption(ctx context.Context, id string) (*Consumption, error) {
 	query := `
-		SELECT id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g,
+		SELECT id, user_id, transcript, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
@@ -239,7 +239,7 @@ func (s *SQLiteStore) GetConsumption(ctx context.Context, id string) (*Consumpti
 // GetConsumptionsByUser retrieves consumptions for a user with pagination
 func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, limit, offset int) ([]*Consumption, error) {
 	query := `
-		SELECT id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g,
+		SELECT id, user_id, transcript, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
@@ -289,7 +289,7 @@ func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, 
 // GetConsumptionsByUserSince retrieves consumptions for a user since a specific time
 func (s *SQLiteStore) GetConsumptionsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Consumption, error) {
 	query := `
-		SELECT id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g,
+		SELECT id, user_id, transcript, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
