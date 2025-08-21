@@ -24,10 +24,10 @@
 
 <header class="navbar bg-base-200 shadow-lg">
   <div class="navbar-start">
-    <!-- App name and Beta label -->
+    <!-- App logo and Beta label -->
     <div class="flex items-center gap-3">
-      <a href="/" class="text-xl font-bold text-primary">
-        {PUBLIC_APP_NAME}
+      <a href="/" class="flex items-center">
+        <img src="/images/noot-slim.svg" alt="{PUBLIC_APP_NAME} Logo" class="h-7" />
       </a>
       <div class="badge badge-outline text-xs" style="border-color: #bb704f; color: #bb704f;">
         Beta
