@@ -68,17 +68,19 @@
     height: 150vh;
     border-radius: 0%;
     background: 
-      radial-gradient(ellipse 60vw 50vh at center bottom, #ff6b35 0%, #ff8c42 25%, transparent 70%),
-      radial-gradient(ellipse 50vw 45vh at center bottom, #f39c12 10%, transparent 60%),
-      radial-gradient(ellipse 40vw 40vh at center bottom, #e74c3c 5%, transparent 50%),
+      radial-gradient(ellipse 60vw 50vh at center bottom, #ff3000 0%, #ff4500 10%, #ff6b35 20%, #ff8c42 35%, transparent 70%),
+      radial-gradient(ellipse 50vw 45vh at center bottom, #d2691e 0%, #e67e22 5%, #f39c12 10%, transparent 60%),
+      radial-gradient(ellipse 40vw 40vh at center bottom, #b22222 0%, #dc143c 3%, #e74c3c 5%, transparent 50%),
       radial-gradient(ellipse 80vw 65vh at center bottom, 
-        #ff6b35 0%, 
-        #f39c12 20%, 
+        #ff3000 0%,
+        #ff4500 10%, 
+        #ff6b35 15%, 
+        #f39c12 25%, 
         #e67e22 40%, 
         #d35400 60%, 
         transparent 90%);
     background-blend-mode: screen, multiply, overlay, normal;
-    opacity: 0.5;
+    opacity: 0.6;
     z-index: -10;
     mask: linear-gradient(to bottom, 
       black 0%, 
