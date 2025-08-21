@@ -30,7 +30,7 @@ func TestCalculateAge(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			age := calculateAge(tt.birthDate)
 			// Allow some flexibility for the exact current date
-			assert.True(t, age >= tt.expected-1 && age <= tt.expected+1, 
+			assert.True(t, age >= tt.expected-1 && age <= tt.expected+1,
 				"Age %d should be close to expected %d", age, tt.expected)
 		})
 	}
@@ -160,7 +160,7 @@ func TestCalculateMetrics(t *testing.T) {
 		birthDate := time.Date(1990, 5, 15, 0, 0, 0, 0, time.UTC)
 		height := 175.0
 		weight := 70.0
-		
+
 		biometrics := &storage.UserBiometrics{
 			BirthDate:     &birthDate,
 			Sex:           "male",
@@ -175,17 +175,17 @@ func TestCalculateMetrics(t *testing.T) {
 		assert.NotNil(t, calculations.BMR)
 		assert.NotNil(t, calculations.TDEE)
 		assert.NotNil(t, calculations.BMI)
-		
-		assert.True(t, *calculations.AgeYears >= 30) // Should be around 33-34
-		assert.True(t, *calculations.BMR > 1000)     // Reasonable BMR
+
+		assert.True(t, *calculations.AgeYears >= 30)           // Should be around 33-34
+		assert.True(t, *calculations.BMR > 1000)               // Reasonable BMR
 		assert.True(t, *calculations.TDEE > *calculations.BMR) // TDEE > BMR
-		assert.Equal(t, 22.86, *calculations.BMI)   // Expected BMI
+		assert.Equal(t, 22.86, *calculations.BMI)              // Expected BMI
 	})
 
 	t.Run("partial biometrics data", func(t *testing.T) {
 		height := 175.0
 		weight := 70.0
-		
+
 		biometrics := &storage.UserBiometrics{
 			HeightCm:      &height,
 			WeightKg:      &weight,
@@ -204,7 +204,7 @@ func TestCalculateMetrics(t *testing.T) {
 
 	t.Run("nil biometrics", func(t *testing.T) {
 		calculations := CalculateMetrics(nil)
-		
+
 		assert.NotNil(t, calculations)
 		assert.Nil(t, calculations.AgeYears)
 		assert.Nil(t, calculations.BMR)

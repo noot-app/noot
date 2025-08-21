@@ -54,7 +54,7 @@ func calculateAge(birthDate time.Time) int {
 	age := now.Year() - birthDate.Year()
 
 	// Adjust if birthday hasn't occurred this year
-	if now.Month() < birthDate.Month() || 
+	if now.Month() < birthDate.Month() ||
 		(now.Month() == birthDate.Month() && now.Day() < birthDate.Day()) {
 		age--
 	}
@@ -67,9 +67,9 @@ func calculateBMR(age int, heightCm, weightKg float64, sex string) float64 {
 	// Mifflin-St Jeor equation:
 	// Men: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(years) + 5
 	// Women: BMR = 10 × weight(kg) + 6.25 × height(cm) - 5 × age(years) - 161
-	
+
 	bmr := 10*weightKg + 6.25*heightCm - 5*float64(age)
-	
+
 	if sex == "female" {
 		bmr -= 161
 	} else {

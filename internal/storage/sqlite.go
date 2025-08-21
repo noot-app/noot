@@ -1220,7 +1220,7 @@ func (s *SQLiteStore) UpsertUserBiometrics(ctx context.Context, biometrics *User
 	biometrics.UpdatedAt = now
 
 	_, err := s.db.ExecContext(ctx, query, biometrics.ID, biometrics.UserID, biometrics.BirthDate,
-		biometrics.Sex, biometrics.HeightCm, biometrics.WeightKg, biometrics.ActivityLevel, 
+		biometrics.Sex, biometrics.HeightCm, biometrics.WeightKg, biometrics.ActivityLevel,
 		biometrics.CreatedAt, biometrics.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to upsert user biometrics: %w", err)

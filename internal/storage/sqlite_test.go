@@ -511,7 +511,7 @@ func TestSQLiteStore(t *testing.T) {
 		birthDate := time.Date(1990, 5, 15, 0, 0, 0, 0, time.UTC)
 		heightCm := 175.0
 		weightKg := 70.5
-		
+
 		newBiometrics := &UserBiometrics{
 			UserID:        user.ID,
 			BirthDate:     &birthDate,
@@ -531,7 +531,7 @@ func TestSQLiteStore(t *testing.T) {
 		retrieved, err := store.GetUserBiometrics(ctx, user.ID)
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		
+
 		assert.Equal(t, newBiometrics.UserID, retrieved.UserID)
 		assert.Equal(t, "male", retrieved.Sex)
 		assert.Equal(t, birthDate, *retrieved.BirthDate)

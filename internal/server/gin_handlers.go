@@ -815,12 +815,12 @@ func (s *APIServer) GetUserBiometrics(c *gin.Context) {
 	var apiBiometrics *api.UserBiometrics
 	if biometrics != nil {
 		apiBiometrics = &api.UserBiometrics{}
-		
+
 		if biometrics.BirthDate != nil {
 			apiDate := openapi_types.Date{Time: *biometrics.BirthDate}
 			apiBiometrics.BirthDate = &apiDate
 		}
-		
+
 		if biometrics.Sex != "" {
 			switch biometrics.Sex {
 			case "male":
@@ -837,7 +837,7 @@ func (s *APIServer) GetUserBiometrics(c *gin.Context) {
 				apiBiometrics.Sex = &sex
 			}
 		}
-		
+
 		if biometrics.HeightCm != nil {
 			heightFloat32 := float32(*biometrics.HeightCm)
 			apiBiometrics.HeightCm = &heightFloat32
@@ -846,7 +846,7 @@ func (s *APIServer) GetUserBiometrics(c *gin.Context) {
 			weightFloat32 := float32(*biometrics.WeightKg)
 			apiBiometrics.WeightKg = &weightFloat32
 		}
-		
+
 		if biometrics.ActivityLevel != "" {
 			switch biometrics.ActivityLevel {
 			case "sedentary":
@@ -882,7 +882,7 @@ func (s *APIServer) GetUserBiometrics(c *gin.Context) {
 			Bmr      *float32 `json:"bmr,omitempty"`
 			Tdee     *float32 `json:"tdee,omitempty"`
 		}{}
-		
+
 		calculatedMetrics.AgeYears = calculations.AgeYears
 		if calculations.BMR != nil {
 			bmrFloat32 := float32(*calculations.BMR)
@@ -899,8 +899,8 @@ func (s *APIServer) GetUserBiometrics(c *gin.Context) {
 	}
 
 	response := api.BiometricsResponse{
-		Biometrics:         apiBiometrics,
-		CalculatedMetrics:  calculatedMetrics,
+		Biometrics:        apiBiometrics,
+		CalculatedMetrics: calculatedMetrics,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -1009,12 +1009,12 @@ func (s *APIServer) UpdateUserBiometrics(c *gin.Context) {
 	var apiBiometrics *api.UserBiometrics
 	if updatedBiometrics != nil {
 		apiBiometrics = &api.UserBiometrics{}
-		
+
 		if updatedBiometrics.BirthDate != nil {
 			apiDate := openapi_types.Date{Time: *updatedBiometrics.BirthDate}
 			apiBiometrics.BirthDate = &apiDate
 		}
-		
+
 		if updatedBiometrics.Sex != "" {
 			switch updatedBiometrics.Sex {
 			case "male":
@@ -1031,7 +1031,7 @@ func (s *APIServer) UpdateUserBiometrics(c *gin.Context) {
 				apiBiometrics.Sex = &sex
 			}
 		}
-		
+
 		if updatedBiometrics.HeightCm != nil {
 			heightFloat32 := float32(*updatedBiometrics.HeightCm)
 			apiBiometrics.HeightCm = &heightFloat32
@@ -1040,7 +1040,7 @@ func (s *APIServer) UpdateUserBiometrics(c *gin.Context) {
 			weightFloat32 := float32(*updatedBiometrics.WeightKg)
 			apiBiometrics.WeightKg = &weightFloat32
 		}
-		
+
 		if updatedBiometrics.ActivityLevel != "" {
 			switch updatedBiometrics.ActivityLevel {
 			case "sedentary":
@@ -1075,7 +1075,7 @@ func (s *APIServer) UpdateUserBiometrics(c *gin.Context) {
 			Bmr      *float32 `json:"bmr,omitempty"`
 			Tdee     *float32 `json:"tdee,omitempty"`
 		}{}
-		
+
 		calculatedMetrics.AgeYears = calculations.AgeYears
 		if calculations.BMR != nil {
 			bmrFloat32 := float32(*calculations.BMR)
