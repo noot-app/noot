@@ -214,8 +214,7 @@ func (s *SQLiteStore) GetConsumption(ctx context.Context, id string) (*Consumpti
 
 	consumption := &Consumption{}
 	err := s.db.QueryRowContext(ctx, query, id).
-		Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
-			&consumption.UserQuantity, &consumption.UserUnit,
+		Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
 			&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
 			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
@@ -262,8 +261,7 @@ func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, 
 	var consumptions []*Consumption
 	for rows.Next() {
 		consumption := &Consumption{}
-		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
-			&consumption.UserQuantity, &consumption.UserUnit,
+		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
 			&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
 			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
@@ -312,8 +310,7 @@ func (s *SQLiteStore) GetConsumptionsByUserSince(ctx context.Context, userID str
 	var consumptions []*Consumption
 	for rows.Next() {
 		consumption := &Consumption{}
-		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
-			&consumption.UserQuantity, &consumption.UserUnit,
+		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
 			&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
 			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
@@ -490,7 +487,7 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 func (s *SQLiteStore) UpdateConsumption(ctx context.Context, consumption *Consumption) error {
 	query := `
 		UPDATE consumptions SET 
-			items_json = ?, user_quantity = ?, user_unit = ?, total_calories = ?, total_protein_g = ?, 
+			total_calories = ?, total_protein_g = ?, 
 			total_fat_g = ?, total_carbs_g = ?, dietary_fiber_g = ?, total_sodium_mg = ?,
 			saturated_fat_g = ?, trans_fat_g = ?, cholesterol_mg = ?, total_sugars_g = ?, added_sugars_g = ?,
 			vitamin_a_mcg = ?, vitamin_c_mg = ?, vitamin_d_mcg = ?, vitamin_e_mg = ?, vitamin_k_mcg = ?,
@@ -505,7 +502,6 @@ func (s *SQLiteStore) UpdateConsumption(ctx context.Context, consumption *Consum
 	consumption.UpdatedAt = &now
 
 	result, err := s.db.ExecContext(ctx, query,
-		consumption.ItemsJSON, consumption.UserQuantity, consumption.UserUnit,
 		consumption.TotalCalories, consumption.TotalProtein,
 		consumption.TotalFat, consumption.TotalCarbs, consumption.DietaryFiber, consumption.TotalSodium,
 		consumption.SaturatedFat, consumption.TransFat, consumption.Cholesterol,
@@ -929,7 +925,6 @@ func (s *SQLiteStore) Seed() error {
 		consumption := sample.consumption
 		consumption.UserID = user.ID
 		consumption.Transcript = sample.transcript
-		consumption.ItemsJSON = sample.itemsJSON
 
 		if err := s.CreateConsumption(ctx, &consumption); err != nil {
 			return fmt.Errorf("failed to create seed consumption: %w", err)
@@ -1068,6 +1063,8 @@ func (s *SQLiteStore) Seed() error {
 }
 
 // GetItemFromCache retrieves an item from cache, checking if it's expired
+// DEPRECATED: This method is replaced by the new Item methods
+/*
 func (s *SQLiteStore) GetItemFromCache(ctx context.Context, normalizedName, normalizedBrand string) (*ItemCache, error) {
 	query := `
 		SELECT id, normalized_name, normalized_brand, display_name, display_brand,
@@ -1104,8 +1101,11 @@ func (s *SQLiteStore) GetItemFromCache(ctx context.Context, normalizedName, norm
 
 	return item, nil
 }
+*/
 
 // UpsertItemCache inserts or updates an item in the cache
+// DEPRECATED: This method is replaced by the new Item methods
+/*
 func (s *SQLiteStore) UpsertItemCache(ctx context.Context, item *ItemCache) error {
 	now := time.Now().UTC()
 
@@ -1200,14 +1200,18 @@ func (s *SQLiteStore) UpsertItemCache(ctx context.Context, item *ItemCache) erro
 
 	return nil
 }
+*/
 
 // RefreshItemCache refreshes an expired cache item with new data
+// DEPRECATED: This method is replaced by the new Item methods
+/*
 func (s *SQLiteStore) RefreshItemCache(ctx context.Context, normalizedName, normalizedBrand string, item *ItemCache) error {
 	// This is essentially an upsert operation for expired items
 	item.NormalizedName = normalizedName
 	item.NormalizedBrand = normalizedBrand
 	return s.UpsertItemCache(ctx, item)
 }
+*/
 
 // CreateItemAlias creates a new item alias
 func (s *SQLiteStore) CreateItemAlias(ctx context.Context, alias *ItemAlias) error {
@@ -1246,11 +1250,74 @@ func (s *SQLiteStore) GetCanonicalName(ctx context.Context, aliasName, aliasBran
 }
 
 // IsItemCacheExpired checks if a cache item has expired
+// DEPRECATED: This method is replaced by the new Item methods
+/*
 func (s *SQLiteStore) IsItemCacheExpired(item *ItemCache) bool {
 	if item == nil {
 		return true
 	}
 	return time.Now().UTC().After(item.ExpiresAt)
+}
+*/
+
+// CreateItem creates a new item
+func (s *SQLiteStore) CreateItem(ctx context.Context, item *Item) error {
+	// TODO: Implement - for now return error to make it compile
+	return fmt.Errorf("CreateItem not yet implemented")
+}
+
+// GetItem retrieves an item by ID  
+func (s *SQLiteStore) GetItem(ctx context.Context, id string) (*Item, error) {
+	// TODO: Implement - for now return error to make it compile
+	return nil, fmt.Errorf("GetItem not yet implemented")
+}
+
+// GetItemByName retrieves an item by normalized name and brand
+func (s *SQLiteStore) GetItemByName(ctx context.Context, normalizedName, normalizedBrand string) (*Item, error) {
+	// TODO: Implement - for now return error to make it compile
+	return nil, fmt.Errorf("GetItemByName not yet implemented")
+}
+
+// UpdateItem updates an existing item
+func (s *SQLiteStore) UpdateItem(ctx context.Context, item *Item) error {
+	// TODO: Implement - for now return error to make it compile
+	return fmt.Errorf("UpdateItem not yet implemented")
+}
+
+// GetStaleItems returns items that haven't been updated in the specified duration (for 30-day refresh)
+func (s *SQLiteStore) GetStaleItems(ctx context.Context, staleAfter time.Time) ([]*Item, error) {
+	// TODO: Implement - for now return empty slice to make it compile
+	return []*Item{}, nil
+}
+
+// CreateConsumptionItem creates a new consumption item relationship
+func (s *SQLiteStore) CreateConsumptionItem(ctx context.Context, item *ConsumptionItem) error {
+	// TODO: Implement - for now return error to make it compile
+	return fmt.Errorf("CreateConsumptionItem not yet implemented")
+}
+
+// GetConsumptionItems retrieves all items for a consumption
+func (s *SQLiteStore) GetConsumptionItems(ctx context.Context, consumptionID string) ([]*ConsumptionItem, error) {
+	// TODO: Implement - for now return empty slice to make it compile
+	return []*ConsumptionItem{}, nil
+}
+
+// UpdateConsumptionItem updates an existing consumption item
+func (s *SQLiteStore) UpdateConsumptionItem(ctx context.Context, item *ConsumptionItem) error {
+	// TODO: Implement - for now return error to make it compile
+	return fmt.Errorf("UpdateConsumptionItem not yet implemented")
+}
+
+// DeleteConsumptionItem deletes a consumption item by ID
+func (s *SQLiteStore) DeleteConsumptionItem(ctx context.Context, id string) error {
+	// TODO: Implement - for now return error to make it compile
+	return fmt.Errorf("DeleteConsumptionItem not yet implemented")
+}
+
+// DeleteConsumptionItemsByConsumption deletes all consumption items for a consumption
+func (s *SQLiteStore) DeleteConsumptionItemsByConsumption(ctx context.Context, consumptionID string) error {
+	// TODO: Implement - for now return error to make it compile
+	return fmt.Errorf("DeleteConsumptionItemsByConsumption not yet implemented")
 }
 
 // UpsertUserGoal creates or updates a user goal

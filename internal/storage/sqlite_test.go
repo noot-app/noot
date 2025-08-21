@@ -67,7 +67,6 @@ func TestSQLiteStore(t *testing.T) {
 		consumption := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "I had an apple and a banana",
-			ItemsJSON:     `[{"name":"apple","quantity":1,"unit":"medium"},{"name":"banana","quantity":1,"unit":"medium"}]`,
 			TotalCalories: 200,
 			TotalProtein:  2,
 			TotalFat:      0.5,
@@ -87,7 +86,6 @@ func TestSQLiteStore(t *testing.T) {
 		require.NotNil(t, retrieved)
 		assert.Equal(t, consumption.UserID, retrieved.UserID)
 		assert.Equal(t, consumption.Transcript, retrieved.Transcript)
-		assert.Equal(t, consumption.ItemsJSON, retrieved.ItemsJSON)
 		assert.Equal(t, consumption.TotalCalories, retrieved.TotalCalories)
 	})
 
@@ -106,13 +104,11 @@ func TestSQLiteStore(t *testing.T) {
 			{
 				UserID:        user.ID,
 				Transcript:    "Breakfast",
-				ItemsJSON:     `[{"name":"toast","quantity":2,"unit":"slice"}]`,
 				TotalCalories: 150,
 			},
 			{
 				UserID:        user.ID,
 				Transcript:    "Lunch",
-				ItemsJSON:     `[{"name":"sandwich","quantity":1,"unit":"sandwich"}]`,
 				TotalCalories: 300,
 			},
 		}
@@ -146,7 +142,6 @@ func TestSQLiteStore(t *testing.T) {
 		oldConsumption := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Old consumption",
-			ItemsJSON:     `[{"name":"old","quantity":1}]`,
 			TotalCalories: 100,
 		}
 		err = store.CreateConsumption(ctx, oldConsumption)
@@ -161,7 +156,6 @@ func TestSQLiteStore(t *testing.T) {
 		recentConsumption := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Recent consumption",
-			ItemsJSON:     `[{"name":"recent","quantity":1}]`,
 			TotalCalories: 200,
 		}
 		err = store.CreateConsumption(ctx, recentConsumption)
@@ -235,7 +229,6 @@ func TestSQLiteStore(t *testing.T) {
 		consumption := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "I had a banana",
-			ItemsJSON:     `[{"name":"banana","quantity":1,"unit":"medium"}]`,
 			TotalCalories: 105,
 			TotalProtein:  1.3,
 			TotalFat:      0.4,
@@ -252,7 +245,6 @@ func TestSQLiteStore(t *testing.T) {
 		consumption.TotalProtein = 2.6
 		consumption.TotalFat = 0.8
 		consumption.TotalCarbs = 54
-		consumption.ItemsJSON = `[{"name":"banana","quantity":2,"unit":"medium"}]`
 
 		err = store.UpdateConsumption(ctx, consumption)
 		require.NoError(t, err)
@@ -263,14 +255,12 @@ func TestSQLiteStore(t *testing.T) {
 		require.NotNil(t, updated)
 		assert.Equal(t, float64(210), updated.TotalCalories)
 		assert.Equal(t, 2.6, updated.TotalProtein)
-		assert.Contains(t, updated.ItemsJSON, "quantity\":2")
 
 		// Test updating non-existent consumption
 		nonExistentConsumption := &Consumption{
 			ID:            "01JAPP9999XXXXXXXXXXXXXX", // Non-existent ULID
 			UserID:        user.ID,
 			Transcript:    "test",
-			ItemsJSON:     "[]",
 			TotalCalories: 100,
 		}
 		err = store.UpdateConsumption(ctx, nonExistentConsumption)
@@ -292,6 +282,8 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Contains(t, err.Error(), "consumption not found")
 	})
 
+	// DEPRECATED: ItemCacheOperations test - commenting out as methods are replaced by new Item methods
+	/*
 	t.Run("ItemCacheOperations", func(t *testing.T) {
 		// Test getting non-existent item from cache
 		item, err := store.GetItemFromCache(ctx, "apple", "generic")
@@ -364,6 +356,7 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Equal(t, "Organic", refreshed.DisplayBrand)
 		assert.Equal(t, float64(58), refreshed.CaloriesPer100g)
 	})
+	*/
 
 	t.Run("ItemAliasOperations", func(t *testing.T) {
 		// Test getting canonical name for non-existent alias
@@ -406,6 +399,8 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Equal(t, "organic", brand2)
 	})
 
+	// DEPRECATED: CacheExpirationCheck test - commenting out as methods are replaced by new Item methods
+	/*
 	t.Run("CacheExpirationCheck", func(t *testing.T) {
 		// Test nil item
 		expired := store.IsItemCacheExpired(nil)
@@ -426,6 +421,7 @@ func TestSQLiteStore(t *testing.T) {
 		expired = store.IsItemCacheExpired(validItem)
 		assert.False(t, expired)
 	})
+	*/
 
 	t.Run("GetNutritionSummary", func(t *testing.T) {
 		// Create a user
@@ -441,7 +437,6 @@ func TestSQLiteStore(t *testing.T) {
 		consumption1 := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Breakfast",
-			ItemsJSON:     `[{"name":"oatmeal","quantity":1,"unit":"cup"}]`,
 			TotalCalories: 300,
 			TotalProtein:  10,
 			TotalFat:      5,
@@ -455,7 +450,6 @@ func TestSQLiteStore(t *testing.T) {
 		consumption2 := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Lunch",
-			ItemsJSON:     `[{"name":"sandwich","quantity":1,"unit":"sandwich"}]`,
 			TotalCalories: 500,
 			TotalProtein:  25,
 			TotalFat:      20,
