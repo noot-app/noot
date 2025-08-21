@@ -2,24 +2,27 @@ package storage
 
 // TableNames defines the database table names for easier migration to other databases
 var TableNames = struct {
-	Users        string
-	Consumptions string
-	UserGoals    string
-	ItemsCache   string
-	ItemAliases  string
+	Users            string
+	Consumptions     string
+	ConsumptionItems string
+	Items            string
+	ItemAliases      string
+	UserGoals        string
 }{
-	Users:        "users",
-	Consumptions: "consumptions",
-	UserGoals:    "user_goals",
-	ItemsCache:   "items_cache",
-	ItemAliases:  "item_aliases",
+	Users:            "users",
+	Consumptions:     "consumptions",
+	ConsumptionItems: "consumption_items",
+	Items:            "items",
+	ItemAliases:      "item_aliases",
+	UserGoals:        "user_goals",
 }
 
 // GetDropTableOrder returns tables in reverse dependency order for safe dropping
 func GetDropTableOrder() []string {
 	return []string{
 		TableNames.ItemAliases,
-		TableNames.ItemsCache,
+		TableNames.ConsumptionItems,
+		TableNames.Items,
 		TableNames.UserGoals,
 		TableNames.Consumptions,
 		TableNames.Users,
