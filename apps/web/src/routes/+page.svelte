@@ -152,6 +152,17 @@
   .phone-border {
     border-color: oklch(32.428% 0.0141 285.558);
   }
+  
+  .learn-how-btn {
+    transition: all 0.3s ease;
+  }
+  
+  .learn-how-btn:hover {
+    background-color: hsl(var(--p) / 0.1);
+    border-color: hsl(var(--p) / 0.6);
+    color: hsl(var(--p));
+    transform: translateY(-1px);
+  }
 </style>
 
 <!-- Hero Section -->
@@ -177,7 +188,7 @@
             </svg>
             Try {PUBLIC_APP_NAME} Now
           </a>
-          <a href="#how-it-works" class="btn btn-outline btn-lg text-lg px-8">
+          <a href="#how-it-works" class="btn btn-outline btn-lg text-lg px-8 learn-how-btn">
             Learn How
           </a>
         </div>
@@ -192,8 +203,8 @@
             <div class="flex flex-col items-center justify-center h-full space-y-6 p-8">
               <!-- Large Record Button -->
               <div class="flex justify-center">
-                <div class="w-32 h-32 rounded-full bg-primary flex items-center justify-center cursor-pointer pulse-record shadow-2xl">
-                  <svg class="w-16 h-16 text-primary-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-32 h-32 rounded-full bg-primary flex items-center justify-center pulse-record shadow-2xl">
+                  <svg class="w-16 h-16 text-primary-content pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" 
                           d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
