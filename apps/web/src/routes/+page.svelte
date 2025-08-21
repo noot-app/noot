@@ -13,7 +13,7 @@
 </script>
 
 <svelte:head>
-  <title>{PUBLIC_APP_NAME} - Just Say What You Ate!</title>
+  <title>{PUBLIC_APP_NAME}</title>
   <meta name="description" content="The easiest nutrition tracker ever. Press record, speak naturally, get instant nutrition insights with AI-powered voice recognition." />
 </svelte:head>
 
@@ -163,6 +163,13 @@
     color: hsl(var(--p));
     transform: translateY(-1px);
   }
+  
+  .gradient-text {
+    background: linear-gradient(135deg, #e89852 0%, #cc902f 20%, #d38c46 40%, #cf6c26 60%, #c57553 80%, #b16645 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 </style>
 
 <!-- Hero Section -->
@@ -174,8 +181,8 @@
     <div class="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
       <!-- Hero Content -->
       <div class="text-center lg:text-left space-y-6 fade-in-up">
-        <h1 class="text-5xl lg:text-6xl font-bold text-primary leading-tight">
-          Just say what <span class="whitespace-nowrap">you ate!</span>
+        <h1 class="text-6xl lg:text-8xl font-bold leading-tight gradient-text">
+          Meet Noot
         </h1>
         <p class="text-xl lg:text-2xl text-base-content/80 max-w-lg mx-auto lg:mx-0">
           The easiest nutrition tracker ever. Press record, speak naturally, get instant nutrition insights.
