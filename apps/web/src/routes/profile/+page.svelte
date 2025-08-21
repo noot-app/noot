@@ -334,6 +334,28 @@
     showImperialModal = false;
     selectedUnits = "metric"; // Force selection back to metric
   }
+
+  function getActivityLevelDisplay(level: string): string {
+    const activityLevels: Record<string, string> = {
+      "sedentary": "L1",
+      "lightly_active": "L2", 
+      "moderately_active": "L3",
+      "very_active": "L4",
+      "extra_active": "L5"
+    };
+    return activityLevels[level] || level;
+  }
+
+  function getActivityLevelDescription(level: string): string {
+    const descriptions: Record<string, string> = {
+      "sedentary": "Sedentary (little/no exercise)",
+      "lightly_active": "Lightly Active (1-3 days/week)",
+      "moderately_active": "Moderately Active (3-5 days/week)", 
+      "very_active": "Very Active (6-7 days/week)",
+      "extra_active": "Extra Active (very hard exercise daily)"
+    };
+    return descriptions[level] || level;
+  }
 </script>
 
 <svelte:head>
@@ -341,11 +363,11 @@
 </svelte:head>
 
 <div class="min-h-screen bg-base-100">
-  <div class="container mx-auto px-4 py-8 max-w-4xl">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
     <!-- Header -->
     <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-primary mb-4">Profile & Goals</h1>
-      <p class="text-base-content/70">Customize your nutrition goals and preferences</p>
+      <h1 class="text-3xl font-bold text-primary mb-4">Profile</h1>
+      <p class="text-base-content/70">Customize your profile, nutrition goals, and preferences</p>
     </div>
 
     {#if loading}
@@ -391,10 +413,10 @@
 
     {#if goals}
       <!-- Main Profile Grid -->
-      <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-8 xl:grid-cols-3 lg:grid-cols-2 md:grid-cols-1">
         <!-- Current Goals Overview -->
-        <div class="card bg-base-200 shadow-lg md:col-span-1">
-          <div class="card-body">
+        <div class="card bg-base-200 shadow-lg">
+          <div class="card-body p-6">
             <h2 class="card-title">Current Goals</h2>
             <div class="space-y-4">
               <div class="stats bg-base-100 shadow-sm">
@@ -424,8 +446,8 @@
         </div>
 
         <!-- User Biometrics -->
-        <div class="card bg-base-200 shadow-lg md:col-span-1">
-          <div class="card-body">
+        <div class="card bg-base-200 shadow-lg">
+          <div class="card-body p-6">
             <h2 class="card-title flex items-center gap-2">
               📊 Biometrics
               {#if calculatedMetrics?.age_years}
@@ -444,29 +466,29 @@
                 {#if biometrics}
                   <div class="grid grid-cols-2 gap-4">
                     {#if calculatedMetrics?.bmi}
-                      <div class="stat bg-base-100 rounded-box p-3">
+                      <div class="stat bg-base-100 rounded-box p-3 tooltip tooltip-top" data-tip="Body Mass Index - A measure of body fat based on height and weight">
                         <div class="stat-title text-xs">BMI</div>
                         <div class="stat-value text-lg">{calculatedMetrics.bmi}</div>
                       </div>
                     {/if}
                     {#if calculatedMetrics?.bmr}
-                      <div class="stat bg-base-100 rounded-box p-3">
+                      <div class="stat bg-base-100 rounded-box p-3 tooltip tooltip-top" data-tip="Basal Metabolic Rate - Calories your body burns at rest for basic functions">
                         <div class="stat-title text-xs">BMR</div>
                         <div class="stat-value text-lg">{Math.round(calculatedMetrics.bmr)}</div>
-                        <div class="stat-desc text-xs">cal/day</div>
+                        <div class="stat-desc text-xs">kcal/day</div>
                       </div>
                     {/if}
                     {#if calculatedMetrics?.tdee}
-                      <div class="stat bg-base-100 rounded-box p-3">
+                      <div class="stat bg-base-100 rounded-box p-3 tooltip tooltip-top" data-tip="Total Daily Energy Expenditure - Total calories burned including exercise and daily activities">
                         <div class="stat-title text-xs">TDEE</div>
                         <div class="stat-value text-lg">{Math.round(calculatedMetrics.tdee)}</div>
-                        <div class="stat-desc text-xs">cal/day</div>
+                        <div class="stat-desc text-xs">kcal/day</div>
                       </div>
                     {/if}
                     {#if biometrics.activity_level}
-                      <div class="stat bg-base-100 rounded-box p-3">
+                      <div class="stat bg-base-100 rounded-box p-3 tooltip tooltip-top" data-tip="{getActivityLevelDescription(biometrics.activity_level)}">
                         <div class="stat-title text-xs">Activity</div>
-                        <div class="stat-value text-sm capitalize">{biometrics.activity_level.replace('_', ' ')}</div>
+                        <div class="stat-value text-lg">{getActivityLevelDisplay(biometrics.activity_level)}</div>
                       </div>
                     {/if}
                   </div>
@@ -548,11 +570,11 @@
                       <span class="label-text text-sm">Activity Level</span>
                     </label>
                     <select id="activity" class="select select-bordered select-sm" bind:value={activityLevel}>
-                      <option value="sedentary">Sedentary (little/no exercise)</option>
-                      <option value="lightly_active">Lightly Active (1-3 days/week)</option>
-                      <option value="moderately_active">Moderately Active (3-5 days/week)</option>
-                      <option value="very_active">Very Active (6-7 days/week)</option>
-                      <option value="extra_active">Extra Active (very hard exercise daily)</option>
+                      <option value="sedentary">Level 1 - Sedentary (little/no exercise)</option>
+                      <option value="lightly_active">Level 2 - Lightly Active (1-3 days/week)</option>
+                      <option value="moderately_active">Level 3 - Moderately Active (3-5 days/week)</option>
+                      <option value="very_active">Level 4 - Very Active (6-7 days/week)</option>
+                      <option value="extra_active">Level 5 - Extra Active (very hard exercise daily)</option>
                     </select>
                   </div>
                 </div>
@@ -590,8 +612,8 @@
         </div>
 
         <!-- Custom Goals Form -->
-        <div class="card bg-base-200 shadow-lg md:col-span-2 lg:col-span-1">
-          <div class="card-body">
+        <div class="card bg-base-200 shadow-lg">
+          <div class="card-body p-6">
             <h2 class="card-title">Customize Goals</h2>
             
             <div class="form-control w-full">
@@ -607,7 +629,7 @@
                 bind:value={customName}
               />
               <div class="label">
-                <span class="label-text-alt">Give your custom goals a memorable name</span>
+                <span class="label-text-alt text-wrap">Give your goals a memorable name</span>
               </div>
             </div>
 
@@ -695,11 +717,11 @@
 
       <!-- Additional Settings Section -->
       <div class="card bg-base-200 shadow-lg mt-8">
-        <div class="card-body">
+        <div class="card-body p-6">
           <h2 class="card-title">Additional Settings</h2>
-          <div class="grid gap-4 md:grid-cols-2">
+          <div class="grid gap-6 lg:grid-cols-2">
             <div class="card bg-base-100">
-              <div class="card-body">
+              <div class="card-body p-4">
                 <h3 class="card-title text-lg">Units Preference</h3>
                 <p class="text-sm text-base-content/70 mb-4">
                   Choose your preferred units for nutrition display
@@ -733,7 +755,7 @@
             </div>
 
             <div class="card bg-base-100">
-              <div class="card-body">
+              <div class="card-body p-4">
                 <h3 class="card-title text-lg">Data & Privacy</h3>
                 <p class="text-sm text-base-content/70 mb-4">
                   Manage your data and privacy settings
