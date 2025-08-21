@@ -73,24 +73,12 @@ func Run(ctx context.Context, port string) error {
 	// API v1 routes with OpenAPI generated routing
 	v1 := r.Group("/api/v1")
 	{
-		// Use the generated server interface wrapper
-		wrapper := &api.ServerInterfaceWrapper{
-			Handler: apiServer,
-		}
+		// Use the generated RegisterHandlers to include all routes including biometrics
+		api.RegisterHandlers(v1, apiServer)
 
-		v1.POST("/consumption", wrapper.CreateConsumption)
-		v1.PUT("/consumption/:id", wrapper.UpdateConsumption)
-		v1.DELETE("/consumption/:id", wrapper.DeleteConsumption)
-		v1.GET("/health", wrapper.GetHealth)
-		v1.GET("/goals", wrapper.GetGoals)
-		v1.PUT("/goals", wrapper.UpdateGoals)
-		v1.GET("/trends", wrapper.GetTrends)
-		v1.GET("/export", wrapper.ExportData)
-
-		// Development-only routes
+		// Development-only routes that override or supplement the generated routes
 		if env == "development" {
-			v1.GET("/consumptions", wrapper.GetConsumptions)
-			v1.GET("/nutrition-summary", wrapper.GetNutritionSummary)
+			// OpenAPI spec routes
 			v1.GET("/docs", apiServer.SwaggerUIHandler)
 			v1.GET("/openapi.yaml", apiServer.OpenAPISpecHandler)
 		}

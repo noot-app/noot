@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -104,8 +105,8 @@ func (s *SQLiteStore) Reset() error {
 // CreateUser creates a new user
 func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 	query := `
-		INSERT INTO users (id, provider, subject, email, subscription_tier, sex, birth_date, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+		INSERT INTO users (id, provider, subject, email, subscription_tier, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
 	user.ID = generateULID()
@@ -116,13 +117,8 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 		user.SubscriptionTier = SubscriptionTierFree
 	}
 
-	// Set default sex if not provided
-	if user.Sex == "" {
-		user.Sex = "unspecified"
-	}
-
 	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email,
-		user.SubscriptionTier, user.Sex, user.BirthDate, now)
+		user.SubscriptionTier, now)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -132,11 +128,11 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 
 // GetUser retrieves a user by ID
 func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
-	query := `SELECT id, provider, subject, email, subscription_tier, sex, birth_date, created_at FROM users WHERE id = ?`
+	query := `SELECT id, provider, subject, email, subscription_tier, active_goal_name, created_at FROM users WHERE id = ?`
 
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, id).
-		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.Sex, &user.BirthDate, &user.CreatedAt)
+		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.ActiveGoalName, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // User not found
@@ -149,11 +145,11 @@ func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
 
 // GetUserBySubject retrieves a user by provider and subject
 func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject string) (*User, error) {
-	query := `SELECT id, provider, subject, email, subscription_tier, sex, birth_date, created_at FROM users WHERE provider = ? AND subject = ?`
+	query := `SELECT id, provider, subject, email, subscription_tier, active_goal_name, created_at FROM users WHERE provider = ? AND subject = ?`
 
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, provider, subject).
-		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.Sex, &user.BirthDate, &user.CreatedAt)
+		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.ActiveGoalName, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // User not found
@@ -950,6 +946,125 @@ func (s *SQLiteStore) Seed() error {
 		}
 	}
 
+	// Create sample goal sets for Pro users
+	if user.SubscriptionTier == SubscriptionTierPro {
+		sampleGoalSets := []struct {
+			name      string
+			overrides map[string]float64
+			isActive  bool
+		}{
+			{
+				name: "Bulking",
+				overrides: map[string]float64{
+					"calories":      3200,
+					"protein_g":     180,
+					"total_fat_g":   107,
+					"total_carbs_g": 320,
+				},
+				isActive: false,
+			},
+			{
+				name: "Cutting",
+				overrides: map[string]float64{
+					"calories":      2000,
+					"protein_g":     160,
+					"total_fat_g":   67,
+					"total_carbs_g": 150,
+				},
+				isActive: true, // This will be the active goal
+			},
+			{
+				name: "Maintenance",
+				overrides: map[string]float64{
+					"calories":      2600,
+					"protein_g":     140,
+					"total_fat_g":   87,
+					"total_carbs_g": 260,
+				},
+				isActive: false,
+			},
+		}
+
+		var activeGoalName string
+		for _, goalSet := range sampleGoalSets {
+			// Check if goal already exists
+			existingGoal, err := s.GetUserGoal(ctx, user.ID, goalSet.name)
+			if err != nil {
+				return fmt.Errorf("failed to check existing goal: %w", err)
+			}
+
+			// Skip if goal already exists
+			if existingGoal != nil {
+				if goalSet.isActive {
+					activeGoalName = goalSet.name
+				}
+				continue
+			}
+
+			// Create UserOverrides structure
+			userOverrides := map[string]interface{}{
+				"name":      goalSet.name,
+				"overrides": goalSet.overrides,
+			}
+
+			// Serialize to JSON
+			overridesJSON, err := json.Marshal(userOverrides)
+			if err != nil {
+				return fmt.Errorf("failed to serialize goal overrides: %w", err)
+			}
+
+			// Create goal set
+			userGoal := &UserGoal{
+				UserID:        user.ID,
+				Name:          goalSet.name,
+				OverridesJSON: string(overridesJSON),
+			}
+
+			if err := s.UpsertUserGoal(ctx, userGoal); err != nil {
+				return fmt.Errorf("failed to create seed goal '%s': %w", goalSet.name, err)
+			}
+
+			// Track which goal should be active
+			if goalSet.isActive {
+				activeGoalName = goalSet.name
+			}
+		}
+
+		// Set the active goal if one was specified
+		if activeGoalName != "" {
+			if err := s.SetActiveGoal(ctx, user.ID, activeGoalName); err != nil {
+				return fmt.Errorf("failed to set active goal '%s': %w", activeGoalName, err)
+			}
+		}
+	}
+
+	// Create sample biometrics for development
+	// Birthdate: 01/01/1995, Sex: male, Height: 175cm, Weight: 68kg, Activity Level: moderate (L3)
+	birthdate := time.Date(1995, 1, 1, 0, 0, 0, 0, time.UTC)
+	heightCm := 175.0
+	weightKg := 68.0
+	sampleBiometrics := &UserBiometrics{
+		UserID:        user.ID,
+		BirthDate:     &birthdate,
+		Sex:           "male",
+		HeightCm:      &heightCm,
+		WeightKg:      &weightKg,
+		ActivityLevel: "moderately_active",
+	}
+
+	// Check if biometrics already exist
+	existingBiometrics, err := s.GetUserBiometrics(ctx, user.ID)
+	if err != nil && err.Error() != "no biometrics found for user" {
+		return fmt.Errorf("failed to check existing biometrics: %w", err)
+	}
+
+	// Only create if they don't exist
+	if existingBiometrics == nil {
+		if err := s.UpsertUserBiometrics(ctx, sampleBiometrics); err != nil {
+			return fmt.Errorf("failed to create seed biometrics: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -1199,6 +1314,152 @@ func (s *SQLiteStore) DeleteUserGoal(ctx context.Context, userID, name string) e
 
 	if rowsAffected == 0 {
 		return fmt.Errorf("user goal not found")
+	}
+
+	return nil
+}
+
+// GetUserGoals retrieves all goal sets for a user
+func (s *SQLiteStore) GetUserGoals(ctx context.Context, userID string) ([]*UserGoal, error) {
+	query := `SELECT id, user_id, name, overrides_json, created_at, updated_at 
+			  FROM user_goals WHERE user_id = ? ORDER BY updated_at DESC`
+
+	rows, err := s.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user goals: %w", err)
+	}
+	defer rows.Close()
+
+	var goals []*UserGoal
+	for rows.Next() {
+		goal := &UserGoal{}
+		err := rows.Scan(&goal.ID, &goal.UserID, &goal.Name, &goal.OverridesJSON,
+			&goal.CreatedAt, &goal.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan user goal: %w", err)
+		}
+		goals = append(goals, goal)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate user goals: %w", err)
+	}
+
+	return goals, nil
+}
+
+// SetActiveGoal sets the active goal for a user
+func (s *SQLiteStore) SetActiveGoal(ctx context.Context, userID, goalName string) error {
+	// First verify the goal exists
+	goal, err := s.GetUserGoal(ctx, userID, goalName)
+	if err != nil {
+		return fmt.Errorf("failed to verify goal exists: %w", err)
+	}
+	if goal == nil {
+		return fmt.Errorf("goal '%s' not found for user", goalName)
+	}
+
+	// Update user's active goal
+	query := `UPDATE users SET active_goal_name = ? WHERE id = ?`
+	result, err := s.db.ExecContext(ctx, query, goalName, userID)
+	if err != nil {
+		return fmt.Errorf("failed to set active goal: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+// GetActiveGoalName retrieves the active goal name for a user
+func (s *SQLiteStore) GetActiveGoalName(ctx context.Context, userID string) (*string, error) {
+	query := `SELECT active_goal_name FROM users WHERE id = ?`
+
+	var activeGoalName *string
+	err := s.db.QueryRowContext(ctx, query, userID).Scan(&activeGoalName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("failed to get active goal name: %w", err)
+	}
+
+	return activeGoalName, nil
+}
+
+// UpsertUserBiometrics creates or updates user biometrics
+func (s *SQLiteStore) UpsertUserBiometrics(ctx context.Context, biometrics *UserBiometrics) error {
+	query := `
+		INSERT INTO user_biometrics (id, user_id, birth_date, sex, height_cm, weight_kg, activity_level, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(user_id) DO UPDATE SET
+			birth_date = excluded.birth_date,
+			sex = excluded.sex,
+			height_cm = excluded.height_cm,
+			weight_kg = excluded.weight_kg,
+			activity_level = excluded.activity_level,
+			updated_at = excluded.updated_at`
+
+	now := time.Now().UTC()
+	if biometrics.ID == "" {
+		biometrics.ID = generateULID()
+		biometrics.CreatedAt = now
+	}
+	biometrics.UpdatedAt = now
+
+	_, err := s.db.ExecContext(ctx, query, biometrics.ID, biometrics.UserID, biometrics.BirthDate,
+		biometrics.Sex, biometrics.HeightCm, biometrics.WeightKg, biometrics.ActivityLevel,
+		biometrics.CreatedAt, biometrics.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to upsert user biometrics: %w", err)
+	}
+
+	return nil
+}
+
+// GetUserBiometrics retrieves user biometrics by user ID
+func (s *SQLiteStore) GetUserBiometrics(ctx context.Context, userID string) (*UserBiometrics, error) {
+	query := `SELECT id, user_id, birth_date, sex, height_cm, weight_kg, activity_level, created_at, updated_at 
+			  FROM user_biometrics WHERE user_id = ?`
+
+	biometrics := &UserBiometrics{}
+	err := s.db.QueryRowContext(ctx, query, userID).
+		Scan(&biometrics.ID, &biometrics.UserID, &biometrics.BirthDate, &biometrics.Sex,
+			&biometrics.HeightCm, &biometrics.WeightKg, &biometrics.ActivityLevel,
+			&biometrics.CreatedAt, &biometrics.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Biometrics not found
+		}
+		return nil, fmt.Errorf("failed to get user biometrics: %w", err)
+	}
+
+	return biometrics, nil
+}
+
+// DeleteUserBiometrics deletes user biometrics
+func (s *SQLiteStore) DeleteUserBiometrics(ctx context.Context, userID string) error {
+	query := `DELETE FROM user_biometrics WHERE user_id = ?`
+
+	result, err := s.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete user biometrics: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user biometrics not found")
 	}
 
 	return nil

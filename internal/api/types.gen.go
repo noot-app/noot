@@ -23,9 +23,26 @@ const (
 
 // Defines values for LifeStageSex.
 const (
-	Female      LifeStageSex = "female"
-	Male        LifeStageSex = "male"
-	Unspecified LifeStageSex = "unspecified"
+	LifeStageSexFemale      LifeStageSex = "female"
+	LifeStageSexMale        LifeStageSex = "male"
+	LifeStageSexUnspecified LifeStageSex = "unspecified"
+)
+
+// Defines values for UpdateBiometricsRequestActivityLevel.
+const (
+	UpdateBiometricsRequestActivityLevelExtraActive      UpdateBiometricsRequestActivityLevel = "extra_active"
+	UpdateBiometricsRequestActivityLevelLightlyActive    UpdateBiometricsRequestActivityLevel = "lightly_active"
+	UpdateBiometricsRequestActivityLevelModeratelyActive UpdateBiometricsRequestActivityLevel = "moderately_active"
+	UpdateBiometricsRequestActivityLevelSedentary        UpdateBiometricsRequestActivityLevel = "sedentary"
+	UpdateBiometricsRequestActivityLevelVeryActive       UpdateBiometricsRequestActivityLevel = "very_active"
+)
+
+// Defines values for UpdateBiometricsRequestSex.
+const (
+	UpdateBiometricsRequestSexFemale         UpdateBiometricsRequestSex = "female"
+	UpdateBiometricsRequestSexMale           UpdateBiometricsRequestSex = "male"
+	UpdateBiometricsRequestSexOther          UpdateBiometricsRequestSex = "other"
+	UpdateBiometricsRequestSexPreferNotToSay UpdateBiometricsRequestSex = "prefer_not_to_say"
 )
 
 // Defines values for UserSubscriptionTier.
@@ -34,11 +51,46 @@ const (
 	Pro  UserSubscriptionTier = "pro"
 )
 
+// Defines values for UserBiometricsActivityLevel.
+const (
+	UserBiometricsActivityLevelExtraActive      UserBiometricsActivityLevel = "extra_active"
+	UserBiometricsActivityLevelLightlyActive    UserBiometricsActivityLevel = "lightly_active"
+	UserBiometricsActivityLevelModeratelyActive UserBiometricsActivityLevel = "moderately_active"
+	UserBiometricsActivityLevelSedentary        UserBiometricsActivityLevel = "sedentary"
+	UserBiometricsActivityLevelVeryActive       UserBiometricsActivityLevel = "very_active"
+)
+
+// Defines values for UserBiometricsSex.
+const (
+	Female         UserBiometricsSex = "female"
+	Male           UserBiometricsSex = "male"
+	Other          UserBiometricsSex = "other"
+	PreferNotToSay UserBiometricsSex = "prefer_not_to_say"
+)
+
 // Defines values for ExportDataParamsFormat.
 const (
 	ExportDataParamsFormatCsv  ExportDataParamsFormat = "csv"
 	ExportDataParamsFormatJson ExportDataParamsFormat = "json"
 )
+
+// BiometricsResponse defines model for BiometricsResponse.
+type BiometricsResponse struct {
+	Biometrics        *UserBiometrics `json:"biometrics,omitempty"`
+	CalculatedMetrics *struct {
+		// AgeYears Calculated age in years
+		AgeYears *int `json:"age_years,omitempty"`
+
+		// Bmi Body Mass Index
+		Bmi *float32 `json:"bmi,omitempty"`
+
+		// Bmr Basal Metabolic Rate (calories/day)
+		Bmr *float32 `json:"bmr,omitempty"`
+
+		// Tdee Total Daily Energy Expenditure (calories/day)
+		Tdee *float32 `json:"tdee,omitempty"`
+	} `json:"calculated_metrics,omitempty"`
+}
 
 // CompleteNutrient defines model for CompleteNutrient.
 type CompleteNutrient struct {
@@ -286,6 +338,28 @@ type ExportResponse struct {
 // ExportResponseFormat Export format used
 type ExportResponseFormat string
 
+// GoalSetSummary defines model for GoalSetSummary.
+type GoalSetSummary struct {
+	// CreatedAt When the goal set was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// Name Name of the goal set
+	Name string `json:"name"`
+
+	// UpdatedAt When the goal set was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// GoalSetsResponse defines model for GoalSetsResponse.
+type GoalSetsResponse struct {
+	// ActiveGoalName Name of the currently active goal set
+	ActiveGoalName string `json:"active_goal_name"`
+
+	// GoalSets List of all available goal sets
+	GoalSets []GoalSetSummary `json:"goal_sets"`
+	User     User             `json:"user"`
+}
+
 // Goals defines model for Goals.
 type Goals struct {
 	// CustomName Name of the custom goal set (only present when source is "custom")
@@ -526,6 +600,12 @@ type NutritionSummaryResponse struct {
 	User    User             `json:"user"`
 }
 
+// SetActiveGoalRequest defines model for SetActiveGoalRequest.
+type SetActiveGoalRequest struct {
+	// Name Name of the goal set to make active
+	Name string `json:"name"`
+}
+
 // Summary defines model for Summary.
 type Summary struct {
 	// DailyValues Daily value amounts used for calculations
@@ -551,6 +631,30 @@ type TrendsResponse struct {
 	User   User                   `json:"user"`
 }
 
+// UpdateBiometricsRequest defines model for UpdateBiometricsRequest.
+type UpdateBiometricsRequest struct {
+	// ActivityLevel Physical activity level
+	ActivityLevel *UpdateBiometricsRequestActivityLevel `json:"activity_level,omitempty"`
+
+	// BirthDate Date of birth
+	BirthDate *openapi_types.Date `json:"birth_date,omitempty"`
+
+	// HeightCm Height in centimeters
+	HeightCm *float32 `json:"height_cm,omitempty"`
+
+	// Sex Biological sex for DRI calculations
+	Sex *UpdateBiometricsRequestSex `json:"sex,omitempty"`
+
+	// WeightKg Weight in kilograms
+	WeightKg *float32 `json:"weight_kg,omitempty"`
+}
+
+// UpdateBiometricsRequestActivityLevel Physical activity level
+type UpdateBiometricsRequestActivityLevel string
+
+// UpdateBiometricsRequestSex Biological sex for DRI calculations
+type UpdateBiometricsRequestSex string
+
 // UpdateConsumptionRequest defines model for UpdateConsumptionRequest.
 type UpdateConsumptionRequest struct {
 	// Items Updated items with nutrition information
@@ -559,8 +663,8 @@ type UpdateConsumptionRequest struct {
 
 // UpdateGoalsRequest defines model for UpdateGoalsRequest.
 type UpdateGoalsRequest struct {
-	// Name Custom name for the goal set (optional, defaults to "custom")
-	Name *string `json:"name,omitempty"`
+	// Name Custom name for the goal set (required for managing multiple goal sets)
+	Name string `json:"name"`
 
 	// Overrides Custom nutrition goal overrides
 	Overrides map[string]float32 `json:"overrides"`
@@ -590,6 +694,30 @@ type User struct {
 // UserSubscriptionTier User subscription level
 type UserSubscriptionTier string
 
+// UserBiometrics defines model for UserBiometrics.
+type UserBiometrics struct {
+	// ActivityLevel Physical activity level
+	ActivityLevel *UserBiometricsActivityLevel `json:"activity_level,omitempty"`
+
+	// BirthDate Date of birth
+	BirthDate *openapi_types.Date `json:"birth_date,omitempty"`
+
+	// HeightCm Height in centimeters
+	HeightCm *float32 `json:"height_cm,omitempty"`
+
+	// Sex Biological sex for DRI calculations
+	Sex *UserBiometricsSex `json:"sex,omitempty"`
+
+	// WeightKg Weight in kilograms
+	WeightKg *float32 `json:"weight_kg,omitempty"`
+}
+
+// UserBiometricsActivityLevel Physical activity level
+type UserBiometricsActivityLevel string
+
+// UserBiometricsSex Biological sex for DRI calculations
+type UserBiometricsSex string
+
 // CreateConsumptionMultipartBody defines parameters for CreateConsumption.
 type CreateConsumptionMultipartBody struct {
 	// Audio Audio file (webm, opus, mp3, wav)
@@ -613,6 +741,12 @@ type ExportDataParams struct {
 
 // ExportDataParamsFormat defines parameters for ExportData.
 type ExportDataParamsFormat string
+
+// GetGoalsParams defines parameters for GetGoals.
+type GetGoalsParams struct {
+	// GoalName Name of the specific goal set to retrieve. If not provided, returns the active goal set.
+	GoalName *string `form:"goal_name,omitempty" json:"goal_name,omitempty"`
+}
 
 // GetNutritionSummaryParams defines parameters for GetNutritionSummary.
 type GetNutritionSummaryParams struct {
@@ -641,6 +775,9 @@ type GetTrendsParams struct {
 	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
 
+// UpdateUserBiometricsJSONRequestBody defines body for UpdateUserBiometrics for application/json ContentType.
+type UpdateUserBiometricsJSONRequestBody = UpdateBiometricsRequest
+
 // CreateConsumptionMultipartRequestBody defines body for CreateConsumption for multipart/form-data ContentType.
 type CreateConsumptionMultipartRequestBody CreateConsumptionMultipartBody
 
@@ -649,3 +786,6 @@ type UpdateConsumptionJSONRequestBody = UpdateConsumptionRequest
 
 // UpdateGoalsJSONRequestBody defines body for UpdateGoals for application/json ContentType.
 type UpdateGoalsJSONRequestBody = UpdateGoalsRequest
+
+// SetActiveGoalSetJSONRequestBody defines body for SetActiveGoalSet for application/json ContentType.
+type SetActiveGoalSetJSONRequestBody = SetActiveGoalRequest

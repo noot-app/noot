@@ -24,7 +24,15 @@ type Store interface {
 	// User goal operations
 	UpsertUserGoal(ctx context.Context, goal *UserGoal) error
 	GetUserGoal(ctx context.Context, userID, name string) (*UserGoal, error)
+	GetUserGoals(ctx context.Context, userID string) ([]*UserGoal, error)
 	DeleteUserGoal(ctx context.Context, userID, name string) error
+	SetActiveGoal(ctx context.Context, userID, goalName string) error
+	GetActiveGoalName(ctx context.Context, userID string) (*string, error)
+
+	// User biometrics operations
+	UpsertUserBiometrics(ctx context.Context, biometrics *UserBiometrics) error
+	GetUserBiometrics(ctx context.Context, userID string) (*UserBiometrics, error)
+	DeleteUserBiometrics(ctx context.Context, userID string) error
 
 	// Item cache operations (soft TTL)
 	GetItemFromCache(ctx context.Context, normalizedName, normalizedBrand string) (*ItemCache, error)
@@ -45,14 +53,26 @@ type Store interface {
 
 // User represents a user in the system
 type User struct {
-	ID               string     `json:"id"`
-	Provider         string     `json:"provider"`
-	Subject          string     `json:"subject"`
-	Email            string     `json:"email"`
-	SubscriptionTier string     `json:"subscription_tier"` // "free", "pro"
-	Sex              string     `json:"sex"`               // "male", "female", "unspecified"
-	BirthDate        *time.Time `json:"birth_date"`        // nullable for age-based DRI calculation
-	CreatedAt        time.Time  `json:"created_at"`
+	ID               string    `json:"id"`
+	Provider         string    `json:"provider"`
+	Subject          string    `json:"subject"`
+	Email            string    `json:"email"`
+	SubscriptionTier string    `json:"subscription_tier"` // "free", "pro"
+	ActiveGoalName   *string   `json:"active_goal_name"`  // Name of the active goal set (Pro users only)
+	CreatedAt        time.Time `json:"created_at"`
+}
+
+// UserBiometrics represents user physical and demographic data
+type UserBiometrics struct {
+	ID            string     `json:"id"`
+	UserID        string     `json:"user_id"`
+	BirthDate     *time.Time `json:"birth_date"`
+	Sex           string     `json:"sex"` // "male", "female", "other", "prefer_not_to_say"
+	HeightCm      *float64   `json:"height_cm"`
+	WeightKg      *float64   `json:"weight_kg"`
+	ActivityLevel string     `json:"activity_level"` // "sedentary", "lightly_active", etc.
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 // Consumption represents a logged consumption with nutrition data

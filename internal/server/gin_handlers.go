@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/grantbirki/noot/internal/api"
 	"github.com/grantbirki/noot/internal/goals"
 	"github.com/grantbirki/noot/internal/storage"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // APIServer implements the generated ServerInterface
@@ -485,7 +487,7 @@ func (s *APIServer) SwaggerUIHandler(c *gin.Context) {
 }
 
 // GetGoals implements ServerInterface.GetGoals
-func (s *APIServer) GetGoals(c *gin.Context) {
+func (s *APIServer) GetGoals(c *gin.Context, params api.GetGoalsParams) {
 	requestID := c.GetString("request_id")
 	ctx := c.Request.Context()
 
@@ -500,20 +502,51 @@ func (s *APIServer) GetGoals(c *gin.Context) {
 	// Get user's custom goals if they're a Pro user
 	var customOverrides *goals.UserOverrides
 	if user.SubscriptionTier == storage.SubscriptionTierPro {
-		userGoal, err := s.store.GetUserGoal(ctx, user.ID, "custom")
-		if err != nil {
-			LogError("Failed to get user goal", err, "user_id", user.ID)
-		} else if userGoal != nil {
-			customOverrides = &goals.UserOverrides{}
-			if err := json.Unmarshal([]byte(userGoal.OverridesJSON), &customOverrides); err != nil {
-				LogError("Failed to parse user goal overrides", err, "user_id", user.ID)
-				customOverrides = nil
+		// Check if a specific goal was requested via query parameter
+		goalName := ""
+		if params.GoalName != nil {
+			goalName = *params.GoalName
+		}
+
+		// If no specific goal requested, use the active goal
+		if goalName == "" && user.ActiveGoalName != nil {
+			goalName = *user.ActiveGoalName
+		}
+
+		// Only try to get goals if we have a goal name
+		if goalName != "" {
+			userGoal, err := s.store.GetUserGoal(ctx, user.ID, goalName)
+			if err != nil {
+				LogError("Failed to get user goal", err, "user_id", user.ID, "goal_name", goalName)
+			} else if userGoal != nil {
+				customOverrides = &goals.UserOverrides{}
+				if err := json.Unmarshal([]byte(userGoal.OverridesJSON), &customOverrides); err != nil {
+					LogError("Failed to parse user goal overrides", err, "user_id", user.ID, "goal_name", goalName)
+					customOverrides = nil
+				}
 			}
 		}
 	}
 
-	// Resolve goals based on user profile
-	resolvedGoals, err := s.goalResolver.ResolveGoals(user.Sex, user.BirthDate, customOverrides)
+	// Get user's biometrics for personalized goals
+	userBiometrics, err := s.store.GetUserBiometrics(ctx, user.ID)
+	if err != nil {
+		LogError("Failed to get user biometrics", err, "user_id", user.ID)
+		// Continue with default values
+	}
+
+	// Extract sex and birth_date from biometrics, with defaults
+	sex := "male" // Default fallback
+	var birthDate *time.Time
+	if userBiometrics != nil {
+		if userBiometrics.Sex != "" && userBiometrics.Sex != "prefer_not_to_say" {
+			sex = userBiometrics.Sex
+		}
+		birthDate = userBiometrics.BirthDate
+	}
+
+	// Resolve goals based on biometrics or defaults
+	resolvedGoals, err := s.goalResolver.ResolveGoals(sex, birthDate, customOverrides)
 	if err != nil {
 		appErr := NewAppError("Failed to resolve nutrition goals", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -590,20 +623,22 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 		return
 	}
 
-	// Validate and set goal name
-	goalDisplayName := "Custom Goals" // default display name
-	if req.Name != nil && *req.Name != "" {
-		if len(*req.Name) > 50 {
-			appErr := NewAppError("Goal name must be 50 characters or less", http.StatusBadRequest, nil)
-			s.handleAppError(c, appErr, requestID)
-			return
-		}
-		goalDisplayName = *req.Name
+	// Validate goal name is required
+	if req.Name == "" {
+		appErr := NewAppError("Goal name is required", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	if len(req.Name) > 50 {
+		appErr := NewAppError("Goal name must be 50 characters or less", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
 	}
 
 	// Create the user overrides structure with both name and overrides
 	userOverrides := goals.UserOverrides{
-		Name:      goalDisplayName,
+		Name:      req.Name,
 		Overrides: make(map[string]float64),
 	}
 
@@ -622,7 +657,7 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 
 	userGoal := &storage.UserGoal{
 		UserID:        user.ID,
-		Name:          "custom", // Keep as "custom" for database constraint
+		Name:          req.Name, // Use the actual goal name from request
 		OverridesJSON: string(overridesJSON),
 	}
 
@@ -632,8 +667,15 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 		return
 	}
 
+	// Set this as the active goal if the user doesn't have one set yet
+	if user.ActiveGoalName == nil {
+		if err := s.store.SetActiveGoal(ctx, user.ID, req.Name); err != nil {
+			LogError("Failed to set active goal for new user", err, "user_id", user.ID, "goal_name", req.Name)
+		}
+	}
+
 	// Return updated goals
-	s.GetGoals(c)
+	s.GetGoals(c, api.GetGoalsParams{})
 }
 
 // GetTrends implements ServerInterface.GetTrends
@@ -762,6 +804,509 @@ func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
 		}
 		c.JSON(http.StatusOK, response)
 	}
+}
+
+// GetUserBiometrics retrieves user biometrics data
+func (s *APIServer) GetUserBiometrics(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+	if user == nil {
+		appErr := NewAppError("User not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get user biometrics
+	biometrics, err := s.store.GetUserBiometrics(ctx, user.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to get user biometrics", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Calculate metrics from biometrics
+	calculations := CalculateMetrics(biometrics)
+
+	// Convert to API response format
+	var apiBiometrics *api.UserBiometrics
+	if biometrics != nil {
+		apiBiometrics = &api.UserBiometrics{}
+
+		if biometrics.BirthDate != nil {
+			apiDate := openapi_types.Date{Time: *biometrics.BirthDate}
+			apiBiometrics.BirthDate = &apiDate
+		}
+
+		if biometrics.Sex != "" {
+			switch biometrics.Sex {
+			case "male":
+				sex := api.Male
+				apiBiometrics.Sex = &sex
+			case "female":
+				sex := api.Female
+				apiBiometrics.Sex = &sex
+			case "other":
+				sex := api.Other
+				apiBiometrics.Sex = &sex
+			case "prefer_not_to_say":
+				sex := api.PreferNotToSay
+				apiBiometrics.Sex = &sex
+			}
+		}
+
+		if biometrics.HeightCm != nil {
+			heightFloat32 := float32(*biometrics.HeightCm)
+			apiBiometrics.HeightCm = &heightFloat32
+		}
+		if biometrics.WeightKg != nil {
+			weightFloat32 := float32(*biometrics.WeightKg)
+			apiBiometrics.WeightKg = &weightFloat32
+		}
+
+		if biometrics.ActivityLevel != "" {
+			switch biometrics.ActivityLevel {
+			case "sedentary":
+				level := api.UserBiometricsActivityLevelSedentary
+				apiBiometrics.ActivityLevel = &level
+			case "lightly_active":
+				level := api.UserBiometricsActivityLevelLightlyActive
+				apiBiometrics.ActivityLevel = &level
+			case "moderately_active":
+				level := api.UserBiometricsActivityLevelModeratelyActive
+				apiBiometrics.ActivityLevel = &level
+			case "very_active":
+				level := api.UserBiometricsActivityLevelVeryActive
+				apiBiometrics.ActivityLevel = &level
+			case "extra_active":
+				level := api.UserBiometricsActivityLevelExtraActive
+				apiBiometrics.ActivityLevel = &level
+			}
+		}
+	}
+
+	// Build calculated metrics inline struct
+	var calculatedMetrics *struct {
+		AgeYears *int     `json:"age_years,omitempty"`
+		Bmi      *float32 `json:"bmi,omitempty"`
+		Bmr      *float32 `json:"bmr,omitempty"`
+		Tdee     *float32 `json:"tdee,omitempty"`
+	}
+	if calculations != nil {
+		calculatedMetrics = &struct {
+			AgeYears *int     `json:"age_years,omitempty"`
+			Bmi      *float32 `json:"bmi,omitempty"`
+			Bmr      *float32 `json:"bmr,omitempty"`
+			Tdee     *float32 `json:"tdee,omitempty"`
+		}{}
+
+		calculatedMetrics.AgeYears = calculations.AgeYears
+		if calculations.BMR != nil {
+			bmrFloat32 := float32(*calculations.BMR)
+			calculatedMetrics.Bmr = &bmrFloat32
+		}
+		if calculations.TDEE != nil {
+			tdeeFloat32 := float32(*calculations.TDEE)
+			calculatedMetrics.Tdee = &tdeeFloat32
+		}
+		if calculations.BMI != nil {
+			bmiFloat32 := float32(*calculations.BMI)
+			calculatedMetrics.Bmi = &bmiFloat32
+		}
+	}
+
+	response := api.BiometricsResponse{
+		Biometrics:        apiBiometrics,
+		CalculatedMetrics: calculatedMetrics,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// UpdateUserBiometrics creates or updates user biometrics
+func (s *APIServer) UpdateUserBiometrics(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+	if user == nil {
+		appErr := NewAppError("User not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse request body
+	var req api.UpdateBiometricsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert API request to storage biometrics
+	biometrics := &storage.UserBiometrics{
+		UserID: user.ID,
+	}
+
+	// Convert birth date
+	if req.BirthDate != nil {
+		biometrics.BirthDate = &req.BirthDate.Time
+	}
+
+	// Convert sex
+	if req.Sex != nil {
+		switch *req.Sex {
+		case api.UpdateBiometricsRequestSexMale:
+			biometrics.Sex = "male"
+		case api.UpdateBiometricsRequestSexFemale:
+			biometrics.Sex = "female"
+		case api.UpdateBiometricsRequestSexOther:
+			biometrics.Sex = "other"
+		case api.UpdateBiometricsRequestSexPreferNotToSay:
+			biometrics.Sex = "prefer_not_to_say"
+		}
+	} else {
+		biometrics.Sex = "prefer_not_to_say" // Default
+	}
+
+	// Convert height and weight
+	if req.HeightCm != nil {
+		heightFloat64 := float64(*req.HeightCm)
+		biometrics.HeightCm = &heightFloat64
+	}
+	if req.WeightKg != nil {
+		weightFloat64 := float64(*req.WeightKg)
+		biometrics.WeightKg = &weightFloat64
+	}
+
+	// Convert activity level
+	if req.ActivityLevel != nil {
+		switch *req.ActivityLevel {
+		case api.UpdateBiometricsRequestActivityLevelSedentary:
+			biometrics.ActivityLevel = "sedentary"
+		case api.UpdateBiometricsRequestActivityLevelLightlyActive:
+			biometrics.ActivityLevel = "lightly_active"
+		case api.UpdateBiometricsRequestActivityLevelModeratelyActive:
+			biometrics.ActivityLevel = "moderately_active"
+		case api.UpdateBiometricsRequestActivityLevelVeryActive:
+			biometrics.ActivityLevel = "very_active"
+		case api.UpdateBiometricsRequestActivityLevelExtraActive:
+			biometrics.ActivityLevel = "extra_active"
+		}
+	} else {
+		biometrics.ActivityLevel = "lightly_active" // Default
+	}
+
+	// Upsert biometrics
+	err = s.store.UpsertUserBiometrics(ctx, biometrics)
+	if err != nil {
+		appErr := NewAppError("Failed to save user biometrics", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Return the updated biometrics with calculations
+	// Re-fetch to get the complete data with timestamps
+	updatedBiometrics, err := s.store.GetUserBiometrics(ctx, user.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve updated biometrics", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	calculations := CalculateMetrics(updatedBiometrics)
+
+	// Convert to API response (same logic as GetUserBiometrics)
+	var apiBiometrics *api.UserBiometrics
+	if updatedBiometrics != nil {
+		apiBiometrics = &api.UserBiometrics{}
+
+		if updatedBiometrics.BirthDate != nil {
+			apiDate := openapi_types.Date{Time: *updatedBiometrics.BirthDate}
+			apiBiometrics.BirthDate = &apiDate
+		}
+
+		if updatedBiometrics.Sex != "" {
+			switch updatedBiometrics.Sex {
+			case "male":
+				sex := api.Male
+				apiBiometrics.Sex = &sex
+			case "female":
+				sex := api.Female
+				apiBiometrics.Sex = &sex
+			case "other":
+				sex := api.Other
+				apiBiometrics.Sex = &sex
+			case "prefer_not_to_say":
+				sex := api.PreferNotToSay
+				apiBiometrics.Sex = &sex
+			}
+		}
+
+		if updatedBiometrics.HeightCm != nil {
+			heightFloat32 := float32(*updatedBiometrics.HeightCm)
+			apiBiometrics.HeightCm = &heightFloat32
+		}
+		if updatedBiometrics.WeightKg != nil {
+			weightFloat32 := float32(*updatedBiometrics.WeightKg)
+			apiBiometrics.WeightKg = &weightFloat32
+		}
+
+		if updatedBiometrics.ActivityLevel != "" {
+			switch updatedBiometrics.ActivityLevel {
+			case "sedentary":
+				level := api.UserBiometricsActivityLevelSedentary
+				apiBiometrics.ActivityLevel = &level
+			case "lightly_active":
+				level := api.UserBiometricsActivityLevelLightlyActive
+				apiBiometrics.ActivityLevel = &level
+			case "moderately_active":
+				level := api.UserBiometricsActivityLevelModeratelyActive
+				apiBiometrics.ActivityLevel = &level
+			case "very_active":
+				level := api.UserBiometricsActivityLevelVeryActive
+				apiBiometrics.ActivityLevel = &level
+			case "extra_active":
+				level := api.UserBiometricsActivityLevelExtraActive
+				apiBiometrics.ActivityLevel = &level
+			}
+		}
+	}
+
+	var calculatedMetrics *struct {
+		AgeYears *int     `json:"age_years,omitempty"`
+		Bmi      *float32 `json:"bmi,omitempty"`
+		Bmr      *float32 `json:"bmr,omitempty"`
+		Tdee     *float32 `json:"tdee,omitempty"`
+	}
+	if calculations != nil {
+		calculatedMetrics = &struct {
+			AgeYears *int     `json:"age_years,omitempty"`
+			Bmi      *float32 `json:"bmi,omitempty"`
+			Bmr      *float32 `json:"bmr,omitempty"`
+			Tdee     *float32 `json:"tdee,omitempty"`
+		}{}
+
+		calculatedMetrics.AgeYears = calculations.AgeYears
+		if calculations.BMR != nil {
+			bmrFloat32 := float32(*calculations.BMR)
+			calculatedMetrics.Bmr = &bmrFloat32
+		}
+		if calculations.TDEE != nil {
+			tdeeFloat32 := float32(*calculations.TDEE)
+			calculatedMetrics.Tdee = &tdeeFloat32
+		}
+		if calculations.BMI != nil {
+			bmiFloat32 := float32(*calculations.BMI)
+			calculatedMetrics.Bmi = &bmiFloat32
+		}
+	}
+
+	response := api.BiometricsResponse{
+		Biometrics:        apiBiometrics,
+		CalculatedMetrics: calculatedMetrics,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// DeleteUserBiometrics deletes user biometrics data
+func (s *APIServer) DeleteUserBiometrics(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+	if user == nil {
+		appErr := NewAppError("User not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Delete biometrics
+	err = s.store.DeleteUserBiometrics(ctx, user.ID)
+	if err != nil {
+		if err.Error() == "user biometrics not found" {
+			appErr := NewAppError("User biometrics not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+		appErr := NewAppError("Failed to delete user biometrics", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	response := api.DeleteResponse{
+		Message: "User biometrics deleted successfully",
+		Id:      user.ID,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetGoalSets implements ServerInterface.GetGoalSets
+func (s *APIServer) GetGoalSets(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check subscription tier
+	if user.SubscriptionTier != storage.SubscriptionTierPro {
+		appErr := NewAppError("Pro subscription required for goal sets management", http.StatusForbidden, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get all goal sets for the user
+	userGoals, err := s.store.GetUserGoals(ctx, user.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to get goal sets", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert to API format
+	goalSets := make([]api.GoalSetSummary, len(userGoals))
+	for i, goal := range userGoals {
+		goalSets[i] = api.GoalSetSummary{
+			Name:      goal.Name,
+			CreatedAt: goal.CreatedAt,
+			UpdatedAt: goal.UpdatedAt,
+		}
+	}
+
+	// Determine active goal name
+	activeGoalName := ""
+	if user.ActiveGoalName != nil {
+		activeGoalName = *user.ActiveGoalName
+	}
+
+	response := api.GoalSetsResponse{
+		GoalSets:       goalSets,
+		ActiveGoalName: activeGoalName,
+		User:           convertUser(user),
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// SetActiveGoalSet implements ServerInterface.SetActiveGoalSet
+func (s *APIServer) SetActiveGoalSet(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check subscription tier
+	if user.SubscriptionTier != storage.SubscriptionTierPro {
+		appErr := NewAppError("Pro subscription required for goal sets management", http.StatusForbidden, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse request body
+	var req api.SetActiveGoalRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Validate the goal exists
+	_, err = s.store.GetUserGoal(ctx, user.ID, req.Name)
+	if err != nil {
+		appErr := NewAppError("Failed to verify goal exists", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Set the active goal
+	if err := s.store.SetActiveGoal(ctx, user.ID, req.Name); err != nil {
+		if err.Error() == fmt.Sprintf("goal '%s' not found for user", req.Name) {
+			appErr := NewAppError("Goal set not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+		appErr := NewAppError("Failed to set active goal", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Return the updated goals (which will now use the new active goal)
+	s.GetGoals(c, api.GetGoalsParams{})
+}
+
+// DeleteGoalSet implements ServerInterface.DeleteGoalSet
+func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check subscription tier
+	if user.SubscriptionTier != storage.SubscriptionTierPro {
+		appErr := NewAppError("Pro subscription required for goal sets management", http.StatusForbidden, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check if this is the active goal
+	if user.ActiveGoalName != nil && *user.ActiveGoalName == name {
+		appErr := NewAppError("Cannot delete the currently active goal set. Switch to another goal set first.", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Delete the goal set
+	if err := s.store.DeleteUserGoal(ctx, user.ID, name); err != nil {
+		if err.Error() == "user goal not found" {
+			appErr := NewAppError("Goal set not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+		appErr := NewAppError("Failed to delete goal set", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // OpenAPISpecHandler serves the OpenAPI specification

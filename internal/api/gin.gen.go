@@ -13,6 +13,15 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Delete user biometrics
+	// (DELETE /biometrics)
+	DeleteUserBiometrics(c *gin.Context)
+	// Get user biometrics
+	// (GET /biometrics)
+	GetUserBiometrics(c *gin.Context)
+	// Update user biometrics
+	// (PUT /biometrics)
+	UpdateUserBiometrics(c *gin.Context)
 	// Log a consumption via audio
 	// (POST /consumption)
 	CreateConsumption(c *gin.Context)
@@ -30,10 +39,19 @@ type ServerInterface interface {
 	ExportData(c *gin.Context, params ExportDataParams)
 	// Get nutrition goals
 	// (GET /goals)
-	GetGoals(c *gin.Context)
+	GetGoals(c *gin.Context, params GetGoalsParams)
 	// Update nutrition goals (Pro only)
 	// (PUT /goals)
 	UpdateGoals(c *gin.Context)
+	// Set active goal set (Pro only)
+	// (PUT /goals/active)
+	SetActiveGoalSet(c *gin.Context)
+	// List all goal sets (Pro only)
+	// (GET /goals/sets)
+	GetGoalSets(c *gin.Context)
+	// Delete a goal set (Pro only)
+	// (DELETE /goals/sets/{name})
+	DeleteGoalSet(c *gin.Context, name string)
 	// Health check
 	// (GET /health)
 	GetHealth(c *gin.Context)
@@ -53,6 +71,45 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// DeleteUserBiometrics operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUserBiometrics(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteUserBiometrics(c)
+}
+
+// GetUserBiometrics operation middleware
+func (siw *ServerInterfaceWrapper) GetUserBiometrics(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetUserBiometrics(c)
+}
+
+// UpdateUserBiometrics operation middleware
+func (siw *ServerInterfaceWrapper) UpdateUserBiometrics(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.UpdateUserBiometrics(c)
+}
 
 // CreateConsumption operation middleware
 func (siw *ServerInterfaceWrapper) CreateConsumption(c *gin.Context) {
@@ -188,6 +245,19 @@ func (siw *ServerInterfaceWrapper) ExportData(c *gin.Context) {
 // GetGoals operation middleware
 func (siw *ServerInterfaceWrapper) GetGoals(c *gin.Context) {
 
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetGoalsParams
+
+	// ------------- Optional query parameter "goal_name" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "goal_name", c.Request.URL.Query(), &params.GoalName)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter goal_name: %w", err), http.StatusBadRequest)
+		return
+	}
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -195,7 +265,7 @@ func (siw *ServerInterfaceWrapper) GetGoals(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetGoals(c)
+	siw.Handler.GetGoals(c, params)
 }
 
 // UpdateGoals operation middleware
@@ -209,6 +279,56 @@ func (siw *ServerInterfaceWrapper) UpdateGoals(c *gin.Context) {
 	}
 
 	siw.Handler.UpdateGoals(c)
+}
+
+// SetActiveGoalSet operation middleware
+func (siw *ServerInterfaceWrapper) SetActiveGoalSet(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.SetActiveGoalSet(c)
+}
+
+// GetGoalSets operation middleware
+func (siw *ServerInterfaceWrapper) GetGoalSets(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetGoalSets(c)
+}
+
+// DeleteGoalSet operation middleware
+func (siw *ServerInterfaceWrapper) DeleteGoalSet(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "name" -------------
+	var name string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "name", c.Param("name"), &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter name: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteGoalSet(c, name)
 }
 
 // GetHealth operation middleware
@@ -343,6 +463,9 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
+	router.DELETE(options.BaseURL+"/biometrics", wrapper.DeleteUserBiometrics)
+	router.GET(options.BaseURL+"/biometrics", wrapper.GetUserBiometrics)
+	router.PUT(options.BaseURL+"/biometrics", wrapper.UpdateUserBiometrics)
 	router.POST(options.BaseURL+"/consumption", wrapper.CreateConsumption)
 	router.DELETE(options.BaseURL+"/consumption/:id", wrapper.DeleteConsumption)
 	router.PUT(options.BaseURL+"/consumption/:id", wrapper.UpdateConsumption)
@@ -350,6 +473,9 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/export", wrapper.ExportData)
 	router.GET(options.BaseURL+"/goals", wrapper.GetGoals)
 	router.PUT(options.BaseURL+"/goals", wrapper.UpdateGoals)
+	router.PUT(options.BaseURL+"/goals/active", wrapper.SetActiveGoalSet)
+	router.GET(options.BaseURL+"/goals/sets", wrapper.GetGoalSets)
+	router.DELETE(options.BaseURL+"/goals/sets/:name", wrapper.DeleteGoalSet)
 	router.GET(options.BaseURL+"/health", wrapper.GetHealth)
 	router.GET(options.BaseURL+"/nutrition-summary", wrapper.GetNutritionSummary)
 	router.GET(options.BaseURL+"/trends", wrapper.GetTrends)

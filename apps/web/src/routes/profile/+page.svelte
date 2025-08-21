@@ -7,22 +7,106 @@
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
   type Goals = GoalsResponse["goals"];
-
+  type BiometricsResponse = paths["/biometrics"]["get"]["responses"]["200"]["content"]["application/json"];
+  type UserBiometrics = paths["/biometrics"]["get"]["responses"]["200"]["content"]["application/json"]["biometrics"];
+  type UpdateBiometricsRequest = paths["/biometrics"]["put"]["requestBody"]["content"]["application/json"];
+  
   let goals: Goals | null = null;
+  let biometrics: UserBiometrics | null = null;
+  let calculatedMetrics: BiometricsResponse["calculated_metrics"] | null = null;
   let loading = true;
+  let biometricsLoading = false;
   let error = "";
+  let biometricsError = "";
   let success = "";
+  let biometricsSuccess = "";
   let saving = false;
+  let savingBiometrics = false;
 
   // Form state
-  let customName = "";
-  let customTargets: Record<string, number> = {};
-  let showImperialModal = false;
+  let customGoalName = "";
   let selectedUnits = "metric"; // Track unit system selection
+  let showImperialModal = false;
+  
+  // UI state for modal
+  let showEditModal = false;
+  let editingGoalName = "";
+  
+  // Goal sets data
+  let goalSets: Array<{name: string, created_at: string, updated_at: string}> = [];
+  let activeGoalName = "";
+  let loadingGoalSets = false;
+  let savingGoals = false;
+  
+  // Goal data for modal editing - now using dynamic approach
+  let customTargets: Record<string, number> = {};
+  let customName = "";
+
+  // Biometrics form state
+  let birthDate = "";
+  let sex: "male" | "female" | "other" | "prefer_not_to_say" = "prefer_not_to_say";
+  let heightCm = "";
+  let weightKg = "";
+  let activityLevel: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active" = "lightly_active";
 
   onMount(async () => {
-    await loadGoals();
+    await Promise.all([loadGoals(), loadBiometrics(), loadGoalSets()]);
   });
+
+  function resetToDefaults() {
+    customTargets = {};
+    customName = "";
+  }
+
+  // Key nutrients that users might want to customize
+  // Generate dynamically from available goals instead of hardcoding
+  $: editableTargets = goals ? Object.keys(goals.targets).map(key => ({
+    key,
+    label: formatNutrientName(key),
+    unit: goals?.units[key] || ""
+  })).sort((a, b) => a.label.localeCompare(b.label)) : [];
+
+  $: editableUpperLimits = goals ? Object.keys(goals.upper_limits || {}).map(key => ({
+    key,
+    label: formatNutrientName(key),
+    unit: goals?.units[key] || ""
+  })).sort((a, b) => a.label.localeCompare(b.label)) : [];
+
+  function formatNutrientName(key: string): string {
+    return key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, l => l.toUpperCase())
+      // Remove unit suffixes since they're shown separately
+      .replace(/ Mcg$/, "")
+      .replace(/ Mg$/, "")
+      .replace(/ G$/, "");
+  }
+
+  function getNutrientValue(key: string): number {
+    return customTargets[key] || goals?.targets[key] || 0;
+  }
+
+  function getUpperLimitValue(key: string): number {
+    return customTargets[key] || goals?.upper_limits?.[key] || 0;
+  }
+
+  function updateNutrient(key: string, value: number) {
+    if (value <= 0) {
+      delete customTargets[key];
+    } else {
+      customTargets[key] = value;
+    }
+    customTargets = { ...customTargets }; // Trigger reactivity
+  }
+
+  function updateUpperLimit(key: string, value: number) {
+    if (value < 0) {
+      delete customTargets[key];
+    } else {
+      customTargets[key] = value;
+    }
+    customTargets = { ...customTargets }; // Trigger reactivity
+  }
 
   async function loadGoals() {
     try {
@@ -34,16 +118,112 @@
       }
 
       goals = response.data.goals;
-      
-      // Initialize form with current values
-      customName = goals.custom_name || "";
-      // Note: We'll initialize custom targets as empty and let users override as needed
-      customTargets = {};
     } catch (err) {
       error = `Failed to load goals: ${err}`;
       console.error("Goals error:", err);
     } finally {
       loading = false;
+    }
+  }
+
+  // Called when the active goal changes
+  async function handleGoalChanged() {
+    await Promise.all([loadGoals(), loadGoalSets()]);
+    success = "Active goal switched successfully!";
+    setTimeout(() => success = "", 3000);
+  }
+
+  async function loadGoalSets() {
+    try {
+      loadingGoalSets = true;
+      const response = await apiClient.GET("/goals/sets");
+
+      if (response.error) {
+        throw new Error(`API Error: ${response.error}`);
+      }
+
+      goalSets = response.data.goal_sets || [];
+      activeGoalName = response.data.active_goal_name || "";
+    } catch (err) {
+      console.error("Goal sets error:", err);
+      // Don't show error if user just doesn't have multiple goals yet
+    } finally {
+      loadingGoalSets = false;
+    }
+  }
+
+  async function switchToGoal(goalName: string) {
+    if (goalName === activeGoalName) return;
+
+    try {
+      const response = await apiClient.PUT("/goals/active", {
+        body: { name: goalName }
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      await handleGoalChanged();
+    } catch (err) {
+      error = `Failed to switch goal: ${err}`;
+      console.error("Switch goal error:", err);
+    }
+  }
+
+  function openEditModal(goalName: string) {
+    editingGoalName = goalName;
+    
+    // Set the goal name in the modal
+    if (goalName === "New Goal") {
+      customName = "";
+    } else {
+      customName = goalName;
+    }
+    
+    // Reset custom targets - will fall back to current values via getNutrientValue()
+    customTargets = {};
+    
+    showEditModal = true;
+  }
+
+  function closeEditModal() {
+    showEditModal = false;
+    editingGoalName = "";
+    customName = "";
+    customTargets = {};
+  }
+
+  async function loadBiometrics() {
+    try {
+      biometricsLoading = true;
+      biometricsError = "";
+      
+      const response = await apiClient.GET("/biometrics");
+      
+      if (response.error) {
+        throw new Error(`API Error: ${response.error}`);
+      }
+
+      biometrics = response.data.biometrics;
+      calculatedMetrics = response.data.calculated_metrics;
+      
+      // Initialize form with current values
+      if (biometrics) {
+        birthDate = biometrics.birth_date || "";
+        sex = biometrics.sex || "prefer_not_to_say";
+        heightCm = biometrics.height_cm?.toString() || "";
+        weightKg = biometrics.weight_kg?.toString() || "";
+        activityLevel = biometrics.activity_level || "lightly_active";
+      }
+    } catch (err) {
+      // Don't show error if biometrics just don't exist yet
+      if (!err?.toString().includes("404") && !err?.toString().includes("not found")) {
+        biometricsError = `Failed to load biometrics: ${err}`;
+        console.error("Biometrics error:", err);
+      }
+    } finally {
+      biometricsLoading = false;
     }
   }
 
@@ -111,10 +291,13 @@
       error = "";
       success = "";
 
-      // Prepare the request payload
+      // Use custom goal name from modal
+      const goalName = customName.trim();
+
+      // Prepare the request payload using only the customTargets that have been modified
       const payload: any = {
-        name: customName.trim() || undefined,
-        overrides: Object.keys(customTargets).length > 0 ? customTargets : undefined
+        name: goalName || undefined,
+        overrides: customTargets
       };
 
       const response = await apiClient.PUT("/goals", {
@@ -126,7 +309,10 @@
       }
 
       success = "Goals saved successfully!";
-      await loadGoals(); // Reload to get updated data
+      await Promise.all([loadGoals(), loadGoalSets()]); // Reload to get updated data
+      
+      // Close modal
+      closeEditModal();
     } catch (err) {
       error = formatErrorForUser(err);
       if (dev) {
@@ -137,59 +323,89 @@
     }
   }
 
-  function resetToDefaults() {
-    customTargets = {};
-    customName = "";
-  }
+  async function saveBiometrics() {
+    try {
+      savingBiometrics = true;
+      biometricsError = "";
+      biometricsSuccess = "";
 
-  // Key nutrients that users might want to customize
-  // Generate dynamically from available goals instead of hardcoding
-  $: editableTargets = goals ? Object.keys(goals.targets).map(key => ({
-    key,
-    label: formatNutrientName(key),
-    unit: goals?.units[key] || ""
-  })).sort((a, b) => a.label.localeCompare(b.label)) : [];
+      // Prepare the request payload
+      const payload: UpdateBiometricsRequest = {};
+      
+      if (birthDate.trim()) {
+        payload.birth_date = birthDate.trim();
+      }
+      
+      if (sex && sex !== "prefer_not_to_say") {
+        payload.sex = sex;
+      }
+      
+      if (heightCm && !isNaN(parseFloat(heightCm.toString()))) {
+        payload.height_cm = parseFloat(heightCm.toString());
+      }
+      
+      if (weightKg && !isNaN(parseFloat(weightKg.toString()))) {
+        payload.weight_kg = parseFloat(weightKg.toString());
+      }
+      
+      if (activityLevel) {
+        payload.activity_level = activityLevel;
+      }
 
-  $: editableUpperLimits = goals ? Object.keys(goals.upper_limits || {}).map(key => ({
-    key,
-    label: formatNutrientName(key),
-    unit: goals?.units[key] || ""
-  })).sort((a, b) => a.label.localeCompare(b.label)) : [];
+      const response = await apiClient.PUT("/biometrics", {
+        body: payload
+      });
 
-  function formatNutrientName(key: string): string {
-    return key
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, l => l.toUpperCase())
-      // Remove unit suffixes since they're shown separately
-      .replace(/ Mcg$/, "")
-      .replace(/ Mg$/, "")
-      .replace(/ G$/, "");
-  }
+      if (response.error) {
+        throw response.error;
+      }
 
-  function getNutrientValue(key: string): number {
-    return customTargets[key] || goals?.targets[key] || 0;
-  }
-
-  function getUpperLimitValue(key: string): number {
-    return customTargets[key] || goals?.upper_limits?.[key] || 0;
-  }
-
-  function updateNutrient(key: string, value: number) {
-    if (value <= 0) {
-      delete customTargets[key];
-    } else {
-      customTargets[key] = value;
+      biometricsSuccess = "Biometrics saved successfully!";
+      await Promise.all([loadBiometrics(), loadGoals()]); // Reload both since goals may have changed
+    } catch (err) {
+      biometricsError = formatErrorForUser(err);
+      if (dev) {
+        console.error("Biometrics save error details:", err);
+      }
+    } finally {
+      savingBiometrics = false;
     }
-    customTargets = { ...customTargets }; // Trigger reactivity
   }
 
-  function updateUpperLimit(key: string, value: number) {
-    if (value < 0) {
-      delete customTargets[key];
-    } else {
-      customTargets[key] = value;
+  async function deleteBiometrics() {
+    if (!confirm("Are you sure you want to delete all your biometric data? This action cannot be undone.")) {
+      return;
     }
-    customTargets = { ...customTargets }; // Trigger reactivity
+
+    try {
+      savingBiometrics = true;
+      biometricsError = "";
+      biometricsSuccess = "";
+
+      const response = await apiClient.DELETE("/biometrics");
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      biometricsSuccess = "Biometrics deleted successfully!";
+      
+      // Clear form
+      birthDate = "";
+      sex = "prefer_not_to_say";
+      heightCm = "";
+      weightKg = "";
+      activityLevel = "lightly_active";
+      
+      await Promise.all([loadBiometrics(), loadGoals()]); // Reload both since goals may have changed
+    } catch (err) {
+      biometricsError = formatErrorForUser(err);
+      if (dev) {
+        console.error("Biometrics delete error details:", err);
+      }
+    } finally {
+      savingBiometrics = false;
+    }
   }
 
   function openImperialModal() {
@@ -200,6 +416,28 @@
     showImperialModal = false;
     selectedUnits = "metric"; // Force selection back to metric
   }
+
+  function getActivityLevelDisplay(level: string): string {
+    const activityLevels: Record<string, string> = {
+      "sedentary": "L1",
+      "lightly_active": "L2", 
+      "moderately_active": "L3",
+      "very_active": "L4",
+      "extra_active": "L5"
+    };
+    return activityLevels[level] || level;
+  }
+
+  function getActivityLevelDescription(level: string): string {
+    const descriptions: Record<string, string> = {
+      "sedentary": "Sedentary (little/no exercise)",
+      "lightly_active": "Lightly Active (1-3 days/week)",
+      "moderately_active": "Moderately Active (3-5 days/week)", 
+      "very_active": "Very Active (6-7 days/week)",
+      "extra_active": "Extra Active (very hard exercise daily)"
+    };
+    return descriptions[level] || level;
+  }
 </script>
 
 <svelte:head>
@@ -207,11 +445,11 @@
 </svelte:head>
 
 <div class="min-h-screen bg-base-100">
-  <div class="container mx-auto px-4 py-8 max-w-4xl">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
     <!-- Header -->
     <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-primary mb-4">Profile & Goals</h1>
-      <p class="text-base-content/70">Customize your nutrition goals and preferences</p>
+      <h1 class="text-3xl font-bold text-primary mb-4">Profile</h1>
+      <p class="text-base-content/70">Customize your profile, nutrition goals, and preferences</p>
     </div>
 
     {#if loading}
@@ -237,13 +475,63 @@
       </div>
     {/if}
 
+    {#if biometricsSuccess}
+      <div class="alert alert-success mb-6">
+        <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{biometricsSuccess}</span>
+      </div>
+    {/if}
+
+    {#if biometricsError}
+      <div class="alert alert-error mb-6">
+        <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{biometricsError}</span>
+      </div>
+    {/if}
+
     {#if goals}
-      <div class="grid gap-8 lg:grid-cols-2">
+      <!-- Main Profile Grid -->
+      <div class="grid gap-8 xl:grid-cols-3 lg:grid-cols-2 md:grid-cols-1">
         <!-- Current Goals Overview -->
         <div class="card bg-base-200 shadow-lg">
-          <div class="card-body">
-            <h2 class="card-title">Current Goals</h2>
+          <div class="card-body p-6">
+            <h2 class="card-title flex items-center gap-2">
+              🎯 Current Goals
+              <div class="badge badge-primary badge-sm">
+                {goals.source === "custom" ? (goals.custom_name || "Custom") : "DRI"}
+              </div>
+            </h2>
+            
             <div class="space-y-4">
+              <!-- Key Macros Display -->
+              <div class="grid grid-cols-2 gap-3">
+                <div class="stat bg-base-100 rounded-box p-3">
+                  <div class="stat-title text-xs">Calories</div>
+                  <div class="stat-value text-lg">{goals.targets.calories || 2000}</div>
+                  <div class="stat-desc text-xs">kcal/day</div>
+                </div>
+                <div class="stat bg-base-100 rounded-box p-3">
+                  <div class="stat-title text-xs">Protein</div>
+                  <div class="stat-value text-lg">{goals.targets.protein_g || 0}</div>
+                  <div class="stat-desc text-xs">grams/day</div>
+                </div>
+                <div class="stat bg-base-100 rounded-box p-3">
+                  <div class="stat-title text-xs">Carbs</div>
+                  <div class="stat-value text-lg">{goals.targets.total_carbs_g || 0}</div>
+                  <div class="stat-desc text-xs">grams/day</div>
+                </div>
+                <div class="stat bg-base-100 rounded-box p-3">
+                  <div class="stat-title text-xs">Fat</div>
+                  <div class="stat-value text-lg">{goals.targets.total_fat_g || 0}</div>
+                  <div class="stat-desc text-xs">grams/day</div>
+                </div>
+              </div>
+
+              <!-- Profile Info -->
               <div class="stats bg-base-100 shadow-sm">
                 <div class="stat">
                   <div class="stat-title">Profile</div>
@@ -253,134 +541,370 @@
                   <div class="stat-desc">Demographic info</div>
                 </div>
               </div>
-              
-              <div class="badge badge-primary badge-lg">
-                {goals.source === "custom" 
-                  ? (goals.custom_name || "Custom Goals") 
-                  : "DRI Guidelines"}
-              </div>
-              
+
               {#if goals.source === "dri"}
-                <p class="text-sm text-base-content/70">
-                  Currently using Dietary Reference Intakes (DRI) based on your profile. 
-                  You can create custom goals below to override specific nutrients.
+                <p class="text-xs text-base-content/60">
+                  Using Dietary Reference Intakes (DRI) based on your profile.
                 </p>
               {/if}
             </div>
           </div>
         </div>
 
-        <!-- Custom Goals Form -->
+        <!-- Available Goals -->
         <div class="card bg-base-200 shadow-lg">
-          <div class="card-body">
-            <h2 class="card-title">Customize Goals</h2>
+          <div class="card-body p-6">
+            <h2 class="card-title flex items-center gap-2">
+              📋 Available Goals
+              <button 
+                class="btn btn-outline btn-xs ml-auto"
+                on:click={() => openEditModal("New Goal")}
+              >
+                + New
+              </button>
+            </h2>
             
-            <div class="form-control w-full">
-              <label class="label" for="goalName">
-                <span class="label-text">Goal Set Name (Optional)</span>
-              </label>
-              <input 
-                id="goalName"
-                type="text" 
-                placeholder="e.g., 'My Fitness Goals', 'Cutting Diet'"
-                class="input input-bordered w-full" 
-                maxlength="50"
-                bind:value={customName}
-              />
-              <div class="label">
-                <span class="label-text-alt">Give your custom goals a memorable name</span>
+            {#if loadingGoalSets}
+              <div class="text-center py-4">
+                <span class="loading loading-spinner loading-sm"></span>
+                <p class="text-sm text-base-content/70 mt-2">Loading goal sets...</p>
+              </div>
+            {:else if goalSets.length > 0}
+              <div class="space-y-2">
+                {#each goalSets as goalSet}
+                  <div class="flex items-center justify-between p-3 rounded-lg {goalSet.name === activeGoalName ? 'bg-primary/10 border border-primary/20' : 'bg-base-100'}">
+                    <div class="flex items-center gap-3">
+                      <div class="flex flex-col">
+                        <span class="font-medium">{goalSet.name}</span>
+                        {#if goalSet.name === activeGoalName}
+                          <span class="badge badge-primary badge-xs">Active</span>
+                        {/if}
+                      </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                      <button 
+                        class="btn btn-outline btn-xs"
+                        on:click={() => openEditModal(goalSet.name)}
+                      >
+                        Edit
+                      </button>
+                      {#if goalSet.name !== activeGoalName}
+                        <button 
+                          class="btn btn-primary btn-xs"
+                          on:click={() => switchToGoal(goalSet.name)}
+                        >
+                          Activate
+                        </button>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {:else}
+              <div class="text-center py-4">
+                <p class="text-sm text-base-content/70">No custom goal sets yet.</p>
+                <button 
+                  class="btn btn-primary btn-sm mt-2"
+                  on:click={() => openEditModal("My Custom Goals")}
+                >
+                  Create Your First Goal Set
+                </button>
+              </div>
+            {/if}
+          </div>
+        </div>
+
+        <!-- User Biometrics -->
+        <div class="card bg-base-200 shadow-lg">
+          <div class="card-body p-6">
+            <h2 class="card-title flex items-center gap-2">
+              📊 Biometrics
+              {#if calculatedMetrics?.age_years}
+                <div class="badge badge-primary badge-sm">{calculatedMetrics.age_years}y</div>
+              {/if}
+            </h2>
+            
+            {#if biometricsLoading}
+              <div class="text-center py-4">
+                <span class="loading loading-spinner loading-sm"></span>
+                <p class="text-sm text-base-content/70 mt-2">Loading biometrics...</p>
+              </div>
+            {:else}
+              <div class="space-y-4">
+                <!-- Current Biometrics Display -->
+                {#if biometrics}
+                  <div class="grid grid-cols-2 gap-4">
+                    {#if calculatedMetrics?.bmi}
+                      <div class="stat bg-base-100 rounded-box p-3 tooltip tooltip-top" data-tip="Body Mass Index - A measure of body fat based on height and weight">
+                        <div class="stat-title text-xs">BMI</div>
+                        <div class="stat-value text-lg">{calculatedMetrics.bmi}</div>
+                      </div>
+                    {/if}
+                    {#if calculatedMetrics?.bmr}
+                      <div class="stat bg-base-100 rounded-box p-3 tooltip tooltip-top" data-tip="Basal Metabolic Rate - Calories your body burns at rest for basic functions">
+                        <div class="stat-title text-xs">BMR</div>
+                        <div class="stat-value text-lg">{Math.round(calculatedMetrics.bmr)}</div>
+                        <div class="stat-desc text-xs">kcal/day</div>
+                      </div>
+                    {/if}
+                    {#if calculatedMetrics?.tdee}
+                      <div class="stat bg-base-100 rounded-box p-3 tooltip tooltip-top" data-tip="Total Daily Energy Expenditure - Total calories burned including exercise and daily activities">
+                        <div class="stat-title text-xs">TDEE</div>
+                        <div class="stat-value text-lg">{Math.round(calculatedMetrics.tdee)}</div>
+                        <div class="stat-desc text-xs">kcal/day</div>
+                      </div>
+                    {/if}
+                    {#if biometrics.activity_level}
+                      <div class="stat bg-base-100 rounded-box p-3 tooltip tooltip-top" data-tip="{getActivityLevelDescription(biometrics.activity_level)}">
+                        <div class="stat-title text-xs">Activity</div>
+                        <div class="stat-value text-lg">{getActivityLevelDisplay(biometrics.activity_level)}</div>
+                      </div>
+                    {/if}
+                  </div>
+                {:else}
+                  <div class="alert alert-info">
+                    <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>No biometric data yet. Add your details below for personalized nutrition goals!</span>
+                  </div>
+                {/if}
+
+                <!-- Quick Form -->
+                <div class="space-y-3">
+                  <!-- Birth Date -->
+                  <div class="form-control">
+                    <label class="label" for="birthDate">
+                      <span class="label-text text-sm">Birth Date</span>
+                    </label>
+                    <input 
+                      id="birthDate"
+                      type="date" 
+                      class="input input-bordered input-sm"
+                      bind:value={birthDate}
+                      max={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+
+                  <!-- Sex -->
+                  <div class="form-control">
+                    <label class="label" for="sex">
+                      <span class="label-text text-sm">Sex (for DRI calculations)</span>
+                    </label>
+                    <select id="sex" class="select select-bordered select-sm" bind:value={sex}>
+                      <option value="prefer_not_to_say">Prefer not to say</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <!-- Height & Weight Row -->
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="form-control">
+                      <label class="label" for="height">
+                        <span class="label-text text-sm">Height (cm)</span>
+                      </label>
+                      <input 
+                        id="height"
+                        type="number"
+                        class="input input-bordered input-sm"
+                        placeholder="175"
+                        min="50"
+                        max="300"
+                        step="0.1"
+                        bind:value={heightCm}
+                      />
+                    </div>
+                    <div class="form-control">
+                      <label class="label" for="weight">
+                        <span class="label-text text-sm">Weight (kg)</span>
+                      </label>
+                      <input 
+                        id="weight"
+                        type="number"
+                        class="input input-bordered input-sm"
+                        placeholder="70"
+                        min="20"
+                        max="500"
+                        step="0.1"
+                        bind:value={weightKg}
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Activity Level -->
+                  <div class="form-control">
+                    <label class="label" for="activity">
+                      <span class="label-text text-sm">Activity Level</span>
+                    </label>
+                    <select id="activity" class="select select-bordered select-sm" bind:value={activityLevel}>
+                      <option value="sedentary">Level 1 - Sedentary (little/no exercise)</option>
+                      <option value="lightly_active">Level 2 - Lightly Active (1-3 days/week)</option>
+                      <option value="moderately_active">Level 3 - Moderately Active (3-5 days/week)</option>
+                      <option value="very_active">Level 4 - Very Active (6-7 days/week)</option>
+                      <option value="extra_active">Level 5 - Extra Active (very hard exercise daily)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-2 justify-between">
+                  {#if biometrics}
+                    <button 
+                      class="btn btn-outline btn-error btn-sm"
+                      on:click={deleteBiometrics}
+                      disabled={savingBiometrics}
+                    >
+                      🗑️ Delete
+                    </button>
+                  {:else}
+                    <div></div>
+                  {/if}
+                  
+                  <button 
+                    class="btn btn-primary btn-sm"
+                    on:click={saveBiometrics}
+                    disabled={savingBiometrics}
+                  >
+                    {#if savingBiometrics}
+                      <span class="loading loading-spinner loading-xs"></span>
+                      Saving...
+                    {:else}
+                      💾 Save
+                    {/if}
+                  </button>
+                </div>
+              </div>
+            {/if}
+          </div>
+        </div>
+
+      </div>
+
+<!-- Edit Goal Modal -->
+{#if showEditModal}
+  <div class="modal modal-open">
+    <div class="modal-box max-w-2xl">
+      <h3 class="font-bold text-lg mb-4">
+        {editingGoalName === "New Goal" ? "Create New Goal" : `Edit ${editingGoalName}`}
+      </h3>
+      
+      <div class="space-y-4">
+        <!-- Goal Name Input -->
+        <div class="form-control w-full">
+          <label class="label" for="goalName">
+            <span class="label-text">Goal Name</span>
+          </label>
+          <input 
+            id="goalName"
+            type="text" 
+            placeholder="e.g., Bulking, Cutting, Maintenance" 
+            class="input input-bordered w-full" 
+            bind:value={customName}
+          />
+        </div>
+
+        <div class="divider">Nutrition Targets</div>
+            
+        <div class="space-y-6 max-h-96 overflow-y-auto">
+          <!-- Regular Nutrition Targets -->
+          {#if editableTargets.length > 0}
+            <div>
+              <h4 class="font-semibold text-base mb-3 text-primary">Daily Targets</h4>
+              <div class="space-y-4">
+                {#each editableTargets as nutrient}
+                  <div class="form-control">
+                    <label class="label" for={nutrient.key}>
+                      <span class="label-text">{nutrient.label}</span>
+                      <span class="label-text-alt">{nutrient.unit}</span>
+                    </label>
+                    <input 
+                      type="number"
+                      id={nutrient.key}
+                      class="input input-bordered input-sm"
+                      min="0"
+                      step="0.1"
+                      placeholder={getNutrientValue(nutrient.key).toString()}
+                      value={getNutrientValue(nutrient.key)}
+                      on:input={(e) => updateNutrient(nutrient.key, parseFloat(e.currentTarget.value) || 0)}
+                    />
+                  </div>
+                {/each}
               </div>
             </div>
+          {/if}
 
-            <div class="divider">Nutrition Targets</div>
-            
-            <div class="space-y-6 max-h-96 overflow-y-auto">
-              <!-- Regular Nutrition Targets -->
-              {#if editableTargets.length > 0}
-                <div>
-                  <h4 class="font-semibold text-base mb-3 text-primary">Daily Targets</h4>
-                  <div class="space-y-4">
-                    {#each editableTargets as nutrient}
-                      <div class="form-control">
-                        <label class="label" for={nutrient.key}>
-                          <span class="label-text">{nutrient.label}</span>
-                          <span class="label-text-alt">{nutrient.unit}</span>
-                        </label>
-                        <input 
-                          type="number"
-                          id={nutrient.key}
-                          class="input input-bordered input-sm"
-                          min="0"
-                          step="0.1"
-                          placeholder={getNutrientValue(nutrient.key).toString()}
-                          value={getNutrientValue(nutrient.key)}
-                          on:input={(e) => updateNutrient(nutrient.key, parseFloat(e.currentTarget.value) || 0)}
-                        />
-                      </div>
-                    {/each}
+          <!-- Upper Limits (Minimize These) -->
+          {#if editableUpperLimits.length > 0}
+            <div>
+              <h4 class="font-semibold text-base mb-3 text-warning">Upper Limits</h4>
+              <p class="text-xs text-base-content/70 mb-3">Set maximum daily limits for nutrients that should be minimized.</p>
+              <div class="space-y-4">
+                {#each editableUpperLimits as nutrient}
+                  <div class="form-control">
+                    <label class="label" for={`limit_${nutrient.key}`}>
+                      <span class="label-text">{nutrient.label}</span>
+                      <span class="label-text-alt">{nutrient.unit} (max)</span>
+                    </label>
+                    <input 
+                      type="number"
+                      id={`limit_${nutrient.key}`}
+                      class="input input-bordered input-warning input-sm"
+                      min="0"
+                      step="0.1"
+                      placeholder={getUpperLimitValue(nutrient.key).toString()}
+                      value={getUpperLimitValue(nutrient.key)}
+                      on:input={(e) => updateUpperLimit(nutrient.key, parseFloat(e.currentTarget.value) || 0)}
+                    />
                   </div>
-                </div>
-              {/if}
-
-              <!-- Upper Limits (Minimize These) -->
-              {#if editableUpperLimits.length > 0}
-                <div>
-                  <h4 class="font-semibold text-base mb-3 text-warning">Upper Limits</h4>
-                  <p class="text-xs text-base-content/70 mb-3">Set maximum daily limits for nutrients that should be minimized.</p>
-                  <div class="space-y-4">
-                    {#each editableUpperLimits as nutrient}
-                      <div class="form-control">
-                        <label class="label" for={`limit_${nutrient.key}`}>
-                          <span class="label-text">{nutrient.label}</span>
-                          <span class="label-text-alt">{nutrient.unit} (max)</span>
-                        </label>
-                        <input 
-                          type="number"
-                          id={`limit_${nutrient.key}`}
-                          class="input input-bordered input-warning input-sm"
-                          min="0"
-                          step="0.1"
-                          placeholder={getUpperLimitValue(nutrient.key).toString()}
-                          value={getUpperLimitValue(nutrient.key)}
-                          on:input={(e) => updateUpperLimit(nutrient.key, parseFloat(e.currentTarget.value) || 0)}
-                        />
-                      </div>
-                    {/each}
-                  </div>
-                </div>
-              {/if}
-            </div>            <div class="card-actions justify-between mt-6">
-              <button 
-                class="btn btn-outline"
-                on:click={resetToDefaults}
-                disabled={saving}
-              >
-                Reset All
-              </button>
-              <button 
-                class="btn btn-primary"
-                on:click={saveCustomGoals}
-                disabled={saving}
-              >
-                {#if saving}
-                  <span class="loading loading-spinner loading-sm"></span>
-                  Saving...
-                {:else}
-                  💾 Save Goals
-                {/if}
-              </button>
+                {/each}
+              </div>
             </div>
-          </div>
+          {/if}
         </div>
       </div>
 
+      <div class="modal-action">
+        <button 
+          class="btn btn-outline"
+          on:click={resetToDefaults}
+          disabled={saving}
+        >
+          Reset All
+        </button>
+        <button 
+          class="btn btn-primary" 
+          on:click={saveCustomGoals}
+          disabled={saving}
+        >
+          {#if saving}
+            <span class="loading loading-spinner loading-xs"></span>
+            Saving...
+          {:else}
+            💾 Save Goals
+          {/if}
+        </button>
+        
+        <button 
+          class="btn btn-outline" 
+          on:click={closeEditModal}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
       <!-- Additional Settings Section -->
       <div class="card bg-base-200 shadow-lg mt-8">
-        <div class="card-body">
+        <div class="card-body p-6">
           <h2 class="card-title">Additional Settings</h2>
-          <div class="grid gap-4 md:grid-cols-2">
+          <div class="grid gap-6 lg:grid-cols-2">
             <div class="card bg-base-100">
-              <div class="card-body">
+              <div class="card-body p-4">
                 <h3 class="card-title text-lg">Units Preference</h3>
                 <p class="text-sm text-base-content/70 mb-4">
                   Choose your preferred units for nutrition display
@@ -414,7 +938,7 @@
             </div>
 
             <div class="card bg-base-100">
-              <div class="card-body">
+              <div class="card-body p-4">
                 <h3 class="card-title text-lg">Data & Privacy</h3>
                 <p class="text-sm text-base-content/70 mb-4">
                   Manage your data and privacy settings
