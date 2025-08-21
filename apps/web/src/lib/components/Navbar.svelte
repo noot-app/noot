@@ -27,7 +27,7 @@
     <!-- App logo and Beta label -->
     <div class="flex items-center gap-3">
       <a href="/" class="flex items-center">
-        <img src="/images/noot.svg" alt="{PUBLIC_APP_NAME} Logo" class="w-10 h-10" />
+        <img src="/images/noot-slim.svg" alt="{PUBLIC_APP_NAME} Logo" class="h-7" />
       </a>
       <div class="badge badge-outline text-xs" style="border-color: #bb704f; color: #bb704f;">
         Beta
