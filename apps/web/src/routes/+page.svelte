@@ -18,10 +18,40 @@
 </svelte:head>
 
 <style>
-  .gradient-hero {
-    background: linear-gradient(135deg, hsl(var(--b1)), hsl(var(--b2)));
+  /* Ensure navbar stays above background effects */
+  :global(nav, .navbar, header, .navbar-start, .navbar-center, .navbar-end) {
     position: relative;
-    overflow: hidden;
+    z-index: 1000 !important;
+  }
+  
+  :global(html, body) {
+    overflow-x: hidden;
+  }
+  
+  .gradient-hero {
+    background: 
+      /* Fill layer that extends sunset colors upward */
+      linear-gradient(to top, #d35400 0%, #e67e22 15%, #f39c12 35%, #f5c28b 50%, hsl(var(--b1)) 70%),
+      linear-gradient(135deg, hsl(var(--b1)), hsl(var(--b2)));
+    background-size: 100% 120%, 100% 100%;
+    position: relative;
+    overflow: visible;
+  }
+  
+  .gradient-hero::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20vh;
+    background: linear-gradient(to bottom, 
+      transparent 0%, 
+      rgba(255, 255, 255, 0.3) 50%, 
+      rgba(255, 255, 255, 0.8) 90%, 
+      hsl(var(--b1)) 100%);
+    z-index: 3;
+    pointer-events: none;
   }
   
   .hero-content {
@@ -33,24 +63,32 @@
   .rising-sun {
     position: absolute;
     bottom: -10vh;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 140vw;
-    height: 80vh;
-    border-radius: 50%;
+    left: 0;
+    right: 0;
+    height: 150vh;
+    border-radius: 0%;
     background: 
-      radial-gradient(ellipse 70vw 40vh at center bottom, #ff6b35 0%, #ff8c42 25%, transparent 70%),
-      radial-gradient(ellipse 60vw 35vh at center bottom, #f39c12 10%, transparent 60%),
-      radial-gradient(ellipse 50vw 30vh at center bottom, #e74c3c 5%, transparent 50%),
-      radial-gradient(ellipse 80vw 45vh at center bottom, 
+      radial-gradient(ellipse 60vw 50vh at center bottom, #ff6b35 0%, #ff8c42 25%, transparent 70%),
+      radial-gradient(ellipse 50vw 45vh at center bottom, #f39c12 10%, transparent 60%),
+      radial-gradient(ellipse 40vw 40vh at center bottom, #e74c3c 5%, transparent 50%),
+      radial-gradient(ellipse 80vw 65vh at center bottom, 
         #ff6b35 0%, 
         #f39c12 20%, 
         #e67e22 40%, 
         #d35400 60%, 
-        transparent 85%);
+        transparent 90%);
     background-blend-mode: screen, multiply, overlay, normal;
-    opacity: 0.6;
-    z-index: 1;
+    opacity: 0.5;
+    z-index: -10;
+    mask: linear-gradient(to bottom, 
+      black 0%, 
+      black 70%, 
+      transparent 95%);
+    -webkit-mask: linear-gradient(to bottom, 
+      black 0%, 
+      black 70%, 
+      transparent 95%);
+    pointer-events: none;
   }
   
   .rising-sun::after {
@@ -58,10 +96,22 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-    opacity: 0.3;
-    mix-blend-mode: overlay;
+    background-image: 
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><filter id='coarseGrain'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23coarseGrain)' opacity='1'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='medGrain'><feTurbulence type='turbulence' baseFrequency='1.2' numOctaves='3' seed='7'/></filter><rect width='100%' height='100%' filter='url(%23medGrain)' opacity='0.9'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><filter id='heavyGrain'><feTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='1' seed='3'/></filter><rect width='100%' height='100%' filter='url(%23heavyGrain)' opacity='1'/></svg>");
+    background-size: 80px 80px, 120px 120px, 60px 60px;
+    opacity: 0.95;
+    mix-blend-mode: hard-light;
     pointer-events: none;
+  }
+
+  
+  @keyframes grain {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-3px, -3px); }
+    50% { transform: translate(3px, -3px); }
+    75% { transform: translate(-3px, 3px); }
   }
   
   .phone-float {
