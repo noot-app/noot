@@ -163,7 +163,7 @@ func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject st
 // CreateConsumption creates a new consumption
 func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consumption) error {
 	query := `
-		INSERT INTO consumptions (id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g, 
+		INSERT INTO consumptions (id, user_id, transcript, total_calories, total_protein_g, 
 						  total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 						  saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 						  vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
@@ -172,15 +172,14 @@ func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consum
 						  calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
 						  zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg,
 						  chromium_mcg, fluoride_mg, chloride_mg, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
 	consumption.ID = generateULID()
 	consumption.CreatedAt = now
 
 	_, err := s.db.ExecContext(ctx, query,
-		consumption.ID, consumption.UserID, consumption.Transcript, consumption.ItemsJSON,
-		consumption.UserQuantity, consumption.UserUnit,
+		consumption.ID, consumption.UserID, consumption.Transcript,
 		consumption.TotalCalories, consumption.TotalProtein, consumption.TotalFat,
 		consumption.TotalCarbs, consumption.DietaryFiber, consumption.TotalSodium,
 		consumption.SaturatedFat, consumption.TransFat, consumption.Cholesterol,
