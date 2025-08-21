@@ -1,6 +1,6 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client";
-  import { PUBLIC_APP_NAME } from "$env/static/public";
+  import { PUBLIC_APP_NAME, PUBLIC_API_BASE_URL } from "$env/static/public";
   import { onMount } from "svelte";
   import { dev } from '$app/environment';
   import type { paths } from "$lib/api/schema";
@@ -37,6 +37,11 @@
   let activeGoalName = "";
   let loadingGoalSets = false;
   let savingGoals = false;
+
+  // Export functionality state
+  let showExportModal = false;
+  let exportLoading = false;
+  let exportError = "";
   
   // Goal data for modal editing - now using dynamic approach
   let customTargets: Record<string, number> = {};
@@ -437,6 +442,84 @@
       "extra_active": "Extra Active (very hard exercise daily)"
     };
     return descriptions[level] || level;
+  }
+
+  // Export functionality
+  function openExportModal() {
+    exportError = "";
+    showExportModal = true;
+  }
+
+  function closeExportModal() {
+    showExportModal = false;
+    exportError = "";
+  }
+
+  async function exportData(format: 'csv' | 'json') {
+    exportLoading = true;
+    exportError = "";
+
+    try {
+      if (format === 'csv') {
+        // For CSV, we need to fetch as text since the API returns raw CSV data
+        const url = `${PUBLIC_API_BASE_URL}/export?format=csv`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          if (response.status === 403) {
+            exportError = "This feature requires a Pro subscription. Upgrade to export your data.";
+          } else {
+            exportError = `Export failed: ${errorText}`;
+          }
+          return;
+        }
+        
+        const csvData = await response.text();
+        downloadFile(csvData, `nutrition-export-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
+      } else {
+        // For JSON, use the typed API client
+        const response = await apiClient.GET("/export", {
+          params: {
+            query: {
+              format: format
+            }
+          }
+        });
+
+        if (response.error) {
+          if (response.error.error === "Pro subscription required for data export") {
+            exportError = "This feature requires a Pro subscription. Upgrade to export your data.";
+          } else {
+            exportError = `Export failed: ${response.error.error || 'Unknown error'}`;
+          }
+          return;
+        }
+
+        // For JSON, format the response nicely
+        const jsonData = JSON.stringify(response.data, null, 2);
+        downloadFile(jsonData, `nutrition-export-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+      }
+      
+      closeExportModal();
+    } catch (error) {
+      console.error('Export error:', error);
+      exportError = `Export failed: ${error}`;
+    } finally {
+      exportLoading = false;
+    }
+  }
+
+  function downloadFile(content: string, filename: string, mimeType: string) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 </script>
 
@@ -944,7 +1027,10 @@
                   Manage your data and privacy settings
                 </p>
                 <div class="space-y-2">
-                  <button class="btn btn-outline btn-sm w-full">Export Data</button>
+                  <button class="btn btn-outline btn-sm w-full" on:click={openExportModal}>
+                    📊 Export Data 
+                    <span class="badge badge-accent badge-xs ml-1">PRO</span>
+                  </button>
                   <button class="btn btn-outline btn-sm w-full">Clear History</button>
                 </div>
               </div>
@@ -1008,6 +1094,79 @@
       class="modal-backdrop" 
       on:click={closeImperialModal}
       on:keydown={(e) => e.key === 'Escape' && closeImperialModal()}
+      role="button" 
+      tabindex="0"
+      aria-label="Close modal"
+    ></div>
+  </div>
+{/if}
+
+<!-- Export Data Modal -->
+{#if showExportModal}
+  <div class="modal modal-open">
+    <div class="modal-box">
+      <div class="text-center space-y-6">
+        <h3 class="font-bold text-lg">📊 Export Your Data</h3>
+        
+        {#if exportError}
+          <div class="alert alert-error">
+            <span>{exportError}</span>
+          </div>
+        {/if}
+        
+        <div class="space-y-4">
+          <p class="text-sm text-base-content/70">
+            Download your complete nutrition data in your preferred format.
+          </p>
+          
+          <div class="space-y-3">
+            <button 
+              class="btn btn-primary w-full"
+              on:click={() => exportData('csv')}
+              disabled={exportLoading}
+            >
+              {#if exportLoading}
+                <span class="loading loading-spinner loading-sm"></span>
+              {/if}
+              📈 Download as CSV
+              <span class="text-xs opacity-70">- Spreadsheet compatible</span>
+            </button>
+            
+            <button 
+              class="btn btn-secondary w-full"
+              on:click={() => exportData('json')}
+              disabled={exportLoading}
+            >
+              {#if exportLoading}
+                <span class="loading loading-spinner loading-sm"></span>
+              {/if}
+              🗂️ Download as JSON
+              <span class="text-xs opacity-70">- Developer friendly</span>
+            </button>
+          </div>
+          
+          <div class="text-xs text-base-content/50 space-y-1">
+            <p>• Includes all your consumption data with full nutrition details</p>
+            <p>• Data is exported with date ranges for analysis</p>
+            <p class="text-accent">• Pro feature: Full historical data access</p>
+          </div>
+        </div>
+        
+        <div class="modal-action">
+          <button 
+            class="btn btn-ghost" 
+            on:click={closeExportModal}
+            disabled={exportLoading}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+    <div 
+      class="modal-backdrop" 
+      on:click={closeExportModal}
+      on:keydown={(e) => e.key === 'Escape' && closeExportModal()}
       role="button" 
       tabindex="0"
       aria-label="Close modal"
