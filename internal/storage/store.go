@@ -24,7 +24,10 @@ type Store interface {
 	// User goal operations
 	UpsertUserGoal(ctx context.Context, goal *UserGoal) error
 	GetUserGoal(ctx context.Context, userID, name string) (*UserGoal, error)
+	GetUserGoals(ctx context.Context, userID string) ([]*UserGoal, error)
 	DeleteUserGoal(ctx context.Context, userID, name string) error
+	SetActiveGoal(ctx context.Context, userID, goalName string) error
+	GetActiveGoalName(ctx context.Context, userID string) (*string, error)
 
 	// User biometrics operations
 	UpsertUserBiometrics(ctx context.Context, biometrics *UserBiometrics) error
@@ -55,6 +58,7 @@ type User struct {
 	Subject          string    `json:"subject"`
 	Email            string    `json:"email"`
 	SubscriptionTier string    `json:"subscription_tier"` // "free", "pro"
+	ActiveGoalName   *string   `json:"active_goal_name"`  // Name of the active goal set (Pro users only)
 	CreatedAt        time.Time `json:"created_at"`
 }
 

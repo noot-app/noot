@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -486,7 +487,7 @@ func (s *APIServer) SwaggerUIHandler(c *gin.Context) {
 }
 
 // GetGoals implements ServerInterface.GetGoals
-func (s *APIServer) GetGoals(c *gin.Context) {
+func (s *APIServer) GetGoals(c *gin.Context, params api.GetGoalsParams) {
 	requestID := c.GetString("request_id")
 	ctx := c.Request.Context()
 
@@ -501,14 +502,28 @@ func (s *APIServer) GetGoals(c *gin.Context) {
 	// Get user's custom goals if they're a Pro user
 	var customOverrides *goals.UserOverrides
 	if user.SubscriptionTier == storage.SubscriptionTierPro {
-		userGoal, err := s.store.GetUserGoal(ctx, user.ID, "custom")
-		if err != nil {
-			LogError("Failed to get user goal", err, "user_id", user.ID)
-		} else if userGoal != nil {
-			customOverrides = &goals.UserOverrides{}
-			if err := json.Unmarshal([]byte(userGoal.OverridesJSON), &customOverrides); err != nil {
-				LogError("Failed to parse user goal overrides", err, "user_id", user.ID)
-				customOverrides = nil
+		// Check if a specific goal was requested via query parameter
+		goalName := ""
+		if params.GoalName != nil {
+			goalName = *params.GoalName
+		}
+
+		// If no specific goal requested, use the active goal
+		if goalName == "" && user.ActiveGoalName != nil {
+			goalName = *user.ActiveGoalName
+		}
+
+		// Only try to get goals if we have a goal name
+		if goalName != "" {
+			userGoal, err := s.store.GetUserGoal(ctx, user.ID, goalName)
+			if err != nil {
+				LogError("Failed to get user goal", err, "user_id", user.ID, "goal_name", goalName)
+			} else if userGoal != nil {
+				customOverrides = &goals.UserOverrides{}
+				if err := json.Unmarshal([]byte(userGoal.OverridesJSON), &customOverrides); err != nil {
+					LogError("Failed to parse user goal overrides", err, "user_id", user.ID, "goal_name", goalName)
+					customOverrides = nil
+				}
 			}
 		}
 	}
@@ -608,20 +623,22 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 		return
 	}
 
-	// Validate and set goal name
-	goalDisplayName := "Custom Goals" // default display name
-	if req.Name != nil && *req.Name != "" {
-		if len(*req.Name) > 50 {
-			appErr := NewAppError("Goal name must be 50 characters or less", http.StatusBadRequest, nil)
-			s.handleAppError(c, appErr, requestID)
-			return
-		}
-		goalDisplayName = *req.Name
+	// Validate goal name is required
+	if req.Name == "" {
+		appErr := NewAppError("Goal name is required", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	if len(req.Name) > 50 {
+		appErr := NewAppError("Goal name must be 50 characters or less", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
 	}
 
 	// Create the user overrides structure with both name and overrides
 	userOverrides := goals.UserOverrides{
-		Name:      goalDisplayName,
+		Name:      req.Name,
 		Overrides: make(map[string]float64),
 	}
 
@@ -640,7 +657,7 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 
 	userGoal := &storage.UserGoal{
 		UserID:        user.ID,
-		Name:          "custom", // Keep as "custom" for database constraint
+		Name:          req.Name, // Use the actual goal name from request
 		OverridesJSON: string(overridesJSON),
 	}
 
@@ -650,8 +667,15 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 		return
 	}
 
+	// Set this as the active goal if the user doesn't have one set yet
+	if user.ActiveGoalName == nil {
+		if err := s.store.SetActiveGoal(ctx, user.ID, req.Name); err != nil {
+			LogError("Failed to set active goal for new user", err, "user_id", user.ID, "goal_name", req.Name)
+		}
+	}
+
 	// Return updated goals
-	s.GetGoals(c)
+	s.GetGoals(c, api.GetGoalsParams{})
 }
 
 // GetTrends implements ServerInterface.GetTrends
@@ -1136,6 +1160,153 @@ func (s *APIServer) DeleteUserBiometrics(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// GetGoalSets implements ServerInterface.GetGoalSets
+func (s *APIServer) GetGoalSets(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check subscription tier
+	if user.SubscriptionTier != storage.SubscriptionTierPro {
+		appErr := NewAppError("Pro subscription required for goal sets management", http.StatusForbidden, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Get all goal sets for the user
+	userGoals, err := s.store.GetUserGoals(ctx, user.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to get goal sets", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert to API format
+	goalSets := make([]api.GoalSetSummary, len(userGoals))
+	for i, goal := range userGoals {
+		goalSets[i] = api.GoalSetSummary{
+			Name:      goal.Name,
+			CreatedAt: goal.CreatedAt,
+			UpdatedAt: goal.UpdatedAt,
+		}
+	}
+
+	// Determine active goal name
+	activeGoalName := ""
+	if user.ActiveGoalName != nil {
+		activeGoalName = *user.ActiveGoalName
+	}
+
+	response := api.GoalSetsResponse{
+		GoalSets:       goalSets,
+		ActiveGoalName: activeGoalName,
+		User:           convertUser(user),
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// SetActiveGoalSet implements ServerInterface.SetActiveGoalSet
+func (s *APIServer) SetActiveGoalSet(c *gin.Context) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check subscription tier
+	if user.SubscriptionTier != storage.SubscriptionTierPro {
+		appErr := NewAppError("Pro subscription required for goal sets management", http.StatusForbidden, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Parse request body
+	var req api.SetActiveGoalRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Validate the goal exists
+	_, err = s.store.GetUserGoal(ctx, user.ID, req.Name)
+	if err != nil {
+		appErr := NewAppError("Failed to verify goal exists", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Set the active goal
+	if err := s.store.SetActiveGoal(ctx, user.ID, req.Name); err != nil {
+		if err.Error() == fmt.Sprintf("goal '%s' not found for user", req.Name) {
+			appErr := NewAppError("Goal set not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+		appErr := NewAppError("Failed to set active goal", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Return the updated goals (which will now use the new active goal)
+	s.GetGoals(c, api.GetGoalsParams{})
+}
+
+// DeleteGoalSet implements ServerInterface.DeleteGoalSet
+func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get the default user for now (in production, get from auth)
+	user, err := getDefaultUser(ctx, s.store)
+	if err != nil {
+		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check subscription tier
+	if user.SubscriptionTier != storage.SubscriptionTierPro {
+		appErr := NewAppError("Pro subscription required for goal sets management", http.StatusForbidden, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Check if this is the active goal
+	if user.ActiveGoalName != nil && *user.ActiveGoalName == name {
+		appErr := NewAppError("Cannot delete the currently active goal set. Switch to another goal set first.", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Delete the goal set
+	if err := s.store.DeleteUserGoal(ctx, user.ID, name); err != nil {
+		if err.Error() == "user goal not found" {
+			appErr := NewAppError("Goal set not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+		appErr := NewAppError("Failed to delete goal set", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // OpenAPISpecHandler serves the OpenAPI specification

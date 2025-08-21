@@ -243,6 +243,13 @@ paths:
       summary: Get nutrition goals
       description: Get resolved nutrition goals based on user profile (DRI) and any custom overrides
       operationId: getGoals
+      parameters:
+        - name: goal_name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Name of the specific goal set to retrieve. If not provided, returns the active goal set.
       responses:
         "200":
           description: User nutrition goals
@@ -251,7 +258,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/GoalsResponse"
         "404":
-          description: User not found
+          description: User not found or goal set not found
           content:
             application/json:
               schema:
@@ -292,8 +299,104 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /goals/sets:
+    get:
+      summary: List all goal sets (Pro only)
+      description: Get a list of all custom goal sets for the user
+      operationId: getGoalSets
+      responses:
+        "200":
+          description: List of goal sets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoalSetsResponse"
+        "403":
+          description: Access denied (Pro subscription required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /goals/sets/{name}:
+    delete:
+      summary: Delete a goal set (Pro only)
+      description: Delete a specific custom goal set
+      operationId: deleteGoalSet
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Name of the goal set to delete
+      responses:
+        "204":
+          description: Goal set deleted successfully
+        "400":
+          description: Cannot delete the active goal set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Access denied (Pro subscription required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
-          description: User not found
+          description: Goal set not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /goals/active:
+    put:
+      summary: Set active goal set (Pro only)
+      description: Set which goal set is currently active for the user
+      operationId: setActiveGoalSet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetActiveGoalRequest"
+      responses:
+        "200":
+          description: Active goal set updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoalsResponse"
+        "403":
+          description: Access denied (Pro subscription required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Goal set not found
           content:
             application/json:
               schema:
@@ -1234,12 +1337,13 @@ components:
     UpdateGoalsRequest:
       type: object
       required:
+        - name
         - overrides
       properties:
         name:
           type: string
           maxLength: 50
-          description: Custom name for the goal set (optional, defaults to "custom")
+          description: Custom name for the goal set (required for managing multiple goal sets)
           example: "Bulk Season"
         overrides:
           type: object
@@ -1250,6 +1354,58 @@ components:
             calories: 3000
             protein_g: 180
             vitamin_c_mg: 120
+
+    SetActiveGoalRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 50
+          description: Name of the goal set to make active
+          example: "Bulk Season"
+
+    GoalSetsResponse:
+      type: object
+      required:
+        - goal_sets
+        - active_goal_name
+        - user
+      properties:
+        goal_sets:
+          type: array
+          items:
+            $ref: "#/components/schemas/GoalSetSummary"
+          description: List of all available goal sets
+        active_goal_name:
+          type: string
+          description: Name of the currently active goal set
+          example: "Bulk Season"
+        user:
+          $ref: "#/components/schemas/User"
+
+    GoalSetSummary:
+      type: object
+      required:
+        - name
+        - created_at
+        - updated_at
+      properties:
+        name:
+          type: string
+          description: Name of the goal set
+          example: "Bulk Season"
+        created_at:
+          type: string
+          format: date-time
+          description: When the goal set was created
+          example: "2023-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: When the goal set was last updated
+          example: "2023-01-15T10:30:00Z"
 
     TrendsResponse:
       type: object

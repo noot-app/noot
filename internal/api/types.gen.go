@@ -338,6 +338,28 @@ type ExportResponse struct {
 // ExportResponseFormat Export format used
 type ExportResponseFormat string
 
+// GoalSetSummary defines model for GoalSetSummary.
+type GoalSetSummary struct {
+	// CreatedAt When the goal set was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// Name Name of the goal set
+	Name string `json:"name"`
+
+	// UpdatedAt When the goal set was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// GoalSetsResponse defines model for GoalSetsResponse.
+type GoalSetsResponse struct {
+	// ActiveGoalName Name of the currently active goal set
+	ActiveGoalName string `json:"active_goal_name"`
+
+	// GoalSets List of all available goal sets
+	GoalSets []GoalSetSummary `json:"goal_sets"`
+	User     User             `json:"user"`
+}
+
 // Goals defines model for Goals.
 type Goals struct {
 	// CustomName Name of the custom goal set (only present when source is "custom")
@@ -578,6 +600,12 @@ type NutritionSummaryResponse struct {
 	User    User             `json:"user"`
 }
 
+// SetActiveGoalRequest defines model for SetActiveGoalRequest.
+type SetActiveGoalRequest struct {
+	// Name Name of the goal set to make active
+	Name string `json:"name"`
+}
+
 // Summary defines model for Summary.
 type Summary struct {
 	// DailyValues Daily value amounts used for calculations
@@ -635,8 +663,8 @@ type UpdateConsumptionRequest struct {
 
 // UpdateGoalsRequest defines model for UpdateGoalsRequest.
 type UpdateGoalsRequest struct {
-	// Name Custom name for the goal set (optional, defaults to "custom")
-	Name *string `json:"name,omitempty"`
+	// Name Custom name for the goal set (required for managing multiple goal sets)
+	Name string `json:"name"`
 
 	// Overrides Custom nutrition goal overrides
 	Overrides map[string]float32 `json:"overrides"`
@@ -714,6 +742,12 @@ type ExportDataParams struct {
 // ExportDataParamsFormat defines parameters for ExportData.
 type ExportDataParamsFormat string
 
+// GetGoalsParams defines parameters for GetGoals.
+type GetGoalsParams struct {
+	// GoalName Name of the specific goal set to retrieve. If not provided, returns the active goal set.
+	GoalName *string `form:"goal_name,omitempty" json:"goal_name,omitempty"`
+}
+
 // GetNutritionSummaryParams defines parameters for GetNutritionSummary.
 type GetNutritionSummaryParams struct {
 	// Start Start date (RFC3339 format)
@@ -752,3 +786,6 @@ type UpdateConsumptionJSONRequestBody = UpdateConsumptionRequest
 
 // UpdateGoalsJSONRequestBody defines body for UpdateGoals for application/json ContentType.
 type UpdateGoalsJSONRequestBody = UpdateGoalsRequest
+
+// SetActiveGoalSetJSONRequestBody defines body for SetActiveGoalSet for application/json ContentType.
+type SetActiveGoalSetJSONRequestBody = SetActiveGoalRequest

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { apiClient } from "$lib/api/client";
   import type { paths } from "$lib/api/schema";
+  import GoalSelector from "./GoalSelector.svelte";
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
   type Goals = GoalsResponse["goals"];
@@ -20,8 +21,10 @@
     return isFinite(value) ? value : 0;
   }
 
-  onMount(async () => {
+  async function loadGoals() {
     try {
+      loading = true;
+      error = "";
       const response = await apiClient.GET("/goals");
       
       if (response.error) {
@@ -35,7 +38,16 @@
     } finally {
       loading = false;
     }
+  }
+
+  onMount(async () => {
+    await loadGoals();
   });
+
+  // Called when the active goal changes
+  function handleGoalChanged() {
+    loadGoals();
+  }
 
   function getProgress(nutrient: string, current: number): number {
     // Check if this is an upper limit (should be minimized)
@@ -138,6 +150,9 @@
       </svg>
       {title}
     </h2>
+
+    <!-- Goal Selector -->
+    <GoalSelector onGoalChanged={handleGoalChanged} />
 
     {#if loading}
       <div class="text-center py-4">
