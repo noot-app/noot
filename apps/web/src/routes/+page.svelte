@@ -54,6 +54,10 @@
       transform: translateY(0);
     }
   }
+  
+  .phone-border {
+    border-color: oklch(32.428% 0.0141 285.558);
+  }
 </style>
 
 <!-- Hero Section -->
@@ -63,7 +67,7 @@
       <!-- Hero Content -->
       <div class="text-center lg:text-left space-y-6 fade-in-up">
         <h1 class="text-5xl lg:text-6xl font-bold text-primary leading-tight">
-          Just say what you ate!
+          Just say what <span class="whitespace-nowrap">you ate!</span>
         </h1>
         <p class="text-xl lg:text-2xl text-base-content/80 max-w-lg mx-auto lg:mx-0">
           The easiest nutrition tracker ever. Press record, speak naturally, get instant nutrition insights.
@@ -84,27 +88,25 @@
       
       <!-- Phone Mockup -->
       <div class="flex justify-center lg:justify-end">
-        <div class="mockup-phone {phoneAnimated ? 'phone-float' : ''}">
-          <div class="camera"></div>
-          <div class="display">
-            <div class="artboard artboard-demo phone-2 bg-gradient-to-br from-base-100 to-base-200 h-96 w-64">
-              <!-- Simplified Record Screen Interface -->
-              <div class="flex flex-col items-center justify-center h-full space-y-6 p-8">
-                <!-- Large Record Button -->
-                <div class="flex justify-center">
-                  <div class="w-32 h-32 rounded-full bg-primary flex items-center justify-center cursor-pointer pulse-record shadow-2xl">
-                    <svg class="w-16 h-16 text-primary-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" 
-                            d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
-                  </div>
+        <div class="mockup-phone phone-border {phoneAnimated ? 'phone-float' : ''}">
+          <div class="mockup-phone-camera"></div>
+          <div class="mockup-phone-display bg-gradient-to-br from-base-100 to-base-200">
+            <!-- Simplified Record Screen Interface -->
+            <div class="flex flex-col items-center justify-center h-full space-y-6 p-8">
+              <!-- Large Record Button -->
+              <div class="flex justify-center">
+                <div class="w-32 h-32 rounded-full bg-primary flex items-center justify-center cursor-pointer pulse-record shadow-2xl">
+                  <svg class="w-16 h-16 text-primary-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" 
+                          d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
                 </div>
-                
-                <!-- Instruction Text -->
-                <div class="text-center space-y-2">
-                  <p class="text-lg font-semibold text-base-content">Tap to record your meal</p>
-                  <p class="text-sm text-base-content/70">Speak naturally about what you ate</p>
-                </div>
+              </div>
+              
+              <!-- Instruction Text -->
+              <div class="text-center space-y-2">
+                <p class="text-lg font-semibold text-base-content">Tap to record your meal</p>
+                <p class="text-sm text-base-content/70">Speak naturally about what you ate</p>
               </div>
             </div>
           </div>
@@ -205,85 +207,6 @@
   </div>
 </section>
 
-<!-- Social Proof Section -->
-<section class="py-20 bg-base-100">
-  <div class="container mx-auto px-4 max-w-6xl">
-    <div class="text-center mb-16">
-      <h2 class="text-4xl font-bold text-primary mb-4">Trusted by Health-Conscious Users</h2>
-    </div>
-    
-    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-      <!-- Stats -->
-      <div class="stat bg-base-200 rounded-box text-center">
-        <div class="stat-figure text-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-          </svg>
-        </div>
-        <div class="stat-title">Meals Logged</div>
-        <div class="stat-value text-primary">10,000+</div>
-      </div>
-      
-      <div class="stat bg-base-200 rounded-box text-center">
-        <div class="stat-figure text-secondary">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
-          </svg>
-        </div>
-        <div class="stat-title">Time Saved Per Meal</div>
-        <div class="stat-value text-secondary">5 min</div>
-      </div>
-      
-      <div class="stat bg-base-200 rounded-box text-center">
-        <div class="stat-figure text-accent">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-          </svg>
-        </div>
-        <div class="stat-title">User Satisfaction</div>
-        <div class="stat-value text-accent">98%</div>
-      </div>
-    </div>
-    
-    <!-- Testimonials -->
-    <div class="grid md:grid-cols-2 gap-8">
-      <div class="card bg-base-200 shadow-lg">
-        <div class="card-body">
-          <p class="italic">"Finally, a nutrition tracker that doesn't feel like work. I just speak what I ate and get incredible insights instantly!"</p>
-          <div class="flex items-center mt-4">
-            <div class="avatar placeholder">
-              <div class="bg-primary text-primary-content rounded-full w-10">
-                <span class="text-sm">SJ</span>
-              </div>
-            </div>
-            <div class="ml-3">
-              <div class="font-semibold">Sarah J.</div>
-              <div class="text-sm text-base-content/70">Health Coach</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="card bg-base-200 shadow-lg">
-        <div class="card-body">
-          <p class="italic">"The AI accuracy is incredible. It understands portion sizes and even cooking methods. This is the future of nutrition tracking."</p>
-          <div class="flex items-center mt-4">
-            <div class="avatar placeholder">
-              <div class="bg-secondary text-secondary-content rounded-full w-10">
-                <span class="text-sm">MR</span>
-              </div>
-            </div>
-            <div class="ml-3">
-              <div class="font-semibold">Mike R.</div>
-              <div class="text-sm text-base-content/70">Fitness Enthusiast</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- Pricing/CTA Section -->
 <section id="pricing" class="py-20 bg-primary/5">
   <div class="container mx-auto px-4 max-w-4xl text-center">
@@ -340,39 +263,63 @@
 </section>
 
 <!-- Footer Section -->
-<footer class="footer footer-center bg-base-200 text-base-content p-10">
-  <aside class="grid-flow-col items-center">
-    <img src="/images/noot.svg" alt="{PUBLIC_APP_NAME} Logo" class="w-12 h-12" />
-    <div>
-      <p class="font-bold text-lg">{PUBLIC_APP_NAME}</p>
-      <p class="text-sm">AI-powered nutrition tracking made simple</p>
+<footer class="bg-base-200 text-base-content">
+  <div class="container mx-auto px-4 py-12 max-w-6xl">
+    <!-- Logo -->
+    <div class="flex justify-center mb-10">
+      <img src="/images/noot.svg" alt="{PUBLIC_APP_NAME} Logo" class="w-32 h-32" />
     </div>
-  </aside>
-  <nav class="grid-flow-col gap-4">
-    <div class="grid grid-flow-row gap-2">
-      <h6 class="footer-title">Product</h6>
-      <a href="#how-it-works" class="link link-hover">How it Works</a>
-      <a href="/record" class="link link-hover">Features</a>
-      <a href="#pricing" class="link link-hover">Pricing</a>
+    
+    <!-- Navigation Links -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+      <div class="text-center space-y-3">
+        <h6 class="font-semibold text-base-content mb-3">Product</h6>
+        <div class="space-y-2">
+          <a href="#how-it-works" class="block text-base-content/70 hover:text-base-content transition-colors">How it Works</a>
+          <a href="/record" class="block text-base-content/70 hover:text-base-content transition-colors">Features</a>
+          <a href="#pricing" class="block text-base-content/70 hover:text-base-content transition-colors">Pricing</a>
+        </div>
+      </div>
+      
+      <div class="text-center space-y-3">
+        <h6 class="font-semibold text-base-content mb-3">Company</h6>
+        <div class="space-y-2">
+          <span class="block text-base-content/40 cursor-not-allowed">About</span>
+          <span class="block text-base-content/40 cursor-not-allowed">Blog</span>
+          <span class="block text-base-content/40 cursor-not-allowed">Contact</span>
+        </div>
+      </div>
+      
+      <div class="text-center space-y-3">
+        <h6 class="font-semibold text-base-content mb-3">Legal</h6>
+        <div class="space-y-2">
+          <span class="block text-base-content/40 cursor-not-allowed">Privacy Policy</span>
+          <span class="block text-base-content/40 cursor-not-allowed">Terms of Service</span>
+          <span class="block text-base-content/40 cursor-not-allowed">Cookie Policy</span>
+        </div>
+      </div>
+      
+      <div class="text-center space-y-3">
+        <h6 class="font-semibold text-base-content mb-3">Social</h6>
+        <div class="space-y-2">
+          <a href="https://github.com/GrantBirki/noot" class="block text-base-content/70 hover:text-base-content transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <span class="block text-base-content/40 cursor-not-allowed">Twitter</span>
+          <span class="block text-base-content/40 cursor-not-allowed">Discord</span>
+        </div>
+      </div>
     </div>
-    <div class="grid grid-flow-row gap-2">
-      <h6 class="footer-title">Company</h6>
-      <span class="link link-hover opacity-50 cursor-not-allowed">About</span>
-      <span class="link link-hover opacity-50 cursor-not-allowed">Blog</span>
-      <span class="link link-hover opacity-50 cursor-not-allowed">Contact</span>
+    
+    <!-- Divider -->
+    <div class="border-t border-base-300 pt-6">
+      <!-- Copyright -->
+      <div class="text-center mb-2">
+        <p class="text-sm text-base-content/70">Copyright © {new Date().getFullYear()} - All rights reserved by {PUBLIC_APP_NAME}</p>
+      </div>
+      
+      <!-- Made with love -->
+      <div class="text-center">
+        <p class="text-xs text-base-content/60">Made with ❤️ in San Francisco, CA</p>
+      </div>
     </div>
-    <div class="grid grid-flow-row gap-2">
-      <h6 class="footer-title">Legal</h6>
-      <span class="link link-hover opacity-50 cursor-not-allowed">Privacy Policy</span>
-      <span class="link link-hover opacity-50 cursor-not-allowed">Terms of Service</span>
-    </div>
-    <div class="grid grid-flow-row gap-2">
-      <h6 class="footer-title">Social</h6>
-      <a href="https://github.com/GrantBirki/noot" class="link link-hover" target="_blank" rel="noopener noreferrer">GitHub</a>
-      <span class="link link-hover opacity-50 cursor-not-allowed">Twitter</span>
-    </div>
-  </nav>
-  <aside>
-    <p>Copyright © {new Date().getFullYear()} - All rights reserved by {PUBLIC_APP_NAME}</p>
-  </aside>
+  </div>
 </footer>
