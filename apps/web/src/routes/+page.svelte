@@ -87,7 +87,7 @@
         <div class="mockup-phone {phoneAnimated ? 'phone-float' : ''}">
           <div class="camera"></div>
           <div class="display">
-            <div class="artboard artboard-demo phone-1 bg-gradient-to-br from-base-100 to-base-200">
+            <div class="artboard artboard-demo phone-2 bg-gradient-to-br from-base-100 to-base-200 h-96 w-64">
               <!-- Simplified Record Screen Interface -->
               <div class="flex flex-col items-center justify-center h-full space-y-6 p-8">
                 <!-- Large Record Button -->
