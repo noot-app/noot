@@ -144,7 +144,6 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 	LogDebug("Checking cache for item", "normalized_name", normalizedName, "normalized_brand", normalizedBrand)
 
-	// TODO: Implement cache lookup using the new Item table structure
 	// Check cache first
 	if s.store != nil {
 		cached, err := s.store.GetItemByName(ctx, normalizedName, normalizedBrand)
@@ -171,7 +170,6 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		return item, err
 	}
 
-	// TODO: Implement cache storage using the new Item table structure
 	// Cache the result if store is available
 	if s.store != nil {
 		cacheItem := s.convertNutrientsToCache(item, nutrition)
