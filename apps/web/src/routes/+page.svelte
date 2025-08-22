@@ -181,8 +181,8 @@
     <div class="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
       <!-- Hero Content -->
       <div class="text-center lg:text-left space-y-6 fade-in-up">
-        <h1 class="text-6xl lg:text-8xl font-bold leading-tight gradient-text">
-          Meet Noot
+        <h1 class="text-6xl lg:text-8xl font-bold leading-tight">
+          <span class="gradient-text">Meet <span class="noot-logo">NOOT</span></span>
         </h1>
         <p class="text-xl lg:text-2xl text-base-content/80 max-w-lg mx-auto lg:mx-0">
           The easiest nutrition tracker ever. Press record, speak naturally, get instant nutrition insights.
@@ -382,7 +382,7 @@
   <div class="container mx-auto px-4 py-12 max-w-6xl">
     <!-- Logo -->
     <div class="flex justify-center mb-10">
-      <img src="/images/noot.svg" alt="{PUBLIC_APP_NAME} Logo" class="w-32 h-32" />
+      <span class="text-6xl noot-logo" style="font-weight: 800;">NOOT</span>
     </div>
     
     <!-- Navigation Links -->
