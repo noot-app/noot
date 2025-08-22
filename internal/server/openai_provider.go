@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -346,8 +347,6 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 
 // GetNutrition implements AIProvider.GetNutrition
 func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteNutrient, error) {
-	system := p.nutritionSystemPrompt()
-
 	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name)
 
 	// Build user message with item details in grams
@@ -362,18 +361,20 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 
 	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name, "user_message", userMsg.String())
 
+	// Get prompt configuration from environment variables
+	promptID := strings.TrimSpace(os.Getenv("OPENAI_NUTRITION_PROMPT_ID"))
+	promptVersion := strings.TrimSpace(os.Getenv("OPENAI_NUTRITION_PROMPT_VERSION"))
+
 	payload := map[string]any{
-		"model":       p.config.ParseModel,
-		"temperature": 0.1, // slightly higher for nutrition estimates
-		"messages": []map[string]string{
-			{"role": "system", "content": system},
-			{"role": "user", "content": userMsg.String()},
+		"prompt": map[string]any{
+			"id":      promptID,
+			"version": promptVersion,
 		},
-		"response_format": map[string]string{"type": "json_object"},
+		"input": userMsg.String(),
 	}
 
 	b, _ := json.Marshal(payload)
-	url := p.config.BaseURL + "/chat/completions"
+	url := p.config.BaseURL + "/responses"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {
 		return CompleteNutrient{}, NewAppError("Failed to create nutrition request", http.StatusInternalServerError, err)
@@ -394,27 +395,85 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 			fmt.Errorf("OpenAI API error: %d %s", resp.StatusCode, string(body)))
 	}
 
-	var out struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
+	// Read the full response body for debugging
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return CompleteNutrient{}, NewAppError("Failed to read response body", http.StatusInternalServerError, err)
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+
+	LogDebug("OpenAI nutrition response received", "full_response", string(responseBody))
+
+	// Parse the new /responses endpoint structure
+	var response struct {
+		Output []struct {
+			Type    string `json:"type"`
+			Status  string `json:"status"`
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"output"`
+	}
+	if err := json.Unmarshal(responseBody, &response); err != nil {
 		return CompleteNutrient{}, NewAppError("Failed to parse nutrition response", http.StatusInternalServerError, err)
 	}
 
-	content := ""
-	if len(out.Choices) > 0 {
-		content = out.Choices[0].Message.Content
+	// Extract the text content from the message output
+	var content string
+	var statusIssues []string
+
+	for _, output := range response.Output {
+		if output.Type == "message" {
+			if output.Status != "completed" {
+				statusIssues = append(statusIssues, fmt.Sprintf("message status: %s", output.Status))
+				LogWarn("OpenAI message output not completed", "type", output.Type, "status", output.Status)
+				continue
+			}
+
+			for _, contentItem := range output.Content {
+				if contentItem.Type == "output_text" {
+					content = contentItem.Text
+					break
+				}
+			}
+			if content != "" {
+				break
+			}
+		}
+	}
+
+	// Check if we found any non-completed statuses
+	if len(statusIssues) > 0 && content == "" {
+		errorMsg := fmt.Sprintf("OpenAI request failed with status issues: %s", strings.Join(statusIssues, ", "))
+		LogError("OpenAI nutrition request failed", errors.New(errorMsg))
+		return CompleteNutrient{}, NewAppError("OpenAI nutrition request failed", http.StatusInternalServerError, errors.New(errorMsg))
+	}
+
+	if content == "" {
+		LogWarn("No content found in OpenAI response", "output_count", len(response.Output))
+		return CompleteNutrient{}, NewAppError("No content found in OpenAI response", http.StatusInternalServerError, fmt.Errorf("empty content"))
+	}
+
+	LogDebug("Extracted content from OpenAI response", "content_length", len(content), "content_preview", func() string {
+		if len(content) > 100 {
+			return content[:100] + "..."
+		}
+		return content
+	}())
+
+	// Strip markdown code blocks if present
+	content = strings.TrimSpace(content)
+	if strings.HasPrefix(content, "```json") {
+		content = strings.TrimPrefix(content, "```json")
+		content = strings.TrimSuffix(content, "```")
+		content = strings.TrimSpace(content)
 	}
 
 	var result struct {
 		Nutrients CompleteNutrient `json:"nutrients"`
 	}
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
-		LogWarn("Failed to parse nutrition JSON", "content", content, "error", err.Error())
+		LogWarn("Failed to parse nutrition JSON", "content", content, "error", err.Error(), "full_response", string(responseBody))
 		return CompleteNutrient{}, NewAppError("Failed to parse nutrition data", http.StatusInternalServerError, err)
 	}
 
