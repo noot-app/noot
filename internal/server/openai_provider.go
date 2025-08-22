@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -83,77 +84,6 @@ IMPORTANT INSTRUCTIONS:
 4. INFER SERVING SIZES: If quantity is not specified, assume reasonable standard serving sizes and convert to grams.
 5. PRESERVE BRANDS: Keep exact brand and product names (e.g., "Clover Sonoma", "Trader Joe's", "Siggi's", "KFC", "Starbucks").
 6. DO NOT ADD NUTRITION DATA: Only extract item identification and weight conversion, not nutrition information.`
-}
-
-func (p *OpenAIProvider) nutritionSystemPrompt() string {
-	return `You provide complete nutrition information for a single food item based on its weight in grams. Return strict JSON with the following structure:
-
-{
-  "nutrients": {
-    "calories": number,
-    "protein_g": number,
-    "total_fat_g": number,
-    "saturated_fat_g": number,
-    "trans_fat_g": number,
-    "cholesterol_mg": number,
-    "sodium_mg": number,
-    "total_carbs_g": number,
-    "dietary_fiber_g": number,
-    "total_sugars_g": number,
-    "added_sugars_g": number,
-    "vitamin_a_mcg": number,
-    "vitamin_c_mg": number,
-    "vitamin_d_mcg": number,
-    "vitamin_e_mg": number,
-    "vitamin_k_mcg": number,
-    "thiamine_mg": number,
-    "riboflavin_mg": number,
-    "niacin_mg": number,
-    "vitamin_b6_mg": number,
-    "folate_mcg": number,
-    "vitamin_b12_mcg": number,
-    "biotin_mcg": number,
-    "pantothenic_acid_mg": number,
-    "choline_mg": number,
-    "calcium_mg": number,
-    "iron_mg": number,
-    "magnesium_mg": number,
-    "phosphorus_mg": number,
-    "potassium_mg": number,
-    "zinc_mg": number,
-    "copper_mg": number,
-    "manganese_mg": number,
-    "selenium_mcg": number,
-    "iodine_mcg": number,
-    "molybdenum_mcg": number,
-    "chromium_mcg": number,
-    "fluoride_mg": number,
-    "chloride_mg": number
-  }
-}
-
-IMPORTANT INSTRUCTIONS:
-1. WEIGHT-BASED NUTRITION: Provide accurate nutrition data for the exact gram weight specified. Use your knowledge of food composition databases and USDA data.
-2. BRANDED VS GENERIC: Prioritize branded nutrition data when brand is specified, otherwise use generic USDA-style data for the food type.
-3. ZERO VALUES: Use 0 for nutrients that are truly absent, but provide realistic non-zero values for nutrients that are typically present.
-4. ACCURACY REFERENCE: Use these as accuracy checkpoints for common foods per 100g:
-   - Butter (salted): ~717 calories, ~81 g fat, ~0.9 g protein
-   - Whole eggs (raw, whole): ~143 calories, ~9.5 g fat, ~12.6 g protein
-   - Banana (raw): ~89 calories, ~0.3 g fat, ~1.1 g protein
-   - White bread (commercial): ~265 calories, ~3.2 g fat, ~9 g protein
-   - Whole milk (3.25 percent fat): ~61 calories, ~3.3 g fat, ~3.2 g protein
-   - Rice, white (cooked): ~130 calories, ~0.3 g fat, ~2.7 g protein
-   - Skim milk (~0.5 percent fat or less): ~34 calories, ~0.1 g fat, ~3.4 g protein
-   - Chicken breast (cooked, skinless): ~165 calories, ~3.6 g fat, ~31 g protein
-   - Potato (raw, white): ~77 calories, ~0.1 g fat, ~2 g protein
-   - Onion (raw): ~40 calories, ~0.1 g fat, ~1.1 g protein
-   - Blueberries (raw): ~57 calories, ~0.3 g fat, ~0.7 g protein
-   - Apple (raw): ~52 calories, ~0.2 g fat, ~0.3 g protein
-   - Beef, ground (85% lean, cooked): ~250 calories, ~17 g fat, ~26 g protein
-   - Tomato (raw): ~18 calories, ~0.2 g fat, ~0.9 g protein
-   - Cheddar cheese (aged): ~403 calories, ~33.1 g fat, ~24.9 g protein
-   - Carrot (raw): ~41 calories, ~0.2 g fat, ~0.9 g protein
-5. CALCULATE FROM WEIGHT: Scale nutrition values proportionally based on the gram weight provided.`
 }
 
 // TranscribeAudio implements AIProvider.TranscribeAudio
@@ -346,8 +276,6 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 
 // GetNutrition implements AIProvider.GetNutrition
 func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteNutrient, error) {
-	system := p.nutritionSystemPrompt()
-
 	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name)
 
 	// Build user message with item details in grams
@@ -362,18 +290,20 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 
 	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name, "user_message", userMsg.String())
 
+	// Get prompt configuration from environment variables
+	promptID := strings.TrimSpace(os.Getenv("OPENAI_NUTRITION_PROMPT_ID"))
+	promptVersion := strings.TrimSpace(os.Getenv("OPENAI_NUTRITION_PROMPT_VERSION"))
+
 	payload := map[string]any{
-		"model":       p.config.ParseModel,
-		"temperature": 0.1, // slightly higher for nutrition estimates
-		"messages": []map[string]string{
-			{"role": "system", "content": system},
-			{"role": "user", "content": userMsg.String()},
+		"prompt": map[string]any{
+			"id":      promptID,
+			"version": promptVersion,
 		},
-		"response_format": map[string]string{"type": "json_object"},
+		"input": userMsg.String(),
 	}
 
 	b, _ := json.Marshal(payload)
-	url := p.config.BaseURL + "/chat/completions"
+	url := p.config.BaseURL + "/responses"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {
 		return CompleteNutrient{}, NewAppError("Failed to create nutrition request", http.StatusInternalServerError, err)
@@ -394,27 +324,80 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 			fmt.Errorf("OpenAI API error: %d %s", resp.StatusCode, string(body)))
 	}
 
-	var out struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
+	// Read the full response body for debugging
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return CompleteNutrient{}, NewAppError("Failed to read response body", http.StatusInternalServerError, err)
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+
+	LogDebug("OpenAI nutrition response received", "full_response", string(responseBody))
+
+	// Parse the new /responses endpoint structure
+	var response struct {
+		Output []struct {
+			Type    string `json:"type"`
+			Status  string `json:"status"`
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"output"`
+	}
+	if err := json.Unmarshal(responseBody, &response); err != nil {
 		return CompleteNutrient{}, NewAppError("Failed to parse nutrition response", http.StatusInternalServerError, err)
 	}
 
-	content := ""
-	if len(out.Choices) > 0 {
-		content = out.Choices[0].Message.Content
+	// Extract the text content from the message output
+	var content string
+	var statusIssues []string
+
+	for _, output := range response.Output {
+		if output.Type == "message" {
+			if output.Status != "completed" {
+				statusIssues = append(statusIssues, fmt.Sprintf("message status: %s", output.Status))
+				LogWarn("OpenAI message output not completed", "type", output.Type, "status", output.Status)
+				continue
+			}
+
+			for _, contentItem := range output.Content {
+				if contentItem.Type == "output_text" {
+					content = contentItem.Text
+					break
+				}
+			}
+			if content != "" {
+				break
+			}
+		}
 	}
+
+	// Check if we found any non-completed statuses
+	if len(statusIssues) > 0 && content == "" {
+		errorMsg := fmt.Sprintf("OpenAI request failed with status issues: %s", strings.Join(statusIssues, ", "))
+		LogError("OpenAI nutrition request failed", errors.New(errorMsg))
+		return CompleteNutrient{}, NewAppError("OpenAI nutrition request failed", http.StatusInternalServerError, errors.New(errorMsg))
+	}
+
+	if content == "" {
+		LogWarn("No content found in OpenAI response", "output_count", len(response.Output))
+		return CompleteNutrient{}, NewAppError("No content found in OpenAI response", http.StatusInternalServerError, fmt.Errorf("empty content"))
+	}
+
+	LogDebug("Extracted content from OpenAI response", "content_length", len(content), "content_preview", func() string {
+		if len(content) > 100 {
+			return content[:100] + "..."
+		}
+		return content
+	}())
+
+	// Parse the JSON content directly (no markdown code blocks with json_schema format)
+	content = strings.TrimSpace(content)
 
 	var result struct {
 		Nutrients CompleteNutrient `json:"nutrients"`
 	}
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
-		LogWarn("Failed to parse nutrition JSON", "content", content, "error", err.Error())
+		LogWarn("Failed to parse nutrition JSON", "content", content, "error", err.Error(), "full_response", string(responseBody))
 		return CompleteNutrient{}, NewAppError("Failed to parse nutrition data", http.StatusInternalServerError, err)
 	}
 
