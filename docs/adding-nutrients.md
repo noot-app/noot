@@ -5,6 +5,7 @@ This guide walks through the complete process of adding a new nutrient to the no
 ## Overview
 
 Adding a nutrient requires updates to:
+
 - Database schema (SQL migrations)
 - Go backend types and logic
 - OpenAI nutrition prompt (on OpenAI portal)
@@ -39,6 +40,7 @@ ALTER TABLE items_cache ADD COLUMN dha_mg_per_100g REAL NOT NULL DEFAULT 0;
 ```
 
 **Pattern**: Use format `{nutrient_name}_{unit}` for column names. Always add to both tables:
+
 - `consumptions`: Total amount consumed
 - `items_cache`: Amount per 100g for calculation
 
@@ -119,36 +121,36 @@ To add a new nutrient like DHA:
 1. **Access OpenAI Portal**: Log into the OpenAI portal where the nutrition prompt is hosted
 2. **Update JSON Structure**: Add the new nutrient to the expected JSON response structure:
 
-```json
-{
-  "nutrients": {
-    "calories": number,
-    "protein_g": number,
-    // ... existing nutrients ...
-    "chloride_mg": number,
-    "dha_mg": number
-  }
-}
-```
+    ```json
+    {
+      "nutrients": {
+        "calories": number,
+        "protein_g": number,
+        // ... existing nutrients ...
+        "chloride_mg": number,
+        "dha_mg": number
+      }
+    }
+    ```
 
 3. **Add Reference Data**: Include accuracy reference data in the prompt instructions:
 
-```text
-DHA CONTENT: Include DHA (docosahexaenoic acid) content in milligrams. Focus on:
-- Fatty fish (salmon, mackerel, sardines, tuna): 500-2000mg per 100g
-- Fish oil supplements: Very high DHA content
-- Algae-based foods: Moderate DHA for vegetarian sources  
-- Most plant foods: 0mg DHA (ALA omega-3 instead)
-- Fortified foods: Check product specifications
+    ```text
+    DHA CONTENT: Include DHA (docosahexaenoic acid) content in milligrams. Focus on:
+    - Fatty fish (salmon, mackerel, sardines, tuna): 500-2000mg per 100g
+    - Fish oil supplements: Very high DHA content
+    - Algae-based foods: Moderate DHA for vegetarian sources  
+    - Most plant foods: 0mg DHA (ALA omega-3 instead)
+    - Fortified foods: Check product specifications
 
-For DHA specifically:
-- Salmon (farmed): ~1800mg per 100g
-- Salmon (wild): ~1400mg per 100g  
-- Sardines: ~1400mg per 100g
-- Mackerel: ~1600mg per 100g
-- Tuna: ~300-1200mg per 100g (varies by species)
-- Most non-marine foods: 0mg
-```
+    For DHA specifically:
+    - Salmon (farmed): ~1800mg per 100g
+    - Salmon (wild): ~1400mg per 100g  
+    - Sardines: ~1400mg per 100g
+    - Mackerel: ~1600mg per 100g
+    - Tuna: ~300-1200mg per 100g (varies by species)
+    - Most non-marine foods: 0mg
+    ```
 
 4. **Update Version**: Create a new version of the prompt and update the `OPENAI_NUTRITION_PROMPT_VERSION` environment variable
 
@@ -331,21 +333,24 @@ Use this checklist to verify complete functionality:
 ### 6. Manual Testing Scenarios
 
 #### Scenario 1: Record DHA-rich meal
-```
+
+```text
 Test Input: "I ate 6 ounces of grilled salmon"
 Expected: DHA value should be ~306mg (170g × 1800mg/100g)
 Verify: Check consumption response includes dha_mg field
 ```
 
 #### Scenario 2: View nutrition summary
-```
+
+```text
 Test: Create multiple fish consumptions over several days
 Expected: Total DHA should sum correctly in daily/weekly summaries  
 Verify: Check nutrition summary API includes total_dha_mg
 ```
 
 #### Scenario 3: Goals component display
-```  
+
+```text
 Test: Open Goals component with DHA consumption data
 Expected: DHA appears in nutrient list with progress bar
 Verify: Units display as "mg", progress calculates if targets exist
@@ -424,55 +429,30 @@ npm run dev
 | Zero DHA values for fish | Update OpenAI nutrition prompt on portal to include DHA reference data |
 | Tests fail after adding nutrient | Verify all structs updated consistently across types.go and store.go |
 
-## Enhanced Automation Script
-
-To streamline future nutrient additions, use the enhanced helper script:
-
-```bash
-./script/add-nutrient                # Interactive mode
-./script/add-nutrient --verbose      # Show detailed changes  
-./script/add-nutrient --dry-run      # Preview changes without applying
-./script/add-nutrient --help         # Show usage information
-```
-
-**Key improvements:**
-- **Backup & Rollback**: Automatically creates backups and rolls back changes if any step fails
-- **Validation**: Compiles code after each change and runs validation tests
-- **Error Handling**: Clear error messages with specific guidance when things go wrong
-- **Diff Preview**: Shows exactly what changes will be made (verbose mode)
-- **Dry Run Mode**: Preview changes without applying them
-- **Robust Patterns**: Improved sed patterns that are less prone to breaking with formatting changes
-
-This interactive script will:
-- Prompt for nutrient name, unit, and metadata
-- Generate SQL migration files
-- Update Go structs with proper formatting  
-- Update OpenAPI schema definitions
-- Update frontend Goals component
-- Regenerate API types automatically
-- Run validation tests to ensure everything compiles
-- Create automatic backups with rollback capability
-- Provide clear error messages if any step fails
-
 ## Common Patterns
 
 ### Naming Conventions
+
 - **Database columns**: `{nutrient}_{unit}` (e.g., `dha_mg`)
 - **Go struct fields**: `{Nutrient}{Unit}` (e.g., `DHAmg`)
 - **JSON fields**: `{nutrient}_{unit}` (e.g., `"dha_mg"`)
 - **API schema**: Same as JSON fields
 
 ### Units
+
 - Use standard nutrition units: `mg`, `mcg`, `g`, `kcal`
 - Be consistent across all layers
 - Include unit in field names for clarity
 
 ### Default Values  
+
 - Always use `DEFAULT 0` in SQL migrations
 - This ensures backwards compatibility with existing records
 
 ### Categories
+
 Common nutrient categories for organization:
+
 - **Macronutrients**: calories, protein, carbs, fat, fiber
 - **Vitamins**: fat-soluble (A,D,E,K) and water-soluble (B-complex, C)
 - **Minerals**: major (Ca, P, Mg, K) and trace (Fe, Zn, Cu, Se)
@@ -504,17 +484,20 @@ Common nutrient categories for organization:
 ## Advanced Considerations
 
 ### Performance Impact
+
 - New columns add minimal storage overhead
 - Consider indexing for frequently queried nutrients
 - Aggregation queries scale linearly with nutrient count
 
 ### Data Sources for Reference Values
+
 - **USDA FoodData Central**: Comprehensive food composition database
 - **NIH Office of Dietary Supplements**: Authoritative nutrient information  
 - **FDA Nutrition Facts**: Labeling requirements and Daily Values
 - **Scientific literature**: For newly researched nutrients
 
 ### Future Enhancements
+
 - **Dynamic nutrient registry**: Configuration-driven nutrient system
 - **Bulk import tools**: Automated data import from authoritative sources
 - **Custom nutrient types**: User-defined nutrients for specialized tracking
@@ -523,13 +506,15 @@ Common nutrient categories for organization:
 
 Here's what the complete DHA implementation looks like across all files:
 
-### Migration (`007_add_dha_nutrient.sql`):
+### Migration (`007_add_dha_nutrient.sql`)
+
 ```sql
 ALTER TABLE consumptions ADD COLUMN dha_mg REAL NOT NULL DEFAULT 0;
 ALTER TABLE items_cache ADD COLUMN dha_mg_per_100g REAL NOT NULL DEFAULT 0;
 ```
 
-### Go Types (`types.go`):
+### Go Types (`types.go`)
+
 ```go
 type CompleteNutrient struct {
     // ... existing fields ...
@@ -537,7 +522,8 @@ type CompleteNutrient struct {
 }
 ```
 
-### OpenAPI Schema:
+### OpenAPI Schema
+
 ```yaml
 dha_mg:
   type: number
@@ -545,7 +531,8 @@ dha_mg:
   description: "Docosahexaenoic acid (DHA) in milligrams"
 ```
 
-### Frontend (`Goals.svelte`):
+### Frontend (`Goals.svelte`)
+
 ```javascript  
 const keyNutrients = [
     // ... existing nutrients ...
@@ -554,44 +541,3 @@ const keyNutrients = [
 ```
 
 This systematic approach ensures complete integration of new nutrients across the entire application stack while maintaining data consistency and user experience quality.
-
-## Quick Reference
-
-### Adding a New Nutrient (Summary)
-
-1. **Run the helper script**: `./script/add-nutrient`
-2. **Test the implementation**: `./script/test`
-3. **Update OpenAI nutrition prompt** on portal with reference data if needed
-4. **Add DRI/DV values** to goals data if available
-5. **Test end-to-end functionality**
-
-### File Checklist
-
-When adding a nutrient manually, ensure these files are updated:
-
-- [ ] `internal/storage/migrations/###_add_[nutrient]_nutrient.sql`
-- [ ] `internal/server/types.go` (CompleteNutrient struct)
-- [ ] `internal/storage/store.go` (Consumption, Item, NutritionSummary structs)
-- [ ] OpenAI nutrition prompt on portal (JSON structure and reference data)
-- [ ] `api/openapi.yaml` (CompleteNutrient and NutritionSummary schemas)
-- [ ] Generated API types (via `./script/generate-types`)
-- [ ] `apps/web/src/lib/components/Goals.svelte` (keyNutrients array)
-- [ ] `internal/goals/data/*.json` (optional, if DRI/DV values exist)
-
-### Testing Commands
-
-```bash
-# Full test suite
-./script/test
-
-# Generate API types  
-./script/generate-types
-
-# Build application
-./script/build --single-target
-
-# Lint code
-./script/lint
-```
-
-The process is designed to be reliable, repeatable, and maintainable for the long-term evolution of noot's nutrition tracking capabilities.
