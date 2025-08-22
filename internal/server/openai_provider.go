@@ -168,21 +168,31 @@ func (p *OpenAIProvider) TranscribeAudio(ctx context.Context, filePath, mimeType
 
 // ParseItems implements AIProvider.ParseItems
 func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) (ParsedItems, error) {
-	system := p.parseItemsSystemPrompt()
-	user := "Meal: " + transcriptText
+	LogDebug("Starting OpenAI ParseItems request", "transcript", transcriptText)
+
+	// Build input message as JSON
+	inputObj := map[string]string{
+		"transcript_text": transcriptText,
+	}
+	inputBytes, _ := json.Marshal(inputObj)
+	input := string(inputBytes)
+
+	LogDebug("Starting OpenAI ParseItems request", "transcript", transcriptText, "input_message", input)
+
+	// Get prompt configuration from environment variables
+	promptID := strings.TrimSpace(os.Getenv("OPENAI_PARSE_ITEMS_PROMPT_ID"))
+	promptVersion := strings.TrimSpace(os.Getenv("OPENAI_PARSE_ITEMS_PROMPT_VERSION"))
 
 	payload := map[string]any{
-		"model":       p.config.ParseModel,
-		"temperature": 0.0, // deterministic for item parsing
-		"messages": []map[string]string{
-			{"role": "system", "content": system},
-			{"role": "user", "content": user},
+		"prompt": map[string]any{
+			"id":      promptID,
+			"version": promptVersion,
 		},
-		"response_format": map[string]string{"type": "json_object"},
+		"input": input,
 	}
 
 	b, _ := json.Marshal(payload)
-	url := p.config.BaseURL + "/chat/completions"
+	url := p.config.BaseURL + "/responses"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {
 		return ParsedItems{}, NewAppError("Failed to create parsing request", http.StatusInternalServerError, err)
@@ -204,50 +214,100 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 			fmt.Errorf("OpenAI API error: %d %s", resp.StatusCode, string(body)))
 	}
 
-	var out struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return ParsedItems{}, NewAppError("Failed to parse OpenAI response", http.StatusInternalServerError, err)
-	}
-	content := ""
-	if len(out.Choices) > 0 {
-		content = out.Choices[0].Message.Content
+	// Read the full response body for debugging
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ParsedItems{}, NewAppError("Failed to read response body", http.StatusInternalServerError, err)
 	}
 
-	LogDebug("OpenAI item parsing response received", "content_length", len(content), "content", content)
+	LogDebug("OpenAI parsing response received", "full_response", string(responseBody))
 
-	// Temporary struct for parsing OpenAI response
+	// Parse the new /responses endpoint structure
+	var response struct {
+		Output []struct {
+			Type    string `json:"type"`
+			Status  string `json:"status"`
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"output"`
+	}
+	if err := json.Unmarshal(responseBody, &response); err != nil {
+		return ParsedItems{}, NewAppError("Failed to parse parsing response", http.StatusInternalServerError, err)
+	}
+
+	// Extract the text content from the message output
+	var content string
+	var statusIssues []string
+
+	for _, output := range response.Output {
+		if output.Type == "message" {
+			if output.Status != "completed" {
+				statusIssues = append(statusIssues, fmt.Sprintf("message status: %s", output.Status))
+				LogWarn("OpenAI message output not completed", "type", output.Type, "status", output.Status)
+				continue
+			}
+
+			for _, contentItem := range output.Content {
+				if contentItem.Type == "output_text" {
+					content = contentItem.Text
+					break
+				}
+			}
+			if content != "" {
+				break
+			}
+		}
+	}
+
+	// Check if we found any non-completed statuses
+	if len(statusIssues) > 0 && content == "" {
+		errorMsg := fmt.Sprintf("OpenAI request failed with status issues: %s", strings.Join(statusIssues, ", "))
+		LogError("OpenAI parsing request failed", errors.New(errorMsg))
+		return ParsedItems{}, NewAppError("OpenAI parsing request failed", http.StatusInternalServerError, errors.New(errorMsg))
+	}
+
+	if content == "" {
+		LogWarn("No content found in OpenAI response", "output_count", len(response.Output))
+		return ParsedItems{}, NewAppError("No content found in OpenAI response", http.StatusInternalServerError, fmt.Errorf("empty content"))
+	}
+
+	LogDebug("Extracted content from OpenAI response", "content_length", len(content), "content_preview", func() string {
+		if len(content) > 100 {
+			return content[:100] + "..."
+		}
+		return content
+	}())
+
+	// Parse the JSON content directly (no markdown code blocks with json_schema format)
+	content = strings.TrimSpace(content)
+
+	// Temporary struct for parsing OpenAI response with new schema structure
 	var parsed struct {
-		Items []struct {
+		Success bool    `json:"success"`
+		Message *string `json:"message"`
+		Items   []struct {
 			Name         string   `json:"name"`
-			Grams        float64  `json:"grams"`
+			Grams        *float64 `json:"grams"`
 			UserQuantity *float64 `json:"user_quantity"`
 			UserUnit     *string  `json:"user_unit"`
 			Brand        *string  `json:"brand"`
 		} `json:"items"`
 	}
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
-		LogWarn("Failed to parse OpenAI JSON response", "content", content, "error", err.Error())
-		parsed = struct {
-			Items []struct {
-				Name         string   `json:"name"`
-				Grams        float64  `json:"grams"`
-				UserQuantity *float64 `json:"user_quantity"`
-				UserUnit     *string  `json:"user_unit"`
-				Brand        *string  `json:"brand"`
-			} `json:"items"`
-		}{Items: []struct {
-			Name         string   `json:"name"`
-			Grams        float64  `json:"grams"`
-			UserQuantity *float64 `json:"user_quantity"`
-			UserUnit     *string  `json:"user_unit"`
-			Brand        *string  `json:"brand"`
-		}{}}
+		LogWarn("Failed to parse OpenAI JSON response", "content", content, "error", err.Error(), "full_response", string(responseBody))
+		return ParsedItems{}, NewAppError("Failed to parse OpenAI response", http.StatusInternalServerError, err)
+	}
+
+	// Check if parsing was successful according to the schema
+	if !parsed.Success {
+		message := "Unknown parsing failure"
+		if parsed.Message != nil {
+			message = *parsed.Message
+		}
+		LogWarn("OpenAI parsing reported failure", "message", message)
+		return ParsedItems{}, NewAppError("Failed to parse items: "+message, http.StatusBadRequest, fmt.Errorf("parsing failed: %s", message))
 	}
 
 	// Normalize items (no nutrition data at this stage)
@@ -257,14 +317,14 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 		if name == "" {
 			continue
 		}
-		// Ensure grams is positive
-		if i.Grams <= 0 {
-			LogWarn("Invalid grams value for item", "name", name, "grams", i.Grams)
+		// Handle grams being potentially null in the new schema
+		if i.Grams == nil || *i.Grams <= 0 {
+			LogWarn("Invalid or missing grams value for item", "name", name, "grams", i.Grams)
 			continue
 		}
 		clean = append(clean, Item{
 			Name:         name,
-			Grams:        i.Grams,
+			Grams:        *i.Grams,
 			UserQuantity: i.UserQuantity,
 			UserUnit:     strPtrOrNil(i.UserUnit),
 			Brand:        strPtrOrNil(i.Brand),
@@ -280,17 +340,16 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteNutrient, error) {
 	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name)
 
-	// Build user message with item details in grams
-	var userMsg strings.Builder
-	userMsg.WriteString("Item: ")
-	userMsg.WriteString(item.Name)
-	userMsg.WriteString(fmt.Sprintf("\nWeight: %.1fg", item.Grams))
-
-	if item.Brand != nil {
-		userMsg.WriteString(fmt.Sprintf("\nBrand: %s", *item.Brand))
+	// Build input message as JSON
+	inputObj := map[string]any{
+		"name":  item.Name,
+		"grams": item.Grams,
+		"brand": item.Brand,
 	}
+	inputBytes, _ := json.Marshal(inputObj)
+	input := string(inputBytes)
 
-	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name, "user_message", userMsg.String())
+	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name, "input_message", input)
 
 	// Get prompt configuration from environment variables
 	promptID := strings.TrimSpace(os.Getenv("OPENAI_NUTRITION_PROMPT_ID"))
@@ -301,7 +360,7 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 			"id":      promptID,
 			"version": promptVersion,
 		},
-		"input": userMsg.String(),
+		"input": input,
 	}
 
 	b, _ := json.Marshal(payload)
@@ -395,12 +454,25 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 	// Parse the JSON content directly (no markdown code blocks with json_schema format)
 	content = strings.TrimSpace(content)
 
+	// Parse the new schema structure with success and message fields
 	var result struct {
+		Success   bool             `json:"success"`
+		Message   *string          `json:"message"`
 		Nutrients CompleteNutrient `json:"nutrients"`
 	}
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
 		LogWarn("Failed to parse nutrition JSON", "content", content, "error", err.Error(), "full_response", string(responseBody))
 		return CompleteNutrient{}, NewAppError("Failed to parse nutrition data", http.StatusInternalServerError, err)
+	}
+
+	// Check if nutrition fetching was successful according to the schema
+	if !result.Success {
+		message := "Unknown nutrition fetching failure"
+		if result.Message != nil {
+			message = *result.Message
+		}
+		LogWarn("OpenAI nutrition fetching reported failure", "message", message)
+		return CompleteNutrient{}, NewAppError("Failed to fetch nutrition: "+message, http.StatusBadRequest, fmt.Errorf("nutrition fetching failed: %s", message))
 	}
 
 	LogDebug("CompleteNutrient resolved", "item", item.Name, "nutrients", result.Nutrients)

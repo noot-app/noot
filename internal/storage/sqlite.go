@@ -1154,8 +1154,19 @@ func (s *SQLiteStore) CreateItem(ctx context.Context, item *Item) error {
 			iron_mg_per_100g, magnesium_mg_per_100g, phosphorus_mg_per_100g, potassium_mg_per_100g,
 			zinc_mg_per_100g, copper_mg_per_100g, manganese_mg_per_100g, selenium_mcg_per_100g,
 			iodine_mcg_per_100g, molybdenum_mcg_per_100g, chromium_mcg_per_100g, fluoride_mg_per_100g,
-			chloride_mg_per_100g, fetched_at, expires_at, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+			chloride_mg_per_100g,
+			original_serving_grams, original_calories, original_protein_g, original_total_fat_g,
+			original_saturated_fat_g, original_trans_fat_g, original_cholesterol_mg, original_sodium_mg,
+			original_total_carbs_g, original_dietary_fiber_g, original_total_sugars_g, original_added_sugars_g,
+			original_vitamin_a_mcg, original_vitamin_c_mg, original_vitamin_d_mcg, original_vitamin_e_mg,
+			original_vitamin_k_mcg, original_thiamine_mg, original_riboflavin_mg, original_niacin_mg,
+			original_vitamin_b6_mg, original_folate_mcg, original_vitamin_b12_mcg, original_biotin_mcg,
+			original_pantothenic_acid_mg, original_choline_mg, original_calcium_mg, original_iron_mg,
+			original_magnesium_mg, original_phosphorus_mg, original_potassium_mg, original_zinc_mg,
+			original_copper_mg, original_manganese_mg, original_selenium_mcg, original_iodine_mcg,
+			original_molybdenum_mcg, original_chromium_mcg, original_fluoride_mg, original_chloride_mg,
+			fetched_at, expires_at, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	// Set fetched_at to now and expires_at to 30 days from now for compatibility with existing schema
 	fetchedAt := now
@@ -1173,7 +1184,18 @@ func (s *SQLiteStore) CreateItem(ctx context.Context, item *Item) error {
 		item.IronMgPer100g, item.MagnesiumMgPer100g, item.PhosphorusMgPer100g, item.PotassiumMgPer100g,
 		item.ZincMgPer100g, item.CopperMgPer100g, item.ManganeseMgPer100g, item.SeleniumMcgPer100g,
 		item.IodineMcgPer100g, item.MolybdenumMcgPer100g, item.ChromiumMcgPer100g, item.FluorideMgPer100g,
-		item.ChlorideMgPer100g, fetchedAt, expiresAt, item.CreatedAt, item.UpdatedAt,
+		item.ChlorideMgPer100g,
+		item.OriginalServingGrams, item.OriginalCalories, item.OriginalProteinG, item.OriginalTotalFatG,
+		item.OriginalSaturatedFatG, item.OriginalTransFatG, item.OriginalCholesterolMg, item.OriginalSodiumMg,
+		item.OriginalTotalCarbsG, item.OriginalDietaryFiberG, item.OriginalTotalSugarsG, item.OriginalAddedSugarsG,
+		item.OriginalVitaminAMcg, item.OriginalVitaminCMg, item.OriginalVitaminDMcg, item.OriginalVitaminEMg,
+		item.OriginalVitaminKMcg, item.OriginalThiamineMg, item.OriginalRiboflavinMg, item.OriginalNiacinMg,
+		item.OriginalVitaminB6Mg, item.OriginalFolateMcg, item.OriginalVitaminB12Mcg, item.OriginalBiotinMcg,
+		item.OriginalPantothenicAcidMg, item.OriginalCholineMg, item.OriginalCalciumMg, item.OriginalIronMg,
+		item.OriginalMagnesiumMg, item.OriginalPhosphorusMg, item.OriginalPotassiumMg, item.OriginalZincMg,
+		item.OriginalCopperMg, item.OriginalManganeseMg, item.OriginalSeleniumMcg, item.OriginalIodineMcg,
+		item.OriginalMolybdenumMcg, item.OriginalChromiumMcg, item.OriginalFluorideMg, item.OriginalChlorideMg,
+		fetchedAt, expiresAt, item.CreatedAt, item.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create item: %w", err)
@@ -1238,7 +1260,18 @@ func (s *SQLiteStore) GetItemByName(ctx context.Context, normalizedName, normali
 			   iron_mg_per_100g, magnesium_mg_per_100g, phosphorus_mg_per_100g, potassium_mg_per_100g,
 			   zinc_mg_per_100g, copper_mg_per_100g, manganese_mg_per_100g, selenium_mcg_per_100g,
 			   iodine_mcg_per_100g, molybdenum_mcg_per_100g, chromium_mcg_per_100g, fluoride_mg_per_100g,
-			   chloride_mg_per_100g, created_at, updated_at
+			   chloride_mg_per_100g,
+			   original_serving_grams, original_calories, original_protein_g, original_total_fat_g,
+			   original_saturated_fat_g, original_trans_fat_g, original_cholesterol_mg, original_sodium_mg,
+			   original_total_carbs_g, original_dietary_fiber_g, original_total_sugars_g, original_added_sugars_g,
+			   original_vitamin_a_mcg, original_vitamin_c_mg, original_vitamin_d_mcg, original_vitamin_e_mg,
+			   original_vitamin_k_mcg, original_thiamine_mg, original_riboflavin_mg, original_niacin_mg,
+			   original_vitamin_b6_mg, original_folate_mcg, original_vitamin_b12_mcg, original_biotin_mcg,
+			   original_pantothenic_acid_mg, original_choline_mg, original_calcium_mg, original_iron_mg,
+			   original_magnesium_mg, original_phosphorus_mg, original_potassium_mg, original_zinc_mg,
+			   original_copper_mg, original_manganese_mg, original_selenium_mcg, original_iodine_mcg,
+			   original_molybdenum_mcg, original_chromium_mcg, original_fluoride_mg, original_chloride_mg,
+			   created_at, updated_at
 		FROM items WHERE normalized_name = ? AND normalized_brand = ?`
 
 	item := &Item{}
@@ -1254,7 +1287,18 @@ func (s *SQLiteStore) GetItemByName(ctx context.Context, normalizedName, normali
 		&item.IronMgPer100g, &item.MagnesiumMgPer100g, &item.PhosphorusMgPer100g, &item.PotassiumMgPer100g,
 		&item.ZincMgPer100g, &item.CopperMgPer100g, &item.ManganeseMgPer100g, &item.SeleniumMcgPer100g,
 		&item.IodineMcgPer100g, &item.MolybdenumMcgPer100g, &item.ChromiumMcgPer100g, &item.FluorideMgPer100g,
-		&item.ChlorideMgPer100g, &item.CreatedAt, &item.UpdatedAt,
+		&item.ChlorideMgPer100g,
+		&item.OriginalServingGrams, &item.OriginalCalories, &item.OriginalProteinG, &item.OriginalTotalFatG,
+		&item.OriginalSaturatedFatG, &item.OriginalTransFatG, &item.OriginalCholesterolMg, &item.OriginalSodiumMg,
+		&item.OriginalTotalCarbsG, &item.OriginalDietaryFiberG, &item.OriginalTotalSugarsG, &item.OriginalAddedSugarsG,
+		&item.OriginalVitaminAMcg, &item.OriginalVitaminCMg, &item.OriginalVitaminDMcg, &item.OriginalVitaminEMg,
+		&item.OriginalVitaminKMcg, &item.OriginalThiamineMg, &item.OriginalRiboflavinMg, &item.OriginalNiacinMg,
+		&item.OriginalVitaminB6Mg, &item.OriginalFolateMcg, &item.OriginalVitaminB12Mcg, &item.OriginalBiotinMcg,
+		&item.OriginalPantothenicAcidMg, &item.OriginalCholineMg, &item.OriginalCalciumMg, &item.OriginalIronMg,
+		&item.OriginalMagnesiumMg, &item.OriginalPhosphorusMg, &item.OriginalPotassiumMg, &item.OriginalZincMg,
+		&item.OriginalCopperMg, &item.OriginalManganeseMg, &item.OriginalSeleniumMcg, &item.OriginalIodineMcg,
+		&item.OriginalMolybdenumMcg, &item.OriginalChromiumMcg, &item.OriginalFluorideMg, &item.OriginalChlorideMg,
+		&item.CreatedAt, &item.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1284,7 +1328,18 @@ func (s *SQLiteStore) UpdateItem(ctx context.Context, item *Item) error {
 			iron_mg_per_100g = ?, magnesium_mg_per_100g = ?, phosphorus_mg_per_100g = ?, potassium_mg_per_100g = ?,
 			zinc_mg_per_100g = ?, copper_mg_per_100g = ?, manganese_mg_per_100g = ?, selenium_mcg_per_100g = ?,
 			iodine_mcg_per_100g = ?, molybdenum_mcg_per_100g = ?, chromium_mcg_per_100g = ?, fluoride_mg_per_100g = ?,
-			chloride_mg_per_100g = ?, fetched_at = ?, expires_at = ?, updated_at = ?
+			chloride_mg_per_100g = ?,
+			original_serving_grams = ?, original_calories = ?, original_protein_g = ?, original_total_fat_g = ?,
+			original_saturated_fat_g = ?, original_trans_fat_g = ?, original_cholesterol_mg = ?, original_sodium_mg = ?,
+			original_total_carbs_g = ?, original_dietary_fiber_g = ?, original_total_sugars_g = ?, original_added_sugars_g = ?,
+			original_vitamin_a_mcg = ?, original_vitamin_c_mg = ?, original_vitamin_d_mcg = ?, original_vitamin_e_mg = ?,
+			original_vitamin_k_mcg = ?, original_thiamine_mg = ?, original_riboflavin_mg = ?, original_niacin_mg = ?,
+			original_vitamin_b6_mg = ?, original_folate_mcg = ?, original_vitamin_b12_mcg = ?, original_biotin_mcg = ?,
+			original_pantothenic_acid_mg = ?, original_choline_mg = ?, original_calcium_mg = ?, original_iron_mg = ?,
+			original_magnesium_mg = ?, original_phosphorus_mg = ?, original_potassium_mg = ?, original_zinc_mg = ?,
+			original_copper_mg = ?, original_manganese_mg = ?, original_selenium_mcg = ?, original_iodine_mcg = ?,
+			original_molybdenum_mcg = ?, original_chromium_mcg = ?, original_fluoride_mg = ?, original_chloride_mg = ?,
+			fetched_at = ?, expires_at = ?, updated_at = ?
 		WHERE id = ?`
 
 	// Set fetched_at to now and expires_at to 30 days from now for compatibility
@@ -1303,7 +1358,18 @@ func (s *SQLiteStore) UpdateItem(ctx context.Context, item *Item) error {
 		item.IronMgPer100g, item.MagnesiumMgPer100g, item.PhosphorusMgPer100g, item.PotassiumMgPer100g,
 		item.ZincMgPer100g, item.CopperMgPer100g, item.ManganeseMgPer100g, item.SeleniumMcgPer100g,
 		item.IodineMcgPer100g, item.MolybdenumMcgPer100g, item.ChromiumMcgPer100g, item.FluorideMgPer100g,
-		item.ChlorideMgPer100g, fetchedAt, expiresAt, item.UpdatedAt, item.ID,
+		item.ChlorideMgPer100g,
+		item.OriginalServingGrams, item.OriginalCalories, item.OriginalProteinG, item.OriginalTotalFatG,
+		item.OriginalSaturatedFatG, item.OriginalTransFatG, item.OriginalCholesterolMg, item.OriginalSodiumMg,
+		item.OriginalTotalCarbsG, item.OriginalDietaryFiberG, item.OriginalTotalSugarsG, item.OriginalAddedSugarsG,
+		item.OriginalVitaminAMcg, item.OriginalVitaminCMg, item.OriginalVitaminDMcg, item.OriginalVitaminEMg,
+		item.OriginalVitaminKMcg, item.OriginalThiamineMg, item.OriginalRiboflavinMg, item.OriginalNiacinMg,
+		item.OriginalVitaminB6Mg, item.OriginalFolateMcg, item.OriginalVitaminB12Mcg, item.OriginalBiotinMcg,
+		item.OriginalPantothenicAcidMg, item.OriginalCholineMg, item.OriginalCalciumMg, item.OriginalIronMg,
+		item.OriginalMagnesiumMg, item.OriginalPhosphorusMg, item.OriginalPotassiumMg, item.OriginalZincMg,
+		item.OriginalCopperMg, item.OriginalManganeseMg, item.OriginalSeleniumMcg, item.OriginalIodineMcg,
+		item.OriginalMolybdenumMcg, item.OriginalChromiumMcg, item.OriginalFluorideMg, item.OriginalChlorideMg,
+		fetchedAt, expiresAt, item.UpdatedAt, item.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update item: %w", err)
