@@ -634,7 +634,6 @@
             <Goals 
               currentNutrition={currentMealNutrition} 
               showMealContribution={true}
-              title="How this meal contributes to your daily goals"
             />
           </div>
         {/if}

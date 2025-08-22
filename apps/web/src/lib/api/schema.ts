@@ -132,6 +132,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/goals/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all goal sets (Pro only)
+         * @description Get a list of all custom goal sets for the user
+         */
+        get: operations["getGoalSets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/goals/sets/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a goal set (Pro only)
+         * @description Delete a specific custom goal set
+         */
+        delete: operations["deleteGoalSet"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/goals/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set active goal set (Pro only)
+         * @description Set which goal set is currently active for the user
+         */
+        put: operations["setActiveGoalSet"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/trends": {
         parameters: {
             query?: never;
@@ -593,10 +653,10 @@ export interface components {
         };
         UpdateGoalsRequest: {
             /**
-             * @description Custom name for the goal set (optional, defaults to "custom")
+             * @description Custom name for the goal set (required for managing multiple goal sets)
              * @example Bulk Season
              */
-            name?: string;
+            name: string;
             /**
              * @description Custom nutrition goal overrides
              * @example {
@@ -608,6 +668,42 @@ export interface components {
             overrides: {
                 [key: string]: number;
             };
+        };
+        SetActiveGoalRequest: {
+            /**
+             * @description Name of the goal set to make active
+             * @example Bulk Season
+             */
+            name: string;
+        };
+        GoalSetsResponse: {
+            /** @description List of all available goal sets */
+            goal_sets: components["schemas"]["GoalSetSummary"][];
+            /**
+             * @description Name of the currently active goal set
+             * @example Bulk Season
+             */
+            active_goal_name: string;
+            user: components["schemas"]["User"];
+        };
+        GoalSetSummary: {
+            /**
+             * @description Name of the goal set
+             * @example Bulk Season
+             */
+            name: string;
+            /**
+             * Format: date-time
+             * @description When the goal set was created
+             * @example 2023-01-01T00:00:00Z
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the goal set was last updated
+             * @example 2023-01-15T10:30:00Z
+             */
+            updated_at: string;
         };
         TrendsResponse: {
             /**
@@ -1035,7 +1131,10 @@ export interface operations {
     };
     getGoals: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Name of the specific goal set to retrieve. If not provided, returns the active goal set. */
+                goal_name?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1051,7 +1150,7 @@ export interface operations {
                     "application/json": components["schemas"]["GoalsResponse"];
                 };
             };
-            /** @description User not found */
+            /** @description User not found or goal set not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1111,7 +1210,144 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description User not found */
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getGoalSets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of goal sets */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalSetsResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteGoalSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Name of the goal set to delete */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Goal set deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cannot delete the active goal set */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Goal set not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    setActiveGoalSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetActiveGoalRequest"];
+            };
+        };
+        responses: {
+            /** @description Active goal set updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalsResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Goal set not found */
             404: {
                 headers: {
                     [name: string]: unknown;

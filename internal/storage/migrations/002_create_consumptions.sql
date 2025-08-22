@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS consumptions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     transcript TEXT NOT NULL,
-    items_json TEXT NOT NULL, -- JSON array of consumption items with full nutrition data
     total_calories REAL NOT NULL DEFAULT 0,
     total_protein_g REAL NOT NULL DEFAULT 0,
     total_fat_g REAL NOT NULL DEFAULT 0,
@@ -44,8 +43,6 @@ CREATE TABLE IF NOT EXISTS consumptions (
     chromium_mcg REAL NOT NULL DEFAULT 0,
     fluoride_mg REAL NOT NULL DEFAULT 0,
     chloride_mg REAL NOT NULL DEFAULT 0,
-    user_quantity REAL, -- Original user input quantity for display (e.g., 3.0 for "3 sticks")
-    user_unit TEXT,     -- Original user input unit for display (e.g., "sticks")
     created_at DATETIME NOT NULL,
     updated_at DATETIME, -- When the consumption was last modified
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

@@ -163,7 +163,7 @@ func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject st
 // CreateConsumption creates a new consumption
 func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consumption) error {
 	query := `
-		INSERT INTO consumptions (id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g, 
+		INSERT INTO consumptions (id, user_id, transcript, total_calories, total_protein_g, 
 						  total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 						  saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 						  vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
@@ -172,15 +172,14 @@ func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consum
 						  calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
 						  zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg,
 						  chromium_mcg, fluoride_mg, chloride_mg, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
 	consumption.ID = generateULID()
 	consumption.CreatedAt = now
 
 	_, err := s.db.ExecContext(ctx, query,
-		consumption.ID, consumption.UserID, consumption.Transcript, consumption.ItemsJSON,
-		consumption.UserQuantity, consumption.UserUnit,
+		consumption.ID, consumption.UserID, consumption.Transcript,
 		consumption.TotalCalories, consumption.TotalProtein, consumption.TotalFat,
 		consumption.TotalCarbs, consumption.DietaryFiber, consumption.TotalSodium,
 		consumption.SaturatedFat, consumption.TransFat, consumption.Cholesterol,
@@ -202,7 +201,7 @@ func (s *SQLiteStore) CreateConsumption(ctx context.Context, consumption *Consum
 // GetConsumption retrieves a consumption by ID
 func (s *SQLiteStore) GetConsumption(ctx context.Context, id string) (*Consumption, error) {
 	query := `
-		SELECT id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g,
+		SELECT id, user_id, transcript, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
@@ -215,8 +214,7 @@ func (s *SQLiteStore) GetConsumption(ctx context.Context, id string) (*Consumpti
 
 	consumption := &Consumption{}
 	err := s.db.QueryRowContext(ctx, query, id).
-		Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
-			&consumption.UserQuantity, &consumption.UserUnit,
+		Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
 			&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
 			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
@@ -241,7 +239,7 @@ func (s *SQLiteStore) GetConsumption(ctx context.Context, id string) (*Consumpti
 // GetConsumptionsByUser retrieves consumptions for a user with pagination
 func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, limit, offset int) ([]*Consumption, error) {
 	query := `
-		SELECT id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g,
+		SELECT id, user_id, transcript, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
@@ -263,8 +261,7 @@ func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, 
 	var consumptions []*Consumption
 	for rows.Next() {
 		consumption := &Consumption{}
-		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
-			&consumption.UserQuantity, &consumption.UserUnit,
+		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
 			&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
 			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
@@ -292,7 +289,7 @@ func (s *SQLiteStore) GetConsumptionsByUser(ctx context.Context, userID string, 
 // GetConsumptionsByUserSince retrieves consumptions for a user since a specific time
 func (s *SQLiteStore) GetConsumptionsByUserSince(ctx context.Context, userID string, since time.Time) ([]*Consumption, error) {
 	query := `
-		SELECT id, user_id, transcript, items_json, user_quantity, user_unit, total_calories, total_protein_g,
+		SELECT id, user_id, transcript, total_calories, total_protein_g,
 			   total_fat_g, total_carbs_g, dietary_fiber_g, total_sodium_mg,
 			   saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
 			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
@@ -313,8 +310,7 @@ func (s *SQLiteStore) GetConsumptionsByUserSince(ctx context.Context, userID str
 	var consumptions []*Consumption
 	for rows.Next() {
 		consumption := &Consumption{}
-		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript, &consumption.ItemsJSON,
-			&consumption.UserQuantity, &consumption.UserUnit,
+		err := rows.Scan(&consumption.ID, &consumption.UserID, &consumption.Transcript,
 			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
 			&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
 			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
@@ -491,7 +487,7 @@ func (s *SQLiteStore) GetNutritionSummary(ctx context.Context, userID string, st
 func (s *SQLiteStore) UpdateConsumption(ctx context.Context, consumption *Consumption) error {
 	query := `
 		UPDATE consumptions SET 
-			items_json = ?, user_quantity = ?, user_unit = ?, total_calories = ?, total_protein_g = ?, 
+			total_calories = ?, total_protein_g = ?, 
 			total_fat_g = ?, total_carbs_g = ?, dietary_fiber_g = ?, total_sodium_mg = ?,
 			saturated_fat_g = ?, trans_fat_g = ?, cholesterol_mg = ?, total_sugars_g = ?, added_sugars_g = ?,
 			vitamin_a_mcg = ?, vitamin_c_mg = ?, vitamin_d_mcg = ?, vitamin_e_mg = ?, vitamin_k_mcg = ?,
@@ -506,7 +502,6 @@ func (s *SQLiteStore) UpdateConsumption(ctx context.Context, consumption *Consum
 	consumption.UpdatedAt = &now
 
 	result, err := s.db.ExecContext(ctx, query,
-		consumption.ItemsJSON, consumption.UserQuantity, consumption.UserUnit,
 		consumption.TotalCalories, consumption.TotalProtein,
 		consumption.TotalFat, consumption.TotalCarbs, consumption.DietaryFiber, consumption.TotalSodium,
 		consumption.SaturatedFat, consumption.TransFat, consumption.Cholesterol,
@@ -930,7 +925,6 @@ func (s *SQLiteStore) Seed() error {
 		consumption := sample.consumption
 		consumption.UserID = user.ID
 		consumption.Transcript = sample.transcript
-		consumption.ItemsJSON = sample.itemsJSON
 
 		if err := s.CreateConsumption(ctx, &consumption); err != nil {
 			return fmt.Errorf("failed to create seed consumption: %w", err)
@@ -1069,6 +1063,8 @@ func (s *SQLiteStore) Seed() error {
 }
 
 // GetItemFromCache retrieves an item from cache, checking if it's expired
+// DEPRECATED: This method is replaced by the new Item methods
+/*
 func (s *SQLiteStore) GetItemFromCache(ctx context.Context, normalizedName, normalizedBrand string) (*ItemCache, error) {
 	query := `
 		SELECT id, normalized_name, normalized_brand, display_name, display_brand,
@@ -1105,8 +1101,11 @@ func (s *SQLiteStore) GetItemFromCache(ctx context.Context, normalizedName, norm
 
 	return item, nil
 }
+*/
 
 // UpsertItemCache inserts or updates an item in the cache
+// DEPRECATED: This method is replaced by the new Item methods
+/*
 func (s *SQLiteStore) UpsertItemCache(ctx context.Context, item *ItemCache) error {
 	now := time.Now().UTC()
 
@@ -1201,14 +1200,18 @@ func (s *SQLiteStore) UpsertItemCache(ctx context.Context, item *ItemCache) erro
 
 	return nil
 }
+*/
 
 // RefreshItemCache refreshes an expired cache item with new data
+// DEPRECATED: This method is replaced by the new Item methods
+/*
 func (s *SQLiteStore) RefreshItemCache(ctx context.Context, normalizedName, normalizedBrand string, item *ItemCache) error {
 	// This is essentially an upsert operation for expired items
 	item.NormalizedName = normalizedName
 	item.NormalizedBrand = normalizedBrand
 	return s.UpsertItemCache(ctx, item)
 }
+*/
 
 // CreateItemAlias creates a new item alias
 func (s *SQLiteStore) CreateItemAlias(ctx context.Context, alias *ItemAlias) error {
@@ -1247,11 +1250,290 @@ func (s *SQLiteStore) GetCanonicalName(ctx context.Context, aliasName, aliasBran
 }
 
 // IsItemCacheExpired checks if a cache item has expired
+// DEPRECATED: This method is replaced by the new Item methods
+/*
 func (s *SQLiteStore) IsItemCacheExpired(item *ItemCache) bool {
 	if item == nil {
 		return true
 	}
 	return time.Now().UTC().After(item.ExpiresAt)
+}
+*/
+
+// CreateItem creates a new item
+func (s *SQLiteStore) CreateItem(ctx context.Context, item *Item) error {
+	now := time.Now().UTC()
+	
+	// Generate ID if not set
+	if item.ID == "" {
+		item.ID = generateULID()
+	}
+	
+	// Set timestamps
+	item.CreatedAt = now
+	item.UpdatedAt = now
+	
+	query := `
+		INSERT INTO items_cache (
+			id, normalized_name, normalized_brand, display_name, display_brand,
+			calories_per_100g, protein_g_per_100g, total_fat_g_per_100g, saturated_fat_g_per_100g,
+			trans_fat_g_per_100g, cholesterol_mg_per_100g, sodium_mg_per_100g, total_carbs_g_per_100g,
+			dietary_fiber_g_per_100g, total_sugars_g_per_100g, added_sugars_g_per_100g,
+			vitamin_a_mcg_per_100g, vitamin_c_mg_per_100g, vitamin_d_mcg_per_100g, vitamin_e_mg_per_100g,
+			vitamin_k_mcg_per_100g, thiamine_mg_per_100g, riboflavin_mg_per_100g, niacin_mg_per_100g,
+			vitamin_b6_mg_per_100g, folate_mcg_per_100g, vitamin_b12_mcg_per_100g, biotin_mcg_per_100g,
+			pantothenic_acid_mg_per_100g, choline_mg_per_100g, calcium_mg_per_100g,
+			iron_mg_per_100g, magnesium_mg_per_100g, phosphorus_mg_per_100g, potassium_mg_per_100g,
+			zinc_mg_per_100g, copper_mg_per_100g, manganese_mg_per_100g, selenium_mcg_per_100g,
+			iodine_mcg_per_100g, molybdenum_mcg_per_100g, chromium_mcg_per_100g, fluoride_mg_per_100g,
+			chloride_mg_per_100g, fetched_at, expires_at, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+	// Set fetched_at to now and expires_at to 30 days from now for compatibility with existing schema
+	fetchedAt := now
+	expiresAt := now.Add(CacheTTL)
+
+	_, err := s.db.ExecContext(ctx, query,
+		item.ID, item.NormalizedName, item.NormalizedBrand, item.DisplayName, item.DisplayBrand,
+		item.CaloriesPer100g, item.ProteinGPer100g, item.TotalFatGPer100g, item.SaturatedFatGPer100g,
+		item.TransFatGPer100g, item.CholesterolMgPer100g, item.SodiumMgPer100g, item.TotalCarbsGPer100g,
+		item.DietaryFiberGPer100g, item.TotalSugarsGPer100g, item.AddedSugarsGPer100g,
+		item.VitaminAMcgPer100g, item.VitaminCMgPer100g, item.VitaminDMcgPer100g, item.VitaminEMgPer100g,
+		item.VitaminKMcgPer100g, item.ThiamineMgPer100g, item.RiboflavinMgPer100g, item.NiacinMgPer100g,
+		item.VitaminB6MgPer100g, item.FolateMcgPer100g, item.VitaminB12McgPer100g, item.BiotinMcgPer100g,
+		item.PantothenicAcidMgPer100g, item.CholineMgPer100g, item.CalciumMgPer100g,
+		item.IronMgPer100g, item.MagnesiumMgPer100g, item.PhosphorusMgPer100g, item.PotassiumMgPer100g,
+		item.ZincMgPer100g, item.CopperMgPer100g, item.ManganeseMgPer100g, item.SeleniumMcgPer100g,
+		item.IodineMcgPer100g, item.MolybdenumMcgPer100g, item.ChromiumMcgPer100g, item.FluorideMgPer100g,
+		item.ChlorideMgPer100g, fetchedAt, expiresAt, item.CreatedAt, item.UpdatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create item: %w", err)
+	}
+
+	return nil
+}
+
+// GetItem retrieves an item by ID  
+func (s *SQLiteStore) GetItem(ctx context.Context, id string) (*Item, error) {
+	query := `
+		SELECT id, normalized_name, normalized_brand, display_name, display_brand,
+			   calories_per_100g, protein_g_per_100g, total_fat_g_per_100g, saturated_fat_g_per_100g,
+			   trans_fat_g_per_100g, cholesterol_mg_per_100g, sodium_mg_per_100g, total_carbs_g_per_100g,
+			   dietary_fiber_g_per_100g, total_sugars_g_per_100g, added_sugars_g_per_100g,
+			   vitamin_a_mcg_per_100g, vitamin_c_mg_per_100g, vitamin_d_mcg_per_100g, vitamin_e_mg_per_100g,
+			   vitamin_k_mcg_per_100g, thiamine_mg_per_100g, riboflavin_mg_per_100g, niacin_mg_per_100g,
+			   vitamin_b6_mg_per_100g, folate_mcg_per_100g, vitamin_b12_mcg_per_100g, biotin_mcg_per_100g,
+			   pantothenic_acid_mg_per_100g, choline_mg_per_100g, calcium_mg_per_100g,
+			   iron_mg_per_100g, magnesium_mg_per_100g, phosphorus_mg_per_100g, potassium_mg_per_100g,
+			   zinc_mg_per_100g, copper_mg_per_100g, manganese_mg_per_100g, selenium_mcg_per_100g,
+			   iodine_mcg_per_100g, molybdenum_mcg_per_100g, chromium_mcg_per_100g, fluoride_mg_per_100g,
+			   chloride_mg_per_100g, created_at, updated_at
+		FROM items_cache WHERE id = ?`
+
+	item := &Item{}
+	err := s.db.QueryRowContext(ctx, query, id).Scan(
+		&item.ID, &item.NormalizedName, &item.NormalizedBrand, &item.DisplayName, &item.DisplayBrand,
+		&item.CaloriesPer100g, &item.ProteinGPer100g, &item.TotalFatGPer100g, &item.SaturatedFatGPer100g,
+		&item.TransFatGPer100g, &item.CholesterolMgPer100g, &item.SodiumMgPer100g, &item.TotalCarbsGPer100g,
+		&item.DietaryFiberGPer100g, &item.TotalSugarsGPer100g, &item.AddedSugarsGPer100g,
+		&item.VitaminAMcgPer100g, &item.VitaminCMgPer100g, &item.VitaminDMcgPer100g, &item.VitaminEMgPer100g,
+		&item.VitaminKMcgPer100g, &item.ThiamineMgPer100g, &item.RiboflavinMgPer100g, &item.NiacinMgPer100g,
+		&item.VitaminB6MgPer100g, &item.FolateMcgPer100g, &item.VitaminB12McgPer100g, &item.BiotinMcgPer100g,
+		&item.PantothenicAcidMgPer100g, &item.CholineMgPer100g, &item.CalciumMgPer100g,
+		&item.IronMgPer100g, &item.MagnesiumMgPer100g, &item.PhosphorusMgPer100g, &item.PotassiumMgPer100g,
+		&item.ZincMgPer100g, &item.CopperMgPer100g, &item.ManganeseMgPer100g, &item.SeleniumMcgPer100g,
+		&item.IodineMcgPer100g, &item.MolybdenumMcgPer100g, &item.ChromiumMcgPer100g, &item.FluorideMgPer100g,
+		&item.ChlorideMgPer100g, &item.CreatedAt, &item.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Item not found
+		}
+		return nil, fmt.Errorf("failed to get item: %w", err)
+	}
+
+	return item, nil
+}
+
+// GetItemByName retrieves an item by normalized name and brand
+func (s *SQLiteStore) GetItemByName(ctx context.Context, normalizedName, normalizedBrand string) (*Item, error) {
+	query := `
+		SELECT id, normalized_name, normalized_brand, display_name, display_brand,
+			   calories_per_100g, protein_g_per_100g, total_fat_g_per_100g, saturated_fat_g_per_100g,
+			   trans_fat_g_per_100g, cholesterol_mg_per_100g, sodium_mg_per_100g, total_carbs_g_per_100g,
+			   dietary_fiber_g_per_100g, total_sugars_g_per_100g, added_sugars_g_per_100g,
+			   vitamin_a_mcg_per_100g, vitamin_c_mg_per_100g, vitamin_d_mcg_per_100g, vitamin_e_mg_per_100g,
+			   vitamin_k_mcg_per_100g, thiamine_mg_per_100g, riboflavin_mg_per_100g, niacin_mg_per_100g,
+			   vitamin_b6_mg_per_100g, folate_mcg_per_100g, vitamin_b12_mcg_per_100g, biotin_mcg_per_100g,
+			   pantothenic_acid_mg_per_100g, choline_mg_per_100g, calcium_mg_per_100g,
+			   iron_mg_per_100g, magnesium_mg_per_100g, phosphorus_mg_per_100g, potassium_mg_per_100g,
+			   zinc_mg_per_100g, copper_mg_per_100g, manganese_mg_per_100g, selenium_mcg_per_100g,
+			   iodine_mcg_per_100g, molybdenum_mcg_per_100g, chromium_mcg_per_100g, fluoride_mg_per_100g,
+			   chloride_mg_per_100g, created_at, updated_at
+		FROM items_cache WHERE normalized_name = ? AND normalized_brand = ?`
+
+	item := &Item{}
+	err := s.db.QueryRowContext(ctx, query, normalizedName, normalizedBrand).Scan(
+		&item.ID, &item.NormalizedName, &item.NormalizedBrand, &item.DisplayName, &item.DisplayBrand,
+		&item.CaloriesPer100g, &item.ProteinGPer100g, &item.TotalFatGPer100g, &item.SaturatedFatGPer100g,
+		&item.TransFatGPer100g, &item.CholesterolMgPer100g, &item.SodiumMgPer100g, &item.TotalCarbsGPer100g,
+		&item.DietaryFiberGPer100g, &item.TotalSugarsGPer100g, &item.AddedSugarsGPer100g,
+		&item.VitaminAMcgPer100g, &item.VitaminCMgPer100g, &item.VitaminDMcgPer100g, &item.VitaminEMgPer100g,
+		&item.VitaminKMcgPer100g, &item.ThiamineMgPer100g, &item.RiboflavinMgPer100g, &item.NiacinMgPer100g,
+		&item.VitaminB6MgPer100g, &item.FolateMcgPer100g, &item.VitaminB12McgPer100g, &item.BiotinMcgPer100g,
+		&item.PantothenicAcidMgPer100g, &item.CholineMgPer100g, &item.CalciumMgPer100g,
+		&item.IronMgPer100g, &item.MagnesiumMgPer100g, &item.PhosphorusMgPer100g, &item.PotassiumMgPer100g,
+		&item.ZincMgPer100g, &item.CopperMgPer100g, &item.ManganeseMgPer100g, &item.SeleniumMcgPer100g,
+		&item.IodineMcgPer100g, &item.MolybdenumMcgPer100g, &item.ChromiumMcgPer100g, &item.FluorideMgPer100g,
+		&item.ChlorideMgPer100g, &item.CreatedAt, &item.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Item not found in cache
+		}
+		return nil, fmt.Errorf("failed to get item by name: %w", err)
+	}
+
+	return item, nil
+}
+
+// UpdateItem updates an existing item
+func (s *SQLiteStore) UpdateItem(ctx context.Context, item *Item) error {
+	now := time.Now().UTC()
+	item.UpdatedAt = now
+
+	query := `
+		UPDATE items_cache SET 
+			normalized_name = ?, normalized_brand = ?, display_name = ?, display_brand = ?,
+			calories_per_100g = ?, protein_g_per_100g = ?, total_fat_g_per_100g = ?, saturated_fat_g_per_100g = ?,
+			trans_fat_g_per_100g = ?, cholesterol_mg_per_100g = ?, sodium_mg_per_100g = ?, total_carbs_g_per_100g = ?,
+			dietary_fiber_g_per_100g = ?, total_sugars_g_per_100g = ?, added_sugars_g_per_100g = ?,
+			vitamin_a_mcg_per_100g = ?, vitamin_c_mg_per_100g = ?, vitamin_d_mcg_per_100g = ?, vitamin_e_mg_per_100g = ?,
+			vitamin_k_mcg_per_100g = ?, thiamine_mg_per_100g = ?, riboflavin_mg_per_100g = ?, niacin_mg_per_100g = ?,
+			vitamin_b6_mg_per_100g = ?, folate_mcg_per_100g = ?, vitamin_b12_mcg_per_100g = ?, biotin_mcg_per_100g = ?,
+			pantothenic_acid_mg_per_100g = ?, choline_mg_per_100g = ?, calcium_mg_per_100g = ?,
+			iron_mg_per_100g = ?, magnesium_mg_per_100g = ?, phosphorus_mg_per_100g = ?, potassium_mg_per_100g = ?,
+			zinc_mg_per_100g = ?, copper_mg_per_100g = ?, manganese_mg_per_100g = ?, selenium_mcg_per_100g = ?,
+			iodine_mcg_per_100g = ?, molybdenum_mcg_per_100g = ?, chromium_mcg_per_100g = ?, fluoride_mg_per_100g = ?,
+			chloride_mg_per_100g = ?, fetched_at = ?, expires_at = ?, updated_at = ?
+		WHERE id = ?`
+
+	// Set fetched_at to now and expires_at to 30 days from now for compatibility
+	fetchedAt := now
+	expiresAt := now.Add(CacheTTL)
+
+	result, err := s.db.ExecContext(ctx, query,
+		item.NormalizedName, item.NormalizedBrand, item.DisplayName, item.DisplayBrand,
+		item.CaloriesPer100g, item.ProteinGPer100g, item.TotalFatGPer100g, item.SaturatedFatGPer100g,
+		item.TransFatGPer100g, item.CholesterolMgPer100g, item.SodiumMgPer100g, item.TotalCarbsGPer100g,
+		item.DietaryFiberGPer100g, item.TotalSugarsGPer100g, item.AddedSugarsGPer100g,
+		item.VitaminAMcgPer100g, item.VitaminCMgPer100g, item.VitaminDMcgPer100g, item.VitaminEMgPer100g,
+		item.VitaminKMcgPer100g, item.ThiamineMgPer100g, item.RiboflavinMgPer100g, item.NiacinMgPer100g,
+		item.VitaminB6MgPer100g, item.FolateMcgPer100g, item.VitaminB12McgPer100g, item.BiotinMcgPer100g,
+		item.PantothenicAcidMgPer100g, item.CholineMgPer100g, item.CalciumMgPer100g,
+		item.IronMgPer100g, item.MagnesiumMgPer100g, item.PhosphorusMgPer100g, item.PotassiumMgPer100g,
+		item.ZincMgPer100g, item.CopperMgPer100g, item.ManganeseMgPer100g, item.SeleniumMcgPer100g,
+		item.IodineMcgPer100g, item.MolybdenumMcgPer100g, item.ChromiumMcgPer100g, item.FluorideMgPer100g,
+		item.ChlorideMgPer100g, fetchedAt, expiresAt, item.UpdatedAt, item.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update item: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("item with ID %s not found", item.ID)
+	}
+
+	return nil
+}
+
+// GetStaleItems returns items that haven't been updated in the specified duration (for 30-day refresh)
+func (s *SQLiteStore) GetStaleItems(ctx context.Context, staleAfter time.Time) ([]*Item, error) {
+	query := `
+		SELECT id, normalized_name, normalized_brand, display_name, display_brand,
+			   calories_per_100g, protein_g_per_100g, total_fat_g_per_100g, saturated_fat_g_per_100g,
+			   trans_fat_g_per_100g, cholesterol_mg_per_100g, sodium_mg_per_100g, total_carbs_g_per_100g,
+			   dietary_fiber_g_per_100g, total_sugars_g_per_100g, added_sugars_g_per_100g,
+			   vitamin_a_mcg_per_100g, vitamin_c_mg_per_100g, vitamin_d_mcg_per_100g, vitamin_e_mg_per_100g,
+			   vitamin_k_mcg_per_100g, thiamine_mg_per_100g, riboflavin_mg_per_100g, niacin_mg_per_100g,
+			   vitamin_b6_mg_per_100g, folate_mcg_per_100g, vitamin_b12_mcg_per_100g, biotin_mcg_per_100g,
+			   pantothenic_acid_mg_per_100g, choline_mg_per_100g, calcium_mg_per_100g,
+			   iron_mg_per_100g, magnesium_mg_per_100g, phosphorus_mg_per_100g, potassium_mg_per_100g,
+			   zinc_mg_per_100g, copper_mg_per_100g, manganese_mg_per_100g, selenium_mcg_per_100g,
+			   iodine_mcg_per_100g, molybdenum_mcg_per_100g, chromium_mcg_per_100g, fluoride_mg_per_100g,
+			   chloride_mg_per_100g, created_at, updated_at
+		FROM items_cache WHERE updated_at < ? ORDER BY updated_at ASC`
+
+	rows, err := s.db.QueryContext(ctx, query, staleAfter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stale items: %w", err)
+	}
+	defer rows.Close()
+
+	var items []*Item
+	for rows.Next() {
+		item := &Item{}
+		err := rows.Scan(
+			&item.ID, &item.NormalizedName, &item.NormalizedBrand, &item.DisplayName, &item.DisplayBrand,
+			&item.CaloriesPer100g, &item.ProteinGPer100g, &item.TotalFatGPer100g, &item.SaturatedFatGPer100g,
+			&item.TransFatGPer100g, &item.CholesterolMgPer100g, &item.SodiumMgPer100g, &item.TotalCarbsGPer100g,
+			&item.DietaryFiberGPer100g, &item.TotalSugarsGPer100g, &item.AddedSugarsGPer100g,
+			&item.VitaminAMcgPer100g, &item.VitaminCMgPer100g, &item.VitaminDMcgPer100g, &item.VitaminEMgPer100g,
+			&item.VitaminKMcgPer100g, &item.ThiamineMgPer100g, &item.RiboflavinMgPer100g, &item.NiacinMgPer100g,
+			&item.VitaminB6MgPer100g, &item.FolateMcgPer100g, &item.VitaminB12McgPer100g, &item.BiotinMcgPer100g,
+			&item.PantothenicAcidMgPer100g, &item.CholineMgPer100g, &item.CalciumMgPer100g,
+			&item.IronMgPer100g, &item.MagnesiumMgPer100g, &item.PhosphorusMgPer100g, &item.PotassiumMgPer100g,
+			&item.ZincMgPer100g, &item.CopperMgPer100g, &item.ManganeseMgPer100g, &item.SeleniumMcgPer100g,
+			&item.IodineMcgPer100g, &item.MolybdenumMcgPer100g, &item.ChromiumMcgPer100g, &item.FluorideMgPer100g,
+			&item.ChlorideMgPer100g, &item.CreatedAt, &item.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan stale item: %w", err)
+		}
+		items = append(items, item)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate stale items: %w", err)
+	}
+
+	return items, nil
+}
+
+// CreateConsumptionItem creates a new consumption item relationship
+func (s *SQLiteStore) CreateConsumptionItem(ctx context.Context, item *ConsumptionItem) error {
+	// TODO: Implement - for now return error to make it compile
+	return fmt.Errorf("CreateConsumptionItem not yet implemented")
+}
+
+// GetConsumptionItems retrieves all items for a consumption
+func (s *SQLiteStore) GetConsumptionItems(ctx context.Context, consumptionID string) ([]*ConsumptionItem, error) {
+	// TODO: Implement - for now return empty slice to make it compile
+	return []*ConsumptionItem{}, nil
+}
+
+// UpdateConsumptionItem updates an existing consumption item
+func (s *SQLiteStore) UpdateConsumptionItem(ctx context.Context, item *ConsumptionItem) error {
+	// TODO: Implement - for now return error to make it compile
+	return fmt.Errorf("UpdateConsumptionItem not yet implemented")
+}
+
+// DeleteConsumptionItem deletes a consumption item by ID
+func (s *SQLiteStore) DeleteConsumptionItem(ctx context.Context, id string) error {
+	// TODO: Implement - for now return error to make it compile
+	return fmt.Errorf("DeleteConsumptionItem not yet implemented")
+}
+
+// DeleteConsumptionItemsByConsumption deletes all consumption items for a consumption
+func (s *SQLiteStore) DeleteConsumptionItemsByConsumption(ctx context.Context, consumptionID string) error {
+	// TODO: Implement - for now return error to make it compile
+	return fmt.Errorf("DeleteConsumptionItemsByConsumption not yet implemented")
 }
 
 // UpsertUserGoal creates or updates a user goal
