@@ -32,6 +32,13 @@
   let showEditModal = false;
   let editingGoalName = "";
   
+  // Delete confirmation modal state
+  let showDeleteModal = false;
+  let goalToDelete = "";
+  
+  // Reset DRI confirmation modal state
+  let showResetDRIModal = false;
+  
   // Goal sets data
   let goalSets: Array<{name: string, created_at: string, updated_at: string}> = [];
   let activeGoalName = "";
@@ -169,6 +176,90 @@
       error = `Failed to switch goal: ${err}`;
       console.error("Switch goal error:", err);
     }
+  }
+
+  async function deleteGoalSet(goalName: string) {
+    // Allow deleting the active goal if it's the only one left
+    // or if there are other goals to switch to
+    if (goalName === activeGoalName && goalSets.length > 1) {
+      error = "Cannot delete the active goal set when other goal sets exist. Switch to another goal first, or use 'Reset to DRI' to delete all goals.";
+      return;
+    }
+
+    // Show modal instead of using confirm()
+    goalToDelete = goalName;
+    showDeleteModal = true;
+  }
+
+  async function confirmDeleteGoalSet() {
+    if (!goalToDelete) return;
+
+    try {
+      const response = await apiClient.DELETE("/goals/sets/{name}", {
+        params: {
+          path: { name: goalToDelete }
+        }
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      success = `Goal set "${goalToDelete}" deleted successfully!`;
+      setTimeout(() => success = "", 3000);
+      
+      // Reload goal sets to update the UI
+      await loadGoalSets();
+    } catch (err) {
+      error = `Failed to delete goal set: ${parseErrorMessage(err)}`;
+      console.error("Delete goal error:", err);
+    } finally {
+      // Close modal and reset state
+      showDeleteModal = false;
+      goalToDelete = "";
+    }
+  }
+
+  function cancelDeleteGoalSet() {
+    showDeleteModal = false;
+    goalToDelete = "";
+  }
+
+  async function resetToDRIDefaults() {
+    showResetDRIModal = true;
+  }
+
+  async function confirmResetToDRIDefaults() {
+    try {
+      // Delete ALL custom goal sets, including the active one
+      // We'll delete them all in one go to avoid issues with active goal switching
+      for (const goalSet of goalSets) {
+        const response = await apiClient.DELETE("/goals/sets/{name}", {
+          params: {
+            path: { name: goalSet.name }
+          }
+        });
+        
+        if (response.error) {
+          console.warn(`Failed to delete goal set ${goalSet.name}:`, response.error);
+        }
+      }
+
+      success = "Successfully reset to DRI defaults! All custom goal sets have been deleted.";
+      setTimeout(() => success = "", 5000);
+      
+      // Reload everything to reflect the changes
+      await Promise.all([loadGoals(), loadGoalSets()]);
+    } catch (err) {
+      error = `Failed to reset to DRI defaults: ${parseErrorMessage(err)}`;
+      console.error("Reset to DRI error:", err);
+    } finally {
+      showResetDRIModal = false;
+    }
+  }
+
+  function cancelResetToDRIDefaults() {
+    showResetDRIModal = false;
   }
 
   function openEditModal(goalName: string) {
@@ -555,13 +646,24 @@
         <div class="card bg-base-200 shadow-lg">
           <div class="card-body p-6">
             <h2 class="card-title flex items-center gap-2">
-              📋 Available Goals
-              <button 
-                class="btn btn-outline btn-xs ml-auto"
-                on:click={() => openEditModal("New Goal")}
-              >
-                + New
-              </button>
+              🏆 Goals
+              <div class="flex gap-2 ml-auto">
+                {#if goalSets.length > 0}
+                  <button 
+                    class="btn btn-warning btn-xs"
+                    on:click={resetToDRIDefaults}
+                    title="Delete all custom goals to return to DRI defaults"
+                  >
+                    🔄 Reset to DRI
+                  </button>
+                {/if}
+                <button 
+                  class="btn btn-outline btn-xs"
+                  on:click={() => openEditModal("New Goal")}
+                >
+                  + New
+                </button>
+              </div>
             </h2>
             
             {#if loadingGoalSets}
@@ -583,6 +685,14 @@
                     </div>
                     
                     <div class="flex gap-2">
+                      {#if goalSet.name !== activeGoalName}
+                        <button 
+                          class="btn btn-primary btn-xs"
+                          on:click={() => switchToGoal(goalSet.name)}
+                        >
+                          Activate
+                        </button>
+                      {/if}
                       <button 
                         class="btn btn-outline btn-xs"
                         on:click={() => openEditModal(goalSet.name)}
@@ -591,10 +701,11 @@
                       </button>
                       {#if goalSet.name !== activeGoalName}
                         <button 
-                          class="btn btn-primary btn-xs"
-                          on:click={() => switchToGoal(goalSet.name)}
+                          class="btn btn-error btn-xs"
+                          on:click={() => deleteGoalSet(goalSet.name)}
+                          title="Delete this goal set"
                         >
-                          Activate
+                          ×
                         </button>
                       {/if}
                     </div>
@@ -955,6 +1066,102 @@
     {/if}
   </div>
 </div>
+
+<!-- Delete Goal Confirmation Modal -->
+{#if showDeleteModal}
+  <div class="modal modal-open">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-4">Delete Goal Set</h3>
+      
+      <div class="space-y-4">
+        <p>Are you sure you want to delete the goal set <strong>"{goalToDelete}"</strong>?</p>
+        <div class="alert alert-warning">
+          <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <span>This action cannot be undone.</span>
+        </div>
+        {#if goalSets.length === 1}
+          <div class="bg-info/10 p-3 rounded-lg">
+            <p class="text-sm text-info-content">
+              🧬 This is your last custom goal set. Deleting it will return you to DRI (Dietary Reference Intakes) defaults.
+            </p>
+          </div>
+        {/if}
+      </div>
+      
+      <div class="modal-action">
+        <button 
+          class="btn btn-ghost"
+          on:click={cancelDeleteGoalSet}
+        >
+          Cancel
+        </button>
+        <button 
+          class="btn btn-error"
+          on:click={confirmDeleteGoalSet}
+        >
+          Delete Goal Set
+        </button>
+      </div>
+    </div>
+    <div 
+      class="modal-backdrop" 
+      on:click={cancelDeleteGoalSet}
+      on:keydown={(e) => e.key === 'Escape' && cancelDeleteGoalSet()}
+      role="button" 
+      tabindex="0"
+      aria-label="Close modal"
+    ></div>
+  </div>
+{/if}
+
+<!-- Reset to DRI Defaults Confirmation Modal -->
+{#if showResetDRIModal}
+  <div class="modal modal-open">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-4">Reset to DRI Defaults</h3>
+      
+      <div class="space-y-4">
+        <p>Are you sure you want to delete <strong>ALL</strong> custom goal sets and return to DRI defaults?</p>
+        <div class="alert alert-warning">
+          <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <span>This will delete all {goalSets.length} custom goal sets. This action cannot be undone.</span>
+        </div>
+        <div class="bg-info/10 p-3 rounded-lg">
+          <p class="text-sm text-info-content">
+            🧬 You'll return to DRI (Dietary Reference Intakes) defaults based on your profile demographics.
+          </p>
+        </div>
+      </div>
+      
+      <div class="modal-action">
+        <button 
+          class="btn btn-ghost"
+          on:click={cancelResetToDRIDefaults}
+        >
+          Cancel
+        </button>
+        <button 
+          class="btn btn-warning"
+          on:click={confirmResetToDRIDefaults}
+        >
+          🔄 Reset to DRI Defaults
+        </button>
+      </div>
+    </div>
+    <div 
+      class="modal-backdrop" 
+      on:click={cancelResetToDRIDefaults}
+      on:keydown={(e) => e.key === 'Escape' && cancelResetToDRIDefaults()}
+      role="button" 
+      tabindex="0"
+      aria-label="Close modal"
+    ></div>
+  </div>
+{/if}
 
 <!-- Imperial System Meme Modal -->
 {#if showImperialModal}
