@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+
+# Interactive script to add a new nutrient to the noot application
+# This script automates the process documented in docs/adding-nutrients.md
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+OFF='\033[0m'
+
+echo -e "${BLUE}🍎 Noot Nutrient Addition Helper${OFF}"
+echo -e "${BLUE}====================================${OFF}"
+echo
+echo "This script will guide you through adding a new nutrient to noot."
+echo "It will create the necessary database migrations, update Go structs,"
+echo "modify OpenAPI schemas, and update the frontend components."
+echo
+
+# Get nutrient information from user
+read -p "Enter nutrient name (e.g., 'EPA', 'Beta Carotene'): " NUTRIENT_NAME
+if [[ -z "$NUTRIENT_NAME" ]]; then
+    echo -e "${RED}Error: Nutrient name is required${OFF}"
+    exit 1
+fi
+
+read -p "Enter unit (e.g., 'mg', 'mcg', 'g'): " UNIT
+if [[ -z "$UNIT" ]]; then
+    echo -e "${RED}Error: Unit is required${OFF}"
+    exit 1
+fi
+
+read -p "Enter short description (e.g., 'Eicosapentaenoic acid, an omega-3 fatty acid'): " DESCRIPTION
+if [[ -z "$DESCRIPTION" ]]; then
+    echo -e "${RED}Error: Description is required${OFF}"
+    exit 1
+fi
+
+# Generate field names
+NUTRIENT_LOWER=$(echo "$NUTRIENT_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/__*/_/g' | sed 's/^_//' | sed 's/_$//')
+NUTRIENT_CAMEL=$(echo "$NUTRIENT_NAME" | sed 's/[^a-zA-Z0-9]//g')
+NUTRIENT_PASCAL="${NUTRIENT_CAMEL^}"
+
+# Column names
+COL_CONSUMPTION="${NUTRIENT_LOWER}_${UNIT}"
+COL_ITEMS_CACHE="${NUTRIENT_LOWER}_${UNIT}_per_100g"
+
+# Go field names  
+FIELD_NUTRIENT="${NUTRIENT_PASCAL}${UNIT^}"
+FIELD_ITEMS="${NUTRIENT_PASCAL}${UNIT^}Per100g"
+FIELD_SUMMARY="Total${NUTRIENT_PASCAL}${UNIT^}"
+
+# JSON field names
+JSON_NUTRIENT="${NUTRIENT_LOWER}_${UNIT}"
+JSON_ITEMS="${NUTRIENT_LOWER}_${UNIT}_per_100g"
+JSON_SUMMARY="total_${NUTRIENT_LOWER}_${UNIT}"
+
+echo
+echo -e "${YELLOW}Generated field names:${OFF}"
+echo "  Database columns: $COL_CONSUMPTION, $COL_ITEMS_CACHE"
+echo "  Go fields: $FIELD_NUTRIENT, $FIELD_ITEMS, $FIELD_SUMMARY"
+echo "  JSON fields: $JSON_NUTRIENT, $JSON_ITEMS, $JSON_SUMMARY"
+echo
+
+read -p "Continue with these names? [y/N]: " CONFIRM
+if [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]]; then
+    echo "Cancelled."
+    exit 0
+fi
+
+# Find next migration number
+MIGRATION_DIR="internal/storage/migrations"
+if [[ ! -d "$MIGRATION_DIR" ]]; then
+    echo -e "${RED}Error: Migration directory not found at $MIGRATION_DIR${OFF}"
+    exit 1
+fi
+
+LAST_MIGRATION=$(ls "$MIGRATION_DIR"/*.sql | sort -V | tail -1 | basename | cut -d'_' -f1)
+NEXT_NUM=$(printf "%03d" $((10#$LAST_MIGRATION + 1)))
+MIGRATION_FILE="$MIGRATION_DIR/${NEXT_NUM}_add_${NUTRIENT_LOWER}_nutrient.sql"
+
+echo
+echo -e "${BLUE}📄 Creating migration file: $MIGRATION_FILE${OFF}"
+
+cat > "$MIGRATION_FILE" << EOF
+-- Migration $NEXT_NUM: Add $NUTRIENT_NAME nutrient tracking
+-- $DESCRIPTION
+
+-- Add $NUTRIENT_NAME column to consumptions table for tracking totals
+ALTER TABLE consumptions ADD COLUMN $COL_CONSUMPTION REAL NOT NULL DEFAULT 0;
+
+-- Add $NUTRIENT_NAME column to items_cache table for per-100g nutrition data
+ALTER TABLE items_cache ADD COLUMN $COL_ITEMS_CACHE REAL NOT NULL DEFAULT 0;
+EOF
+
+echo -e "${GREEN}✓ Created migration file${OFF}"
+
+# Update Go structs
+echo -e "${BLUE}📝 Updating Go structs...${OFF}"
+
+# Update CompleteNutrient in types.go
+TYPES_FILE="internal/server/types.go"
+if [[ -f "$TYPES_FILE" ]]; then
+    # Add field before the closing brace of CompleteNutrient
+    sed -i "/^[[:space:]]*\/\/ Omega-3 fatty acids/a\\	$FIELD_NUTRIENT float64 \`json:\"$JSON_NUTRIENT\"\` \/\/ $DESCRIPTION" "$TYPES_FILE"
+    echo -e "${GREEN}✓ Updated $TYPES_FILE${OFF}"
+else
+    echo -e "${YELLOW}⚠ $TYPES_FILE not found${OFF}"
+fi
+
+# Update storage structs in store.go
+STORE_FILE="internal/storage/store.go"
+if [[ -f "$STORE_FILE" ]]; then
+    # Add to Consumption struct
+    sed -i "/^[[:space:]]*DHAmg[[:space:]]*float64/a\\	$FIELD_NUTRIENT    float64    \`json:\"$JSON_NUTRIENT\"\`" "$STORE_FILE"
+    
+    # Add to Item struct  
+    sed -i "/^[[:space:]]*DHAmgPer100g[[:space:]]*float64/a\\	$FIELD_ITEMS             float64 \`json:\"$JSON_ITEMS\"\`" "$STORE_FILE"
+    
+    # Add to NutritionSummary struct
+    sed -i "/^[[:space:]]*TotalDHAmg[[:space:]]*float64/a\\	$FIELD_SUMMARY      float64 \`json:\"$JSON_SUMMARY\"\`" "$STORE_FILE"
+    
+    echo -e "${GREEN}✓ Updated $STORE_FILE${OFF}"
+else
+    echo -e "${YELLOW}⚠ $STORE_FILE not found${OFF}"
+fi
+
+# Update OpenAI system prompt
+OPENAI_FILE="internal/server/openai_provider.go"
+if [[ -f "$OPENAI_FILE" ]]; then
+    # Add to JSON structure in system prompt
+    sed -i "/\"dha_mg\": number/a\\    \"$JSON_NUTRIENT\": number," "$OPENAI_FILE"
+    echo -e "${GREEN}✓ Updated OpenAI system prompt${OFF}"
+else
+    echo -e "${YELLOW}⚠ $OPENAI_FILE not found${OFF}"
+fi
+
+# Update OpenAPI schema
+OPENAPI_FILE="api/openapi.yaml"
+if [[ -f "$OPENAPI_FILE" ]]; then
+    # Add to required fields in CompleteNutrient
+    sed -i "/^[[:space:]]*- dha_mg$/a\\        - $JSON_NUTRIENT" "$OPENAPI_FILE"
+    
+    # Add property definition
+    sed -i "/^[[:space:]]*dha_mg:/,/^[[:space:]]*description:/{
+        /description:.*DHA.*milligrams/a\\        $JSON_NUTRIENT:\n          type: number\n          description: \"$DESCRIPTION\"
+    }" "$OPENAPI_FILE"
+    
+    # Add to NutritionSummary required fields
+    sed -i "/^[[:space:]]*- total_dha_mg$/a\\        - $JSON_SUMMARY" "$OPENAPI_FILE"
+    
+    # Add to NutritionSummary properties
+    sed -i "/^[[:space:]]*total_dha_mg:/,/^[[:space:]]*description:/{
+        /description:.*Total DHA.*milligrams/a\\        $JSON_SUMMARY:\n          type: number\n          description: \"Total $NUTRIENT_NAME in $UNIT\"
+    }" "$OPENAPI_FILE"
+    
+    echo -e "${GREEN}✓ Updated OpenAPI schema${OFF}"
+else
+    echo -e "${YELLOW}⚠ $OPENAPI_FILE not found${OFF}"
+fi
+
+# Regenerate API types
+echo -e "${BLUE}🔄 Regenerating API types...${OFF}"
+if ./script/generate-types; then
+    echo -e "${GREEN}✓ API types regenerated${OFF}"
+else
+    echo -e "${YELLOW}⚠ Failed to regenerate API types${OFF}"
+fi
+
+# Update frontend Goals component
+GOALS_FILE="apps/web/src/lib/components/Goals.svelte"
+if [[ -f "$GOALS_FILE" ]]; then
+    # Add to keyNutrients array after DHA
+    sed -i "/\"dha_mg\",/a\\    \"$JSON_NUTRIENT\"," "$GOALS_FILE"
+    echo -e "${GREEN}✓ Updated Goals component${OFF}"
+else
+    echo -e "${YELLOW}⚠ $GOALS_FILE not found${OFF}"
+fi
+
+echo
+echo -e "${GREEN}🎉 Nutrient addition complete!${OFF}"
+echo
+echo -e "${BLUE}Next steps:${OFF}"
+echo "1. Run tests: ${YELLOW}./script/test${OFF}"
+echo "2. Add reference data to OpenAI prompt if needed"
+echo "3. Add DRI/DV values to goals data files if available"
+echo "4. Test end-to-end functionality"
+echo
+echo -e "${BLUE}Files modified:${OFF}"
+echo "- $MIGRATION_FILE (created)"
+echo "- $TYPES_FILE"
+echo "- $STORE_FILE"  
+echo "- $OPENAI_FILE"
+echo "- $OPENAPI_FILE"
+echo "- Generated API types"
+echo "- $GOALS_FILE"
+echo
+echo -e "${YELLOW}Don't forget to update the documentation in docs/adding-nutrients.md with your nutrient as an additional example!${OFF}"

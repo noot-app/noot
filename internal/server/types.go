@@ -58,6 +58,9 @@ type CompleteNutrient struct {
 	Chromium   float64 `json:"chromium_mcg"`
 	Fluoride   float64 `json:"fluoride_mg"`
 	Chloride   float64 `json:"chloride_mg"`
+
+	// Omega-3 fatty acids
+	DHAmg float64 `json:"dha_mg"` // Docosahexaenoic acid in milligrams
 }
 
 type ItemWithNutrition struct {

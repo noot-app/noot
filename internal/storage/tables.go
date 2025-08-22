@@ -5,16 +5,18 @@ var TableNames = struct {
 	Users            string
 	Consumptions     string
 	ConsumptionItems string
-	Items            string
+	ItemsCache       string
 	ItemAliases      string
 	UserGoals        string
+	UserBiometrics   string
 }{
 	Users:            "users",
 	Consumptions:     "consumptions",
 	ConsumptionItems: "consumption_items",
-	Items:            "items",
+	ItemsCache:       "items_cache",
 	ItemAliases:      "item_aliases",
 	UserGoals:        "user_goals",
+	UserBiometrics:   "user_biometrics",
 }
 
 // GetDropTableOrder returns tables in reverse dependency order for safe dropping
@@ -22,8 +24,9 @@ func GetDropTableOrder() []string {
 	return []string{
 		TableNames.ItemAliases,
 		TableNames.ConsumptionItems,
-		TableNames.Items,
+		TableNames.ItemsCache,
 		TableNames.UserGoals,
+		TableNames.UserBiometrics,
 		TableNames.Consumptions,
 		TableNames.Users,
 	}

@@ -121,6 +121,9 @@ type CompleteNutrient struct {
 	// CopperMg Copper in milligrams
 	CopperMg float32 `json:"copper_mg"`
 
+	// DhaMg Docosahexaenoic acid (DHA) in milligrams
+	DhaMg float32 `json:"dha_mg"`
+
 	// DietaryFiberG Dietary fiber in grams
 	DietaryFiberG float32 `json:"dietary_fiber_g"`
 
@@ -495,6 +498,9 @@ type NutritionSummary struct {
 
 	// TotalCopperMg Total copper in milligrams
 	TotalCopperMg float32 `json:"total_copper_mg"`
+
+	// TotalDhaMg Total DHA in milligrams
+	TotalDhaMg float32 `json:"total_dha_mg"`
 
 	// TotalFatG Total fat in grams
 	TotalFatG float32 `json:"total_fat_g"`

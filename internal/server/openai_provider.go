@@ -128,7 +128,8 @@ func (p *OpenAIProvider) nutritionSystemPrompt() string {
     "molybdenum_mcg": number,
     "chromium_mcg": number,
     "fluoride_mg": number,
-    "chloride_mg": number
+    "chloride_mg": number,
+    "dha_mg": number
   }
 }
 
@@ -153,6 +154,16 @@ IMPORTANT INSTRUCTIONS:
    - Tomato (raw): ~18 calories, ~0.2 g fat, ~0.9 g protein
    - Cheddar cheese (aged): ~403 calories, ~33.1 g fat, ~24.9 g protein
    - Carrot (raw): ~41 calories, ~0.2 g fat, ~0.9 g protein
+
+DHA CONTENT REFERENCE (per 100g):
+   - Salmon, farmed: ~1800mg DHA
+   - Salmon, wild: ~1400mg DHA  
+   - Sardines, canned: ~1400mg DHA
+   - Mackerel: ~1600mg DHA
+   - Tuna, bluefin: ~1200mg DHA
+   - Fish oil supplements: Very high DHA (check product specs)
+   - Most plant foods: 0mg DHA (may contain ALA omega-3 instead)
+
 5. CALCULATE FROM WEIGHT: Scale nutrition values proportionally based on the gram weight provided.`
 }
 

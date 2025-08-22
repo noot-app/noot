@@ -129,6 +129,7 @@ type Consumption struct {
 	Chromium        float64    `json:"chromium_mcg"`
 	Fluoride        float64    `json:"fluoride_mg"`
 	Chloride        float64    `json:"chloride_mg"`
+	DHAmg           float64    `json:"dha_mg"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       *time.Time `json:"updated_at,omitempty"`
 }
@@ -180,6 +181,7 @@ type Item struct {
 	ChromiumMcgPer100g       float64 `json:"chromium_mcg_per_100g"`
 	FluorideMgPer100g        float64 `json:"fluoride_mg_per_100g"`
 	ChlorideMgPer100g        float64 `json:"chloride_mg_per_100g"`
+	DHAmgPer100g             float64 `json:"dha_mg_per_100g"`
 	// Timestamps for 30-day refresh logic
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -259,6 +261,7 @@ type NutritionSummary struct {
 	TotalChromium   float64 `json:"total_chromium_mcg"`
 	TotalFluoride   float64 `json:"total_fluoride_mg"`
 	TotalChloride   float64 `json:"total_chloride_mg"`
+	TotalDHAmg      float64 `json:"total_dha_mg"`
 
 	// Averages per day - basic macronutrients
 	AvgCaloriesPerDay float64 `json:"avg_calories_per_day"`

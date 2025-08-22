@@ -151,6 +151,9 @@
     // Essential macronutrients
     "calories", "protein_g", "total_carbs_g", "total_fat_g", "saturated_fat_g", "trans_fat_g", "dietary_fiber_g", "total_sugars_g", "added_sugars_g", "cholesterol_mg", "sodium_mg",
     
+    // Omega-3 fatty acids
+    "dha_mg",
+    
     // B-Complex vitamins
     "thiamine_mg", "riboflavin_mg", "niacin_mg", "vitamin_b6_mg", "folate_mcg", "vitamin_b12_mcg", "biotin_mcg", "pantothenic_acid_mg",
     

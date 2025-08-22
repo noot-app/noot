@@ -816,6 +816,7 @@ components:
         - fluoride_mg
         - iodine_mcg
         - molybdenum_mcg
+        - dha_mg
       properties:
         calories:
           type: number
@@ -934,6 +935,9 @@ components:
         molybdenum_mcg:
           type: number
           description: Molybdenum in micrograms
+        dha_mg:
+          type: number
+          description: Docosahexaenoic acid (DHA) in milligrams
 
     Summary:
       type: object
@@ -1062,6 +1066,7 @@ components:
         - total_fluoride_mg
         - total_iodine_mcg
         - total_molybdenum_mcg
+        - total_dha_mg
         - avg_calories_per_day
         - avg_protein_per_day
         - avg_fat_per_day
@@ -1201,6 +1206,9 @@ components:
         total_molybdenum_mcg:
           type: number
           description: Total molybdenum in micrograms
+        total_dha_mg:
+          type: number
+          description: Total DHA in milligrams
         avg_calories_per_day:
           type: number
           description: Average calories per day
