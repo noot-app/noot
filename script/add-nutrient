@@ -128,15 +128,15 @@ else
     echo -e "${YELLOW}⚠ $STORE_FILE not found${OFF}"
 fi
 
-# Update OpenAI system prompt
-OPENAI_FILE="internal/server/openai_provider.go"
-if [[ -f "$OPENAI_FILE" ]]; then
-    # Add to JSON structure in system prompt
-    sed -i "/\"dha_mg\": number/a\\    \"$JSON_NUTRIENT\": number," "$OPENAI_FILE"
-    echo -e "${GREEN}✓ Updated OpenAI system prompt${OFF}"
-else
-    echo -e "${YELLOW}⚠ $OPENAI_FILE not found${OFF}"
-fi
+# Note: OpenAI nutrition prompt is now managed on OpenAI portal
+echo -e "${BLUE}📝 OpenAI Nutrition Prompt Update Required${OFF}"
+echo "The nutrition system prompt is managed on OpenAI's portal, not in code."
+echo "After completing this script, you'll need to:"
+echo "1. Access the OpenAI portal where the nutrition prompt is hosted"
+echo "2. Add '$JSON_NUTRIENT': number to the JSON structure"
+echo "3. Add reference data for $NUTRIENT_NAME if available"
+echo "4. Update the OPENAI_NUTRITION_PROMPT_VERSION environment variable"
+echo
 
 # Update OpenAPI schema
 OPENAPI_FILE="api/openapi.yaml"
@@ -185,7 +185,7 @@ echo -e "${GREEN}🎉 Nutrient addition complete!${OFF}"
 echo
 echo -e "${BLUE}Next steps:${OFF}"
 echo "1. Run tests: ${YELLOW}./script/test${OFF}"
-echo "2. Add reference data to OpenAI prompt if needed"
+echo "2. Update OpenAI nutrition prompt on portal with '$JSON_NUTRIENT': number"
 echo "3. Add DRI/DV values to goals data files if available"
 echo "4. Test end-to-end functionality"
 echo
@@ -193,9 +193,11 @@ echo -e "${BLUE}Files modified:${OFF}"
 echo "- $MIGRATION_FILE (created)"
 echo "- $TYPES_FILE"
 echo "- $STORE_FILE"  
-echo "- $OPENAI_FILE"
 echo "- $OPENAPI_FILE"
 echo "- Generated API types"
+echo
+echo -e "${YELLOW}Manual update required:${OFF}"
+echo "- OpenAI nutrition prompt on portal (add JSON field and reference data)"
 echo "- $GOALS_FILE"
 echo
 echo -e "${YELLOW}Don't forget to update the documentation in docs/adding-nutrients.md with your nutrient as an additional example!${OFF}"

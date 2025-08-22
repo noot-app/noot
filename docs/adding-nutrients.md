@@ -7,7 +7,7 @@ This guide walks through the complete process of adding a new nutrient to the no
 Adding a nutrient requires updates to:
 - Database schema (SQL migrations)
 - Go backend types and logic
-- OpenAI integration prompts
+- OpenAI nutrition prompt (on OpenAI portal)
 - API schema definitions
 - Frontend UI components
 - Goals/DRI reference data
@@ -109,12 +109,17 @@ Update aggregation logic in `internal/server/nutrition_service.go` to include DH
 
 #### 3.1 Update OpenAI System Prompt
 
-Add DHA to the expected JSON structure in `internal/server/openai_provider.go`:
+The nutrition system prompt is now managed directly on OpenAI's portal rather than in the Go code. The application references the prompt using environment variables:
 
-```go
-func (p *OpenAIProvider) nutritionSystemPrompt() string {
-	return `You provide complete nutrition information for a single food item based on its weight in grams. Return strict JSON with the following structure:
+- `OPENAI_NUTRITION_PROMPT_ID`: The ID of the prompt on OpenAI's portal
+- `OPENAI_NUTRITION_PROMPT_VERSION`: The version of the prompt to use
 
+To add a new nutrient like DHA:
+
+1. **Access OpenAI Portal**: Log into the OpenAI portal where the nutrition prompt is hosted
+2. **Update JSON Structure**: Add the new nutrient to the expected JSON response structure:
+
+```json
 {
   "nutrients": {
     "calories": number,
@@ -124,17 +129,17 @@ func (p *OpenAIProvider) nutritionSystemPrompt() string {
     "dha_mg": number
   }
 }
+```
 
-IMPORTANT INSTRUCTIONS:
-1. WEIGHT-BASED NUTRITION: Provide accurate nutrition data for the exact gram weight specified.
-2. DHA CONTENT: Include DHA (docosahexaenoic acid) content in milligrams. Focus on:
-   - Fatty fish (salmon, mackerel, sardines, tuna): 500-2000mg per 100g
-   - Fish oil supplements: Very high DHA content
-   - Algae-based foods: Moderate DHA for vegetarian sources  
-   - Most plant foods: 0mg DHA (ALA omega-3 instead)
-   - Fortified foods: Check product specifications
-3. BRANDED VS GENERIC: Prioritize branded nutrition data when brand is specified.
-4. ZERO VALUES: Use 0 for nutrients truly absent, but provide realistic non-zero values for nutrients typically present.
+3. **Add Reference Data**: Include accuracy reference data in the prompt instructions:
+
+```text
+DHA CONTENT: Include DHA (docosahexaenoic acid) content in milligrams. Focus on:
+- Fatty fish (salmon, mackerel, sardines, tuna): 500-2000mg per 100g
+- Fish oil supplements: Very high DHA content
+- Algae-based foods: Moderate DHA for vegetarian sources  
+- Most plant foods: 0mg DHA (ALA omega-3 instead)
+- Fortified foods: Check product specifications
 
 For DHA specifically:
 - Salmon (farmed): ~1800mg per 100g
@@ -143,11 +148,11 @@ For DHA specifically:
 - Mackerel: ~1600mg per 100g
 - Tuna: ~300-1200mg per 100g (varies by species)
 - Most non-marine foods: 0mg
-`
-}
 ```
 
-**Pattern**: Add the nutrient to JSON structure and include accuracy reference data for foods rich in that nutrient.
+4. **Update Version**: Create a new version of the prompt and update the `OPENAI_NUTRITION_PROMPT_VERSION` environment variable
+
+**Pattern**: The Go code automatically uses the prompt from OpenAI's portal - no code changes needed for prompt updates.
 
 ### 4. API Schema Updates
 
@@ -416,7 +421,7 @@ npm run dev
 | Migration fails with "column exists" | Check table names in `tables.go`, ensure Reset() drops correct tables |
 | API types don't include DHA | Run `./script/generate-types` after updating OpenAPI schema |
 | Frontend doesn't show DHA | Verify nutrient added to `keyNutrients` array in Goals.svelte |
-| Zero DHA values for fish | Check OpenAI prompt includes DHA reference data |
+| Zero DHA values for fish | Update OpenAI nutrition prompt on portal to include DHA reference data |
 | Tests fail after adding nutrient | Verify all structs updated consistently across types.go and store.go |
 
 ## Automation Script
@@ -466,14 +471,14 @@ Common nutrient categories for organization:
 1. **Migration fails**: Ensure column names don't conflict with SQLite reserved words
 2. **API types don't update**: Run `./script/generate-types` after OpenAPI changes
 3. **Frontend doesn't show nutrient**: Check it's added to `keyNutrients` array
-4. **Zero values in responses**: Verify OpenAI prompt includes reference data
+4. **Zero values in responses**: Update OpenAI nutrition prompt on portal with reference data
 
 ### Validation Checklist
 
 - [ ] Migration file created and follows naming convention
 - [ ] Both database tables updated (`consumptions` and `items_cache`)
 - [ ] Go structs updated in `types.go` and `store.go`
-- [ ] OpenAI system prompt includes nutrient with reference data
+- [ ] OpenAI nutrition prompt updated on portal with nutrient and reference data
 - [ ] OpenAPI schema updated with nutrient fields
 - [ ] API types regenerated successfully
 - [ ] Frontend component includes nutrient in `keyNutrients`  
@@ -541,7 +546,7 @@ This systematic approach ensures complete integration of new nutrients across th
 
 1. **Run the helper script**: `./script/add-nutrient`
 2. **Test the implementation**: `./script/test`
-3. **Add reference data** to OpenAI prompt if needed
+3. **Update OpenAI nutrition prompt** on portal with reference data if needed
 4. **Add DRI/DV values** to goals data if available
 5. **Test end-to-end functionality**
 
@@ -552,7 +557,7 @@ When adding a nutrient manually, ensure these files are updated:
 - [ ] `internal/storage/migrations/###_add_[nutrient]_nutrient.sql`
 - [ ] `internal/server/types.go` (CompleteNutrient struct)
 - [ ] `internal/storage/store.go` (Consumption, Item, NutritionSummary structs)
-- [ ] `internal/server/openai_provider.go` (system prompt JSON structure)
+- [ ] OpenAI nutrition prompt on portal (JSON structure and reference data)
 - [ ] `api/openapi.yaml` (CompleteNutrient and NutritionSummary schemas)
 - [ ] Generated API types (via `./script/generate-types`)
 - [ ] `apps/web/src/lib/components/Goals.svelte` (keyNutrients array)
