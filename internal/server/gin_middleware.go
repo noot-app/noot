@@ -97,7 +97,7 @@ func StoreMiddleware(store storage.Store) gin.HandlerFunc {
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get allowed origins from environment variable, default to localhost:3000 for development
-		allowedOrigins := getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+		allowedOrigins := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 		origins := strings.Split(allowedOrigins, ",")
 
 		origin := c.Request.Header.Get("Origin")
