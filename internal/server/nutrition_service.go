@@ -268,35 +268,35 @@ func (s *NutritionService) convertNutrientsToCache(item Item, nutrients Complete
 		TotalCarbsGPer100g:       convertAndRound(nutrients.TotalCarbs, 1),
 		DietaryFiberGPer100g:     convertAndRound(nutrients.DietaryFiber, 1),
 		TotalSugarsGPer100g:      convertAndRound(nutrients.TotalSugars, 1),
-		AddedSugarsGPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.AddedSugars, actualGrams), 1),
-		VitaminAMcgPer100g:       RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminA, actualGrams), 1),
-		VitaminCMgPer100g:        RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminC, actualGrams), 1),
-		VitaminDMcgPer100g:       RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminD, actualGrams), 1),
-		VitaminEMgPer100g:        RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminE, actualGrams), 1),
-		VitaminKMcgPer100g:       RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminK, actualGrams), 1),
-		ThiamineMgPer100g:        RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Thiamine, actualGrams), 3),
-		RiboflavinMgPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Riboflavin, actualGrams), 3),
-		NiacinMgPer100g:          RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Niacin, actualGrams), 1),
-		VitaminB6MgPer100g:       RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminB6, actualGrams), 3),
-		FolateMcgPer100g:         RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Folate, actualGrams), 1),
-		VitaminB12McgPer100g:     RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.VitaminB12, actualGrams), 2),
-		BiotinMcgPer100g:         RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(0, actualGrams), 1), // TODO: Add biotin to CompleteNutrient
-		PantothenicAcidMgPer100g: RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(0, actualGrams), 1), // TODO: Add pantothenic acid to CompleteNutrient
-		CholineMgPer100g:         RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(0, actualGrams), 1), // TODO: Add choline to CompleteNutrient
-		CalciumMgPer100g:         RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Calcium, actualGrams), 1),
-		IronMgPer100g:            RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Iron, actualGrams), 1),
-		MagnesiumMgPer100g:       RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Magnesium, actualGrams), 1),
-		PhosphorusMgPer100g:      RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Phosphorus, actualGrams), 1),
-		PotassiumMgPer100g:       RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Potassium, actualGrams), 1),
-		ZincMgPer100g:            RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Zinc, actualGrams), 2),
-		CopperMgPer100g:          RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Copper, actualGrams), 3),
-		ManganeseMgPer100g:       RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Manganese, actualGrams), 3),
-		SeleniumMcgPer100g:       RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(nutrients.Selenium, actualGrams), 1),
-		IodineMcgPer100g:         RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(0, actualGrams), 1), // TODO: Add iodine to CompleteNutrient
-		MolybdenumMcgPer100g:     RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(0, actualGrams), 1), // TODO: Add molybdenum to CompleteNutrient
-		ChromiumMcgPer100g:       RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(0, actualGrams), 1), // TODO: Add chromium to CompleteNutrient
-		FluorideMgPer100g:        RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(0, actualGrams), 1), // TODO: Add fluoride to CompleteNutrient
-		ChlorideMgPer100g:        RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(0, actualGrams), 1), // TODO: Add chloride to CompleteNutrient
+		AddedSugarsGPer100g:      convertAndRound(nutrients.AddedSugars, 1),
+		VitaminAMcgPer100g:       convertAndRound(nutrients.VitaminA, 1),
+		VitaminCMgPer100g:        convertAndRound(nutrients.VitaminC, 1),
+		VitaminDMcgPer100g:       convertAndRound(nutrients.VitaminD, 1),
+		VitaminEMgPer100g:        convertAndRound(nutrients.VitaminE, 1),
+		VitaminKMcgPer100g:       convertAndRound(nutrients.VitaminK, 1),
+		ThiamineMgPer100g:        convertAndRound(nutrients.Thiamine, 3),
+		RiboflavinMgPer100g:      convertAndRound(nutrients.Riboflavin, 3),
+		NiacinMgPer100g:          convertAndRound(nutrients.Niacin, 1),
+		VitaminB6MgPer100g:       convertAndRound(nutrients.VitaminB6, 3),
+		FolateMcgPer100g:         convertAndRound(nutrients.Folate, 1),
+		VitaminB12McgPer100g:     convertAndRound(nutrients.VitaminB12, 2),
+		BiotinMcgPer100g:         convertAndRound(0, 1), // TODO: Add biotin to CompleteNutrient
+		PantothenicAcidMgPer100g: convertAndRound(0, 1), // TODO: Add pantothenic acid to CompleteNutrient
+		CholineMgPer100g:         convertAndRound(0, 1), // TODO: Add choline to CompleteNutrient
+		CalciumMgPer100g:         convertAndRound(nutrients.Calcium, 1),
+		IronMgPer100g:            convertAndRound(nutrients.Iron, 1),
+		MagnesiumMgPer100g:       convertAndRound(nutrients.Magnesium, 1),
+		PhosphorusMgPer100g:      convertAndRound(nutrients.Phosphorus, 1),
+		PotassiumMgPer100g:       convertAndRound(nutrients.Potassium, 1),
+		ZincMgPer100g:            convertAndRound(nutrients.Zinc, 2),
+		CopperMgPer100g:          convertAndRound(nutrients.Copper, 3),
+		ManganeseMgPer100g:       convertAndRound(nutrients.Manganese, 3),
+		SeleniumMcgPer100g:       convertAndRound(nutrients.Selenium, 1),
+		IodineMcgPer100g:         convertAndRound(0, 1), // TODO: Add iodine to CompleteNutrient
+		MolybdenumMcgPer100g:     convertAndRound(0, 1), // TODO: Add molybdenum to CompleteNutrient
+		ChromiumMcgPer100g:       convertAndRound(0, 1), // TODO: Add chromium to CompleteNutrient
+		FluorideMgPer100g:        convertAndRound(0, 1), // TODO: Add fluoride to CompleteNutrient
+		ChlorideMgPer100g:        convertAndRound(0, 1), // TODO: Add chloride to CompleteNutrient
 		CreatedAt:                time.Now().UTC(),
 		UpdatedAt:                time.Now().UTC(),
 	}

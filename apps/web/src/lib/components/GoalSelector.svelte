@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { apiClient } from "$lib/api/client";
+  import Icon from './Icon.svelte';
 
   // Define types based on actual API responses
   interface GoalSet {
@@ -114,9 +115,7 @@
 
     {#if error}
       <div class="tooltip tooltip-error" data-tip={error}>
-        <svg class="w-4 h-4 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
+        <Icon name="exclamation-circle" size="sm" className="text-error" />
       </div>
     {/if}
   </div>
