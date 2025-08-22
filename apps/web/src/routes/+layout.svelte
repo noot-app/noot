@@ -9,6 +9,7 @@
   import { initAuth } from "$lib/auth/store"
   import Navbar from "$lib/components/Navbar.svelte"
   import DevBanner from "$lib/components/DevBanner.svelte"
+  import AdaptiveFavicon from "$lib/components/AdaptiveFavicon.svelte"
 
   interface Props {
     children?: import("svelte").Snippet
@@ -21,6 +22,9 @@
     initAuth(); // Initialize auth system
   });
 </script>
+
+<!-- Adaptive favicon management -->
+<AdaptiveFavicon />
 
 <DevBanner />
 
