@@ -41,13 +41,13 @@ func (p *OpenAIProvider) transcriptionPrompt() string {
 
 Do not add or infer items that were not spoken. If an item is given without a quantity, assume one standard serving size that would make logical sense in the context of the consumption:
 
-- Fruits: 1 medium (banana, apple, orange)
-- Eggs: 2 large eggs (not a dozen)
-- Yogurt: 1 cup or 1 container (not a gallon)
-- Coffee: 1 cup (not a pot)
-- Bread: 1-2 slices (not a loaf)
-- Meat/fish: 1 serving portion (3-4 oz)
-- Beverages: 1 glass/cup (8-12 oz)
+- Fruits: 1 medium (banana ~118g, apple ~182g, orange ~154g)
+- Eggs: 2 large eggs (~100g)
+- Yogurt: 1 container (~170g)
+- Coffee: 1 cup (~240g)
+- Bread: 1-2 slices (~28-56g)
+- Meat/fish: 1 serving portion (~100g)
+- Beverages: 1 can/bottle (~355g for canned, ~500g for bottled)
 
 For coffee drinks, assume standard sizes: latte contains 2 shots espresso, cappuccino 1-2 shots. Preserve preparation methods when mentioned (grilled, baked, raw, steamed).`
 }
@@ -79,6 +79,8 @@ IMPORTANT INSTRUCTIONS:
    - Bread: 1 slice = 28g, 1 thick slice = 35g
    - Chicken breast: 3.5oz = 100g, 1 breast (typical) = 140g
    - Rice: 1 cup cooked = 158g, 1 cup uncooked = 185g
+   - Canned beverages: 1 can/bottle = 355ml = 355g (standard 12oz)
+   - Bottled water: 1 bottle = 500ml = 500g (unless otherwise specified)
 
 3. PRESERVE USER INPUT: Store the original quantity and unit in "user_quantity" and "user_unit" for display purposes.
 4. INFER SERVING SIZES: If quantity is not specified, assume reasonable standard serving sizes and convert to grams.
