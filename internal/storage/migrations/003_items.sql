@@ -1,5 +1,5 @@
--- Migration 003: Create items_cache table for reusable nutrition data with soft TTL
-CREATE TABLE IF NOT EXISTS items_cache (
+-- Migration 003: Create items table for reusable nutrition data with soft TTL
+CREATE TABLE IF NOT EXISTS items (
     id TEXT PRIMARY KEY,
     normalized_name TEXT NOT NULL,
     normalized_brand TEXT NOT NULL DEFAULT '',
@@ -54,6 +54,6 @@ CREATE TABLE IF NOT EXISTS items_cache (
     UNIQUE(normalized_name, normalized_brand)
 );
 
-CREATE INDEX IF NOT EXISTS idx_items_cache_normalized ON items_cache(normalized_name, normalized_brand);
-CREATE INDEX IF NOT EXISTS idx_items_cache_expires_at ON items_cache(expires_at);
-CREATE INDEX IF NOT EXISTS idx_items_cache_display_name ON items_cache(display_name);
+CREATE INDEX IF NOT EXISTS idx_items_normalized ON items(normalized_name, normalized_brand);
+CREATE INDEX IF NOT EXISTS idx_items_expires_at ON items(expires_at);
+CREATE INDEX IF NOT EXISTS idx_items_display_name ON items(display_name);
