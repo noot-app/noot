@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -110,7 +111,7 @@ func CORSMiddleware() gin.HandlerFunc {
 		}
 
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-Dev-User-ID")
 		c.Header("Access-Control-Allow-Credentials", "true")
 
 		if c.Request.Method == "OPTIONS" {
@@ -145,4 +146,60 @@ func generateRequestID() string {
 	bytes := make([]byte, 6)
 	rand.Read(bytes)
 	return hex.EncodeToString(bytes)
+}
+
+// DevAuthMiddleware handles development-only user switching via headers
+// TODO: When implementing Supabase auth, this middleware should be replaced with
+// a proper auth middleware that validates JWT tokens and extracts user context
+func DevAuthMiddleware(store storage.Store) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Only allow dev user switching in development environment
+		env := strings.ToLower(getEnv("ENV", "production"))
+		if env != "development" {
+			c.Next()
+			return
+		}
+
+		// Check for development user override header
+		devUserID := c.GetHeader("X-Dev-User-ID")
+		if devUserID != "" {
+			var user *storage.User
+			var err error
+
+			// Resolve user based on dev user ID
+			switch devUserID {
+			case "monalisa":
+				user, err = store.GetUserBySubject(c.Request.Context(), DefaultUserProvider, DefaultUserSubject)
+			case "alice":
+				user, err = store.GetUserBySubject(c.Request.Context(), AliceUserProvider, AliceUserSubject)
+			default:
+				LogWarn("Invalid dev user ID requested", "user_id", devUserID)
+				c.Next()
+				return
+			}
+
+			if err != nil {
+				LogError("Failed to get dev user", err, "user_id", devUserID)
+				c.Next()
+				return
+			}
+
+			if user != nil {
+				// Set the user in context for handlers to use
+				// TODO: When implementing Supabase auth, ensure this context key is consistent
+				c.Set("dev_user", user)
+				LogDebug("Dev user context set", "user_id", devUserID, "email", user.Email)
+			}
+		}
+
+		c.Next()
+	}
+}
+
+// getEnv gets environment variable with fallback
+func getEnv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
 }

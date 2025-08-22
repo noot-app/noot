@@ -63,6 +63,7 @@ func Run(ctx context.Context, port string) error {
 	r.Use(RecoveryMiddleware())
 	r.Use(CORSMiddleware())
 	r.Use(StoreMiddleware(store))
+	r.Use(DevAuthMiddleware(store)) // TODO: Replace with proper auth middleware when implementing Supabase
 
 	// Create API server
 	apiServer, err := NewAPIServer(store)

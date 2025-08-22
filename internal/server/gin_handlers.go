@@ -156,7 +156,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	if s.store != nil {
 		// For now, use the default user if no authentication
 		// In the future, this would come from authentication middleware
-		user, err := getDefaultUser(ctx, s.store)
+		user, err := getCurrentUser(c, s.store)
 		if err != nil {
 			LogError("Failed to get user for consumption storage", err)
 		} else if user != nil {
@@ -322,7 +322,7 @@ func (s *APIServer) GetConsumptions(c *gin.Context) {
 	}
 
 	// For now, get consumptions for the default user
-	user, err := getDefaultUser(c.Request.Context(), s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		errorResp := api.ErrorResponse{
 			Error:     "Failed to get user",
@@ -374,7 +374,7 @@ func (s *APIServer) GetNutritionSummary(c *gin.Context, params api.GetNutritionS
 	requestID := c.GetString("request_id")
 
 	// Get the default user
-	user, err := getDefaultUser(c.Request.Context(), s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		errorResp := api.ErrorResponse{
 			Error:     "Failed to get user",
@@ -492,7 +492,7 @@ func (s *APIServer) GetGoals(c *gin.Context, params api.GetGoalsParams) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getDefaultUser(ctx, s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -594,7 +594,7 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getDefaultUser(ctx, s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -684,7 +684,7 @@ func (s *APIServer) GetTrends(c *gin.Context, params api.GetTrendsParams) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getDefaultUser(ctx, s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -746,7 +746,7 @@ func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getDefaultUser(ctx, s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -812,7 +812,7 @@ func (s *APIServer) GetUserBiometrics(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getDefaultUser(ctx, s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -936,7 +936,7 @@ func (s *APIServer) UpdateUserBiometrics(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getDefaultUser(ctx, s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -1129,7 +1129,7 @@ func (s *APIServer) DeleteUserBiometrics(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getDefaultUser(ctx, s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -1168,7 +1168,7 @@ func (s *APIServer) GetGoalSets(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getDefaultUser(ctx, s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -1221,7 +1221,7 @@ func (s *APIServer) SetActiveGoalSet(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getDefaultUser(ctx, s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -1273,7 +1273,7 @@ func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getDefaultUser(ctx, s.store)
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)

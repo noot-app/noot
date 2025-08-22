@@ -18,6 +18,8 @@ const (
 const (
 	DefaultUserProvider  = storage.DefaultSeedProvider
 	DefaultUserSubject   = storage.DefaultSeedSubject
+	AliceUserProvider    = storage.AliceSeedProvider
+	AliceUserSubject     = storage.AliceSeedSubject
 	SubscriptionTierFree = storage.SubscriptionTierFree
 	SubscriptionTierPro  = storage.SubscriptionTierPro
 )

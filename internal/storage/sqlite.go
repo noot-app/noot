@@ -571,6 +571,25 @@ func (s *SQLiteStore) Seed() error {
 		}
 	}
 
+	// Check if alice user already exists for dev user switching
+	aliceUser, err := s.GetUserBySubject(ctx, AliceSeedProvider, AliceSeedSubject)
+	if err != nil {
+		return fmt.Errorf("failed to check for existing alice user: %w", err)
+	}
+
+	// Create alice user if it doesn't exist
+	if aliceUser == nil {
+		aliceUser = &User{
+			Provider:         AliceSeedProvider,
+			Subject:          AliceSeedSubject,
+			Email:            AliceSeedEmail,
+			SubscriptionTier: SubscriptionTierFree, // Alice is a free tier user
+		}
+		if err := s.CreateUser(ctx, aliceUser); err != nil {
+			return fmt.Errorf("failed to create alice seed user: %w", err)
+		}
+	}
+
 	// Sample consumption data with complete nutrition - dates relative to today
 	sampleConsumptions := []struct {
 		transcript  string
