@@ -29,6 +29,10 @@
   let loading = true;
   let switching = false;
   let error = "";
+  let user: GoalSetsResponse["user"] | null = null;
+  
+  // Reactive subscription check
+  $: isProUser = user?.subscription_tier === "pro";
 
   onMount(async () => {
     await loadGoalSets();
@@ -45,6 +49,7 @@
 
       goalSets = data.goal_sets;
       activeGoalName = data.active_goal_name || "";
+      user = data.user;
     } catch (err) {
       error = `Failed to load goal sets: ${err}`;
       console.error("Goal sets error:", err);
@@ -55,6 +60,11 @@
 
   async function switchGoal(goalName: string) {
     if (switching || goalName === activeGoalName) return;
+
+    if (!isProUser) {
+      error = "Pro subscription required for goal set management";
+      return;
+    }
 
     try {
       switching = true;

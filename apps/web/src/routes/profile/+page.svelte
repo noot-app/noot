@@ -151,6 +151,14 @@
   async function loadGoalSets() {
     try {
       loadingGoalSets = true;
+      
+      // Only load goal sets for Pro users
+      if (!isProUser) {
+        goalSets = [];
+        activeGoalName = "";
+        return;
+      }
+      
       const response = await apiClient.GET("/goals/sets");
 
       if (response.error) {
@@ -169,6 +177,11 @@
 
   async function switchToGoal(goalName: string) {
     if (goalName === activeGoalName) return;
+    
+    if (!isProUser) {
+      toast.error("Pro subscription required for goal set management");
+      return;
+    }
 
     try {
       const response = await apiClient.PUT("/goals/active", {
@@ -189,6 +202,11 @@
   async function deleteGoalSet(goalName: string) {
     if (!goalName) return;
     
+    if (!isProUser) {
+      toast.error("Pro subscription required for goal set management");
+      return;
+    }
+    
     // Show modal instead of using confirm()
     goalToDelete = goalName;
     showDeleteModal = true;
@@ -196,6 +214,13 @@
 
   async function confirmDeleteGoalSet() {
     if (!goalToDelete) return;
+    
+    if (!isProUser) {
+      toast.error("Pro subscription required for goal set management");
+      showDeleteModal = false;
+      goalToDelete = "";
+      return;
+    }
 
     try {
       const isLastGoal = goalSets.length === 1;
@@ -383,6 +408,11 @@
 
   async function saveCustomGoals() {
     if (!goals) return;
+    
+    if (!isProUser) {
+      toast.error("Pro subscription required for custom goals");
+      return;
+    }
     
     try {
       saving = true;
