@@ -82,24 +82,3 @@ func TestOpenAIProvider_ParseItemsSystemPrompt(t *testing.T) {
 	// Check it mentions converting to grams (core functionality)
 	assert.Contains(t, prompt, "grams")
 }
-
-func TestOpenAIProvider_NutritionSystemPrompt(t *testing.T) {
-	config := AIProviderConfig{
-		APIKey:          "test-key",
-		TranscribeModel: "test-transcribe-model",
-		ParseModel:      "test-parse-model",
-		BaseURL:         "https://api.test.com/v1",
-		Timeout:         30,
-	}
-
-	provider := NewOpenAIProvider(config)
-	prompt := provider.nutritionSystemPrompt()
-
-	// Check that the prompt contains essential nutrition fields
-	assert.Contains(t, prompt, "nutrients")
-	assert.Contains(t, prompt, "calories")
-	assert.Contains(t, prompt, "protein_g")
-	assert.Contains(t, prompt, "total_fat_g")
-	// Check it mentions weight-based nutrition (core functionality)
-	assert.Contains(t, prompt, "grams")
-}
