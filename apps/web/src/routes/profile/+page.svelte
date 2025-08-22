@@ -641,12 +641,6 @@
                   <div class="stat-desc">Demographic info</div>
                 </div>
               </div>
-
-              {#if goals.source === "dri"}
-                <p class="text-xs text-base-content/60">
-                  Using Dietary Reference Intakes (DRI) based on your profile.
-                </p>
-              {/if}
             </div>
           </div>
         </div>
@@ -655,11 +649,7 @@
         <div class="card bg-base-200 shadow-lg">
           <div class="card-body p-6">
             <h2 class="card-title flex items-center gap-2">
-              🏆 Goals
-              {#if goals?.source === "dri"}
-                <div class="badge badge-info badge-sm">DRI</div>
-              {/if}
-              
+              🏆 Goals              
               {#if isProUser}
                 <div class="flex gap-2 ml-auto">
                   {#if goalSets.length > 0}
@@ -764,12 +754,17 @@
                 <div class="space-y-4">
                   <div class="bg-info/10 p-4 rounded-lg">
                     <div class="flex items-start gap-3">
-                      <div class="badge badge-info">DRI Active</div>
+                      <div class="badge badge-info">DRI</div>
                       <div>
                         <h3 class="font-semibold text-sm">Using DRI Nutrition Guidelines</h3>
                         <p class="text-sm text-base-content/70 mt-1">
-                          You're currently using Dietary Reference Intakes (DRI) based on your profile.
-                          As a Pro user, you can create custom goal sets to override specific targets.
+                          You're currently using <a 
+                            href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dietary-guidance" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            class="link link-info"
+                          >Dietary Reference Intakes (DRI)</a> based on your profile.
+                          As a <span class="font-semibold">Pro</span> user, you can create custom goal sets to override specific targets.
                         </p>
                       </div>
                     </div>
@@ -964,6 +959,21 @@
       <h3 class="font-bold text-lg mb-4">
         {editingGoalName === "New Goal" ? "Create New Goal" : `Edit ${editingGoalName}`}
       </h3>
+      
+      <div class="alert alert-info mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div>
+          <div class="text-sm">Need help setting your nutrition goals?</div>
+          <div class="text-xs mt-1">
+            Use the official <a 
+              href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dri-calculator" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="link link-info font-semibold"
+            >USDA DRI Calculator</a> to determine appropriate targets for your age, sex, and activity level.
+          </div>
+        </div>
+      </div>
       
       <div class="space-y-4">
         <!-- Goal Name Input -->
