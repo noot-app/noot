@@ -41,6 +41,7 @@ type Store interface {
 	GetUserGoals(ctx context.Context, userID string) ([]*UserGoal, error)
 	DeleteUserGoal(ctx context.Context, userID, name string) error
 	SetActiveGoal(ctx context.Context, userID, goalName string) error
+	ClearActiveGoal(ctx context.Context, userID string) error
 	GetActiveGoalName(ctx context.Context, userID string) (*string, error)
 
 	// User biometrics operations

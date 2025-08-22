@@ -562,4 +562,81 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "user biometrics not found")
 	})
+
+	t.Run("UserGoalOperations", func(t *testing.T) {
+		// Create a user first
+		user := &User{
+			Provider:         "test",
+			Subject:          "goal-test-user",
+			Email:            "goaltest@example.com",
+			SubscriptionTier: "pro",
+		}
+		err := store.CreateUser(ctx, user)
+		require.NoError(t, err)
+
+		// Initially no active goal
+		activeGoalName, err := store.GetActiveGoalName(ctx, user.ID)
+		require.NoError(t, err)
+		assert.Nil(t, activeGoalName)
+
+		// Create a goal
+		goal1 := &UserGoal{
+			UserID:        user.ID,
+			Name:          "goal1",
+			OverridesJSON: `{"protein_g": 100, "calories": 2200}`,
+		}
+		err = store.UpsertUserGoal(ctx, goal1)
+		require.NoError(t, err)
+		assert.NotEmpty(t, goal1.ID)
+
+		// Set as active goal
+		err = store.SetActiveGoal(ctx, user.ID, "goal1")
+		require.NoError(t, err)
+
+		// Verify active goal is set
+		activeGoalName, err = store.GetActiveGoalName(ctx, user.ID)
+		require.NoError(t, err)
+		assert.NotNil(t, activeGoalName)
+		assert.Equal(t, "goal1", *activeGoalName)
+
+		// Create second goal
+		goal2 := &UserGoal{
+			UserID:        user.ID,
+			Name:          "goal2",
+			OverridesJSON: `{"protein_g": 120, "calories": 2400}`,
+		}
+		err = store.UpsertUserGoal(ctx, goal2)
+		require.NoError(t, err)
+
+		// Get all goals
+		allGoals, err := store.GetUserGoals(ctx, user.ID)
+		require.NoError(t, err)
+		assert.Len(t, allGoals, 2)
+
+		// Test ClearActiveGoal
+		err = store.ClearActiveGoal(ctx, user.ID)
+		require.NoError(t, err)
+
+		// Verify active goal is cleared
+		activeGoalName, err = store.GetActiveGoalName(ctx, user.ID)
+		require.NoError(t, err)
+		assert.Nil(t, activeGoalName)
+
+		// Test ClearActiveGoal on non-existent user
+		err = store.ClearActiveGoal(ctx, "non-existent-user")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "user not found")
+
+		// Delete goals
+		err = store.DeleteUserGoal(ctx, user.ID, "goal1")
+		require.NoError(t, err)
+
+		err = store.DeleteUserGoal(ctx, user.ID, "goal2")
+		require.NoError(t, err)
+
+		// Verify goals are deleted
+		allGoals, err = store.GetUserGoals(ctx, user.ID)
+		require.NoError(t, err)
+		assert.Len(t, allGoals, 0)
+	})
 }
