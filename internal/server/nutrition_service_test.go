@@ -24,7 +24,7 @@ func TestNutritionService_ConvertCachedToNutrients(t *testing.T) {
 	service := NewNutritionService(nil)
 
 	// Create mock cached data (per 100g values)
-	cached := &storage.ItemCache{
+	cached := &storage.Item{
 		CaloriesPer100g:      100,
 		ProteinGPer100g:      20,
 		TotalFatGPer100g:     5,
@@ -121,21 +121,21 @@ func TestNutritionService_ConvertNutrientsToCache(t *testing.T) {
 	assert.Equal(t, 2.0, result.IronMgPer100g)         // 4 / 2
 
 	// Check timestamps are set
-	assert.False(t, result.FetchedAt.IsZero())
-	assert.False(t, result.ExpiresAt.IsZero())
-	assert.True(t, result.ExpiresAt.After(result.FetchedAt))
+	assert.False(t, result.CreatedAt.IsZero())
+	assert.False(t, result.UpdatedAt.IsZero())
+	assert.True(t, result.UpdatedAt.After(result.CreatedAt.Add(-time.Second))) // Allow for very close timestamps
 
-	// Check TTL is approximately 30 days
-	expectedTTL := 30 * 24 * time.Hour
-	actualTTL := result.ExpiresAt.Sub(result.FetchedAt)
-	assert.InDelta(t, expectedTTL.Seconds(), actualTTL.Seconds(), 60) // Within 1 minute
+	// Check cache is fresh (less than 30 days old)
+	expectedMaxAge := 30 * 24 * time.Hour
+	actualAge := time.Since(result.UpdatedAt)
+	assert.True(t, actualAge < expectedMaxAge)
 }
 
 func TestNutritionService_RoundingPrecision(t *testing.T) {
 	service := NewNutritionService(nil)
 
 	// Test with precise values that need rounding
-	cached := &storage.ItemCache{
+	cached := &storage.Item{
 		CaloriesPer100g:      123.456789,
 		ProteinGPer100g:      12.3456789,
 		ThiamineMgPer100g:    0.123456789, // Should round to 3 decimal places

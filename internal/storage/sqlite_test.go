@@ -67,7 +67,6 @@ func TestSQLiteStore(t *testing.T) {
 		consumption := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "I had an apple and a banana",
-			ItemsJSON:     `[{"name":"apple","quantity":1,"unit":"medium"},{"name":"banana","quantity":1,"unit":"medium"}]`,
 			TotalCalories: 200,
 			TotalProtein:  2,
 			TotalFat:      0.5,
@@ -87,7 +86,6 @@ func TestSQLiteStore(t *testing.T) {
 		require.NotNil(t, retrieved)
 		assert.Equal(t, consumption.UserID, retrieved.UserID)
 		assert.Equal(t, consumption.Transcript, retrieved.Transcript)
-		assert.Equal(t, consumption.ItemsJSON, retrieved.ItemsJSON)
 		assert.Equal(t, consumption.TotalCalories, retrieved.TotalCalories)
 	})
 
@@ -106,13 +104,11 @@ func TestSQLiteStore(t *testing.T) {
 			{
 				UserID:        user.ID,
 				Transcript:    "Breakfast",
-				ItemsJSON:     `[{"name":"toast","quantity":2,"unit":"slice"}]`,
 				TotalCalories: 150,
 			},
 			{
 				UserID:        user.ID,
 				Transcript:    "Lunch",
-				ItemsJSON:     `[{"name":"sandwich","quantity":1,"unit":"sandwich"}]`,
 				TotalCalories: 300,
 			},
 		}
@@ -146,7 +142,6 @@ func TestSQLiteStore(t *testing.T) {
 		oldConsumption := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Old consumption",
-			ItemsJSON:     `[{"name":"old","quantity":1}]`,
 			TotalCalories: 100,
 		}
 		err = store.CreateConsumption(ctx, oldConsumption)
@@ -161,7 +156,6 @@ func TestSQLiteStore(t *testing.T) {
 		recentConsumption := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Recent consumption",
-			ItemsJSON:     `[{"name":"recent","quantity":1}]`,
 			TotalCalories: 200,
 		}
 		err = store.CreateConsumption(ctx, recentConsumption)
@@ -235,7 +229,6 @@ func TestSQLiteStore(t *testing.T) {
 		consumption := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "I had a banana",
-			ItemsJSON:     `[{"name":"banana","quantity":1,"unit":"medium"}]`,
 			TotalCalories: 105,
 			TotalProtein:  1.3,
 			TotalFat:      0.4,
@@ -252,7 +245,6 @@ func TestSQLiteStore(t *testing.T) {
 		consumption.TotalProtein = 2.6
 		consumption.TotalFat = 0.8
 		consumption.TotalCarbs = 54
-		consumption.ItemsJSON = `[{"name":"banana","quantity":2,"unit":"medium"}]`
 
 		err = store.UpdateConsumption(ctx, consumption)
 		require.NoError(t, err)
@@ -263,14 +255,12 @@ func TestSQLiteStore(t *testing.T) {
 		require.NotNil(t, updated)
 		assert.Equal(t, float64(210), updated.TotalCalories)
 		assert.Equal(t, 2.6, updated.TotalProtein)
-		assert.Contains(t, updated.ItemsJSON, "quantity\":2")
 
 		// Test updating non-existent consumption
 		nonExistentConsumption := &Consumption{
 			ID:            "01JAPP9999XXXXXXXXXXXXXX", // Non-existent ULID
 			UserID:        user.ID,
 			Transcript:    "test",
-			ItemsJSON:     "[]",
 			TotalCalories: 100,
 		}
 		err = store.UpdateConsumption(ctx, nonExistentConsumption)
@@ -292,78 +282,81 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Contains(t, err.Error(), "consumption not found")
 	})
 
-	t.Run("ItemCacheOperations", func(t *testing.T) {
-		// Test getting non-existent item from cache
-		item, err := store.GetItemFromCache(ctx, "apple", "generic")
-		require.NoError(t, err)
-		assert.Nil(t, item)
+	// DEPRECATED: ItemCacheOperations test - commenting out as methods are replaced by new Item methods
+	/*
+		t.Run("ItemCacheOperations", func(t *testing.T) {
+			// Test getting non-existent item from cache
+			item, err := store.GetItemFromCache(ctx, "apple", "generic")
+			require.NoError(t, err)
+			assert.Nil(t, item)
 
-		// Create and upsert an item to cache
-		now := time.Now().UTC()
-		cacheItem := &ItemCache{
-			NormalizedName:       "apple",
-			NormalizedBrand:      "generic",
-			DisplayName:          "Apple",
-			DisplayBrand:         "Generic",
-			CaloriesPer100g:      52,
-			ProteinGPer100g:      0.3,
-			TotalFatGPer100g:     0.2,
-			TotalCarbsGPer100g:   14,
-			DietaryFiberGPer100g: 2.4,
-			SodiumMgPer100g:      1,
-			VitaminCMgPer100g:    4.6,
-			FetchedAt:            now,
-			ExpiresAt:            now.AddDate(0, 0, 30),
-		}
+			// Create and upsert an item to cache
+			now := time.Now().UTC()
+			cacheItem := &ItemCache{
+				NormalizedName:       "apple",
+				NormalizedBrand:      "generic",
+				DisplayName:          "Apple",
+				DisplayBrand:         "Generic",
+				CaloriesPer100g:      52,
+				ProteinGPer100g:      0.3,
+				TotalFatGPer100g:     0.2,
+				TotalCarbsGPer100g:   14,
+				DietaryFiberGPer100g: 2.4,
+				SodiumMgPer100g:      1,
+				VitaminCMgPer100g:    4.6,
+				FetchedAt:            now,
+				ExpiresAt:            now.AddDate(0, 0, 30),
+			}
 
-		err = store.UpsertItemCache(ctx, cacheItem)
-		require.NoError(t, err)
-		assert.NotEmpty(t, cacheItem.ID)
+			err = store.UpsertItemCache(ctx, cacheItem)
+			require.NoError(t, err)
+			assert.NotEmpty(t, cacheItem.ID)
 
-		// Retrieve the item from cache
-		retrieved, err := store.GetItemFromCache(ctx, "apple", "generic")
-		require.NoError(t, err)
-		require.NotNil(t, retrieved)
-		assert.Equal(t, "Apple", retrieved.DisplayName)
-		assert.Equal(t, "Generic", retrieved.DisplayBrand)
-		assert.Equal(t, float64(52), retrieved.CaloriesPer100g)
-		assert.Equal(t, float64(0.3), retrieved.ProteinGPer100g)
-		assert.Equal(t, float64(4.6), retrieved.VitaminCMgPer100g)
+			// Retrieve the item from cache
+			retrieved, err := store.GetItemFromCache(ctx, "apple", "generic")
+			require.NoError(t, err)
+			require.NotNil(t, retrieved)
+			assert.Equal(t, "Apple", retrieved.DisplayName)
+			assert.Equal(t, "Generic", retrieved.DisplayBrand)
+			assert.Equal(t, float64(52), retrieved.CaloriesPer100g)
+			assert.Equal(t, float64(0.3), retrieved.ProteinGPer100g)
+			assert.Equal(t, float64(4.6), retrieved.VitaminCMgPer100g)
 
-		// Test updating the same item (upsert existing)
-		cacheItem.CaloriesPer100g = 55    // Updated calorie value
-		cacheItem.VitaminCMgPer100g = 5.0 // Updated vitamin C value
-		err = store.UpsertItemCache(ctx, cacheItem)
-		require.NoError(t, err)
+			// Test updating the same item (upsert existing)
+			cacheItem.CaloriesPer100g = 55    // Updated calorie value
+			cacheItem.VitaminCMgPer100g = 5.0 // Updated vitamin C value
+			err = store.UpsertItemCache(ctx, cacheItem)
+			require.NoError(t, err)
 
-		// Retrieve updated item
-		updated, err := store.GetItemFromCache(ctx, "apple", "generic")
-		require.NoError(t, err)
-		require.NotNil(t, updated)
-		assert.Equal(t, float64(55), updated.CaloriesPer100g)
-		assert.Equal(t, float64(5.0), updated.VitaminCMgPer100g)
-		assert.Equal(t, retrieved.ID, updated.ID) // Same ID for update
+			// Retrieve updated item
+			updated, err := store.GetItemFromCache(ctx, "apple", "generic")
+			require.NoError(t, err)
+			require.NotNil(t, updated)
+			assert.Equal(t, float64(55), updated.CaloriesPer100g)
+			assert.Equal(t, float64(5.0), updated.VitaminCMgPer100g)
+			assert.Equal(t, retrieved.ID, updated.ID) // Same ID for update
 
-		// Test refresh cache functionality
-		refreshedItem := &ItemCache{
-			DisplayName:          "Fresh Apple",
-			DisplayBrand:         "Organic",
-			CaloriesPer100g:      58,
-			ProteinGPer100g:      0.4,
-			TotalFatGPer100g:     0.1,
-			TotalCarbsGPer100g:   15,
-			DietaryFiberGPer100g: 2.8,
-		}
-		err = store.RefreshItemCache(ctx, "apple", "generic", refreshedItem)
-		require.NoError(t, err)
+			// Test refresh cache functionality
+			refreshedItem := &ItemCache{
+				DisplayName:          "Fresh Apple",
+				DisplayBrand:         "Organic",
+				CaloriesPer100g:      58,
+				ProteinGPer100g:      0.4,
+				TotalFatGPer100g:     0.1,
+				TotalCarbsGPer100g:   15,
+				DietaryFiberGPer100g: 2.8,
+			}
+			err = store.RefreshItemCache(ctx, "apple", "generic", refreshedItem)
+			require.NoError(t, err)
 
-		refreshed, err := store.GetItemFromCache(ctx, "apple", "generic")
-		require.NoError(t, err)
-		require.NotNil(t, refreshed)
-		assert.Equal(t, "Fresh Apple", refreshed.DisplayName)
-		assert.Equal(t, "Organic", refreshed.DisplayBrand)
-		assert.Equal(t, float64(58), refreshed.CaloriesPer100g)
-	})
+			refreshed, err := store.GetItemFromCache(ctx, "apple", "generic")
+			require.NoError(t, err)
+			require.NotNil(t, refreshed)
+			assert.Equal(t, "Fresh Apple", refreshed.DisplayName)
+			assert.Equal(t, "Organic", refreshed.DisplayBrand)
+			assert.Equal(t, float64(58), refreshed.CaloriesPer100g)
+		})
+	*/
 
 	t.Run("ItemAliasOperations", func(t *testing.T) {
 		// Test getting canonical name for non-existent alias
@@ -406,26 +399,29 @@ func TestSQLiteStore(t *testing.T) {
 		assert.Equal(t, "organic", brand2)
 	})
 
-	t.Run("CacheExpirationCheck", func(t *testing.T) {
-		// Test nil item
-		expired := store.IsItemCacheExpired(nil)
-		assert.True(t, expired)
+	// DEPRECATED: CacheExpirationCheck test - commenting out as methods are replaced by new Item methods
+	/*
+		t.Run("CacheExpirationCheck", func(t *testing.T) {
+			// Test nil item
+			expired := store.IsItemCacheExpired(nil)
+			assert.True(t, expired)
 
-		// Test expired item
-		now := time.Now().UTC()
-		expiredItem := &ItemCache{
-			ExpiresAt: now.Add(-1 * time.Hour), // Expired 1 hour ago
-		}
-		expired = store.IsItemCacheExpired(expiredItem)
-		assert.True(t, expired)
+			// Test expired item
+			now := time.Now().UTC()
+			expiredItem := &ItemCache{
+				ExpiresAt: now.Add(-1 * time.Hour), // Expired 1 hour ago
+			}
+			expired = store.IsItemCacheExpired(expiredItem)
+			assert.True(t, expired)
 
-		// Test valid item
-		validItem := &ItemCache{
-			ExpiresAt: now.Add(1 * time.Hour), // Expires in 1 hour
-		}
-		expired = store.IsItemCacheExpired(validItem)
-		assert.False(t, expired)
-	})
+			// Test valid item
+			validItem := &ItemCache{
+				ExpiresAt: now.Add(1 * time.Hour), // Expires in 1 hour
+			}
+			expired = store.IsItemCacheExpired(validItem)
+			assert.False(t, expired)
+		})
+	*/
 
 	t.Run("GetNutritionSummary", func(t *testing.T) {
 		// Create a user
@@ -441,7 +437,6 @@ func TestSQLiteStore(t *testing.T) {
 		consumption1 := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Breakfast",
-			ItemsJSON:     `[{"name":"oatmeal","quantity":1,"unit":"cup"}]`,
 			TotalCalories: 300,
 			TotalProtein:  10,
 			TotalFat:      5,
@@ -455,7 +450,6 @@ func TestSQLiteStore(t *testing.T) {
 		consumption2 := &Consumption{
 			UserID:        user.ID,
 			Transcript:    "Lunch",
-			ItemsJSON:     `[{"name":"sandwich","quantity":1,"unit":"sandwich"}]`,
 			TotalCalories: 500,
 			TotalProtein:  25,
 			TotalFat:      20,
@@ -567,5 +561,82 @@ func TestSQLiteStore(t *testing.T) {
 		err = store.DeleteUserBiometrics(ctx, user.ID)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "user biometrics not found")
+	})
+
+	t.Run("UserGoalOperations", func(t *testing.T) {
+		// Create a user first
+		user := &User{
+			Provider:         "test",
+			Subject:          "goal-test-user",
+			Email:            "goaltest@example.com",
+			SubscriptionTier: "pro",
+		}
+		err := store.CreateUser(ctx, user)
+		require.NoError(t, err)
+
+		// Initially no active goal
+		activeGoalName, err := store.GetActiveGoalName(ctx, user.ID)
+		require.NoError(t, err)
+		assert.Nil(t, activeGoalName)
+
+		// Create a goal
+		goal1 := &UserGoal{
+			UserID:        user.ID,
+			Name:          "goal1",
+			OverridesJSON: `{"protein_g": 100, "calories": 2200}`,
+		}
+		err = store.UpsertUserGoal(ctx, goal1)
+		require.NoError(t, err)
+		assert.NotEmpty(t, goal1.ID)
+
+		// Set as active goal
+		err = store.SetActiveGoal(ctx, user.ID, "goal1")
+		require.NoError(t, err)
+
+		// Verify active goal is set
+		activeGoalName, err = store.GetActiveGoalName(ctx, user.ID)
+		require.NoError(t, err)
+		assert.NotNil(t, activeGoalName)
+		assert.Equal(t, "goal1", *activeGoalName)
+
+		// Create second goal
+		goal2 := &UserGoal{
+			UserID:        user.ID,
+			Name:          "goal2",
+			OverridesJSON: `{"protein_g": 120, "calories": 2400}`,
+		}
+		err = store.UpsertUserGoal(ctx, goal2)
+		require.NoError(t, err)
+
+		// Get all goals
+		allGoals, err := store.GetUserGoals(ctx, user.ID)
+		require.NoError(t, err)
+		assert.Len(t, allGoals, 2)
+
+		// Test ClearActiveGoal
+		err = store.ClearActiveGoal(ctx, user.ID)
+		require.NoError(t, err)
+
+		// Verify active goal is cleared
+		activeGoalName, err = store.GetActiveGoalName(ctx, user.ID)
+		require.NoError(t, err)
+		assert.Nil(t, activeGoalName)
+
+		// Test ClearActiveGoal on non-existent user
+		err = store.ClearActiveGoal(ctx, "non-existent-user")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "user not found")
+
+		// Delete goals
+		err = store.DeleteUserGoal(ctx, user.ID, "goal1")
+		require.NoError(t, err)
+
+		err = store.DeleteUserGoal(ctx, user.ID, "goal2")
+		require.NoError(t, err)
+
+		// Verify goals are deleted
+		allGoals, err = store.GetUserGoals(ctx, user.ID)
+		require.NoError(t, err)
+		assert.Len(t, allGoals, 0)
 	})
 }

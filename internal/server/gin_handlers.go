@@ -1275,9 +1275,13 @@ func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
 		return
 	}
 
-	// Check if this is the active goal
-	if user.ActiveGoalName != nil && *user.ActiveGoalName == name {
-		appErr := NewAppError("Cannot delete the currently active goal set. Switch to another goal set first.", http.StatusBadRequest, nil)
+	// Check if we're deleting the active goal and if this is the last goal
+	isActiveGoal := user.ActiveGoalName != nil && *user.ActiveGoalName == name
+
+	// Get all user goals to check if this is the last one
+	allGoals, err := s.store.GetUserGoals(ctx, user.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to get user goals", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
 		return
 	}
@@ -1292,6 +1296,15 @@ func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
 		appErr := NewAppError("Failed to delete goal set", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
 		return
+	}
+
+	// If we deleted the active goal and it was the last goal, clear the active goal name
+	// This allows the system to fall back to DRI defaults
+	if isActiveGoal && len(allGoals) <= 1 {
+		if err := s.store.ClearActiveGoal(ctx, user.ID); err != nil {
+			LogError("Failed to clear active goal after deleting last goal", err, "user_id", user.ID, "goal_name", name)
+			// Don't fail the request - the goal was deleted successfully
+		}
 	}
 
 	c.Status(http.StatusNoContent)
