@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/grantbirki/noot/internal/storage"
 )
 
@@ -18,8 +19,24 @@ type DateRangeParams struct {
 }
 
 // getDefaultUser retrieves the default user for development/demo purposes
+// TODO: When implementing Supabase auth, replace this with proper user resolution
+// from JWT tokens or session management
 func getDefaultUser(ctx context.Context, store storage.Store) (*storage.User, error) {
 	return store.GetUserBySubject(ctx, DefaultUserProvider, DefaultUserSubject)
+}
+
+// getCurrentUser retrieves the current user from context (dev user if set, otherwise default)
+// TODO: When implementing Supabase auth, this should extract user from JWT context
+func getCurrentUser(c *gin.Context, store storage.Store) (*storage.User, error) {
+	// Check if dev user is set in context (development mode only)
+	if devUser, exists := c.Get("dev_user"); exists {
+		if user, ok := devUser.(*storage.User); ok {
+			return user, nil
+		}
+	}
+
+	// Fall back to default user
+	return getDefaultUser(c.Request.Context(), store)
 }
 
 // parseDateRangeParams parses date range parameters from HTTP request

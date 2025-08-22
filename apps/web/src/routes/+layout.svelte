@@ -6,6 +6,7 @@
   import { onMount } from "svelte"
   import { dev } from '$app/environment';
   import { units } from "$lib/stores/units"
+  import { initAuth } from "$lib/auth/store"
   import Navbar from "$lib/components/Navbar.svelte"
   import DevBanner from "$lib/components/DevBanner.svelte"
 
@@ -17,6 +18,7 @@
 
   onMount(() => {
     units.init();
+    initAuth(); // Initialize auth system
   });
 </script>
 

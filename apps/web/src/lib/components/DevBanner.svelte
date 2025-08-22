@@ -3,15 +3,20 @@
   import { page } from '$app/stores';
   import { navigating } from '$app/stores';
   import { onMount } from 'svelte';
+  import { currentUser, canSwitchUsers, switchUser, getAvailableDevUsers } from '$lib/auth/store';
   
   let pageLoadTime = 0;
-  let currentUser = 'Not logged in'; // TODO: Get from auth when implemented
   let memoryUsage = '';
   let networkType = '';
   let isHidden = false;
   let navigationStartTime = 0;
   let errorCount = 0;
   let warningCount = 0;
+  let showUserDropdown = false;
+  
+  // Get available dev users for switching
+  // TODO: When implementing Supabase, remove this or make it dynamic
+  const availableUsers = getAvailableDevUsers();
   
   // Original console methods
   let originalError: typeof console.error;
@@ -20,6 +25,7 @@
   let rejectionHandler: ((event: PromiseRejectionEvent) => void) | undefined;
   
   function copyDebugInfo() {
+    const userDisplay = $currentUser ? `${$currentUser.email} (${$currentUser.subscriptionTier.toUpperCase()})` : 'Not logged in';
     const debugInfo = `
 Dev Info:
 - Route: ${$page.url.pathname}
@@ -28,12 +34,34 @@ Dev Info:
 - Network: ${networkType}
 - Errors: ${errorCount}
 - Warnings: ${warningCount}
-- User: ${currentUser}
+- User: ${userDisplay}
     `.trim();
     
     navigator.clipboard.writeText(debugInfo).then(() => {
       console.log('Debug info copied to clipboard');
     });
+  }
+
+  // Handle user switching
+  async function handleUserSwitch(userId: string) {
+    try {
+      await switchUser(userId);
+      showUserDropdown = false;
+    } catch (error) {
+      console.error('Failed to switch user:', error);
+    }
+  }
+
+  // Toggle user dropdown
+  function toggleUserDropdown() {
+    showUserDropdown = !showUserDropdown;
+  }
+
+  // Close dropdown when clicking outside
+  function handleClickOutside(event: Event) {
+    if (!(event.target as Element).closest('.user-selector')) {
+      showUserDropdown = false;
+    }
   }
   
   function setupConsoleMonitoring() {
@@ -119,11 +147,12 @@ Dev Info:
     // Add global keydown listener
     window.addEventListener('keydown', handleKeydown);
     
-    // TODO: Get actual user when auth is implemented
-    // currentUser = $authStore?.user?.email || 'Not logged in';
+    // Add click listener for closing dropdown
+    document.addEventListener('click', handleClickOutside);
     
     return () => {
       window.removeEventListener('keydown', handleKeydown);
+      document.removeEventListener('click', handleClickOutside);
       restoreConsoleMonitoring();
     };
   });
@@ -179,7 +208,41 @@ Dev Info:
         Warnings: <strong class="warning-count" class:has-warnings={warningCount > 0}>{warningCount}</strong>
       </span>
       <span class="dev-separator">•</span>
-      <span class="dev-item">User: <strong>{currentUser}</strong></span>
+      <div class="dev-item user-selector">
+        {#if $canSwitchUsers}
+          <button 
+            class="user-button" 
+            on:click={toggleUserDropdown}
+            title="Click to switch users"
+          >
+            User: <strong>
+              {$currentUser ? `${$currentUser.email} (${$currentUser.subscriptionTier.toUpperCase()})` : 'Not logged in'}
+            </strong>
+            <span class="dropdown-arrow" class:open={showUserDropdown}>▼</span>
+          </button>
+          
+          {#if showUserDropdown}
+            <div class="user-dropdown">
+              {#each availableUsers as user}
+                <button 
+                  class="user-option"
+                  class:active={$currentUser?.id === user.id}
+                  on:click={() => handleUserSwitch(user.id)}
+                >
+                  <div class="user-info">
+                    <div class="user-email">{user.email}</div>
+                    <div class="user-tier {user.subscriptionTier}">{user.displayName}</div>
+                  </div>
+                </button>
+              {/each}
+            </div>
+          {/if}
+        {:else}
+          <span>User: <strong>
+            {$currentUser ? `${$currentUser.email} (${$currentUser.subscriptionTier.toUpperCase()})` : 'Not logged in'}
+          </strong></span>
+        {/if}
+      </div>
       <span class="dev-separator">•</span>
       <button 
         class="dev-button" 
@@ -307,6 +370,110 @@ Dev Info:
   
   .dev-button:hover {
     background: rgba(255, 255, 255, 0.2);
+  }
+  
+  /* User selector styles */
+  .user-selector {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .user-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #f5f5f5;
+    padding: 1px 4px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  
+  .user-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  .dropdown-arrow {
+    font-size: 8px;
+    transition: transform 0.2s ease;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  
+  .dropdown-arrow.open {
+    transform: rotate(180deg);
+  }
+  
+  .user-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 200px;
+    background: rgba(40, 40, 40, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    margin-top: 2px;
+    backdrop-filter: blur(8px);
+  }
+  
+  .user-option {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    color: #f5f5f5;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.2s ease;
+    border-radius: 0;
+  }
+  
+  .user-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .user-option.active {
+    background: rgba(99, 102, 241, 0.2);
+    border-left: 2px solid #6366f1;
+  }
+  
+  .user-option:first-child {
+    border-radius: 4px 4px 0 0;
+  }
+  
+  .user-option:last-child {
+    border-radius: 0 0 4px 4px;
+  }
+  
+  .user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .user-email {
+    font-size: 11px;
+    font-weight: 500;
+  }
+  
+  .user-tier {
+    font-size: 9px;
+    opacity: 0.8;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  
+  .user-tier.pro {
+    color: #10b981;
+  }
+  
+  .user-tier.free {
+    color: #fbbf24;
   }
   
   /* Ensure content below banner doesn't get hidden */
