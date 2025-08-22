@@ -1660,6 +1660,27 @@ func (s *SQLiteStore) SetActiveGoal(ctx context.Context, userID, goalName string
 	return nil
 }
 
+// ClearActiveGoal clears the active goal for a user (sets it to NULL)
+func (s *SQLiteStore) ClearActiveGoal(ctx context.Context, userID string) error {
+	// Update user's active goal to NULL
+	query := `UPDATE users SET active_goal_name = NULL WHERE id = ?`
+	result, err := s.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("failed to clear active goal: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
 // GetActiveGoalName retrieves the active goal name for a user
 func (s *SQLiteStore) GetActiveGoalName(ctx context.Context, userID string) (*string, error) {
 	query := `SELECT active_goal_name FROM users WHERE id = ?`
