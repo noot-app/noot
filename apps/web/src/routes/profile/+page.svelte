@@ -969,7 +969,7 @@
               href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dri-calculator" 
               target="_blank" 
               rel="noopener noreferrer"
-              class="link link-info font-semibold"
+              class="link link-info font-semibold text-accent-content"
             >USDA DRI Calculator</a> to determine appropriate targets for your age, sex, and activity level.
           </div>
         </div>
