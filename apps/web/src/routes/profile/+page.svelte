@@ -3,6 +3,8 @@
   import { PUBLIC_APP_NAME } from "$env/static/public";
   import { onMount } from "svelte";
   import { dev } from '$app/environment';
+  import { toast } from '$lib/stores/toast';
+  import Toast from '$lib/components/Toast.svelte';
   import type { paths } from "$lib/api/schema";
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
@@ -133,7 +135,7 @@
       goals = response.data.goals;
       user = response.data.user;
     } catch (err) {
-      error = `Failed to load goals: ${err}`;
+      toast.error(`Failed to load goals: ${err}`);
       console.error("Goals error:", err);
     } finally {
       loading = false;
@@ -143,8 +145,7 @@
   // Called when the active goal changes
   async function handleGoalChanged() {
     await Promise.all([loadGoals(), loadGoalSets()]);
-    success = "Active goal switched successfully!";
-    setTimeout(() => success = "", 3000);
+    toast.success("Active goal switched successfully!");
   }
 
   async function loadGoalSets() {
@@ -180,7 +181,7 @@
 
       await handleGoalChanged();
     } catch (err) {
-      error = `Failed to switch goal: ${err}`;
+      toast.error(`Failed to switch goal: ${err}`);
       console.error("Switch goal error:", err);
     }
   }
@@ -211,16 +212,15 @@
       }
 
       if (isLastGoal && isActiveGoal) {
-        success = `Goal set "${goalToDelete}" deleted successfully! You're now using DRI nutrition defaults.`;
+        toast.success(`Goal set "${goalToDelete}" deleted successfully! You're now using DRI nutrition defaults.`);
       } else {
-        success = `Goal set "${goalToDelete}" deleted successfully!`;
+        toast.success(`Goal set "${goalToDelete}" deleted successfully!`);
       }
-      setTimeout(() => success = "", 3000);
       
       // Reload both goals and goal sets to update the UI and show DRI fallback
       await Promise.all([loadGoals(), loadGoalSets()]);
     } catch (err) {
-      error = `Failed to delete goal set: ${parseErrorMessage(err)}`;
+      toast.error(`Failed to delete goal set: ${parseErrorMessage(err)}`);
       console.error("Delete goal error:", err);
     } finally {
       // Close modal and reset state
@@ -254,13 +254,12 @@
         }
       }
 
-      success = "Successfully reset to DRI defaults! All custom goal sets have been deleted.";
-      setTimeout(() => success = "", 5000);
+      toast.success("Successfully reset to DRI defaults! All custom goal sets have been deleted.", 5000);
       
       // Reload everything to reflect the changes
       await Promise.all([loadGoals(), loadGoalSets()]);
     } catch (err) {
-      error = `Failed to reset to DRI defaults: ${parseErrorMessage(err)}`;
+      toast.error(`Failed to reset to DRI defaults: ${parseErrorMessage(err)}`);
       console.error("Reset to DRI error:", err);
     } finally {
       showResetDRIModal = false;
@@ -297,7 +296,6 @@
   async function loadBiometrics() {
     try {
       biometricsLoading = true;
-      biometricsError = "";
       
       const response = await apiClient.GET("/biometrics");
       
@@ -319,7 +317,7 @@
     } catch (err) {
       // Don't show error if biometrics just don't exist yet
       if (!err?.toString().includes("404") && !err?.toString().includes("not found")) {
-        biometricsError = `Failed to load biometrics: ${err}`;
+        toast.error(`Failed to load biometrics: ${err}`);
         console.error("Biometrics error:", err);
       }
     } finally {
@@ -388,8 +386,6 @@
     
     try {
       saving = true;
-      error = "";
-      success = "";
 
       // Use custom goal name from modal
       const goalName = customName.trim();
@@ -408,13 +404,13 @@
         throw response.error;
       }
 
-      success = "Goals saved successfully!";
+      toast.success("Goals saved successfully!");
       await Promise.all([loadGoals(), loadGoalSets()]); // Reload to get updated data
       
       // Close modal
       closeEditModal();
     } catch (err) {
-      error = formatErrorForUser(err);
+      toast.error(formatErrorForUser(err));
       if (dev) {
         console.error("Save error details:", err);
       }
@@ -426,8 +422,6 @@
   async function saveBiometrics() {
     try {
       savingBiometrics = true;
-      biometricsError = "";
-      biometricsSuccess = "";
 
       // Prepare the request payload
       const payload: UpdateBiometricsRequest = {};
@@ -460,10 +454,10 @@
         throw response.error;
       }
 
-      biometricsSuccess = "Biometrics saved successfully!";
+      toast.success("Biometrics saved successfully!");
       await Promise.all([loadBiometrics(), loadGoals()]); // Reload both since goals may have changed
     } catch (err) {
-      biometricsError = formatErrorForUser(err);
+      toast.error(formatErrorForUser(err));
       if (dev) {
         console.error("Biometrics save error details:", err);
       }
@@ -479,8 +473,6 @@
 
     try {
       savingBiometrics = true;
-      biometricsError = "";
-      biometricsSuccess = "";
 
       const response = await apiClient.DELETE("/biometrics");
 
@@ -488,7 +480,7 @@
         throw response.error;
       }
 
-      biometricsSuccess = "Biometrics deleted successfully!";
+      toast.success("Biometrics deleted successfully!");
       
       // Clear form
       birthDate = "";
@@ -499,7 +491,7 @@
       
       await Promise.all([loadBiometrics(), loadGoals()]); // Reload both since goals may have changed
     } catch (err) {
-      biometricsError = formatErrorForUser(err);
+      toast.error(formatErrorForUser(err));
       if (dev) {
         console.error("Biometrics delete error details:", err);
       }
@@ -557,43 +549,7 @@
         <span class="loading loading-spinner loading-lg"></span>
         <p class="text-base-content/70 mt-4">Loading your profile...</p>
       </div>
-    {:else if error}
-      <div class="alert alert-error mb-6">
-        <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span>{error}</span>
-      </div>
-    {/if}
-
-    {#if success}
-      <div class="alert alert-success mb-6">
-        <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span>{success}</span>
-      </div>
-    {/if}
-
-    {#if biometricsSuccess}
-      <div class="alert alert-success mb-6">
-        <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span>{biometricsSuccess}</span>
-      </div>
-    {/if}
-
-    {#if biometricsError}
-      <div class="alert alert-error mb-6">
-        <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span>{biometricsError}</span>
-      </div>
-    {/if}
-
-    {#if goals}
+    {:else if goals}
       <!-- Main Profile Grid -->
       <div class="grid gap-8 xl:grid-cols-3 lg:grid-cols-2 md:grid-cols-1">
         <!-- Current Goals Overview -->
@@ -1339,3 +1295,7 @@
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   }
 </style>
+
+<!-- Toast notifications -->
+<!-- Toast Notifications -->
+<Toast position="bottom-end" />
