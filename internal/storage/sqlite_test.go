@@ -568,7 +568,7 @@ func TestSQLiteStore(t *testing.T) {
 		user := &User{
 			Provider:         "test",
 			Subject:          "goal-test-user",
-			Email:           "goaltest@example.com",
+			Email:            "goaltest@example.com",
 			SubscriptionTier: "pro",
 		}
 		err := store.CreateUser(ctx, user)
@@ -630,7 +630,7 @@ func TestSQLiteStore(t *testing.T) {
 		// Delete goals
 		err = store.DeleteUserGoal(ctx, user.ID, "goal1")
 		require.NoError(t, err)
-		
+
 		err = store.DeleteUserGoal(ctx, user.ID, "goal2")
 		require.NoError(t, err)
 

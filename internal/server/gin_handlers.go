@@ -1289,7 +1289,7 @@ func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
 
 	// Check if we're deleting the active goal and if this is the last goal
 	isActiveGoal := user.ActiveGoalName != nil && *user.ActiveGoalName == name
-	
+
 	// Get all user goals to check if this is the last one
 	allGoals, err := s.store.GetUserGoals(ctx, user.ID)
 	if err != nil {

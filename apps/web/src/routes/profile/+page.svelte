@@ -7,11 +7,13 @@
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
   type Goals = GoalsResponse["goals"];
+  type User = GoalsResponse["user"];
   type BiometricsResponse = paths["/biometrics"]["get"]["responses"]["200"]["content"]["application/json"];
   type UserBiometrics = paths["/biometrics"]["get"]["responses"]["200"]["content"]["application/json"]["biometrics"];
   type UpdateBiometricsRequest = paths["/biometrics"]["put"]["requestBody"]["content"]["application/json"];
   
   let goals: Goals | null = null;
+  let user: User | null = null;
   let biometrics: UserBiometrics | null = null;
   let calculatedMetrics: BiometricsResponse["calculated_metrics"] | null = null;
   let loading = true;
@@ -20,6 +22,10 @@
   let biometricsError = "";
   let success = "";
   let biometricsSuccess = "";
+  
+  // Reactive statements for user tier
+  $: isProUser = user?.subscription_tier === "pro";
+  $: isFreeUser = user?.subscription_tier === "free";
   let saving = false;
   let savingBiometrics = false;
 
@@ -125,6 +131,7 @@
       }
 
       goals = response.data.goals;
+      user = response.data.user;
     } catch (err) {
       error = `Failed to load goals: ${err}`;
       console.error("Goals error:", err);
@@ -179,13 +186,8 @@
   }
 
   async function deleteGoalSet(goalName: string) {
-    // Allow deleting the active goal if it's the only one left
-    // or if there are other goals to switch to
-    if (goalName === activeGoalName && goalSets.length > 1) {
-      error = "Cannot delete the active goal set when other goal sets exist. Switch to another goal first, or use 'Reset to DRI' to delete all goals.";
-      return;
-    }
-
+    if (!goalName) return;
+    
     // Show modal instead of using confirm()
     goalToDelete = goalName;
     showDeleteModal = true;
@@ -195,6 +197,9 @@
     if (!goalToDelete) return;
 
     try {
+      const isLastGoal = goalSets.length === 1;
+      const isActiveGoal = goalToDelete === activeGoalName;
+      
       const response = await apiClient.DELETE("/goals/sets/{name}", {
         params: {
           path: { name: goalToDelete }
@@ -205,11 +210,15 @@
         throw response.error;
       }
 
-      success = `Goal set "${goalToDelete}" deleted successfully!`;
+      if (isLastGoal && isActiveGoal) {
+        success = `Goal set "${goalToDelete}" deleted successfully! You're now using DRI nutrition defaults.`;
+      } else {
+        success = `Goal set "${goalToDelete}" deleted successfully!`;
+      }
       setTimeout(() => success = "", 3000);
       
-      // Reload goal sets to update the UI
-      await loadGoalSets();
+      // Reload both goals and goal sets to update the UI and show DRI fallback
+      await Promise.all([loadGoals(), loadGoalSets()]);
     } catch (err) {
       error = `Failed to delete goal set: ${parseErrorMessage(err)}`;
       console.error("Delete goal error:", err);
@@ -647,59 +656,98 @@
           <div class="card-body p-6">
             <h2 class="card-title flex items-center gap-2">
               🏆 Goals
-              <div class="flex gap-2 ml-auto">
-                {#if goalSets.length > 0}
+              {#if goals?.source === "dri"}
+                <div class="badge badge-info badge-sm">DRI</div>
+              {/if}
+              
+              {#if isProUser}
+                <div class="flex gap-2 ml-auto">
+                  {#if goalSets.length > 0}
+                    <button 
+                      class="btn btn-warning btn-xs"
+                      on:click={resetToDRIDefaults}
+                      title="Delete all custom goals to return to DRI defaults"
+                    >
+                      🔄 Reset to DRI
+                    </button>
+                  {/if}
                   <button 
-                    class="btn btn-warning btn-xs"
-                    on:click={resetToDRIDefaults}
-                    title="Delete all custom goals to return to DRI defaults"
+                    class="btn btn-outline btn-xs"
+                    on:click={() => openEditModal("New Goal")}
                   >
-                    🔄 Reset to DRI
+                    + New
                   </button>
-                {/if}
-                <button 
-                  class="btn btn-outline btn-xs"
-                  on:click={() => openEditModal("New Goal")}
-                >
-                  + New
-                </button>
-              </div>
+                </div>
+              {:else if isFreeUser}
+                <div class="ml-auto">
+                  <button class="btn btn-primary btn-xs" disabled>
+                    Upgrade to Pro for Custom Goals
+                  </button>
+                </div>
+              {/if}
             </h2>
-            
-            {#if loadingGoalSets}
-              <div class="text-center py-4">
-                <span class="loading loading-spinner loading-sm"></span>
-                <p class="text-sm text-base-content/70 mt-2">Loading goal sets...</p>
-              </div>
-            {:else if goalSets.length > 0}
-              <div class="space-y-2">
-                {#each goalSets as goalSet}
-                  <div class="flex items-center justify-between p-3 rounded-lg {goalSet.name === activeGoalName ? 'bg-primary/10 border border-primary/20' : 'bg-base-100'}">
-                    <div class="flex items-center gap-3">
-                      <div class="flex flex-col">
-                        <span class="font-medium">{goalSet.name}</span>
-                        {#if goalSet.name === activeGoalName}
-                          <span class="badge badge-primary badge-xs">Active</span>
-                        {/if}
-                      </div>
-                    </div>
-                    
-                    <div class="flex gap-2">
-                      {#if goalSet.name !== activeGoalName}
-                        <button 
-                          class="btn btn-primary btn-xs"
-                          on:click={() => switchToGoal(goalSet.name)}
-                        >
-                          Activate
-                        </button>
-                      {/if}
-                      <button 
-                        class="btn btn-outline btn-xs"
-                        on:click={() => openEditModal(goalSet.name)}
+
+            {#if isFreeUser}
+              <!-- Free Tier: Show DRI information -->
+              <div class="bg-info/10 p-4 rounded-lg">
+                <div class="flex items-start gap-3">
+                  <div class="badge badge-info">Free</div>
+                  <div>
+                    <h3 class="font-semibold text-sm">Using DRI Nutrition Guidelines</h3>
+                    <p class="text-sm text-base-content/70 mt-1">
+                      Your nutrition targets are based on Dietary Reference Intakes (DRI) tailored to your profile.
+                      <a 
+                        href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dietary-guidance" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        class="link link-info"
                       >
-                        Edit
+                        Learn more about DRI →
+                      </a>
+                    </p>
+                    <div class="mt-3">
+                      <button class="btn btn-primary btn-sm">
+                        Upgrade to Pro to Create Custom Goals
                       </button>
-                      {#if goalSet.name !== activeGoalName}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {:else if isProUser}
+              <!-- Pro Tier: Show goal management -->
+              {#if loadingGoalSets}
+                <div class="text-center py-4">
+                  <span class="loading loading-spinner loading-sm"></span>
+                  <p class="text-sm text-base-content/70 mt-2">Loading goal sets...</p>
+                </div>
+              {:else if goalSets.length > 0}
+                <div class="space-y-2">
+                  {#each goalSets as goalSet}
+                    <div class="flex items-center justify-between p-3 rounded-lg {goalSet.name === activeGoalName ? 'bg-primary/10 border border-primary/20' : 'bg-base-100'}">
+                      <div class="flex items-center gap-3">
+                        <div class="flex flex-col">
+                          <span class="font-medium">{goalSet.name}</span>
+                          {#if goalSet.name === activeGoalName}
+                            <span class="badge badge-primary badge-xs">Active</span>
+                          {/if}
+                        </div>
+                      </div>
+                      
+                      <div class="flex gap-2">
+                        {#if goalSet.name !== activeGoalName}
+                          <button 
+                            class="btn btn-primary btn-xs"
+                            on:click={() => switchToGoal(goalSet.name)}
+                          >
+                            Activate
+                          </button>
+                        {/if}
+                        <button 
+                          class="btn btn-outline btn-xs"
+                          on:click={() => openEditModal(goalSet.name)}
+                        >
+                          Edit
+                        </button>
                         <button 
                           class="btn btn-error btn-xs"
                           on:click={() => deleteGoalSet(goalSet.name)}
@@ -707,21 +755,36 @@
                         >
                           ×
                         </button>
-                      {/if}
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              {:else}
+                <!-- Pro user with no custom goals - show DRI + create option -->
+                <div class="space-y-4">
+                  <div class="bg-info/10 p-4 rounded-lg">
+                    <div class="flex items-start gap-3">
+                      <div class="badge badge-info">DRI Active</div>
+                      <div>
+                        <h3 class="font-semibold text-sm">Using DRI Nutrition Guidelines</h3>
+                        <p class="text-sm text-base-content/70 mt-1">
+                          You're currently using Dietary Reference Intakes (DRI) based on your profile.
+                          As a Pro user, you can create custom goal sets to override specific targets.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                {/each}
-              </div>
-            {:else}
-              <div class="text-center py-4">
-                <p class="text-sm text-base-content/70">No custom goal sets yet.</p>
-                <button 
-                  class="btn btn-primary btn-sm mt-2"
-                  on:click={() => openEditModal("My Custom Goals")}
-                >
-                  Create Your First Goal Set
-                </button>
-              </div>
+                  <div class="text-center py-4">
+                    <p class="text-sm text-base-content/70">Ready to create your first custom goal set?</p>
+                    <button 
+                      class="btn btn-primary btn-sm mt-2"
+                      on:click={() => openEditModal("My Custom Goals")}
+                    >
+                      Create Your First Goal Set
+                    </button>
+                  </div>
+                </div>
+              {/if}
             {/if}
           </div>
         </div>
