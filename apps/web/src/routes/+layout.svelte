@@ -8,6 +8,7 @@
   import { units } from "$lib/stores/units"
   import Navbar from "$lib/components/Navbar.svelte"
   import DevBanner from "$lib/components/DevBanner.svelte"
+  import AdaptiveFavicon from "$lib/components/AdaptiveFavicon.svelte"
 
   interface Props {
     children?: import("svelte").Snippet
@@ -19,6 +20,9 @@
     units.init();
   });
 </script>
+
+<!-- Adaptive favicon management -->
+<AdaptiveFavicon />
 
 <DevBanner />
 
