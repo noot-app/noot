@@ -297,6 +297,101 @@
 
   // Reactive statement to get current meal nutrition for Goals component
   $: currentMealNutrition = result?.items ? getMealNutrition() : {};
+
+  // State for daily nutrition totals (for stacked progress bars)
+  let dailyNutritionTotals: Record<string, number> = {};
+
+  // Load daily totals when recording is complete to show stacked progress bars
+  $: if (status === "✅ Complete" && result?.items) {
+    loadDailyTotals();
+  }
+
+  // Function to load today's nutrition totals for stacked progress bars
+  async function loadDailyTotals() {
+    try {
+      // Get today in local timezone
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      
+      const startDate = startOfDay.toISOString();
+      const endDate = endOfDay.toISOString();
+
+      const response = await apiClient.GET('/nutrition-summary', {
+        params: {
+          query: {
+            start: startDate,
+            end: endDate
+          }
+        }
+      });
+
+      if (response.error) {
+        console.warn("Failed to load daily totals:", response.error);
+        return;
+      }
+
+      if (response.data?.summary) {
+        const summary = response.data.summary;
+        dailyNutritionTotals = {
+          // Basic macronutrients
+          calories: summary.total_calories || 0,
+          protein_g: summary.total_protein_g || 0,
+          total_carbs_g: summary.total_carbs_g || 0,
+          total_fat_g: summary.total_fat_g || 0,
+          dietary_fiber_g: summary.total_fiber_g || 0,
+          sodium_mg: summary.total_sodium_mg || 0,
+          
+          // Fat types
+          saturated_fat_g: summary.total_saturated_fat_g || 0,
+          trans_fat_g: summary.total_trans_fat_g || 0,
+          cholesterol_mg: summary.total_cholesterol_mg || 0,
+          
+          // Sugar types
+          total_sugars_g: summary.total_sugars_g || 0,
+          added_sugars_g: summary.total_added_sugars_g || 0,
+          
+          // B-Complex vitamins
+          thiamine_mg: summary.total_thiamine_mg || 0,
+          riboflavin_mg: summary.total_riboflavin_mg || 0,
+          niacin_mg: summary.total_niacin_mg || 0,
+          vitamin_b6_mg: summary.total_vitamin_b6_mg || 0,
+          folate_mcg: summary.total_folate_mcg || 0,
+          vitamin_b12_mcg: summary.total_vitamin_b12_mcg || 0,
+          biotin_mcg: summary.total_biotin_mcg || 0,
+          pantothenic_acid_mg: summary.total_pantothenic_acid_mg || 0,
+          
+          // Fat-soluble vitamins
+          vitamin_a_mcg: summary.total_vitamin_a_mcg || 0,
+          vitamin_d_mcg: summary.total_vitamin_d_mcg || 0,
+          vitamin_e_mg: summary.total_vitamin_e_mg || 0,
+          vitamin_k_mcg: summary.total_vitamin_k_mcg || 0,
+          
+          // Water-soluble vitamins
+          vitamin_c_mg: summary.total_vitamin_c_mg || 0,
+          choline_mg: summary.total_choline_mg || 0,
+          
+          // Essential minerals
+          calcium_mg: summary.total_calcium_mg || 0,
+          iron_mg: summary.total_iron_mg || 0,
+          magnesium_mg: summary.total_magnesium_mg || 0,
+          phosphorus_mg: summary.total_phosphorus_mg || 0,
+          potassium_mg: summary.total_potassium_mg || 0,
+          zinc_mg: summary.total_zinc_mg || 0,
+          copper_mg: summary.total_copper_mg || 0,
+          manganese_mg: summary.total_manganese_mg || 0,
+          selenium_mcg: summary.total_selenium_mcg || 0,
+          iodine_mcg: summary.total_iodine_mcg || 0,
+          molybdenum_mcg: summary.total_molybdenum_mcg || 0,
+          chromium_mcg: summary.total_chromium_mcg || 0,
+          fluoride_mg: summary.total_fluoride_mg || 0,
+          chloride_mg: summary.total_chloride_mg || 0
+        };
+      }
+    } catch (err) {
+      console.warn("Failed to load daily nutrition totals:", err);
+    }
+  }
 </script>
 
 <svelte:head>
@@ -633,6 +728,7 @@
           <div class="space-y-4">
             <Goals 
               currentNutrition={currentMealNutrition} 
+              {dailyNutritionTotals}
               showMealContribution={true}
             />
           </div>

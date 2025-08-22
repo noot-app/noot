@@ -8,6 +8,7 @@
   type Goals = GoalsResponse["goals"];
 
   export let currentNutrition: Record<string, number> = {};
+  export let dailyNutritionTotals: Record<string, number> = {}; // Total daily nutrition (for stacked progress bars)
   export let showMealContribution = false; // New prop to indicate meal-specific view
   export let isSharedView = false; // New prop for shareable link context (non-logged-in users)
   export let title = "Nutrition Goals"; // Customizable title
@@ -34,6 +35,40 @@
   function getCurrentNutrient(nutrient: string): number {
     const value = currentNutrition?.[nutrient] || 0;
     return isFinite(value) ? value : 0;
+  }
+
+  // Helper to get daily total for a nutrient (for stacked progress bars)
+  function getDailyTotal(nutrient: string): number {
+    const value = dailyNutritionTotals?.[nutrient] || 0;
+    return isFinite(value) ? value : 0;
+  }
+
+  // Helper to calculate previous progress (daily total minus current meal)
+  function getPreviousProgress(nutrient: string): number {
+    const daily = getDailyTotal(nutrient);
+    const current = getCurrentNutrient(nutrient);
+    const previous = Math.max(0, daily - current); // Ensure non-negative
+    return isFinite(previous) ? previous : 0;
+  }
+
+  // Helper to get progress percentage for stacked bars
+  function getStackedProgress(nutrient: string, value: number): number {
+    // Check if this is an upper limit (should be minimized)
+    if (goals?.upper_limits?.[nutrient] !== undefined) {
+      const limit = goals.upper_limits[nutrient];
+      if (limit === 0) {
+        // For zero limits (like trans fat), any amount is over
+        return value > 0 ? 100 : 0;
+      }
+      // For upper limits, "progress" is how close to the limit
+      const progress = (value / limit) * 100;
+      return isFinite(progress) ? Math.min(progress, 100) : 0;
+    }
+    
+    // Regular target logic
+    if (goals?.targets[nutrient] === undefined) return 0;
+    const progress = (value / goals.targets[nutrient]) * 100;
+    return isFinite(progress) ? Math.min(progress, 100) : 0;
   }
 
   async function loadGoals() {
@@ -246,19 +281,46 @@
                           {/if}
                         </span>
                         <span class="text-base-content/70">
-                          {formatValue(current, unit)}/{formatValue(target, unit)} {unit}
+                          {#if showMealContribution}
+                            {@const dailyTotal = getDailyTotal(nutrient)}
+                            {formatValue(dailyTotal, unit)}/{formatValue(target, unit)} {unit}
+                          {:else}
+                            {formatValue(current, unit)}/{formatValue(target, unit)} {unit}
+                          {/if}
                         </span>
                       </div>
                       <div class="flex items-center gap-2">
                         {#if showMealContribution}
-                          <!-- Stacked progress bar showing meal contribution -->
-                          <div class="flex-1 relative">
-                            <progress 
-                              class="progress progress-accent absolute inset-0"
-                              value={progress} 
-                              max="100"
-                              title="This meal's contribution: {progress.toFixed(0)}%"
-                            ></progress>
+                          {@const previousNutrient = getPreviousProgress(nutrient)}
+                          {@const mealNutrient = getCurrentNutrient(nutrient)}
+                          {@const previousProgress = getStackedProgress(nutrient, previousNutrient)}
+                          {@const mealProgress = getStackedProgress(nutrient, mealNutrient)}
+                          
+                          <!-- Stacked progress bar showing previous progress + meal contribution -->
+                          <div class="flex-1 relative h-4">
+                            <!-- Background bar (total possible) -->
+                            <div class="absolute inset-0 bg-base-300 rounded"></div>
+                            
+                            <!-- Previous progress bar (bottom layer) -->
+                            {#if previousProgress > 0}
+                              <progress 
+                                class="progress progress-primary absolute inset-0 opacity-60"
+                                value={previousProgress} 
+                                max="100"
+                                title="Previous daily progress: {formatValue(previousNutrient, unit)} {unit}"
+                              ></progress>
+                            {/if}
+                            
+                            <!-- Meal contribution bar (top layer) -->
+                            {#if mealProgress > 0}
+                              <progress 
+                                class="progress progress-accent absolute inset-0"
+                                style="background: transparent;"
+                                value={Math.min(previousProgress + mealProgress, 100)} 
+                                max="100"
+                                title="This meal adds: {formatValue(mealNutrient, unit)} {unit}"
+                              ></progress>
+                            {/if}
                           </div>
                         {:else}
                           <!-- Standard progress bar for targets -->
@@ -272,7 +334,12 @@
                           ></progress>
                         {/if}
                         <span class="text-xs text-base-content/60 min-w-[3rem]">
-                          {getActualProgress(nutrient, current).toFixed(0)}%
+                          {#if showMealContribution}
+                            {@const dailyTotal = getDailyTotal(nutrient)}
+                            {getActualProgress(nutrient, dailyTotal).toFixed(0)}%
+                          {:else}
+                            {getActualProgress(nutrient, current).toFixed(0)}%
+                          {/if}
                         </span>
                       </div>
                     </div>
@@ -304,19 +371,46 @@
                           {/if}
                         </span>
                         <span class="text-base-content/70">
-                          {formatValue(current, unit)}/{formatValue(limit, unit)} {unit}
+                          {#if showMealContribution}
+                            {@const dailyTotal = getDailyTotal(nutrient)}
+                            {formatValue(dailyTotal, unit)}/{formatValue(limit, unit)} {unit}
+                          {:else}
+                            {formatValue(current, unit)}/{formatValue(limit, unit)} {unit}
+                          {/if}
                         </span>
                       </div>
                       <div class="flex items-center gap-2">
                         {#if showMealContribution}
-                          <!-- Stacked progress bar showing meal contribution -->
-                          <div class="flex-1 relative">
-                            <progress 
-                              class="progress progress-warning absolute inset-0"
-                              value={progress} 
-                              max="100"
-                              title="This meal's contribution: {progress.toFixed(0)}% of limit"
-                            ></progress>
+                          {@const previousNutrient = getPreviousProgress(nutrient)}
+                          {@const mealNutrient = getCurrentNutrient(nutrient)}
+                          {@const previousProgress = getStackedProgress(nutrient, previousNutrient)}
+                          {@const mealProgress = getStackedProgress(nutrient, mealNutrient)}
+                          
+                          <!-- Stacked progress bar showing previous progress + meal contribution -->
+                          <div class="flex-1 relative h-4">
+                            <!-- Background bar (total possible) -->
+                            <div class="absolute inset-0 bg-base-300 rounded"></div>
+                            
+                            <!-- Previous progress bar (bottom layer) - for limits, use warning color -->
+                            {#if previousProgress > 0}
+                              <progress 
+                                class="progress progress-warning absolute inset-0 opacity-60"
+                                value={previousProgress} 
+                                max="100"
+                                title="Previous daily amount: {formatValue(previousNutrient, unit)} {unit}"
+                              ></progress>
+                            {/if}
+                            
+                            <!-- Meal contribution bar (top layer) - use error color for limits -->
+                            {#if mealProgress > 0}
+                              <progress 
+                                class="progress progress-error absolute inset-0"
+                                style="background: transparent;"
+                                value={Math.min(previousProgress + mealProgress, 100)} 
+                                max="100"
+                                title="This meal adds: {formatValue(mealNutrient, unit)} {unit} to limit"
+                              ></progress>
+                            {/if}
                           </div>
                         {:else}
                           <!-- Progress bar for limits (red = bad, green = good) -->
@@ -330,7 +424,12 @@
                           ></progress>
                         {/if}
                         <span class="text-xs text-base-content/60 min-w-[3rem]">
-                          {getActualProgress(nutrient, current).toFixed(0)}%
+                          {#if showMealContribution}
+                            {@const dailyTotal = getDailyTotal(nutrient)}
+                            {getActualProgress(nutrient, dailyTotal).toFixed(0)}%
+                          {:else}
+                            {getActualProgress(nutrient, current).toFixed(0)}%
+                          {/if}
                         </span>
                       </div>
                     </div>
