@@ -274,37 +274,150 @@ func TestDHACalculation(t *testing.T) {
 }
 ```
 
-### 2. Integration Tests  
+### 2. Database Migration Tests
 
-Test database migrations:
+Verify migrations work correctly:
 
 ```bash
+# Run full test suite to verify migrations
 ./script/test
+
+# Look for migration-specific test output:
+# "✓ Applied migration 007_add_dha_nutrient.sql"
 ```
 
-### 3. End-to-End Testing
+### 3. Integration Tests  
 
-1. **Record a meal with DHA-rich foods**:
-   ```
-   "I ate 6 ounces of grilled salmon with vegetables"
-   ```
-
-2. **Verify DHA appears in**:
-   - Consumption response JSON
-   - Nutrition summary totals  
-   - Goals/targets UI display
-   - Profile nutrition settings
-
-### 4. Frontend Testing
-
-Start the development server and verify UI:
+Test database operations with new nutrient:
 
 ```bash
+# Tests should cover:
+# - Creating consumptions with DHA values
+# - Retrieving nutrition summaries including DHA totals
+# - Item cache operations with DHA per-100g values
+./script/test -run TestSQLiteStore
+```
+
+### 4. API Schema Validation
+
+Ensure OpenAPI types are correctly generated:
+
+```bash
+# Regenerate and verify types
+./script/generate-types
+
+# Check that generated types include new nutrient
+grep -r "dha_mg" internal/api/types.gen.go
+```
+
+### 5. End-to-End Testing Checklist
+
+Use this checklist to verify complete functionality:
+
+- [ ] **Database Migration**: Migration applies without errors
+- [ ] **Consumption Creation**: Can create consumption records with DHA values
+- [ ] **Item Storage**: Can store and retrieve items with DHA per-100g data  
+- [ ] **Nutrition Summaries**: DHA appears in aggregated nutrition totals
+- [ ] **API Responses**: DHA fields present in JSON responses
+- [ ] **Frontend Display**: DHA appears in Goals component with proper formatting
+- [ ] **OpenAI Integration**: AI can parse and return DHA values for fish/seafood
+- [ ] **Data Consistency**: DHA values calculated correctly across all layers
+
+### 6. Manual Testing Scenarios
+
+#### Scenario 1: Record DHA-rich meal
+```
+Test Input: "I ate 6 ounces of grilled salmon"
+Expected: DHA value should be ~306mg (170g × 1800mg/100g)
+Verify: Check consumption response includes dha_mg field
+```
+
+#### Scenario 2: View nutrition summary
+```
+Test: Create multiple fish consumptions over several days
+Expected: Total DHA should sum correctly in daily/weekly summaries  
+Verify: Check nutrition summary API includes total_dha_mg
+```
+
+#### Scenario 3: Goals component display
+```  
+Test: Open Goals component with DHA consumption data
+Expected: DHA appears in nutrient list with progress bar
+Verify: Units display as "mg", progress calculates if targets exist
+```
+
+### 7. Error Scenarios
+
+Test edge cases and error handling:
+
+- [ ] **Zero DHA foods**: Non-marine foods should return 0 DHA
+- [ ] **Invalid units**: System handles unit conversion correctly
+- [ ] **Missing data**: Graceful handling when DHA data unavailable
+- [ ] **Large values**: High DHA values (supplements) don't break display
+
+### 8. Performance Testing
+
+For production deployments:
+
+- [ ] **Migration speed**: Large database migrations complete in reasonable time
+- [ ] **Query performance**: Adding DHA columns doesn't slow down nutrition queries
+- [ ] **Frontend rendering**: Goals component renders efficiently with additional nutrient
+
+### 9. Automated Test Commands
+
+Run these commands to validate the complete implementation:
+
+```bash
+# Full test suite
+./script/test
+
+# Specific storage tests (includes migration testing)
+./script/test -run TestSQLiteStore
+
+# API type generation
+./script/generate-types
+
+# Lint code changes
+./script/lint
+
+# Build application (verifies no compilation errors)  
+./script/build --single-target
+```
+
+### 10. Frontend Testing
+
+If you have the frontend development environment:
+
+```bash
+# Start development server
 cd apps/web
 npm run dev
+
+# Test scenarios:
+# 1. Navigate to Goals/Progress page
+# 2. Verify DHA appears in nutrient list
+# 3. Create test consumption with salmon
+# 4. Verify DHA progress updates
 ```
 
-Check that DHA displays properly in the Goals component with appropriate units and progress bars.
+### Success Criteria
+
+✅ **All tests pass**: No failing unit or integration tests  
+✅ **Clean migration**: Database migration applies without errors  
+✅ **API consistency**: DHA appears in all relevant API responses  
+✅ **Frontend integration**: Goals component displays DHA correctly  
+✅ **Data accuracy**: DHA calculations match expected values for known foods  
+✅ **Documentation**: Process is clearly documented for future nutrients
+
+### Troubleshooting Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| Migration fails with "column exists" | Check table names in `tables.go`, ensure Reset() drops correct tables |
+| API types don't include DHA | Run `./script/generate-types` after updating OpenAPI schema |
+| Frontend doesn't show DHA | Verify nutrient added to `keyNutrients` array in Goals.svelte |
+| Zero DHA values for fish | Check OpenAI prompt includes DHA reference data |
+| Tests fail after adding nutrient | Verify all structs updated consistently across types.go and store.go |
 
 ## Automation Script
 
@@ -421,3 +534,44 @@ const keyNutrients = [
 ```
 
 This systematic approach ensures complete integration of new nutrients across the entire application stack while maintaining data consistency and user experience quality.
+
+## Quick Reference
+
+### Adding a New Nutrient (Summary)
+
+1. **Run the helper script**: `./script/add-nutrient`
+2. **Test the implementation**: `./script/test`
+3. **Add reference data** to OpenAI prompt if needed
+4. **Add DRI/DV values** to goals data if available
+5. **Test end-to-end functionality**
+
+### File Checklist
+
+When adding a nutrient manually, ensure these files are updated:
+
+- [ ] `internal/storage/migrations/###_add_[nutrient]_nutrient.sql`
+- [ ] `internal/server/types.go` (CompleteNutrient struct)
+- [ ] `internal/storage/store.go` (Consumption, Item, NutritionSummary structs)
+- [ ] `internal/server/openai_provider.go` (system prompt JSON structure)
+- [ ] `api/openapi.yaml` (CompleteNutrient and NutritionSummary schemas)
+- [ ] Generated API types (via `./script/generate-types`)
+- [ ] `apps/web/src/lib/components/Goals.svelte` (keyNutrients array)
+- [ ] `internal/goals/data/*.json` (optional, if DRI/DV values exist)
+
+### Testing Commands
+
+```bash
+# Full test suite
+./script/test
+
+# Generate API types  
+./script/generate-types
+
+# Build application
+./script/build --single-target
+
+# Lint code
+./script/lint
+```
+
+The process is designed to be reliable, repeatable, and maintainable for the long-term evolution of noot's nutrition tracking capabilities.
