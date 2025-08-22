@@ -1,6 +1,22 @@
 import { dev } from '$app/environment';
 import { apiClient } from '$lib/api/client';
-import type { AuthProvider, User, DEV_USERS } from './provider';
+import type { AuthProvider, User } from './provider';
+
+// Local copy of available dev users to avoid circular imports
+const DEV_USERS = [
+	{
+		id: 'monalisa',
+		email: 'monalisa@birki.io',
+		subscriptionTier: 'pro' as const,
+		displayName: 'Monalisa (Pro)'
+	},
+	{
+		id: 'alice', 
+		email: 'alice@birki.io',
+		subscriptionTier: 'free' as const,
+		displayName: 'Alice (Free)'
+	}
+] as const;
 
 /**
  * Development auth provider that handles user switching via headers
@@ -85,7 +101,7 @@ export class DevAuthProvider implements AuthProvider {
 	 * Get user info from user ID
 	 */
 	private getUserFromId(userId: string): User | null {
-		const devUser = (DEV_USERS as readonly any[]).find(u => u.id === userId);
+		const devUser = DEV_USERS.find(u => u.id === userId);
 		if (!devUser) return null;
 
 		return {

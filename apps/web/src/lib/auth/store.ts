@@ -1,8 +1,23 @@
 import { writable, derived } from 'svelte/store';
 import { dev } from '$app/environment';
 import type { AuthProvider, User } from './provider';
-import { DEV_USERS } from './provider';
 import { DevAuthProvider } from './dev-auth';
+
+// Local copy of available dev users to avoid circular imports  
+const DEV_USERS = [
+	{
+		id: 'monalisa',
+		email: 'monalisa@birki.io',
+		subscriptionTier: 'pro' as const,
+		displayName: 'Monalisa (Pro)'
+	},
+	{
+		id: 'alice', 
+		email: 'alice@birki.io',
+		subscriptionTier: 'free' as const,
+		displayName: 'Alice (Free)'
+	}
+] as const;
 
 /**
  * Current auth provider instance
