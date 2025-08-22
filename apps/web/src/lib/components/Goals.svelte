@@ -206,7 +206,7 @@
         </svg>
         <div>
           <div class="font-bold">Using DRI Nutrition Targets</div>
-          <div class="text-xs">Free users see Dietary Reference Intake (DRI) values. <a href="/profile" class="link font-medium">Upgrade to Pro</a> to set custom nutrition goals.</div>
+          <div class="text-xs">Free users see Dietary Reference Intake (DRI) values only. <a href="/profile" class="link font-medium">Upgrade to Pro</a> to set custom nutrition goals.</div>
         </div>
       </div>
     {/if}

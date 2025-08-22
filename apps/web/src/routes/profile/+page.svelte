@@ -654,12 +654,6 @@
                     + New
                   </button>
                 </div>
-              {:else if isFreeUser}
-                <div class="ml-auto">
-                  <button class="btn btn-primary btn-xs" disabled>
-                    Upgrade to Pro for Custom Goals
-                  </button>
-                </div>
               {/if}
             </h2>
 
