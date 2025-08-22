@@ -280,9 +280,9 @@ func (s *NutritionService) convertNutrientsToCache(item Item, nutrients Complete
 		VitaminB6MgPer100g:       convertAndRound(nutrients.VitaminB6, 3),
 		FolateMcgPer100g:         convertAndRound(nutrients.Folate, 1),
 		VitaminB12McgPer100g:     convertAndRound(nutrients.VitaminB12, 2),
-		BiotinMcgPer100g:         convertAndRound(0, 1), // TODO: Add biotin to CompleteNutrient
-		PantothenicAcidMgPer100g: convertAndRound(0, 1), // TODO: Add pantothenic acid to CompleteNutrient
-		CholineMgPer100g:         convertAndRound(0, 1), // TODO: Add choline to CompleteNutrient
+		BiotinMcgPer100g:         convertAndRound(nutrients.Biotin, 1),
+		PantothenicAcidMgPer100g: convertAndRound(nutrients.PantothenicAcid, 1),
+		CholineMgPer100g:         convertAndRound(nutrients.Choline, 1),
 		CalciumMgPer100g:         convertAndRound(nutrients.Calcium, 1),
 		IronMgPer100g:            convertAndRound(nutrients.Iron, 1),
 		MagnesiumMgPer100g:       convertAndRound(nutrients.Magnesium, 1),
@@ -292,11 +292,11 @@ func (s *NutritionService) convertNutrientsToCache(item Item, nutrients Complete
 		CopperMgPer100g:          convertAndRound(nutrients.Copper, 3),
 		ManganeseMgPer100g:       convertAndRound(nutrients.Manganese, 3),
 		SeleniumMcgPer100g:       convertAndRound(nutrients.Selenium, 1),
-		IodineMcgPer100g:         convertAndRound(0, 1), // TODO: Add iodine to CompleteNutrient
-		MolybdenumMcgPer100g:     convertAndRound(0, 1), // TODO: Add molybdenum to CompleteNutrient
-		ChromiumMcgPer100g:       convertAndRound(0, 1), // TODO: Add chromium to CompleteNutrient
-		FluorideMgPer100g:        convertAndRound(0, 1), // TODO: Add fluoride to CompleteNutrient
-		ChlorideMgPer100g:        convertAndRound(0, 1), // TODO: Add chloride to CompleteNutrient
+		IodineMcgPer100g:         convertAndRound(nutrients.Iodine, 1),
+		MolybdenumMcgPer100g:     convertAndRound(nutrients.Molybdenum, 1),
+		ChromiumMcgPer100g:       convertAndRound(nutrients.Chromium, 1),
+		FluorideMgPer100g:        convertAndRound(nutrients.Fluoride, 1),
+		ChlorideMgPer100g:        convertAndRound(nutrients.Chloride, 1),
 		CreatedAt:                time.Now().UTC(),
 		UpdatedAt:                time.Now().UTC(),
 	}
