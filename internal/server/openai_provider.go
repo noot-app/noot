@@ -461,13 +461,8 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 		return content
 	}())
 
-	// Strip markdown code blocks if present
+	// Parse the JSON content directly (no markdown code blocks with json_schema format)
 	content = strings.TrimSpace(content)
-	if strings.HasPrefix(content, "```json") {
-		content = strings.TrimPrefix(content, "```json")
-		content = strings.TrimSuffix(content, "```")
-		content = strings.TrimSpace(content)
-	}
 
 	var result struct {
 		Nutrients CompleteNutrient `json:"nutrients"`
