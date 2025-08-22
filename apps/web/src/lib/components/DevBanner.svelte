@@ -281,7 +281,7 @@ Dev Info:
     border-bottom: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     height: 20px;
-    overflow: hidden;
+    overflow: visible;
   }
   
   .dev-banner-content {
@@ -376,20 +376,22 @@ Dev Info:
   .user-selector {
     position: relative;
     display: inline-block;
+    z-index: 10000;
   }
   
   .user-button {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: #f5f5f5;
-    padding: 1px 4px;
+    padding: 2px 6px;
     border-radius: 3px;
     cursor: pointer;
     transition: background-color 0.2s ease;
     font-size: 10px;
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
+    min-height: 16px;
   }
   
   .user-button:hover {
@@ -397,9 +399,10 @@ Dev Info:
   }
   
   .dropdown-arrow {
-    font-size: 8px;
+    font-size: 10px;
     transition: transform 0.2s ease;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: bold;
   }
   
   .dropdown-arrow.open {
@@ -415,7 +418,7 @@ Dev Info:
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 4px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
+    z-index: 10000;
     margin-top: 2px;
     backdrop-filter: blur(8px);
   }
