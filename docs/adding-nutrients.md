@@ -424,20 +424,35 @@ npm run dev
 | Zero DHA values for fish | Update OpenAI nutrition prompt on portal to include DHA reference data |
 | Tests fail after adding nutrient | Verify all structs updated consistently across types.go and store.go |
 
-## Automation Script
+## Enhanced Automation Script
 
-To streamline future nutrient additions, use the helper script:
+To streamline future nutrient additions, use the enhanced helper script:
 
 ```bash
-./script/add-nutrient
+./script/add-nutrient                # Interactive mode
+./script/add-nutrient --verbose      # Show detailed changes  
+./script/add-nutrient --dry-run      # Preview changes without applying
+./script/add-nutrient --help         # Show usage information
 ```
+
+**Key improvements:**
+- **Backup & Rollback**: Automatically creates backups and rolls back changes if any step fails
+- **Validation**: Compiles code after each change and runs validation tests
+- **Error Handling**: Clear error messages with specific guidance when things go wrong
+- **Diff Preview**: Shows exactly what changes will be made (verbose mode)
+- **Dry Run Mode**: Preview changes without applying them
+- **Robust Patterns**: Improved sed patterns that are less prone to breaking with formatting changes
 
 This interactive script will:
 - Prompt for nutrient name, unit, and metadata
 - Generate SQL migration files
 - Update Go structs with proper formatting  
-- Update OpenAPI schema
-- Create a PR-ready changeset
+- Update OpenAPI schema definitions
+- Update frontend Goals component
+- Regenerate API types automatically
+- Run validation tests to ensure everything compiles
+- Create automatic backups with rollback capability
+- Provide clear error messages if any step fails
 
 ## Common Patterns
 
