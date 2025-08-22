@@ -1263,16 +1263,16 @@ func (s *SQLiteStore) IsItemCacheExpired(item *ItemCache) bool {
 // CreateItem creates a new item
 func (s *SQLiteStore) CreateItem(ctx context.Context, item *Item) error {
 	now := time.Now().UTC()
-	
+
 	// Generate ID if not set
 	if item.ID == "" {
 		item.ID = generateULID()
 	}
-	
+
 	// Set timestamps
 	item.CreatedAt = now
 	item.UpdatedAt = now
-	
+
 	query := `
 		INSERT INTO items_cache (
 			id, normalized_name, normalized_brand, display_name, display_brand,
@@ -1314,7 +1314,7 @@ func (s *SQLiteStore) CreateItem(ctx context.Context, item *Item) error {
 	return nil
 }
 
-// GetItem retrieves an item by ID  
+// GetItem retrieves an item by ID
 func (s *SQLiteStore) GetItem(ctx context.Context, id string) (*Item, error) {
 	query := `
 		SELECT id, normalized_name, normalized_brand, display_name, display_brand,

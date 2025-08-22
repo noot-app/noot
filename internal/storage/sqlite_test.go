@@ -284,78 +284,78 @@ func TestSQLiteStore(t *testing.T) {
 
 	// DEPRECATED: ItemCacheOperations test - commenting out as methods are replaced by new Item methods
 	/*
-	t.Run("ItemCacheOperations", func(t *testing.T) {
-		// Test getting non-existent item from cache
-		item, err := store.GetItemFromCache(ctx, "apple", "generic")
-		require.NoError(t, err)
-		assert.Nil(t, item)
+		t.Run("ItemCacheOperations", func(t *testing.T) {
+			// Test getting non-existent item from cache
+			item, err := store.GetItemFromCache(ctx, "apple", "generic")
+			require.NoError(t, err)
+			assert.Nil(t, item)
 
-		// Create and upsert an item to cache
-		now := time.Now().UTC()
-		cacheItem := &ItemCache{
-			NormalizedName:       "apple",
-			NormalizedBrand:      "generic",
-			DisplayName:          "Apple",
-			DisplayBrand:         "Generic",
-			CaloriesPer100g:      52,
-			ProteinGPer100g:      0.3,
-			TotalFatGPer100g:     0.2,
-			TotalCarbsGPer100g:   14,
-			DietaryFiberGPer100g: 2.4,
-			SodiumMgPer100g:      1,
-			VitaminCMgPer100g:    4.6,
-			FetchedAt:            now,
-			ExpiresAt:            now.AddDate(0, 0, 30),
-		}
+			// Create and upsert an item to cache
+			now := time.Now().UTC()
+			cacheItem := &ItemCache{
+				NormalizedName:       "apple",
+				NormalizedBrand:      "generic",
+				DisplayName:          "Apple",
+				DisplayBrand:         "Generic",
+				CaloriesPer100g:      52,
+				ProteinGPer100g:      0.3,
+				TotalFatGPer100g:     0.2,
+				TotalCarbsGPer100g:   14,
+				DietaryFiberGPer100g: 2.4,
+				SodiumMgPer100g:      1,
+				VitaminCMgPer100g:    4.6,
+				FetchedAt:            now,
+				ExpiresAt:            now.AddDate(0, 0, 30),
+			}
 
-		err = store.UpsertItemCache(ctx, cacheItem)
-		require.NoError(t, err)
-		assert.NotEmpty(t, cacheItem.ID)
+			err = store.UpsertItemCache(ctx, cacheItem)
+			require.NoError(t, err)
+			assert.NotEmpty(t, cacheItem.ID)
 
-		// Retrieve the item from cache
-		retrieved, err := store.GetItemFromCache(ctx, "apple", "generic")
-		require.NoError(t, err)
-		require.NotNil(t, retrieved)
-		assert.Equal(t, "Apple", retrieved.DisplayName)
-		assert.Equal(t, "Generic", retrieved.DisplayBrand)
-		assert.Equal(t, float64(52), retrieved.CaloriesPer100g)
-		assert.Equal(t, float64(0.3), retrieved.ProteinGPer100g)
-		assert.Equal(t, float64(4.6), retrieved.VitaminCMgPer100g)
+			// Retrieve the item from cache
+			retrieved, err := store.GetItemFromCache(ctx, "apple", "generic")
+			require.NoError(t, err)
+			require.NotNil(t, retrieved)
+			assert.Equal(t, "Apple", retrieved.DisplayName)
+			assert.Equal(t, "Generic", retrieved.DisplayBrand)
+			assert.Equal(t, float64(52), retrieved.CaloriesPer100g)
+			assert.Equal(t, float64(0.3), retrieved.ProteinGPer100g)
+			assert.Equal(t, float64(4.6), retrieved.VitaminCMgPer100g)
 
-		// Test updating the same item (upsert existing)
-		cacheItem.CaloriesPer100g = 55    // Updated calorie value
-		cacheItem.VitaminCMgPer100g = 5.0 // Updated vitamin C value
-		err = store.UpsertItemCache(ctx, cacheItem)
-		require.NoError(t, err)
+			// Test updating the same item (upsert existing)
+			cacheItem.CaloriesPer100g = 55    // Updated calorie value
+			cacheItem.VitaminCMgPer100g = 5.0 // Updated vitamin C value
+			err = store.UpsertItemCache(ctx, cacheItem)
+			require.NoError(t, err)
 
-		// Retrieve updated item
-		updated, err := store.GetItemFromCache(ctx, "apple", "generic")
-		require.NoError(t, err)
-		require.NotNil(t, updated)
-		assert.Equal(t, float64(55), updated.CaloriesPer100g)
-		assert.Equal(t, float64(5.0), updated.VitaminCMgPer100g)
-		assert.Equal(t, retrieved.ID, updated.ID) // Same ID for update
+			// Retrieve updated item
+			updated, err := store.GetItemFromCache(ctx, "apple", "generic")
+			require.NoError(t, err)
+			require.NotNil(t, updated)
+			assert.Equal(t, float64(55), updated.CaloriesPer100g)
+			assert.Equal(t, float64(5.0), updated.VitaminCMgPer100g)
+			assert.Equal(t, retrieved.ID, updated.ID) // Same ID for update
 
-		// Test refresh cache functionality
-		refreshedItem := &ItemCache{
-			DisplayName:          "Fresh Apple",
-			DisplayBrand:         "Organic",
-			CaloriesPer100g:      58,
-			ProteinGPer100g:      0.4,
-			TotalFatGPer100g:     0.1,
-			TotalCarbsGPer100g:   15,
-			DietaryFiberGPer100g: 2.8,
-		}
-		err = store.RefreshItemCache(ctx, "apple", "generic", refreshedItem)
-		require.NoError(t, err)
+			// Test refresh cache functionality
+			refreshedItem := &ItemCache{
+				DisplayName:          "Fresh Apple",
+				DisplayBrand:         "Organic",
+				CaloriesPer100g:      58,
+				ProteinGPer100g:      0.4,
+				TotalFatGPer100g:     0.1,
+				TotalCarbsGPer100g:   15,
+				DietaryFiberGPer100g: 2.8,
+			}
+			err = store.RefreshItemCache(ctx, "apple", "generic", refreshedItem)
+			require.NoError(t, err)
 
-		refreshed, err := store.GetItemFromCache(ctx, "apple", "generic")
-		require.NoError(t, err)
-		require.NotNil(t, refreshed)
-		assert.Equal(t, "Fresh Apple", refreshed.DisplayName)
-		assert.Equal(t, "Organic", refreshed.DisplayBrand)
-		assert.Equal(t, float64(58), refreshed.CaloriesPer100g)
-	})
+			refreshed, err := store.GetItemFromCache(ctx, "apple", "generic")
+			require.NoError(t, err)
+			require.NotNil(t, refreshed)
+			assert.Equal(t, "Fresh Apple", refreshed.DisplayName)
+			assert.Equal(t, "Organic", refreshed.DisplayBrand)
+			assert.Equal(t, float64(58), refreshed.CaloriesPer100g)
+		})
 	*/
 
 	t.Run("ItemAliasOperations", func(t *testing.T) {
@@ -401,26 +401,26 @@ func TestSQLiteStore(t *testing.T) {
 
 	// DEPRECATED: CacheExpirationCheck test - commenting out as methods are replaced by new Item methods
 	/*
-	t.Run("CacheExpirationCheck", func(t *testing.T) {
-		// Test nil item
-		expired := store.IsItemCacheExpired(nil)
-		assert.True(t, expired)
+		t.Run("CacheExpirationCheck", func(t *testing.T) {
+			// Test nil item
+			expired := store.IsItemCacheExpired(nil)
+			assert.True(t, expired)
 
-		// Test expired item
-		now := time.Now().UTC()
-		expiredItem := &ItemCache{
-			ExpiresAt: now.Add(-1 * time.Hour), // Expired 1 hour ago
-		}
-		expired = store.IsItemCacheExpired(expiredItem)
-		assert.True(t, expired)
+			// Test expired item
+			now := time.Now().UTC()
+			expiredItem := &ItemCache{
+				ExpiresAt: now.Add(-1 * time.Hour), // Expired 1 hour ago
+			}
+			expired = store.IsItemCacheExpired(expiredItem)
+			assert.True(t, expired)
 
-		// Test valid item
-		validItem := &ItemCache{
-			ExpiresAt: now.Add(1 * time.Hour), // Expires in 1 hour
-		}
-		expired = store.IsItemCacheExpired(validItem)
-		assert.False(t, expired)
-	})
+			// Test valid item
+			validItem := &ItemCache{
+				ExpiresAt: now.Add(1 * time.Hour), // Expires in 1 hour
+			}
+			expired = store.IsItemCacheExpired(validItem)
+			assert.False(t, expired)
+		})
 	*/
 
 	t.Run("GetNutritionSummary", func(t *testing.T) {
