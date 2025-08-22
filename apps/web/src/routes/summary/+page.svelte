@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
   import Goals from "$lib/components/Goals.svelte";
+  import { transformNutritionSummary } from "$lib/utils/nutrition";
 
   let currentView: 'today' | 'week' = 'today';
   let isLoading = false;
@@ -71,60 +72,7 @@
   }
 
   // Extract current nutrition values for goals comparison
-  $: currentNutrition = summaryData?.summary ? {
-    // Basic macronutrients
-    calories: summaryData.summary.total_calories || 0,
-    protein_g: summaryData.summary.total_protein_g || 0,
-    total_carbs_g: summaryData.summary.total_carbs_g || 0,
-    total_fat_g: summaryData.summary.total_fat_g || 0,
-    dietary_fiber_g: summaryData.summary.total_fiber_g || 0,
-    sodium_mg: summaryData.summary.total_sodium_mg || 0,
-    
-    // Fat types
-    saturated_fat_g: summaryData.summary.total_saturated_fat_g || 0,
-    trans_fat_g: summaryData.summary.total_trans_fat_g || 0,
-    cholesterol_mg: summaryData.summary.total_cholesterol_mg || 0,
-    
-    // Sugar types
-    total_sugars_g: summaryData.summary.total_sugars_g || 0,
-    added_sugars_g: summaryData.summary.total_added_sugars_g || 0,
-    
-    // B-Complex vitamins
-    thiamine_mg: summaryData.summary.total_thiamine_mg || 0,
-    riboflavin_mg: summaryData.summary.total_riboflavin_mg || 0,
-    niacin_mg: summaryData.summary.total_niacin_mg || 0,
-    vitamin_b6_mg: summaryData.summary.total_vitamin_b6_mg || 0,
-    folate_mcg: summaryData.summary.total_folate_mcg || 0,
-    vitamin_b12_mcg: summaryData.summary.total_vitamin_b12_mcg || 0,
-    biotin_mcg: summaryData.summary.total_biotin_mcg || 0,
-    pantothenic_acid_mg: summaryData.summary.total_pantothenic_acid_mg || 0,
-    
-    // Fat-soluble vitamins
-    vitamin_a_mcg: summaryData.summary.total_vitamin_a_mcg || 0,
-    vitamin_d_mcg: summaryData.summary.total_vitamin_d_mcg || 0,
-    vitamin_e_mg: summaryData.summary.total_vitamin_e_mg || 0,
-    vitamin_k_mcg: summaryData.summary.total_vitamin_k_mcg || 0,
-    
-    // Water-soluble vitamins
-    vitamin_c_mg: summaryData.summary.total_vitamin_c_mg || 0,
-    choline_mg: summaryData.summary.total_choline_mg || 0,
-    
-    // Essential minerals
-    calcium_mg: summaryData.summary.total_calcium_mg || 0,
-    iron_mg: summaryData.summary.total_iron_mg || 0,
-    magnesium_mg: summaryData.summary.total_magnesium_mg || 0,
-    phosphorus_mg: summaryData.summary.total_phosphorus_mg || 0,
-    potassium_mg: summaryData.summary.total_potassium_mg || 0,
-    zinc_mg: summaryData.summary.total_zinc_mg || 0,
-    copper_mg: summaryData.summary.total_copper_mg || 0,
-    manganese_mg: summaryData.summary.total_manganese_mg || 0,
-    selenium_mcg: summaryData.summary.total_selenium_mcg || 0,
-    iodine_mcg: summaryData.summary.total_iodine_mcg || 0,
-    molybdenum_mcg: summaryData.summary.total_molybdenum_mcg || 0,
-    chromium_mcg: summaryData.summary.total_chromium_mcg || 0,
-    fluoride_mg: summaryData.summary.total_fluoride_mg || 0,
-    chloride_mg: summaryData.summary.total_chloride_mg || 0,
-  } : undefined;
+  $: currentNutrition = summaryData?.summary ? transformNutritionSummary(summaryData.summary) : undefined;
 </script>
 
 <svelte:head>
