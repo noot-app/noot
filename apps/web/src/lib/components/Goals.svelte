@@ -9,11 +9,26 @@
 
   export let currentNutrition: Record<string, number> = {};
   export let showMealContribution = false; // New prop to indicate meal-specific view
+  export let isSharedView = false; // New prop for shareable link context (non-logged-in users)
   export let title = "Nutrition Goals"; // Customizable title
 
   let goals: Goals | null = null;
   let loading = true;
   let error = "";
+
+  // Compute dynamic title based on context
+  $: dynamicTitle = (() => {
+    if (showMealContribution) {
+      if (isSharedView || (goals?.source === "dri")) {
+        return "How this meal contributes to DRI Nutrition Targets";
+      }
+      return "How this meal contributes to your daily goals";
+    }
+    return title;
+  })();
+
+  // Determine if we're in DRI mode
+  $: isDriMode = isSharedView || (goals?.source === "dri");
 
   // Helper to safely get current nutrient value
   function getCurrentNutrient(nutrient: string): number {
@@ -25,13 +40,26 @@
     try {
       loading = true;
       error = "";
-      const response = await apiClient.GET("/goals");
       
-      if (response.error) {
-        throw new Error(`API Error: ${response.error}`);
-      }
+      // For shared views, always use DRI defaults
+      if (isSharedView) {
+        const response = await apiClient.GET("/goals");
+        
+        if (response.error) {
+          throw new Error(`API Error: ${response.error}`);
+        }
+        
+        goals = response.data.goals;
+      } else {
+        // Normal user goals loading with DRI fallback
+        const response = await apiClient.GET("/goals");
+        
+        if (response.error) {
+          throw new Error(`API Error: ${response.error}`);
+        }
 
-      goals = response.data.goals;
+        goals = response.data.goals;
+      }
     } catch (err) {
       error = `Failed to load nutrition goals: ${err}`;
       console.error("Goals error:", err);
@@ -144,15 +172,32 @@
 
 <div class="card bg-base-200 shadow-lg">
   <div class="card-body">
-    <h2 class="card-title flex items-center gap-2">
+    <h2 class="card-title flex items-center gap-2 text-primary">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
-      {title}
+      Nutrition Targets
+      <!-- DRI tooltip when showing DRI targets -->
+      {#if (showMealContribution && isDriMode)}
+        <div class="tooltip tooltip-bottom" data-tip="Dietary Reference Intakes (DRI) are nutrient reference values developed by health experts to help individuals achieve adequate nutrition.">
+          <a href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dietary-guidance" target="_blank" rel="noopener noreferrer" class="text-info hover:text-info-focus text-sm ml-1" aria-label="Learn more about DRI">
+            <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </a>
+        </div>
+      {/if}
     </h2>
+    
+    <!-- Subtext for meal contribution -->
+    {#if showMealContribution}
+      <p class="text-sm text-base-content/70 mb-4">{dynamicTitle}</p>
+    {/if}
 
-    <!-- Goal Selector -->
-    <GoalSelector onGoalChanged={handleGoalChanged} />
+    <!-- Goal Selector - Only show when not in meal contribution mode -->
+    {#if !showMealContribution}
+      <GoalSelector onGoalChanged={handleGoalChanged} />
+    {/if}
 
     {#if loading}
       <div class="text-center py-4">
@@ -170,22 +215,28 @@
       <div class="space-y-3">
         <!-- Goals Header -->
         <div class="flex justify-between items-center">
-          <div class="text-sm text-base-content/70">
-            <span class="badge badge-outline">
-              {goals.life_stage.sex} • {goals.life_stage.age_bracket}
-            </span>
-            {#if goals.source === "custom"}
-              <span class="badge badge-primary ml-2">
-                {goals.custom_name || "Custom Goals"}
+          <!-- Only show demographic info when not in meal contribution mode -->
+          {#if !showMealContribution}
+            <div class="text-sm text-base-content/70">
+              <span class="badge badge-outline">
+                {goals.life_stage.sex} • {goals.life_stage.age_bracket}
               </span>
-            {:else}
-              <div class="tooltip tooltip-bottom ml-2" data-tip="Dietary Reference Intakes (DRI) are nutrient reference values developed by health experts. Visit your profile to customize your nutrition goals.">
-                <span class="badge badge-primary">
-                  DRI Guidelines
+              {#if goals.source === "custom"}
+                <span class="badge badge-primary ml-2">
+                  {goals.custom_name || "Custom Goals"}
                 </span>
-              </div>
+              {:else}
+                <div class="tooltip tooltip-bottom ml-2" data-tip="Dietary Reference Intakes (DRI) are nutrient reference values developed by health experts. Learn more at nal.usda.gov">
+                  <a href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dietary-guidance" target="_blank" rel="noopener noreferrer" class="badge badge-primary hover:badge-primary-focus">
+                  DRI Guidelines
+                  <svg class="w-3 h-3 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  </a>
+                </div>
             {/if}
           </div>
+          {/if}
         </div>
 
         <!-- Key Nutrients Progress -->
@@ -195,7 +246,6 @@
             {@const targetNutrients = keyNutrients.filter(n => goals?.targets[n] !== undefined)}
             {#if targetNutrients.length > 0}
               <div>
-                <h4 class="font-semibold text-base mb-3 text-primary">Nutrition Targets</h4>
                 <div class="space-y-3">
                   {#each targetNutrients as nutrient}
                     {@const current = getCurrentNutrient(nutrient)}

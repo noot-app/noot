@@ -37,18 +37,12 @@
   async function loadGoalSets() {
     try {
       loading = true;
-      const response = await fetch('/api/v1/goals/sets', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const { data, error } = await apiClient.GET('/goals/sets');
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (error) {
+        throw new Error(`API Error: ${JSON.stringify(error)}`);
       }
 
-      const data: GoalSetsResponse = await response.json();
       goalSets = data.goal_sets;
       activeGoalName = data.active_goal_name || "";
     } catch (err) {
@@ -64,16 +58,12 @@
 
     try {
       switching = true;
-      const response = await fetch('/api/v1/goals/active', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: goalName })
+      const { error } = await apiClient.PUT('/goals/active', {
+        body: { name: goalName }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (error) {
+        throw new Error(`API Error: ${JSON.stringify(error)}`);
       }
 
       activeGoalName = goalName;
