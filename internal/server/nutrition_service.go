@@ -126,14 +126,27 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 			if s.offClient != nil {
 				offProduct, err := s.offClient.SearchProduct(ctx, item.Name, getBrandOrEmpty(item.Brand))
 				if err == nil && offProduct != nil {
+					productInfo := map[string]interface{}{
+						"product_name": offProduct.ProductName,
+						"brands":       offProduct.Brands,
+						"nutrients":    offProduct.Nutriments,
+					}
+
+					// Add serving size information if available
+					if offProduct.ServingQuantity != nil {
+						productInfo["serving_quantity"] = fmt.Sprintf("%.0f", float64(*offProduct.ServingQuantity))
+					}
+					if offProduct.ServingQuantityUnit != "" {
+						productInfo["serving_quantity_unit"] = offProduct.ServingQuantityUnit
+					}
+					if offProduct.ServingSize != "" {
+						productInfo["serving_size"] = offProduct.ServingSize
+					}
+
 					nutritionContext = map[string]interface{}{
 						"source": "open_food_facts",
 						"products": []interface{}{
-							map[string]interface{}{
-								"product_name": offProduct.ProductName,
-								"brands":       offProduct.Brands,
-								"nutrients":    offProduct.Nutriments,
-							},
+							productInfo,
 						},
 						"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as reference but provide complete nutrition data including nutrients not available in the context.",
 					}

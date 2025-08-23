@@ -174,3 +174,116 @@ func (m *mockAIProvider) GetNutritionWithContext(ctx context.Context, item Item,
 	}
 	return m.nutritionResponse, nil
 }
+
+func TestNutritionService_OFF_ServingSizeContext(t *testing.T) {
+	// Initialize logger
+	InitLogger()
+
+	// Mock OFF API response with serving size information
+	servingQuantity := FlexFloat(355)
+	mockResponse := OFFSearchResponse{
+		Products: []OFFProduct{
+			{
+				ProductName:         "Cream Soda",
+				Brands:              "Olipop",
+				ServingQuantity:     &servingQuantity,
+				ServingQuantityUnit: "ml",
+				ServingSize:         "1 can (355 ml)",
+				Nutriments: OFFNutriments{
+					EnergyKcal100g:    flexFloatPtr(11.3),
+					Carbohydrates100g: flexFloatPtr(4.79),
+					Sugars100g:        flexFloatPtr(0.563),
+					Fiber100g:         flexFloatPtr(2.54),
+				},
+			},
+		},
+		Count: 1,
+	}
+
+	// Create mock OFF server
+	offServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockResponse)
+	}))
+	defer offServer.Close()
+
+	// Create test storage
+	store, err := storage.NewSQLiteStore(":memory:")
+	require.NoError(t, err)
+	require.NoError(t, store.Migrate())
+
+	// Create OFF client
+	offClient := NewOFFClient(OFFClientConfig{
+		BaseURL:   offServer.URL,
+		UserAgent: "test-agent",
+		Timeout:   5 * time.Second,
+		Enabled:   true,
+	})
+
+	// Create mock AI provider
+	mockAI := &mockAIProvider{
+		nutritionResponse: CompleteNutrient{
+			Calories: 40,
+			Protein:  0,
+		},
+	}
+
+	// Create nutrition service
+	service := &NutritionService{
+		aiProvider: mockAI,
+		offClient:  offClient,
+		converter:  NewUnitConverter(),
+		store:      store,
+	}
+
+	// Test item with brand (to trigger OFF lookup)
+	brand := "Olipop"
+	items := []Item{
+		{
+			Name:  "Cream soda Olipop",
+			Grams: 355,
+			Brand: &brand,
+		},
+	}
+
+	// Hydrate nutrition
+	ctx := context.Background()
+	result, err := service.HydrateNutritionWithoutCache(ctx, items)
+
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.NotNil(t, result[0].Nutrients)
+
+	// Verify that the context received by the AI provider includes serving size information
+	require.NotNil(t, mockAI.contextReceived)
+	contextMap, ok := mockAI.contextReceived.(map[string]interface{})
+	require.True(t, ok, "Context should be a map")
+
+	source, ok := contextMap["source"].(string)
+	require.True(t, ok)
+	assert.Equal(t, "open_food_facts", source)
+
+	products, ok := contextMap["products"].([]interface{})
+	require.True(t, ok)
+	require.Len(t, products, 1)
+
+	product, ok := products[0].(map[string]interface{})
+	require.True(t, ok)
+
+	// Verify basic product information
+	assert.Equal(t, "Cream Soda", product["product_name"])
+	assert.Equal(t, "Olipop", product["brands"])
+
+	// Verify serving size information is included
+	servingQuantityStr, ok := product["serving_quantity"].(string)
+	require.True(t, ok, "serving_quantity should be present as string")
+	assert.Equal(t, "355", servingQuantityStr)
+
+	servingUnit, ok := product["serving_quantity_unit"].(string)
+	require.True(t, ok, "serving_quantity_unit should be present")
+	assert.Equal(t, "ml", servingUnit)
+
+	servingSize, ok := product["serving_size"].(string)
+	require.True(t, ok, "serving_size should be present")
+	assert.Equal(t, "1 can (355 ml)", servingSize)
+}

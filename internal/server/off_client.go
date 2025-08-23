@@ -22,11 +22,14 @@ type OFFClient struct {
 
 // OFFProduct represents a product from Open Food Facts
 type OFFProduct struct {
-	ProductName string        `json:"product_name"`
-	Brands      string        `json:"brands"`
-	Nutriments  OFFNutriments `json:"nutriments"`
-	ID          string        `json:"id"`
-	Code        string        `json:"code"`
+	ProductName         string        `json:"product_name"`
+	Brands              string        `json:"brands"`
+	Nutriments          OFFNutriments `json:"nutriments"`
+	ID                  string        `json:"id"`
+	Code                string        `json:"code"`
+	ServingQuantity     *FlexFloat    `json:"serving_quantity"`
+	ServingQuantityUnit string        `json:"serving_quantity_unit"`
+	ServingSize         string        `json:"serving_size"`
 }
 
 // OFFNutriments represents nutrition data from OFF
@@ -213,7 +216,7 @@ func (c *OFFClient) SearchProduct(ctx context.Context, name, brand string) (*OFF
 	searchURL := fmt.Sprintf("%s/api/v2/search", c.baseURL)
 	params := url.Values{}
 	params.Set("q", query)
-	params.Set("fields", "product_name,brands,nutriments,id,code")
+	params.Set("fields", "product_name,brands,nutriments,id,code,serving_quantity,serving_quantity_unit,serving_size")
 	params.Set("page_size", "50") // Limit results
 
 	// Use brands_tags for more precise brand filtering when available

@@ -83,7 +83,7 @@ func TestOFFClient_SearchProduct(t *testing.T) {
 		// With new brand filtering logic: q should be "whole milk" and brands_tags should be "clover"
 		assert.Contains(t, r.URL.RawQuery, "q=whole+milk")
 		assert.Contains(t, r.URL.RawQuery, "brands_tags=clover")
-		assert.Contains(t, r.URL.RawQuery, "fields=product_name")
+		assert.Contains(t, r.URL.RawQuery, "fields=product_name%2Cbrands%2Cnutriments%2Cid%2Ccode%2Cserving_quantity%2Cserving_quantity_unit%2Cserving_size")
 		assert.Contains(t, r.URL.RawQuery, "page_size=50")
 
 		w.Header().Set("Content-Type", "application/json")
@@ -107,6 +107,65 @@ func TestOFFClient_SearchProduct(t *testing.T) {
 	require.NotNil(t, product)
 	assert.Equal(t, "Whole Milk", product.ProductName)
 	assert.Equal(t, "Clover", product.Brands)
+}
+
+func TestOFFClient_SearchProduct_WithServingSize(t *testing.T) {
+	// Mock OFF API response with serving size information
+	servingQuantity := FlexFloat(355)
+	mockResponse := OFFSearchResponse{
+		Products: []OFFProduct{
+			{
+				ProductName:         "Cream Soda",
+				Brands:              "Olipop",
+				ServingQuantity:     &servingQuantity,
+				ServingQuantityUnit: "ml",
+				ServingSize:         "1 can (355 ml)",
+				Nutriments: OFFNutriments{
+					EnergyKcal100g:    flexFloatPtr(11.3),
+					Carbohydrates100g: flexFloatPtr(4.79),
+					Sugars100g:        flexFloatPtr(0.563),
+					Fiber100g:         flexFloatPtr(2.54),
+				},
+			},
+		},
+		Count: 1,
+	}
+
+	// Create test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v2/search", r.URL.Path)
+		assert.Contains(t, r.URL.RawQuery, "q=cream+soda")
+		assert.Contains(t, r.URL.RawQuery, "brands_tags=olipop")
+		assert.Contains(t, r.URL.RawQuery, "serving_quantity")
+		assert.Contains(t, r.URL.RawQuery, "serving_size")
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockResponse)
+	}))
+	defer server.Close()
+
+	// Create client
+	client := NewOFFClient(OFFClientConfig{
+		BaseURL:   server.URL,
+		UserAgent: "test-agent",
+		Timeout:   5 * time.Second,
+		Enabled:   true,
+	})
+
+	// Test search
+	ctx := context.Background()
+	product, err := client.SearchProduct(ctx, "cream soda", "olipop")
+
+	require.NoError(t, err)
+	require.NotNil(t, product)
+	assert.Equal(t, "Cream Soda", product.ProductName)
+	assert.Equal(t, "Olipop", product.Brands)
+
+	// Verify serving size information
+	require.NotNil(t, product.ServingQuantity)
+	assert.Equal(t, FlexFloat(355), *product.ServingQuantity)
+	assert.Equal(t, "ml", product.ServingQuantityUnit)
+	assert.Equal(t, "1 can (355 ml)", product.ServingSize)
 }
 
 func TestOFFClient_SearchProduct_NoResults(t *testing.T) {
