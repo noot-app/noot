@@ -167,13 +167,24 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		for _, cachedServing := range cachedServings {
 			// Check if cache is still fresh (30 days)
 			if time.Since(cachedServing.item.UpdatedAt) < 30*24*time.Hour {
-				LogDebug("Using cached serving data - scaling from cached serving to requested serving",
-					"name", item.Name, "cached_grams", cachedServing.servingGrams, "requested_grams", item.Grams)
+				// Determine scaling method based on user input and cached data reliability
+				if s.shouldUse100gScaling(item, cachedServing.item) {
+					LogDebug("Using cached item with per-100g scaling (user provided grams or unreliable base units)",
+						"name", item.Name, "requested_grams", item.Grams)
 
-				nutrition := s.scaleNutritionFromCachedServing(cachedServing.item, cachedServing.servingGrams, item.Grams)
-				item.Nutrients = &nutrition
+					nutrition := s.convertCachedToNutrients(cachedServing.item, item)
+					item.Nutrients = &nutrition
 
-				return item, nil
+					return item, nil
+				} else {
+					LogDebug("Using cached serving data - scaling from cached serving to requested serving",
+						"name", item.Name, "cached_grams", cachedServing.servingGrams, "requested_grams", item.Grams)
+
+					nutrition := s.scaleNutritionFromCachedServing(cachedServing.item, cachedServing.servingGrams, item.Grams)
+					item.Nutrients = &nutrition
+
+					return item, nil
+				}
 			}
 		}
 	}
@@ -417,6 +428,22 @@ func (s *NutritionService) getNormalizedGrams(item Item) float64 {
 	return item.Grams
 }
 
+// shouldUse100gScaling determines if we should use per-100g scaling instead of base unit scaling
+func (s *NutritionService) shouldUse100gScaling(item Item, cachedItem *storage.Item) bool {
+	// If user provided consumption in grams (no logical units), prefer 100g scaling
+	if item.UserUnit == nil || *item.UserUnit == "g" || *item.UserUnit == "grams" || *item.UserUnit == "gram" {
+		return true
+	}
+
+	// If cached item doesn't have reliable original serving data, use 100g scaling
+	if cachedItem.OriginalServingGrams == nil || *cachedItem.OriginalServingGrams <= 0 {
+		return true
+	}
+
+	// Otherwise, use base unit scaling (more accurate for logical units like "cans", "slices", etc.)
+	return false
+}
+
 // convertExactCachedToNutrients converts cached data from exact serving match (uses original values)
 func (s *NutritionService) convertExactCachedToNutrients(cached *storage.Item) CompleteNutrient {
 	// If we have original serving data, use it directly (no conversion needed)
@@ -517,12 +544,12 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 	// Normalize nutrition values to single unit if BaseQuantity is set
 	normalizedNutrients := nutrients
 	normalizedGrams := actualGrams
-	
+
 	if item.BaseQuantity != nil && *item.BaseQuantity > 1.0 {
 		// Normalize to single unit by dividing by base quantity
 		divider := *item.BaseQuantity
 		normalizedGrams = actualGrams / divider
-		
+
 		normalizedNutrients = CompleteNutrient{
 			Calories:        nutrients.Calories / divider,
 			Protein:         nutrients.Protein / divider,

@@ -292,7 +292,7 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 			// If user specified more than 1 unit, normalize to single unit
 			baseQuantity = i.UserQuantity
 		}
-		
+
 		clean = append(clean, Item{
 			Name:         name,
 			Grams:        *i.Grams,

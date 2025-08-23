@@ -27,7 +27,7 @@ func TestNormalizationLogic(t *testing.T) {
 	t.Run("MultiUnitItemNormalization", func(t *testing.T) {
 		item := Item{
 			Name:         "Bananas",
-			Grams:        240.0,       // Total weight for 2 bananas
+			Grams:        240.0, // Total weight for 2 bananas
 			UserQuantity: floatPtr(2.0),
 			UserUnit:     stringPtr("bananas"),
 			BaseQuantity: floatPtr(2.0), // Should normalize to single banana
@@ -40,7 +40,7 @@ func TestNormalizationLogic(t *testing.T) {
 	t.Run("FractionalQuantityDoesNotNormalize", func(t *testing.T) {
 		item := Item{
 			Name:         "Pizza slice",
-			Grams:        75.0,        // Half a slice
+			Grams:        75.0, // Half a slice
 			UserQuantity: floatPtr(0.5),
 			UserUnit:     stringPtr("slice"),
 			BaseQuantity: nil, // Fractional quantities don't set BaseQuantity
@@ -216,16 +216,68 @@ func TestScalingFromNormalizedCache(t *testing.T) {
 		}
 
 		// User wants 3 cans
-		fromGrams := 355.0  // Base: 1 can
-		toGrams := 1065.0   // Target: 3 cans (355 * 3)
+		fromGrams := 355.0 // Base: 1 can
+		toGrams := 1065.0  // Target: 3 cans (355 * 3)
 
 		result := service.scaleNutritionFromCachedServing(cachedItem, fromGrams, toGrams)
 
 		// Should scale by factor of 3
-		assert.Equal(t, 420.0, result.Calories)     // 140 * 3
+		assert.Equal(t, 420.0, result.Calories)    // 140 * 3
 		assert.Equal(t, 105.0, result.Sodium)      // 35 * 3
 		assert.Equal(t, 114.0, result.TotalCarbs)  // 38 * 3
 		assert.Equal(t, 111.0, result.TotalSugars) // 37 * 3
+	})
+}
+
+func TestScalingMethodSelection(t *testing.T) {
+	service := NewNutritionService(nil)
+
+	t.Run("ShouldUse100gScalingForGramInput", func(t *testing.T) {
+		item := Item{
+			Name:         "Chicken breast",
+			Grams:        250.0,
+			UserQuantity: floatPtr(250.0),
+			UserUnit:     stringPtr("g"), // User provided grams
+		}
+
+		cachedItem := &storage.Item{
+			OriginalServingGrams: floatPtr(150.0), // Some base serving
+		}
+
+		should100g := service.shouldUse100gScaling(item, cachedItem)
+		assert.True(t, should100g, "Should use 100g scaling when user provides grams")
+	})
+
+	t.Run("ShouldUseBaseScalingForLogicalUnits", func(t *testing.T) {
+		item := Item{
+			Name:         "Coca Cola",
+			Grams:        355.0,
+			UserQuantity: floatPtr(1.0),
+			UserUnit:     stringPtr("can"), // Logical unit
+		}
+
+		cachedItem := &storage.Item{
+			OriginalServingGrams: floatPtr(355.0), // Reliable base serving
+		}
+
+		should100g := service.shouldUse100gScaling(item, cachedItem)
+		assert.False(t, should100g, "Should use base unit scaling for logical units with reliable cache")
+	})
+
+	t.Run("ShouldUse100gScalingWhenCacheUnreliable", func(t *testing.T) {
+		item := Item{
+			Name:         "Apple",
+			Grams:        180.0,
+			UserQuantity: floatPtr(1.0),
+			UserUnit:     stringPtr("apple"), // Logical unit
+		}
+
+		cachedItem := &storage.Item{
+			OriginalServingGrams: nil, // No reliable base serving data
+		}
+
+		should100g := service.shouldUse100gScaling(item, cachedItem)
+		assert.True(t, should100g, "Should use 100g scaling when cache lacks reliable base serving data")
 	})
 }
 
