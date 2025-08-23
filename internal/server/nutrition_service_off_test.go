@@ -13,6 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// flexFloatPtr creates a pointer to a FlexFloat for tests
+func flexFloatPtr(f float64) *FlexFloat {
+	ff := FlexFloat(f)
+	return &ff
+}
+
 func TestNutritionService_OFF_Integration(t *testing.T) {
 	// Initialize logger
 	InitLogger()
@@ -23,20 +29,17 @@ func TestNutritionService_OFF_Integration(t *testing.T) {
 			{
 				ProductName: "Whole Milk",
 				Brands:      "Test Brand",
-				CompletedT:  0.9,
 				Nutriments: OFFNutriments{
-					EnergyKcal100g:    offFloatPtr(60),
-					Proteins100g:      offFloatPtr(3.4),
-					Fat100g:           offFloatPtr(3.3),
-					Carbohydrates100g: offFloatPtr(4.7),
-					Sodium100g:        offFloatPtr(44),
+					EnergyKcal100g:    flexFloatPtr(60),
+					Proteins100g:      flexFloatPtr(3.4),
+					Fat100g:           flexFloatPtr(3.3),
+					Carbohydrates100g: flexFloatPtr(4.7),
+					Sodium100g:        flexFloatPtr(44),
 				},
 			},
 		},
 		Count: 1,
-	}
-
-	// Create mock OFF server
+	} // Create mock OFF server
 	offServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(mockResponse)
@@ -47,9 +50,23 @@ func TestNutritionService_OFF_Integration(t *testing.T) {
 	store, err := storage.NewSQLiteStore(":memory:")
 	require.NoError(t, err)
 
-	// Create nutrition service with mock OFF client
+	// Create mock AI provider that will receive OFF context and return enhanced nutrition
+	mockAI := &mockAIProvider{
+		nutritionResponse: CompleteNutrient{
+			// AI should return enhanced nutrition data for 250g serving, potentially using OFF context
+			Calories:   150,   // Expected final result
+			Protein:    8.5,   // Expected final result
+			TotalFat:   8.25,  // Expected final result
+			TotalCarbs: 11.75, // Expected final result
+			Sodium:     110,   // Expected final result
+			VitaminB12: 2.4,   // AI can provide nutrients not available in OFF
+		},
+		contextReceived: nil,
+	}
+
+	// Create nutrition service with mock AI provider and OFF client
 	service := &NutritionService{
-		aiProvider: &mockAIProvider{}, // Fallback should not be used
+		aiProvider: mockAI,
 		offClient: NewOFFClient(OFFClientConfig{
 			BaseURL:   offServer.URL,
 			UserAgent: "test-agent",
@@ -75,27 +92,17 @@ func TestNutritionService_OFF_Integration(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, hydratedItem.Nutrients)
 
-	// Verify nutrition values are scaled correctly (250g serving)
-	// OFF data is per 100g, so 250g should be 2.5x the values
-	expected := CompleteNutrient{
-		Calories:     150,  // 60 * 2.5
-		Protein:      8.5,  // 3.4 * 2.5
-		TotalFat:     8.25, // 3.3 * 2.5
-		TotalCarbs:   11.75, // 4.7 * 2.5
-		Sodium:       110,  // 44 * 2.5
-		// Other fields should be 0 since not in OFF
-		TransFat:     0,
-		Cholesterol:  0,
-		VitaminB12:   0,
-	}
+	// Verify AI was called with OFF context
+	assert.NotNil(t, mockAI.contextReceived, "AI should have been called with context")
 
-	assert.Equal(t, expected.Calories, hydratedItem.Nutrients.Calories)
-	assert.Equal(t, expected.Protein, hydratedItem.Nutrients.Protein)
-	assert.Equal(t, expected.TotalFat, hydratedItem.Nutrients.TotalFat)
-	assert.Equal(t, expected.TotalCarbs, hydratedItem.Nutrients.TotalCarbs)
-	assert.Equal(t, expected.Sodium, hydratedItem.Nutrients.Sodium)
-	assert.Equal(t, expected.TransFat, hydratedItem.Nutrients.TransFat)
-	assert.Equal(t, expected.VitaminB12, hydratedItem.Nutrients.VitaminB12)
+	// Verify the AI returned enhanced nutrition data (combining OFF insight with complete nutrition)
+	assert.Equal(t, 150.0, hydratedItem.Nutrients.Calories)
+	assert.Equal(t, 8.5, hydratedItem.Nutrients.Protein)
+	assert.Equal(t, 8.25, hydratedItem.Nutrients.TotalFat)
+	assert.Equal(t, 11.75, hydratedItem.Nutrients.TotalCarbs)
+	assert.Equal(t, 110.0, hydratedItem.Nutrients.Sodium)
+	// AI can provide additional nutrients not available in OFF
+	assert.Equal(t, 2.4, hydratedItem.Nutrients.VitaminB12)
 }
 
 func TestNutritionService_OFF_Disabled(t *testing.T) {
@@ -143,6 +150,7 @@ func TestNutritionService_OFF_Disabled(t *testing.T) {
 type mockAIProvider struct {
 	nutritionResponse CompleteNutrient
 	shouldError       bool
+	contextReceived   interface{}
 }
 
 func (m *mockAIProvider) TranscribeAudio(ctx context.Context, filePath, mimeType string) (string, error) {
@@ -154,6 +162,13 @@ func (m *mockAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 }
 
 func (m *mockAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteNutrient, error) {
+	return m.GetNutritionWithContext(ctx, item, nil)
+}
+
+func (m *mockAIProvider) GetNutritionWithContext(ctx context.Context, item Item, nutritionContext interface{}) (CompleteNutrient, error) {
+	// Store the context for verification in tests
+	m.contextReceived = nutritionContext
+
 	if m.shouldError {
 		return CompleteNutrient{}, assert.AnError
 	}

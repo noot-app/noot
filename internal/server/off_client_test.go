@@ -20,9 +20,9 @@ func TestMain(m *testing.M) {
 
 func TestNewOFFClient(t *testing.T) {
 	tests := []struct {
-		name     string
-		config   OFFClientConfig
-		wantNil  bool
+		name    string
+		config  OFFClientConfig
+		wantNil bool
 	}{
 		{
 			name: "enabled client",
@@ -64,13 +64,12 @@ func TestOFFClient_SearchProduct(t *testing.T) {
 			{
 				ProductName: "Whole Milk",
 				Brands:      "Clover",
-				CompletedT:  0.8,
 				Nutriments: OFFNutriments{
-					EnergyKcal100g:    offFloatPtr(61),
-					Proteins100g:      offFloatPtr(3.2),
-					Fat100g:           offFloatPtr(3.5),
-					Carbohydrates100g: offFloatPtr(4.8),
-					Calcium100g:       offFloatPtr(113),
+					EnergyKcal100g:    flexFloatPtr(61),
+					Proteins100g:      flexFloatPtr(3.2),
+					Fat100g:           flexFloatPtr(3.5),
+					Carbohydrates100g: flexFloatPtr(4.8),
+					Calcium100g:       flexFloatPtr(113),
 				},
 			},
 		},
@@ -81,10 +80,12 @@ func TestOFFClient_SearchProduct(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/v2/search", r.URL.Path)
 		// Check if query contains the expected parameters (URL encoded)
-		assert.Contains(t, r.URL.RawQuery, "q=clover")
+		// With new brand filtering logic: q should be "whole milk" and brands_tags should be "clover"
+		assert.Contains(t, r.URL.RawQuery, "q=whole+milk")
+		assert.Contains(t, r.URL.RawQuery, "brands_tags=clover")
 		assert.Contains(t, r.URL.RawQuery, "fields=product_name")
-		assert.Contains(t, r.URL.RawQuery, "page_size=5")
-		
+		assert.Contains(t, r.URL.RawQuery, "page_size=50")
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(mockResponse)
 	}))
@@ -106,7 +107,6 @@ func TestOFFClient_SearchProduct(t *testing.T) {
 	require.NotNil(t, product)
 	assert.Equal(t, "Whole Milk", product.ProductName)
 	assert.Equal(t, "Clover", product.Brands)
-	assert.Equal(t, 0.8, product.CompletedT)
 }
 
 func TestOFFClient_SearchProduct_NoResults(t *testing.T) {
@@ -143,11 +143,11 @@ func TestOFFClient_ConvertToCompleteNutrient(t *testing.T) {
 	product := &OFFProduct{
 		ProductName: "Test Product",
 		Nutriments: OFFNutriments{
-			EnergyKcal100g:    offFloatPtr(100),
-			Proteins100g:      offFloatPtr(10),
-			Fat100g:           offFloatPtr(5),
-			Carbohydrates100g: offFloatPtr(12),
-			Sodium100g:        offFloatPtr(500), // mg
+			EnergyKcal100g:    flexFloatPtr(100),
+			Proteins100g:      flexFloatPtr(10),
+			Fat100g:           flexFloatPtr(5),
+			Carbohydrates100g: flexFloatPtr(12),
+			Sodium100g:        flexFloatPtr(500), // mg
 		},
 	}
 
@@ -171,19 +171,18 @@ func TestOFFClient_CalculateMatchScore(t *testing.T) {
 	client := NewOFFClient(OFFClientConfig{Enabled: true})
 
 	tests := []struct {
-		name         string
-		product      *OFFProduct
-		searchName   string
-		searchBrand  string
-		expectMin    float64
-		expectMax    float64
+		name        string
+		product     *OFFProduct
+		searchName  string
+		searchBrand string
+		expectMin   float64
+		expectMax   float64
 	}{
 		{
 			name: "exact match",
 			product: &OFFProduct{
 				ProductName: "whole milk",
 				Brands:      "clover",
-				CompletedT:  0.9,
 			},
 			searchName:  "whole milk",
 			searchBrand: "clover",
@@ -195,7 +194,6 @@ func TestOFFClient_CalculateMatchScore(t *testing.T) {
 			product: &OFFProduct{
 				ProductName: "organic whole milk",
 				Brands:      "clover organic",
-				CompletedT:  0.7,
 			},
 			searchName:  "whole milk",
 			searchBrand: "clover",
@@ -207,7 +205,6 @@ func TestOFFClient_CalculateMatchScore(t *testing.T) {
 			product: &OFFProduct{
 				ProductName: "skim milk",
 				Brands:      "different brand",
-				CompletedT:  0.5,
 			},
 			searchName:  "whole milk",
 			searchBrand: "clover",
@@ -227,16 +224,11 @@ func TestOFFClient_CalculateMatchScore(t *testing.T) {
 
 func TestOFFClient_NilClient(t *testing.T) {
 	var client *OFFClient = nil
-	
+
 	ctx := context.Background()
 	product, err := client.SearchProduct(ctx, "test", "")
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, product)
 	assert.Contains(t, err.Error(), "OFF client not initialized")
-}
-
-// Helper function to create float pointers for OFF tests
-func offFloatPtr(f float64) *float64 {
-	return &f
 }

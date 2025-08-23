@@ -34,7 +34,7 @@ func TestGetLogLevel(t *testing.T) {
 		{"WARN", "WARN", "WARN"},
 		{"ERROR", "ERROR", "ERROR"},
 		{"invalid", "INVALID", "INFO"},  // defaults to INFO
-		{"empty", "", "INFO"},           // defaults to INFO
+		{"empty", "", "ERROR+4"},        // defaults to high level (silent) in test mode
 		{"lowercase", "debug", "DEBUG"}, // should be uppercase
 	}
 
