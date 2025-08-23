@@ -254,36 +254,123 @@ func TestNutritionService_OFF_ServingSizeContext(t *testing.T) {
 	require.Len(t, result, 1)
 	require.NotNil(t, result[0].Nutrients)
 
-	// Verify that the context received by the AI provider includes serving size information
-	require.NotNil(t, mockAI.contextReceived)
-	contextMap, ok := mockAI.contextReceived.(map[string]interface{})
-	require.True(t, ok, "Context should be a map")
+	// With exact serving size match (355g), we should use direct OFF nutrition, not AI
+	// So the AI context should be nil (AI was not called)
+	require.Nil(t, mockAI.contextReceived, "AI should not be called for exact serving matches")
 
-	source, ok := contextMap["source"].(string)
-	require.True(t, ok)
-	assert.Equal(t, "open_food_facts", source)
+	// Verify the nutrition values are correct from direct OFF calculation
+	// Based on OFF data: energy-kcal_100g: 11.3, serving: 355g
+	// Expected: (11.3/100) * 355 = 40.115 calories (should be exactly 40.115, not 40.1 -> 41)
+	assert.InDelta(t, 40.115, result[0].Nutrients.Calories, 0.001, "Calories should be precisely calculated from OFF data")
 
-	products, ok := contextMap["products"].([]interface{})
-	require.True(t, ok)
-	require.Len(t, products, 1)
+	// Carbs: (4.79/100) * 355 = 17.0045g
+	assert.InDelta(t, 17.0045, result[0].Nutrients.TotalCarbs, 0.001, "Total carbs should be calculated from OFF data")
 
-	product, ok := products[0].(map[string]interface{})
-	require.True(t, ok)
+	// Sugars: (0.563/100) * 355 = 1.99865g
+	assert.InDelta(t, 1.99865, result[0].Nutrients.TotalSugars, 0.001, "Total sugars should be calculated from OFF data")
 
-	// Verify basic product information
-	assert.Equal(t, "Cream Soda", product["product_name"])
-	assert.Equal(t, "Olipop", product["brands"])
+	// Fiber: (2.54/100) * 355 = 9.017g
+	assert.InDelta(t, 9.017, result[0].Nutrients.DietaryFiber, 0.001, "Dietary fiber should be calculated from OFF data")
+}
 
-	// Verify serving size information is included
-	servingQuantityStr, ok := product["serving_quantity"].(string)
-	require.True(t, ok, "serving_quantity should be present as string")
-	assert.Equal(t, "355", servingQuantityStr)
+func TestNutritionService_OFF_AdditionalFieldsContext(t *testing.T) {
+	// Initialize logger
+	InitLogger()
 
-	servingUnit, ok := product["serving_quantity_unit"].(string)
-	require.True(t, ok, "serving_quantity_unit should be present")
-	assert.Equal(t, "ml", servingUnit)
+	// Mock OFF API response with all additional fields
+	servingQuantity := FlexFloat(330)
+	beverageFlag := 1
+	mockResponse := OFFSearchResponse{
+		Products: []OFFProduct{
+			{
+				ProductName:         "Energy Drink",
+				Brands:              "PowerUp",
+				ServingQuantity:     &servingQuantity,
+				ServingQuantityUnit: "ml",
+				ServingSize:         "1 can (330 ml)",
+				Ingredients:         []interface{}{"water", "caffeine", "taurine", "B-vitamins"},
+				Link:                "https://world.openfoodfacts.org/product/123456789",
+				Grade:               "d",
+				IsBeverage:          &beverageFlag,
+				Nutriments: OFFNutriments{
+					EnergyKcal100g:    flexFloatPtr(45),
+					Carbohydrates100g: flexFloatPtr(11),
+					Sugars100g:        flexFloatPtr(11),
+				},
+			},
+		},
+		Count: 1,
+	}
 
-	servingSize, ok := product["serving_size"].(string)
-	require.True(t, ok, "serving_size should be present")
-	assert.Equal(t, "1 can (355 ml)", servingSize)
+	// Create mock OFF server
+	offServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockResponse)
+	}))
+	defer offServer.Close()
+
+	// Create test storage
+	store, err := storage.NewSQLiteStore(":memory:")
+	require.NoError(t, err)
+	require.NoError(t, store.Migrate())
+
+	// Create OFF client
+	offClient := NewOFFClient(OFFClientConfig{
+		BaseURL:   offServer.URL,
+		UserAgent: "test-agent",
+		Timeout:   5 * time.Second,
+		Enabled:   true,
+	})
+
+	// Create mock AI provider
+	mockAI := &mockAIProvider{
+		nutritionResponse: CompleteNutrient{
+			Calories: 150,
+			Protein:  1,
+		},
+	}
+
+	// Create nutrition service
+	service := &NutritionService{
+		aiProvider: mockAI,
+		offClient:  offClient,
+		converter:  NewUnitConverter(),
+		store:      store,
+	}
+
+	// Test item with brand (to trigger OFF lookup)
+	brand := "PowerUp"
+	items := []Item{
+		{
+			Name:  "Energy Drink PowerUp",
+			Grams: 330,
+			Brand: &brand,
+		},
+	}
+
+	// Hydrate nutrition
+	ctx := context.Background()
+	result, err := service.HydrateNutritionWithoutCache(ctx, items)
+
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.NotNil(t, result[0].Nutrients)
+
+	// With exact serving size match (330g), we should use direct OFF nutrition, not AI
+	// So the AI context should be nil (AI was not called)
+	require.Nil(t, mockAI.contextReceived, "AI should not be called for exact serving matches")
+
+	// Verify the nutrition values are correct from direct OFF calculation
+	// Based on OFF data: energy-kcal_100g: 45, serving: 330g
+	// Expected: (45/100) * 330 = 148.5 calories
+	assert.InDelta(t, 148.5, result[0].Nutrients.Calories, 0.1, "Calories should be calculated directly from OFF data")
+
+	// Protein is not in the test mock data, so it should be 0
+	assert.Equal(t, 0.0, result[0].Nutrients.Protein, "Protein should be 0 when not in OFF data")
+
+	// Carbs: (11/100) * 330 = 36.3g
+	assert.InDelta(t, 36.3, result[0].Nutrients.TotalCarbs, 0.1, "Total carbs should be calculated from OFF data")
+
+	// Sugars: (11/100) * 330 = 36.3g
+	assert.InDelta(t, 36.3, result[0].Nutrients.TotalSugars, 0.1, "Total sugars should be calculated from OFF data")
 }

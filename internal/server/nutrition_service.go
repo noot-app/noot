@@ -123,9 +123,29 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 		go func(index int, item Item) {
 			// Try to get OFF context for this item
 			var nutritionContext interface{}
+			var directNutrition *CompleteNutrient
 			if s.offClient != nil {
 				offProduct, err := s.offClient.SearchProduct(ctx, item.Name, getBrandOrEmpty(item.Brand))
 				if err == nil && offProduct != nil {
+					// Check if we have an exact serving size match - use direct OFF data
+					if offProduct.ServingQuantity != nil &&
+						float64(*offProduct.ServingQuantity) == item.Grams {
+						LogDebug("Exact serving size match found - using direct OFF nutrition",
+							"item", item.Name,
+							"serving_quantity", float64(*offProduct.ServingQuantity),
+							"item_grams", item.Grams)
+
+						// Use precise OFF nutrition directly
+						nutrition := s.offClient.ConvertToCompleteNutrient(offProduct, item.Grams)
+						directNutrition = &nutrition
+					} else {
+						// Fall back to AI with OFF context
+						LogDebug("No exact serving match - using OFF as AI context",
+							"item", item.Name,
+							"serving_quantity", offProduct.ServingQuantity,
+							"item_grams", item.Grams)
+					}
+
 					productInfo := map[string]interface{}{
 						"product_name": offProduct.ProductName,
 						"brands":       offProduct.Brands,
@@ -143,6 +163,20 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 						productInfo["serving_size"] = offProduct.ServingSize
 					}
 
+					// Add additional product information if available
+					if len(offProduct.Ingredients) > 0 {
+						productInfo["ingredients"] = offProduct.Ingredients
+					}
+					if offProduct.Link != "" {
+						productInfo["link"] = offProduct.Link
+					}
+					if offProduct.Grade != "" {
+						productInfo["grade"] = offProduct.Grade
+					}
+					if offProduct.IsBeverage != nil {
+						productInfo["is_beverage"] = *offProduct.IsBeverage
+					}
+
 					nutritionContext = map[string]interface{}{
 						"source": "open_food_facts",
 						"products": []interface{}{
@@ -153,10 +187,19 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 				}
 			}
 
-			nutrition, err := s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
-			if err != nil {
-				results <- result{index: index, item: item, err: err}
-				return
+			// Use direct OFF nutrition if available, otherwise use AI
+			var nutrition CompleteNutrient
+			var err error
+			if directNutrition != nil {
+				nutrition = *directNutrition
+				LogDebug("Using direct OFF nutrition", "item", item.Name, "calories", nutrition.Calories)
+			} else {
+				nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
+				if err != nil {
+					results <- result{index: index, item: item, err: err}
+					return
+				}
+				LogDebug("Using AI nutrition", "item", item.Name, "calories", nutrition.Calories)
 			}
 			item.Nutrients = &nutrition
 			results <- result{index: index, item: item, err: nil}

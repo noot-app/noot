@@ -394,69 +394,67 @@
   }
 </style>
 
-<div class="min-h-screen gradient-bg flex flex-col">
+<div class="gradient-bg {result ? 'overflow-y-auto' : 'flex flex-col'}" style="height: calc(100vh - 8rem);">
   <!-- Main content area -->
 
-  <!-- Main recording interface -->
-  <div class="flex-1 flex items-center justify-center px-4">
-    <div class="text-center max-w-md w-full space-y-8">
-      
-      <!-- Main recording button -->
-      <div class="flex justify-center">
-        <button 
-          class="record-button {isRecording ? 'recording' : ''} {status.includes('Processing') ? 'processing' : ''}"
-          on:click={toggleRecordingWithSound}
-          disabled={status.includes("Processing")}
-          aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-        >
+  <!-- Main recording interface - only show when not complete -->
+  {#if !result}
+    <div class="flex-1 flex items-center justify-center px-4">
+      <div class="text-center max-w-md w-full space-y-8">
+        
+        <!-- Main recording button -->
+        <div class="flex justify-center">
+          <button 
+            class="record-button {isRecording ? 'recording' : ''} {status.includes('Processing') ? 'processing' : ''}"
+            on:click={toggleRecordingWithSound}
+            disabled={status.includes("Processing")}
+            aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+          >
+            {#if status.includes("Processing")}
+              <!-- Processing spinner -->
+              <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            {:else if isRecording}
+              <!-- Stop icon (square) -->
+              <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+            {:else}
+              <!-- Microphone icon -->
+              <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" 
+                      d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            {/if}
+          </button>
+        </div>
+
+        <!-- Status message -->
+        <div class="status-text">
           {#if status.includes("Processing")}
-            <!-- Processing spinner -->
-            <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+            <p class="text-lg text-warning font-medium">Processing your meal...</p>
           {:else if isRecording}
-            <!-- Stop icon (square) -->
-            <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24">
-              <rect x="6" y="6" width="12" height="12" rx="2" />
-            </svg>
+            <p class="text-lg font-medium" style="color: var(--color-dark);">Recording... Tap to stop</p>
+          {:else if error}
+            <p class="text-lg text-error font-medium">{error}</p>
           {:else}
-            <!-- Microphone icon -->
-            <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" 
-                    d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
+            <div class="space-y-2">
+              <p class="text-xl font-semibold text-base-content">Tap to record your meal</p>
+              <p class="text-sm text-base-content/70">Speak naturally about what you ate</p>
+            </div>
           {/if}
-        </button>
-      </div>
+        </div>
 
-      <!-- Status message -->
-      <div class="status-text">
-        {#if status.includes("Processing")}
-          <p class="text-lg text-warning font-medium">Processing your meal...</p>
-        {:else if isRecording}
-          <p class="text-lg font-medium" style="color: var(--color-dark);">Recording... Tap to stop</p>
-        {:else if status === "✅ Complete"}
-          <p class="text-lg text-success font-medium">Complete! Scroll down for results</p>
-        {:else if status === "✅ Updated"}
-          <p class="text-lg text-success font-medium">Updated! Changes saved</p>
-        {:else if error}
-          <p class="text-lg text-error font-medium">{error}</p>
-        {:else}
-          <div class="space-y-2">
-            <p class="text-xl font-semibold text-base-content">Tap to record your meal</p>
-            <p class="text-sm text-base-content/70">Speak naturally about what you ate</p>
-          </div>
-        {/if}
       </div>
-
     </div>
-  </div>
+  {/if}
 
   <!-- Results section (only shown when there are results) -->
   {#if transcript || result}
-    <div class="bg-base-100 border-t border-base-200 p-6 fade-in">
-      <div class="container mx-auto max-w-4xl space-y-6">
+    <div class="h-full bg-base-100 p-6 fade-in">
+      <div class="container mx-auto max-w-4xl space-y-6 h-full">
         
         <!-- Action buttons (Edit/Redo) - only show if we have a consumption ID -->
         {#if consumptionId && status === "✅ Complete"}
