@@ -87,14 +87,11 @@ CREATE TABLE IF NOT EXISTS items (
     original_chromium_mcg REAL,
     original_fluoride_mg REAL,
     original_chloride_mg REAL,
-    -- Soft TTL fields
-    fetched_at DATETIME NOT NULL,
-    expires_at DATETIME NOT NULL,
+    -- Timestamps
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     UNIQUE(normalized_name, normalized_brand)
 );
 
 CREATE INDEX IF NOT EXISTS idx_items_normalized ON items(normalized_name, normalized_brand);
-CREATE INDEX IF NOT EXISTS idx_items_expires_at ON items(expires_at);
 CREATE INDEX IF NOT EXISTS idx_items_display_name ON items(display_name);

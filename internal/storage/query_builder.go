@@ -116,7 +116,7 @@ func GetItemColumns() []string {
 	}
 
 	metaColumns := []string{
-		"fetched_at", "expires_at", "created_at", "updated_at",
+		"created_at", "updated_at",
 	}
 
 	// Combine all columns
@@ -189,15 +189,7 @@ func extractItemValues(item *Item, includeID bool, includeCreatedAt bool) []inte
 		values = append(values, fieldValue.Interface())
 	}
 
-	// Meta columns - calculate fetched_at and expires_at here for consistency
-	fetchedAt := item.CreatedAt // Use created_at as fetched_at for new items
-	if item.UpdatedAt.After(item.CreatedAt) {
-		fetchedAt = item.UpdatedAt // Use updated_at as fetched_at for updated items
-	}
-	expiresAt := fetchedAt.Add(CacheTTL)
-
-	values = append(values, fetchedAt, expiresAt)
-
+	// Meta columns
 	if includeCreatedAt {
 		values = append(values, item.CreatedAt)
 	}
@@ -234,15 +226,10 @@ func scanItemRow(row scannable, item *Item) error {
 		scanArgs[5+i] = fieldValue.Addr().Interface()
 	}
 
-	// Meta columns (skip fetched_at and expires_at as they're not needed in the struct)
-	fetchedAtIdx := 5 + len(nutrientFields)
-	expiresAtIdx := fetchedAtIdx + 1
-	createdAtIdx := expiresAtIdx + 1
+	// Meta columns
+	createdAtIdx := 5 + len(nutrientFields)
 	updatedAtIdx := createdAtIdx + 1
 
-	var fetchedAt, expiresAt interface{} // Temporary variables we don't need
-	scanArgs[fetchedAtIdx] = &fetchedAt
-	scanArgs[expiresAtIdx] = &expiresAt
 	scanArgs[createdAtIdx] = &item.CreatedAt
 	scanArgs[updatedAtIdx] = &item.UpdatedAt
 
