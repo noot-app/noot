@@ -317,6 +317,10 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 		"name":  item.Name,
 		"grams": item.Grams,
 		"brand": item.Brand,
+		// in the future, we might add a field like `nutrition_context` that could contain a data structure of one or multiple results from something like Open Food Facts (OFF)
+		// if we provide data from OFF, it might contain the exact matches and all the complete nutrient data the LLM query might need, only some related products/foods/drinks,
+		// no related items at all, an empty list, or even a mixture of a few of these things. Either way, the LLM will interpret this context to make better informed decisions
+		// on how to best hydrate complete nutrient data that will be returned by this prompt.
 	}
 	inputBytes, _ := json.Marshal(inputObj)
 	input := string(inputBytes)
