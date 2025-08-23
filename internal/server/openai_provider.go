@@ -52,42 +52,6 @@ Do not add or infer items that were not spoken. If an item is given without a qu
 For coffee drinks, assume standard sizes: latte contains 2 shots espresso, cappuccino 1-2 shots. Preserve preparation methods when mentioned (grilled, baked, raw, steamed).`
 }
 
-func (p *OpenAIProvider) parseItemsSystemPrompt() string {
-	return `You extract individual food and drink items from a freeform meal, snack, beverage, or consumption description. Convert all quantities to grams for internal processing while preserving the original user input for display. Return strict JSON with the following structure:
-
-{
-  "items": [
-    {
-      "name": string,
-      "grams": number,
-      "user_quantity": number | null,
-      "user_unit": string | null,
-      "brand": string | null
-    }
-  ]
-}
-
-IMPORTANT INSTRUCTIONS:
-1. EXTRACT INDIVIDUAL ITEMS: Separate each distinct food or drink item mentioned.
-2. CONVERT TO GRAMS: Always provide the "grams" field with the equivalent weight in grams. Use standard food weights:
-   - Butter: 1 stick = 113g, 1 tbsp = 14.2g, 1 cup = 227g
-   - Yogurt: 1 cup = 245g, 1 container (typical) = 170g
-   - Banana: 1 medium = 118g, 1 large = 136g
-   - Eggs: 1 large egg = 50g, 2 large eggs = 100g
-   - Coffee/liquids: 1 cup = 240ml = 240g, 1 tbsp = 15ml = 15g
-   - Apple: 1 medium = 182g, 1 large = 223g
-   - Bread: 1 slice = 28g, 1 thick slice = 35g
-   - Chicken breast: 3.5oz = 100g, 1 breast (typical) = 140g
-   - Rice: 1 cup cooked = 158g, 1 cup uncooked = 185g
-   - Canned beverages: 1 can/bottle = 355ml = 355g (standard 12oz)
-   - Bottled water: 1 bottle = 500ml = 500g (unless otherwise specified)
-
-3. PRESERVE USER INPUT: Store the original quantity and unit in "user_quantity" and "user_unit" for display purposes.
-4. INFER SERVING SIZES: If quantity is not specified, assume reasonable standard serving sizes and convert to grams.
-5. PRESERVE BRANDS: Keep exact brand and product names (e.g., "Clover Sonoma", "Trader Joe's", "Siggi's", "KFC", "Starbucks").
-6. DO NOT ADD NUTRITION DATA: Only extract item identification and weight conversion, not nutrition information.`
-}
-
 // TranscribeAudio implements AIProvider.TranscribeAudio
 func (p *OpenAIProvider) TranscribeAudio(ctx context.Context, filePath, mimeType string) (string, error) {
 	LogDebug("Starting OpenAI transcription", "model", p.config.TranscribeModel, "file", filePath)
