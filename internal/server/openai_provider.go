@@ -286,12 +286,20 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 			LogWarn("Invalid or missing grams value for item", "name", name, "grams", i.Grams)
 			continue
 		}
+		// Detect multi-unit quantities and set base quantity
+		var baseQuantity *float64
+		if i.UserQuantity != nil && *i.UserQuantity > 1.0 {
+			// If user specified more than 1 unit, normalize to single unit
+			baseQuantity = i.UserQuantity
+		}
+		
 		clean = append(clean, Item{
 			Name:         name,
 			Grams:        *i.Grams,
 			UserQuantity: i.UserQuantity,
 			UserUnit:     strPtrOrNil(i.UserUnit),
 			Brand:        strPtrOrNil(i.Brand),
+			BaseQuantity: baseQuantity,
 			Nutrients:    nil, // No nutrition data in phase 1
 		})
 	}

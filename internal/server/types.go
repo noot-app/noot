@@ -10,6 +10,7 @@ type Item struct {
 	UserQuantity *float64          `json:"user_quantity"` // original user input quantity for display
 	UserUnit     *string           `json:"user_unit"`     // original user input unit for display
 	Brand        *string           `json:"brand"`
+	BaseQuantity *float64          `json:"base_quantity,omitempty"` // base quantity to normalize to (e.g., for "2 cans", this would be 2)
 	Nutrients    *CompleteNutrient `json:"nutrients,omitempty"`
 }
 

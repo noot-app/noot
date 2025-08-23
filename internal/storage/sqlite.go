@@ -15,9 +15,6 @@ import (
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 
-// CacheTTL is the default cache time-to-live (30 days)
-const CacheTTL = 30 * 24 * time.Hour
-
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
