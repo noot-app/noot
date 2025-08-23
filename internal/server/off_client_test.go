@@ -83,7 +83,7 @@ func TestOFFClient_SearchProduct(t *testing.T) {
 		// With new brand filtering logic: q should be "whole milk" and brands_tags should be "clover"
 		assert.Contains(t, r.URL.RawQuery, "q=whole+milk")
 		assert.Contains(t, r.URL.RawQuery, "brands_tags=clover")
-		assert.Contains(t, r.URL.RawQuery, "fields=product_name%2Cbrands%2Cnutriments%2Cid%2Ccode%2Cserving_quantity%2Cserving_quantity_unit%2Cserving_size")
+		assert.Contains(t, r.URL.RawQuery, "fields=product_name%2Cbrands%2Cnutriments%2Cid%2Ccode%2Cserving_quantity%2Cserving_quantity_unit%2Cserving_size%2Cingredients%2Clink%2Cgrade%2Cis_beverage")
 		assert.Contains(t, r.URL.RawQuery, "page_size=50")
 
 		w.Header().Set("Content-Type", "application/json")
@@ -168,6 +168,83 @@ func TestOFFClient_SearchProduct_WithServingSize(t *testing.T) {
 	assert.Equal(t, "1 can (355 ml)", product.ServingSize)
 }
 
+func TestOFFClient_SearchProduct_WithAdditionalFields(t *testing.T) {
+	// Mock OFF API response with additional fields
+	servingQuantity := FlexFloat(355)
+	beverageFlag := 1
+	mockResponse := OFFSearchResponse{
+		Products: []OFFProduct{
+			{
+				ProductName:         "Craft Soda",
+				Brands:              "Artisan Brand",
+				ServingQuantity:     &servingQuantity,
+				ServingQuantityUnit: "ml",
+				ServingSize:         "1 bottle (355 ml)",
+				Ingredients:         []interface{}{"water", "cane sugar", "natural flavors", "citric acid"},
+				Link:                "https://world.openfoodfacts.org/product/1234567890",
+				Grade:               "b",
+				IsBeverage:          &beverageFlag,
+				Nutriments: OFFNutriments{
+					EnergyKcal100g:    flexFloatPtr(42),
+					Carbohydrates100g: flexFloatPtr(10.5),
+					Sugars100g:        flexFloatPtr(10.0),
+				},
+			},
+		},
+		Count: 1,
+	}
+
+	// Create test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/v2/search", r.URL.Path)
+		assert.Contains(t, r.URL.RawQuery, "q=craft+soda")
+		assert.Contains(t, r.URL.RawQuery, "brands_tags=artisan-brand")
+		assert.Contains(t, r.URL.RawQuery, "ingredients")
+		assert.Contains(t, r.URL.RawQuery, "link")
+		assert.Contains(t, r.URL.RawQuery, "grade")
+		assert.Contains(t, r.URL.RawQuery, "is_beverage")
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockResponse)
+	}))
+	defer server.Close()
+
+	// Create client
+	client := NewOFFClient(OFFClientConfig{
+		BaseURL:   server.URL,
+		UserAgent: "test-agent",
+		Timeout:   5 * time.Second,
+		Enabled:   true,
+	})
+
+	// Test search
+	ctx := context.Background()
+	product, err := client.SearchProduct(ctx, "craft soda", "artisan brand")
+
+	require.NoError(t, err)
+	require.NotNil(t, product)
+	assert.Equal(t, "Craft Soda", product.ProductName)
+	assert.Equal(t, "Artisan Brand", product.Brands)
+
+	// Verify serving size information
+	require.NotNil(t, product.ServingQuantity)
+	assert.Equal(t, FlexFloat(355), *product.ServingQuantity)
+	assert.Equal(t, "ml", product.ServingQuantityUnit)
+	assert.Equal(t, "1 bottle (355 ml)", product.ServingSize)
+
+	// Verify additional fields
+	require.Len(t, product.Ingredients, 4)
+	assert.Equal(t, "water", product.Ingredients[0])
+	assert.Equal(t, "cane sugar", product.Ingredients[1])
+	assert.Equal(t, "natural flavors", product.Ingredients[2])
+	assert.Equal(t, "citric acid", product.Ingredients[3])
+
+	assert.Equal(t, "https://world.openfoodfacts.org/product/1234567890", product.Link)
+	assert.Equal(t, "b", product.Grade)
+	require.NotNil(t, product.IsBeverage)
+	assert.Equal(t, 1, *product.IsBeverage)
+}
+
 func TestOFFClient_SearchProduct_NoResults(t *testing.T) {
 	// Mock empty response
 	mockResponse := OFFSearchResponse{
@@ -194,6 +271,37 @@ func TestOFFClient_SearchProduct_NoResults(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, product)
 	assert.Contains(t, err.Error(), "no suitable product found in OFF")
+}
+
+func TestOFFClient_ConvertToCompleteNutrient_WithPerServingData(t *testing.T) {
+	client := NewOFFClient(OFFClientConfig{Enabled: true})
+
+	// Test exact serving match with per-serving nutrition data
+	servingQuantity := FlexFloat(355)
+	product := &OFFProduct{
+		ProductName:         "Cream Soda",
+		Brands:              "Olipop",
+		ServingQuantity:     &servingQuantity,
+		ServingQuantityUnit: "ml",
+		Nutriments: OFFNutriments{
+			// Per-100g values would give 40.115 calories when scaled
+			EnergyKcal100g: flexFloatPtr(11.3),
+
+			// Per-serving values (exact from OFF database)
+			EnergyKcalServing: flexFloatPtr(35), // Should use this instead
+		},
+	}
+
+	// Test exact serving size match - should use per-serving data
+	nutrition := client.ConvertToCompleteNutrient(product, 355)
+
+	// Should use exact per-serving value (35) not scaled 100g value (40.115)
+	assert.Equal(t, 35.0, nutrition.Calories, "Should use exact per-serving calories")
+
+	// Test non-exact serving size - should fall back to 100g scaling
+	nutrition = client.ConvertToCompleteNutrient(product, 200)
+	expected := (11.3 / 100.0) * 200 // = 22.6
+	assert.Equal(t, expected, nutrition.Calories, "Should scale from 100g when not exact serving match")
 }
 
 func TestOFFClient_ConvertToCompleteNutrient(t *testing.T) {

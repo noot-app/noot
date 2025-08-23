@@ -30,6 +30,10 @@ type OFFProduct struct {
 	ServingQuantity     *FlexFloat    `json:"serving_quantity"`
 	ServingQuantityUnit string        `json:"serving_quantity_unit"`
 	ServingSize         string        `json:"serving_size"`
+	Ingredients         []interface{} `json:"ingredients"`
+	Link                string        `json:"link"`
+	Grade               string        `json:"grade"`
+	IsBeverage          *int          `json:"is_beverage"`
 }
 
 // OFFNutriments represents nutrition data from OFF
@@ -44,12 +48,61 @@ type OFFNutriments struct {
 	Fiber100g         *FlexFloat `json:"fiber_100g"`
 	Sodium100g        *FlexFloat `json:"sodium_100g"`
 
-	// Vitamins per 100g (in mg unless specified)
-	VitaminA100g *FlexFloat `json:"vitamin-a_100g"` // mcg
-	VitaminC100g *FlexFloat `json:"vitamin-c_100g"` // mg
-	VitaminD100g *FlexFloat `json:"vitamin-d_100g"` // mcg
-	Calcium100g  *FlexFloat `json:"calcium_100g"`   // mg
-	Iron100g     *FlexFloat `json:"iron_100g"`      // mg
+	// Additional minerals and vitamins per 100g
+	VitaminA100g        *FlexFloat `json:"vitamin-a_100g"`        // mcg
+	VitaminC100g        *FlexFloat `json:"vitamin-c_100g"`        // mg
+	VitaminD100g        *FlexFloat `json:"vitamin-d_100g"`        // mcg
+	VitaminE100g        *FlexFloat `json:"vitamin-e_100g"`        // mg
+	VitaminK100g        *FlexFloat `json:"vitamin-k_100g"`        // mcg
+	Thiamine100g        *FlexFloat `json:"vitamin-b1_100g"`       // mg (thiamine)
+	Riboflavin100g      *FlexFloat `json:"vitamin-b2_100g"`       // mg (riboflavin)
+	Niacin100g          *FlexFloat `json:"vitamin-pp_100g"`       // mg (niacin/vitamin-pp)
+	VitaminB6100g       *FlexFloat `json:"vitamin-b6_100g"`       // mg
+	Folate100g          *FlexFloat `json:"vitamin-b9_100g"`       // mcg (folate)
+	VitaminB12100g      *FlexFloat `json:"vitamin-b12_100g"`      // mcg
+	PantothenicAcid100g *FlexFloat `json:"pantothenic-acid_100g"` // mg
+	Calcium100g         *FlexFloat `json:"calcium_100g"`          // mg
+	Iron100g            *FlexFloat `json:"iron_100g"`             // mg
+	Magnesium100g       *FlexFloat `json:"magnesium_100g"`        // mg
+	Phosphorus100g      *FlexFloat `json:"phosphorus_100g"`       // mg
+	Potassium100g       *FlexFloat `json:"potassium_100g"`        // mg
+	Zinc100g            *FlexFloat `json:"zinc_100g"`             // mg
+	Copper100g          *FlexFloat `json:"copper_100g"`           // mg
+	Manganese100g       *FlexFloat `json:"manganese_100g"`        // mg
+	Selenium100g        *FlexFloat `json:"selenium_100g"`         // mcg
+	Iodine100g          *FlexFloat `json:"iodine_100g"`           // mcg
+
+	// Per serving values (exact per serving, more accurate than scaling)
+	EnergyKcalServing      *FlexFloat `json:"energy-kcal_serving"`
+	ProteinsServing        *FlexFloat `json:"proteins_serving"`
+	FatServing             *FlexFloat `json:"fat_serving"`
+	SaturatedFatServing    *FlexFloat `json:"saturated-fat_serving"`
+	CarbohydratesServing   *FlexFloat `json:"carbohydrates_serving"`
+	SugarsServing          *FlexFloat `json:"sugars_serving"`
+	FiberServing           *FlexFloat `json:"fiber_serving"`
+	SodiumServing          *FlexFloat `json:"sodium_serving"`
+	CalciumServing         *FlexFloat `json:"calcium_serving"`
+	VitaminAServing        *FlexFloat `json:"vitamin-a_serving"`
+	VitaminCServing        *FlexFloat `json:"vitamin-c_serving"`
+	VitaminDServing        *FlexFloat `json:"vitamin-d_serving"`
+	VitaminEServing        *FlexFloat `json:"vitamin-e_serving"`
+	VitaminKServing        *FlexFloat `json:"vitamin-k_serving"`
+	ThiamineServing        *FlexFloat `json:"vitamin-b1_serving"`
+	RiboflavinServing      *FlexFloat `json:"vitamin-b2_serving"`
+	NiacinServing          *FlexFloat `json:"vitamin-pp_serving"`
+	VitaminB6Serving       *FlexFloat `json:"vitamin-b6_serving"`
+	FolateServing          *FlexFloat `json:"vitamin-b9_serving"`
+	VitaminB12Serving      *FlexFloat `json:"vitamin-b12_serving"`
+	PantothenicAcidServing *FlexFloat `json:"pantothenic-acid_serving"`
+	IronServing            *FlexFloat `json:"iron_serving"`
+	MagnesiumServing       *FlexFloat `json:"magnesium_serving"`
+	PhosphorusServing      *FlexFloat `json:"phosphorus_serving"`
+	PotassiumServing       *FlexFloat `json:"potassium_serving"`
+	ZincServing            *FlexFloat `json:"zinc_serving"`
+	CopperServing          *FlexFloat `json:"copper_serving"`
+	ManganeseServing       *FlexFloat `json:"manganese_serving"`
+	SeleniumServing        *FlexFloat `json:"selenium_serving"`
+	IodineServing          *FlexFloat `json:"iodine_serving"`
 }
 
 // FlexFloat handles JSON values that can be either string or number
@@ -216,7 +269,7 @@ func (c *OFFClient) SearchProduct(ctx context.Context, name, brand string) (*OFF
 	searchURL := fmt.Sprintf("%s/api/v2/search", c.baseURL)
 	params := url.Values{}
 	params.Set("q", query)
-	params.Set("fields", "product_name,brands,nutriments,id,code,serving_quantity,serving_quantity_unit,serving_size")
+	params.Set("fields", "product_name,brands,nutriments,id,code,serving_quantity,serving_quantity_unit,serving_size,ingredients,link,grade,is_beverage")
 	params.Set("page_size", "50") // Limit results
 
 	// Use brands_tags for more precise brand filtering when available
@@ -398,63 +451,72 @@ func (c *OFFClient) ConvertToCompleteNutrient(product *OFFProduct, targetGrams f
 		return CompleteNutrient{}
 	}
 
-	// OFF data is per 100g, so we need to scale to target grams
-	scaleFactor := targetGrams / 100.0
+	// Check if we have exact serving size match and per-serving nutrition data
+	var isExactServing bool
 
-	// Helper function to safely convert and scale FlexFloat values
-	scaleFlexValue := func(val *FlexFloat) float64 {
-		if val == nil {
-			return 0
+	if product.ServingQuantity != nil && float64(*product.ServingQuantity) == targetGrams {
+		isExactServing = true
+		LogDebug("Using exact serving size with per-serving nutrition data", "serving_quantity", float64(*product.ServingQuantity), "target_grams", targetGrams)
+	}
+
+	// Helper function to get the best nutrition value (per-serving preferred, then scaled from 100g)
+	getBestValue := func(servingVal *FlexFloat, per100gVal *FlexFloat) float64 {
+		if isExactServing && servingVal != nil {
+			// Use exact per-serving value - most accurate
+			return float64(*servingVal)
 		}
-		return float64(*val) * scaleFactor
+		if per100gVal != nil {
+			// Scale from per-100g value
+			return float64(*per100gVal) * (targetGrams / 100.0)
+		}
+		return 0
 	}
 
 	return CompleteNutrient{
-		// Macronutrients
-		Calories:     scaleFlexValue(product.Nutriments.EnergyKcal100g),
-		Protein:      scaleFlexValue(product.Nutriments.Proteins100g),
-		TotalFat:     scaleFlexValue(product.Nutriments.Fat100g),
-		SaturatedFat: scaleFlexValue(product.Nutriments.SaturatedFat100g),
-		TotalCarbs:   scaleFlexValue(product.Nutriments.Carbohydrates100g),
-		TotalSugars:  scaleFlexValue(product.Nutriments.Sugars100g),
-		DietaryFiber: scaleFlexValue(product.Nutriments.Fiber100g),
-		Sodium:       scaleFlexValue(product.Nutriments.Sodium100g),
+		// Macronutrients - use per-serving values when available for exact servings
+		Calories:     getBestValue(product.Nutriments.EnergyKcalServing, product.Nutriments.EnergyKcal100g),
+		Protein:      getBestValue(product.Nutriments.ProteinsServing, product.Nutriments.Proteins100g),
+		TotalFat:     getBestValue(product.Nutriments.FatServing, product.Nutriments.Fat100g),
+		SaturatedFat: getBestValue(product.Nutriments.SaturatedFatServing, product.Nutriments.SaturatedFat100g),
+		TotalCarbs:   getBestValue(product.Nutriments.CarbohydratesServing, product.Nutriments.Carbohydrates100g),
+		TotalSugars:  getBestValue(product.Nutriments.SugarsServing, product.Nutriments.Sugars100g),
+		DietaryFiber: getBestValue(product.Nutriments.FiberServing, product.Nutriments.Fiber100g),
+		Sodium:       getBestValue(product.Nutriments.SodiumServing, product.Nutriments.Sodium100g),
 
-		// Vitamins and minerals (what's available from OFF)
-		VitaminA: scaleFlexValue(product.Nutriments.VitaminA100g),
-		VitaminC: scaleFlexValue(product.Nutriments.VitaminC100g),
-		VitaminD: scaleFlexValue(product.Nutriments.VitaminD100g),
-		Calcium:  scaleFlexValue(product.Nutriments.Calcium100g),
-		Iron:     scaleFlexValue(product.Nutriments.Iron100g),
+		// Vitamins and minerals - use per-serving values when available, nil if not present
+		VitaminA:        getBestValue(product.Nutriments.VitaminAServing, product.Nutriments.VitaminA100g),
+		VitaminC:        getBestValue(product.Nutriments.VitaminCServing, product.Nutriments.VitaminC100g),
+		VitaminD:        getBestValue(product.Nutriments.VitaminDServing, product.Nutriments.VitaminD100g),
+		VitaminE:        getBestValue(product.Nutriments.VitaminEServing, product.Nutriments.VitaminE100g),
+		VitaminK:        getBestValue(product.Nutriments.VitaminKServing, product.Nutriments.VitaminK100g),
+		Thiamine:        getBestValue(product.Nutriments.ThiamineServing, product.Nutriments.Thiamine100g),
+		Riboflavin:      getBestValue(product.Nutriments.RiboflavinServing, product.Nutriments.Riboflavin100g),
+		Niacin:          getBestValue(product.Nutriments.NiacinServing, product.Nutriments.Niacin100g),
+		VitaminB6:       getBestValue(product.Nutriments.VitaminB6Serving, product.Nutriments.VitaminB6100g),
+		Folate:          getBestValue(product.Nutriments.FolateServing, product.Nutriments.Folate100g),
+		VitaminB12:      getBestValue(product.Nutriments.VitaminB12Serving, product.Nutriments.VitaminB12100g),
+		PantothenicAcid: getBestValue(product.Nutriments.PantothenicAcidServing, product.Nutriments.PantothenicAcid100g),
+		Calcium:         getBestValue(product.Nutriments.CalciumServing, product.Nutriments.Calcium100g),
+		Iron:            getBestValue(product.Nutriments.IronServing, product.Nutriments.Iron100g),
+		Magnesium:       getBestValue(product.Nutriments.MagnesiumServing, product.Nutriments.Magnesium100g),
+		Phosphorus:      getBestValue(product.Nutriments.PhosphorusServing, product.Nutriments.Phosphorus100g),
+		Potassium:       getBestValue(product.Nutriments.PotassiumServing, product.Nutriments.Potassium100g),
+		Zinc:            getBestValue(product.Nutriments.ZincServing, product.Nutriments.Zinc100g),
+		Copper:          getBestValue(product.Nutriments.CopperServing, product.Nutriments.Copper100g),
+		Manganese:       getBestValue(product.Nutriments.ManganeseServing, product.Nutriments.Manganese100g),
+		Selenium:        getBestValue(product.Nutriments.SeleniumServing, product.Nutriments.Selenium100g),
+		Iodine:          getBestValue(product.Nutriments.IodineServing, product.Nutriments.Iodine100g),
 
-		// Zero out fields not typically available in OFF
-		// These could be filled by LLM in a future enhancement
-		TransFat:        0,
-		Cholesterol:     0,
-		AddedSugars:     0,
-		VitaminE:        0,
-		VitaminK:        0,
-		Thiamine:        0,
-		Riboflavin:      0,
-		Niacin:          0,
-		VitaminB6:       0,
-		Folate:          0,
-		VitaminB12:      0,
-		Biotin:          0,
-		PantothenicAcid: 0,
-		Choline:         0,
-		Magnesium:       0,
-		Phosphorus:      0,
-		Potassium:       0,
-		Zinc:            0,
-		Copper:          0,
-		Manganese:       0,
-		Selenium:        0,
-		Iodine:          0,
-		Molybdenum:      0,
-		Chromium:        0,
-		Fluoride:        0,
-		Chloride:        0,
+		// Fields not typically available in OFF - leave as zero (could be enhanced with LLM)
+		TransFat:    0,
+		Cholesterol: 0,
+		AddedSugars: 0,
+		Biotin:      0, // Not in standard OFF fields
+		Choline:     0, // Not in standard OFF fields
+		Molybdenum:  0, // Not in standard OFF fields
+		Chromium:    0, // Not in standard OFF fields
+		Fluoride:    0, // Not in standard OFF fields
+		Chloride:    0, // Not in standard OFF fields
 	}
 }
 
