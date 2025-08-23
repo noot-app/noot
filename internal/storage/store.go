@@ -141,7 +141,7 @@ type Item struct {
 	DisplayName     string `json:"display_name"`
 	DisplayBrand    string `json:"display_brand"`
 
-	// Original serving data (exact values from AI)
+	// Original serving data (exact values for one serving of the item - ex: one can of soda, one burger, one carrot, one handful of blueberries, one plate of pasta with pesto sauce, etc)
 	OriginalServingGrams      *float64 `json:"original_serving_grams,omitempty"`
 	OriginalCalories          *float64 `json:"original_calories,omitempty"`
 	OriginalProteinG          *float64 `json:"original_protein_g,omitempty"`
