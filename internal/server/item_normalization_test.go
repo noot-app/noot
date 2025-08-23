@@ -281,6 +281,94 @@ func TestScalingMethodSelection(t *testing.T) {
 	})
 }
 
+func TestEndToEndNormalizationFlow(t *testing.T) {
+	// This test demonstrates the complete normalization flow from parsing to caching to scaling
+	service := NewNutritionService(nil)
+
+	t.Run("CompleteNormalizationFlow", func(t *testing.T) {
+		// Step 1: Simulate user input "2 cans of Coca Cola" being parsed
+		item := Item{
+			Name:         "Coca Cola",
+			Grams:        710.0, // Total weight for 2 cans (355g each)
+			UserQuantity: floatPtr(2.0),
+			UserUnit:     stringPtr("cans"),
+			BaseQuantity: floatPtr(2.0), // Detected as multi-unit
+		}
+
+		// Step 2: Simulate AI returning nutrition for 2 cans
+		aiNutrients := CompleteNutrient{
+			Calories:    280, // Total for 2 cans
+			Sodium:      70,  // Total for 2 cans
+			TotalCarbs:  76,  // Total for 2 cans
+			TotalSugars: 74,  // Total for 2 cans
+		}
+
+		// Step 3: System should normalize for caching (divide by 2)
+		normalizedGrams := service.getNormalizedGrams(item)
+		assert.Equal(t, 355.0, normalizedGrams) // 710 / 2 = 355g per can
+
+		// Step 4: Cache should store single-can values
+		exactKey := service.makeExactServingKey("coca_cola", "", normalizedGrams)
+		cachedItem := service.convertNutrientsToExactCache(item, aiNutrients, exactKey)
+
+		// Verify cached values are normalized (single can)
+		assert.Equal(t, 355.0, *cachedItem.OriginalServingGrams) // 710 / 2
+		assert.Equal(t, 140.0, *cachedItem.OriginalCalories)     // 280 / 2
+		assert.Equal(t, 35.0, *cachedItem.OriginalSodiumMg)      // 70 / 2
+		assert.Equal(t, 38.0, *cachedItem.OriginalTotalCarbsG)   // 76 / 2
+		assert.Equal(t, 37.0, *cachedItem.OriginalTotalSugarsG)  // 74 / 2
+
+		// Step 5: When another user wants 3 cans, scaling should work correctly
+		requestedGrams := 1065.0 // 3 cans (355 * 3)
+		scaledNutrition := service.scaleNutritionFromCachedServing(
+			cachedItem,
+			355.0,          // Base: 1 can (from cache)
+			requestedGrams, // Target: 3 cans
+		)
+
+		// Verify scaling is correct (3x single can)
+		assert.Equal(t, 420.0, scaledNutrition.Calories)    // 140 * 3
+		assert.Equal(t, 105.0, scaledNutrition.Sodium)      // 35 * 3
+		assert.Equal(t, 114.0, scaledNutrition.TotalCarbs)  // 38 * 3
+		assert.Equal(t, 111.0, scaledNutrition.TotalSugars) // 37 * 3
+
+		// Step 6: Verify original user input is preserved for display
+		assert.Equal(t, 2.0, *item.UserQuantity)
+		assert.Equal(t, "cans", *item.UserUnit)
+	})
+
+	t.Run("FallbackTo100gScalingWhenAppropriate", func(t *testing.T) {
+		// Create item where user provided grams
+		item := Item{
+			Name:         "Chicken breast",
+			Grams:        250.0, // User provided 250g
+			UserQuantity: floatPtr(250.0),
+			UserUnit:     stringPtr("g"), // User specified grams
+			BaseQuantity: nil,            // No normalization for gram inputs
+		}
+
+		// Mock cached item with unreliable base data
+		cachedItem := &storage.Item{
+			OriginalServingGrams: nil, // No reliable base serving
+			// Per-100g data available
+			CaloriesPer100g: 165.0,
+			ProteinGPer100g: 31.0,
+		}
+
+		// Should choose 100g scaling over base scaling
+		should100g := service.shouldUse100gScaling(item, cachedItem)
+		assert.True(t, should100g)
+
+		// Verify 100g scaling works
+		nutrition := service.convertCachedToNutrients(cachedItem, item)
+		expectedCalories := 165.0 * (250.0 / 100.0) // 165 * 2.5 = 412.5
+		expectedProtein := 31.0 * (250.0 / 100.0)   // 31 * 2.5 = 77.5
+
+		assert.InDelta(t, expectedCalories, nutrition.Calories, 0.1)
+		assert.InDelta(t, expectedProtein, nutrition.Protein, 0.1)
+	})
+}
+
 // Helper functions for creating pointers
 func floatPtr(f float64) *float64 {
 	return &f
