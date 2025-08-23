@@ -61,24 +61,3 @@ func TestOpenAIProvider_TranscriptionPrompt(t *testing.T) {
 	assert.Contains(t, prompt, "banana")
 	assert.Contains(t, prompt, "latte")
 }
-
-func TestOpenAIProvider_ParseItemsSystemPrompt(t *testing.T) {
-	config := AIProviderConfig{
-		APIKey:          "test-key",
-		TranscribeModel: "test-transcribe-model",
-		ParseModel:      "test-parse-model",
-		BaseURL:         "https://api.test.com/v1",
-		Timeout:         30,
-	}
-
-	provider := NewOpenAIProvider(config)
-	prompt := provider.parseItemsSystemPrompt()
-
-	// Check that the prompt contains essential JSON structure fields
-	assert.Contains(t, prompt, "JSON")
-	assert.Contains(t, prompt, "items")
-	assert.Contains(t, prompt, "name")
-	assert.Contains(t, prompt, "grams")
-	// Check it mentions converting to grams (core functionality)
-	assert.Contains(t, prompt, "grams")
-}

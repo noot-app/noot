@@ -140,7 +140,50 @@ type Item struct {
 	NormalizedBrand string `json:"normalized_brand"`
 	DisplayName     string `json:"display_name"`
 	DisplayBrand    string `json:"display_brand"`
-	// Nutrition data per 100g
+
+	// Original serving data (exact values for one serving of the item - ex: one can of soda, one burger, one carrot, one handful of blueberries, one plate of pasta with pesto sauce, etc)
+	OriginalServingGrams      *float64 `json:"original_serving_grams,omitempty"`
+	OriginalCalories          *float64 `json:"original_calories,omitempty"`
+	OriginalProteinG          *float64 `json:"original_protein_g,omitempty"`
+	OriginalTotalFatG         *float64 `json:"original_total_fat_g,omitempty"`
+	OriginalSaturatedFatG     *float64 `json:"original_saturated_fat_g,omitempty"`
+	OriginalTransFatG         *float64 `json:"original_trans_fat_g,omitempty"`
+	OriginalCholesterolMg     *float64 `json:"original_cholesterol_mg,omitempty"`
+	OriginalSodiumMg          *float64 `json:"original_sodium_mg,omitempty"`
+	OriginalTotalCarbsG       *float64 `json:"original_total_carbs_g,omitempty"`
+	OriginalDietaryFiberG     *float64 `json:"original_dietary_fiber_g,omitempty"`
+	OriginalTotalSugarsG      *float64 `json:"original_total_sugars_g,omitempty"`
+	OriginalAddedSugarsG      *float64 `json:"original_added_sugars_g,omitempty"`
+	OriginalVitaminAMcg       *float64 `json:"original_vitamin_a_mcg,omitempty"`
+	OriginalVitaminCMg        *float64 `json:"original_vitamin_c_mg,omitempty"`
+	OriginalVitaminDMcg       *float64 `json:"original_vitamin_d_mcg,omitempty"`
+	OriginalVitaminEMg        *float64 `json:"original_vitamin_e_mg,omitempty"`
+	OriginalVitaminKMcg       *float64 `json:"original_vitamin_k_mcg,omitempty"`
+	OriginalThiamineMg        *float64 `json:"original_thiamine_mg,omitempty"`
+	OriginalRiboflavinMg      *float64 `json:"original_riboflavin_mg,omitempty"`
+	OriginalNiacinMg          *float64 `json:"original_niacin_mg,omitempty"`
+	OriginalVitaminB6Mg       *float64 `json:"original_vitamin_b6_mg,omitempty"`
+	OriginalFolateMcg         *float64 `json:"original_folate_mcg,omitempty"`
+	OriginalVitaminB12Mcg     *float64 `json:"original_vitamin_b12_mcg,omitempty"`
+	OriginalBiotinMcg         *float64 `json:"original_biotin_mcg,omitempty"`
+	OriginalPantothenicAcidMg *float64 `json:"original_pantothenic_acid_mg,omitempty"`
+	OriginalCholineMg         *float64 `json:"original_choline_mg,omitempty"`
+	OriginalCalciumMg         *float64 `json:"original_calcium_mg,omitempty"`
+	OriginalIronMg            *float64 `json:"original_iron_mg,omitempty"`
+	OriginalMagnesiumMg       *float64 `json:"original_magnesium_mg,omitempty"`
+	OriginalPhosphorusMg      *float64 `json:"original_phosphorus_mg,omitempty"`
+	OriginalPotassiumMg       *float64 `json:"original_potassium_mg,omitempty"`
+	OriginalZincMg            *float64 `json:"original_zinc_mg,omitempty"`
+	OriginalCopperMg          *float64 `json:"original_copper_mg,omitempty"`
+	OriginalManganeseMg       *float64 `json:"original_manganese_mg,omitempty"`
+	OriginalSeleniumMcg       *float64 `json:"original_selenium_mcg,omitempty"`
+	OriginalIodineMcg         *float64 `json:"original_iodine_mcg,omitempty"`
+	OriginalMolybdenumMcg     *float64 `json:"original_molybdenum_mcg,omitempty"`
+	OriginalChromiumMcg       *float64 `json:"original_chromium_mcg,omitempty"`
+	OriginalFluorideMg        *float64 `json:"original_fluoride_mg,omitempty"`
+	OriginalChlorideMg        *float64 `json:"original_chloride_mg,omitempty"`
+
+	// Normalized nutrition data per 100g (for scaling)
 	CaloriesPer100g          float64 `json:"calories_per_100g"`
 	ProteinGPer100g          float64 `json:"protein_g_per_100g"`
 	TotalFatGPer100g         float64 `json:"total_fat_g_per_100g"`
