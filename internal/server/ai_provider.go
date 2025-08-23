@@ -14,6 +14,9 @@ type AIProvider interface {
 
 	// GetNutrition gets nutrition data for a single food item
 	GetNutrition(ctx context.Context, item Item) (CompleteNutrient, error)
+
+	// GetNutritionWithContext gets nutrition data for a single food item with optional context
+	GetNutritionWithContext(ctx context.Context, item Item, nutritionContext interface{}) (CompleteNutrient, error)
 }
 
 // AIProviderConfig holds configuration for AI providers

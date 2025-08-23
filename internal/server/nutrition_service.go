@@ -12,6 +12,7 @@ import (
 // NutritionService handles nutrition data processing with caching and unit conversions
 type NutritionService struct {
 	aiProvider AIProvider
+	offClient  *OFFClient
 	converter  *UnitConverter
 	store      storage.Store
 }
@@ -27,11 +28,21 @@ func NewNutritionService(store storage.Store) *NutritionService {
 		Timeout:         60,
 	}
 
+	// Create OFF client with config from environment
+	offConfig := OFFClientConfig{
+		BaseURL:   getenv("OFF_API_URL", "https://world.openfoodfacts.org"),
+		UserAgent: getenv("OFF_USER_AGENT", "noot/0.1 (https://github.com/GrantBirki/noot)"),
+		Timeout:   time.Duration(getenvInt("OFF_TIMEOUT", 5)) * time.Second,
+		Enabled:   getenvBool("OFF_ENABLED", true),
+	}
+
 	aiProvider := NewOpenAIProvider(config)
+	offClient := NewOFFClient(offConfig)
 	converter := NewUnitConverter()
 
 	return &NutritionService{
 		aiProvider: aiProvider,
+		offClient:  offClient,
 		converter:  converter,
 		store:      store,
 	}
@@ -110,7 +121,39 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 	// Start goroutines for each item
 	for i, item := range items {
 		go func(index int, item Item) {
-			nutrition, err := s.aiProvider.GetNutrition(ctx, item)
+			// Try to get OFF context for this item
+			var nutritionContext interface{}
+			if s.offClient != nil {
+				offProduct, err := s.offClient.SearchProduct(ctx, item.Name, getBrandOrEmpty(item.Brand))
+				if err == nil && offProduct != nil {
+					productInfo := map[string]interface{}{
+						"product_name": offProduct.ProductName,
+						"brands":       offProduct.Brands,
+						"nutrients":    offProduct.Nutriments,
+					}
+
+					// Add serving size information if available
+					if offProduct.ServingQuantity != nil {
+						productInfo["serving_quantity"] = fmt.Sprintf("%.0f", float64(*offProduct.ServingQuantity))
+					}
+					if offProduct.ServingQuantityUnit != "" {
+						productInfo["serving_quantity_unit"] = offProduct.ServingQuantityUnit
+					}
+					if offProduct.ServingSize != "" {
+						productInfo["serving_size"] = offProduct.ServingSize
+					}
+
+					nutritionContext = map[string]interface{}{
+						"source": "open_food_facts",
+						"products": []interface{}{
+							productInfo,
+						},
+						"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as reference but provide complete nutrition data including nutrients not available in the context.",
+					}
+				}
+			}
+
+			nutrition, err := s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
 			if err != nil {
 				results <- result{index: index, item: item, err: err}
 				return
@@ -243,9 +286,35 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		}
 	}
 
-	// Not in cache or expired/invalid - get from AI
-	LogDebug("Fetching nutrition from AI provider", "name", item.Name)
-	nutrition, err := s.aiProvider.GetNutrition(ctx, item)
+	// Try Open Food Facts database to provide context for AI
+	var nutritionContext interface{}
+	if s.offClient != nil {
+		LogDebug("Checking OFF database for item context", "name", item.Name, "brand", getBrandOrEmpty(item.Brand))
+
+		offProduct, err := s.offClient.SearchProduct(ctx, item.Name, getBrandOrEmpty(item.Brand))
+		if err == nil && offProduct != nil {
+			LogDebug("Found item in OFF database for context", "name", item.Name, "product_name", offProduct.ProductName)
+
+			// Use OFF product as context for the AI call
+			nutritionContext = map[string]interface{}{
+				"source": "open_food_facts",
+				"products": []interface{}{
+					map[string]interface{}{
+						"product_name": offProduct.ProductName,
+						"brands":       offProduct.Brands,
+						"nutrients":    offProduct.Nutriments,
+					},
+				},
+				"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as reference but provide complete nutrition data including nutrients not available in the context.",
+			}
+		} else {
+			LogDebug("Item not found in OFF database", "name", item.Name, "error", err)
+		}
+	}
+
+	// Get nutrition from AI (with optional OFF context)
+	LogDebug("Fetching nutrition from AI provider", "name", item.Name, "has_context", nutritionContext != nil)
+	nutrition, err := s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
 	if err != nil {
 		return item, err
 	}

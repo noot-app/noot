@@ -36,6 +36,33 @@ func NewOpenAIProvider(config AIProviderConfig) *OpenAIProvider {
 	}
 }
 
+// filterResponseForLogging removes verbose fields from OpenAI response for cleaner logging
+func filterResponseForLogging(responseBody []byte) string {
+	var response map[string]interface{}
+	if err := json.Unmarshal(responseBody, &response); err != nil {
+		// If we can't parse it, return as-is (truncated if too long)
+		if len(responseBody) > 1000 {
+			return string(responseBody[:1000]) + "... [truncated]"
+		}
+		return string(responseBody)
+	}
+
+	// Remove the verbose instructions field
+	delete(response, "instructions")
+
+	// Re-marshal the filtered response
+	filtered, err := json.Marshal(response)
+	if err != nil {
+		// Fallback to original if re-marshaling fails
+		if len(responseBody) > 1000 {
+			return string(responseBody[:1000]) + "... [truncated]"
+		}
+		return string(responseBody)
+	}
+
+	return string(filtered)
+}
+
 func (p *OpenAIProvider) transcriptionPrompt() string {
 	return `The audio is a short dictation of foods and drinks consumed. Preserve exact brand and product names (e.g., "Clover Organic", "Trader Joe's", "Siggi's", "Icelandic skyr", "LaCroix"), coffee drink terms (espresso, latte, macchiato), tea terms (matcha), and ingredient names (goji berries, blueberries, Greek yogurt, European style yogurt). Keep numbers and units (cups, grams, ounces, tbsp, tsp, slices, pieces) and include standard punctuation.
 
@@ -184,7 +211,7 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 		return ParsedItems{}, NewAppError("Failed to read response body", http.StatusInternalServerError, err)
 	}
 
-	LogDebug("OpenAI parsing response received", "full_response", string(responseBody))
+	LogDebug("OpenAI parsing response received", "full_response", filterResponseForLogging(responseBody))
 
 	// Parse the new /responses endpoint structure
 	var response struct {
@@ -260,7 +287,7 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 		} `json:"items"`
 	}
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
-		LogWarn("Failed to parse OpenAI JSON response", "content", content, "error", err.Error(), "full_response", string(responseBody))
+		LogWarn("Failed to parse OpenAI JSON response", "content", content, "error", err.Error(), "full_response", filterResponseForLogging(responseBody))
 		return ParsedItems{}, NewAppError("Failed to parse OpenAI response", http.StatusInternalServerError, err)
 	}
 
@@ -310,17 +337,19 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 
 // GetNutrition implements AIProvider.GetNutrition
 func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteNutrient, error) {
+	return p.GetNutritionWithContext(ctx, item, nil)
+}
+
+// GetNutritionWithContext implements AIProvider.GetNutritionWithContext
+func (p *OpenAIProvider) GetNutritionWithContext(ctx context.Context, item Item, nutritionContext interface{}) (CompleteNutrient, error) {
 	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name)
 
 	// Build input message as JSON
 	inputObj := map[string]any{
-		"name":  item.Name,
-		"grams": item.Grams,
-		"brand": item.Brand,
-		// in the future, we might add a field like `nutrition_context` that could contain a data structure of one or multiple results from something like Open Food Facts (OFF)
-		// if we provide data from OFF, it might contain the exact matches and all the complete nutrient data the LLM query might need, only some related products/foods/drinks,
-		// no related items at all, an empty list, or even a mixture of a few of these things. Either way, the LLM will interpret this context to make better informed decisions
-		// on how to best hydrate complete nutrient data that will be returned by this prompt.
+		"name":              item.Name,
+		"grams":             item.Grams,
+		"brand":             item.Brand,
+		"nutrition_context": nutritionContext, // Always present, either object or null
 	}
 	inputBytes, _ := json.Marshal(inputObj)
 	input := string(inputBytes)
@@ -367,7 +396,7 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 		return CompleteNutrient{}, NewAppError("Failed to read response body", http.StatusInternalServerError, err)
 	}
 
-	LogDebug("OpenAI nutrition response received", "full_response", string(responseBody))
+	LogDebug("OpenAI nutrition response received", "full_response", filterResponseForLogging(responseBody))
 
 	// Parse the new /responses endpoint structure
 	var response struct {
@@ -437,7 +466,7 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 		Nutrients CompleteNutrient `json:"nutrients"`
 	}
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
-		LogWarn("Failed to parse nutrition JSON", "content", content, "error", err.Error(), "full_response", string(responseBody))
+		LogWarn("Failed to parse nutrition JSON", "content", content, "error", err.Error(), "full_response", filterResponseForLogging(responseBody))
 		return CompleteNutrient{}, NewAppError("Failed to parse nutrition data", http.StatusInternalServerError, err)
 	}
 
