@@ -12,6 +12,7 @@ import (
 // NutritionService handles nutrition data processing with caching and unit conversions
 type NutritionService struct {
 	aiProvider AIProvider
+	offClient  *OFFClient
 	converter  *UnitConverter
 	store      storage.Store
 }
@@ -27,11 +28,21 @@ func NewNutritionService(store storage.Store) *NutritionService {
 		Timeout:         60,
 	}
 
+	// Create OFF client with config from environment
+	offConfig := OFFClientConfig{
+		BaseURL:   getenv("OFF_API_URL", "https://world.openfoodfacts.org"),
+		UserAgent: getenv("OFF_USER_AGENT", "noot/0.1 (https://github.com/GrantBirki/noot)"),
+		Timeout:   time.Duration(getenvInt("OFF_TIMEOUT", 5)) * time.Second,
+		Enabled:   getenvBool("OFF_ENABLED", true),
+	}
+
 	aiProvider := NewOpenAIProvider(config)
+	offClient := NewOFFClient(offConfig)
 	converter := NewUnitConverter()
 
 	return &NutritionService{
 		aiProvider: aiProvider,
+		offClient:  offClient,
 		converter:  converter,
 		store:      store,
 	}
@@ -243,7 +254,44 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		}
 	}
 
-	// Not in cache or expired/invalid - get from AI
+	// Try Open Food Facts database before falling back to AI
+	if s.offClient != nil {
+		LogDebug("Checking OFF database for item", "name", item.Name, "brand", getBrandOrEmpty(item.Brand))
+		
+		offProduct, err := s.offClient.SearchProduct(ctx, item.Name, getBrandOrEmpty(item.Brand))
+		if err == nil && offProduct != nil {
+			LogDebug("Found item in OFF database", "name", item.Name, "product_name", offProduct.ProductName)
+			
+			// Convert OFF nutrition data to our format
+			nutrition := s.offClient.ConvertToCompleteNutrient(offProduct, item.Grams)
+			item.Nutrients = &nutrition
+			
+			// Cache the OFF result using the same caching logic as AI results
+			if s.store != nil {
+				normalizedGrams := s.getNormalizedGrams(item)
+				exactKey := s.makeExactServingKey(normalizedName, normalizedBrand, normalizedGrams)
+				exactCacheItem := s.convertNutrientsToExactCache(item, nutrition, exactKey)
+				if exactCached, _ := s.store.GetItemByName(ctx, exactKey, ""); exactCached != nil {
+					// Update existing exact cache entry
+					exactCacheItem.ID = exactCached.ID
+					err = s.store.UpdateItem(ctx, exactCacheItem)
+				} else {
+					// Create new exact cache entry
+					err = s.store.CreateItem(ctx, exactCacheItem)
+				}
+				if err != nil {
+					LogWarn("Failed to cache OFF nutrition data", "name", item.Name, "grams", item.Grams, "error", err.Error())
+					// Don't fail the request if caching fails
+				}
+			}
+			
+			return item, nil
+		}
+		
+		LogDebug("Item not found in OFF database, falling back to AI", "name", item.Name)
+	}
+
+	// Not in cache or OFF - get from AI
 	LogDebug("Fetching nutrition from AI provider", "name", item.Name)
 	nutrition, err := s.aiProvider.GetNutrition(ctx, item)
 	if err != nil {
