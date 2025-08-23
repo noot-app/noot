@@ -152,12 +152,66 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		if cached, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && cached != nil {
 			// Check if cache is still fresh (30 days)
 			if time.Since(cached.UpdatedAt) < 30*24*time.Hour {
-				LogDebug("Using cached exact serving match - returning original values without scaling",
-					"name", item.Name, "grams", item.Grams)
+				var nutrition CompleteNutrient
 
-				nutrition := s.convertExactCachedToNutrients(cached)
+				// If item has BaseQuantity > 1, we need to scale the cached single-unit values
+				if item.BaseQuantity != nil && *item.BaseQuantity > 1.0 {
+					LogDebug("Using cached exact serving match with scaling for multi-unit quantity",
+						"name", item.Name, "base_quantity", *item.BaseQuantity, "total_grams", item.Grams)
+
+					// Get the single-unit nutrition values and scale by BaseQuantity
+					singleUnitNutrition := s.convertExactCachedToNutrients(cached)
+					scalingFactor := *item.BaseQuantity
+
+					nutrition = CompleteNutrient{
+						Calories:        singleUnitNutrition.Calories * scalingFactor,
+						Protein:         singleUnitNutrition.Protein * scalingFactor,
+						TotalFat:        singleUnitNutrition.TotalFat * scalingFactor,
+						SaturatedFat:    singleUnitNutrition.SaturatedFat * scalingFactor,
+						TransFat:        singleUnitNutrition.TransFat * scalingFactor,
+						Cholesterol:     singleUnitNutrition.Cholesterol * scalingFactor,
+						Sodium:          singleUnitNutrition.Sodium * scalingFactor,
+						TotalCarbs:      singleUnitNutrition.TotalCarbs * scalingFactor,
+						DietaryFiber:    singleUnitNutrition.DietaryFiber * scalingFactor,
+						TotalSugars:     singleUnitNutrition.TotalSugars * scalingFactor,
+						AddedSugars:     singleUnitNutrition.AddedSugars * scalingFactor,
+						VitaminA:        singleUnitNutrition.VitaminA * scalingFactor,
+						VitaminC:        singleUnitNutrition.VitaminC * scalingFactor,
+						VitaminD:        singleUnitNutrition.VitaminD * scalingFactor,
+						VitaminE:        singleUnitNutrition.VitaminE * scalingFactor,
+						VitaminK:        singleUnitNutrition.VitaminK * scalingFactor,
+						Thiamine:        singleUnitNutrition.Thiamine * scalingFactor,
+						Riboflavin:      singleUnitNutrition.Riboflavin * scalingFactor,
+						Niacin:          singleUnitNutrition.Niacin * scalingFactor,
+						VitaminB6:       singleUnitNutrition.VitaminB6 * scalingFactor,
+						Folate:          singleUnitNutrition.Folate * scalingFactor,
+						VitaminB12:      singleUnitNutrition.VitaminB12 * scalingFactor,
+						Biotin:          singleUnitNutrition.Biotin * scalingFactor,
+						PantothenicAcid: singleUnitNutrition.PantothenicAcid * scalingFactor,
+						Choline:         singleUnitNutrition.Choline * scalingFactor,
+						Calcium:         singleUnitNutrition.Calcium * scalingFactor,
+						Iron:            singleUnitNutrition.Iron * scalingFactor,
+						Magnesium:       singleUnitNutrition.Magnesium * scalingFactor,
+						Phosphorus:      singleUnitNutrition.Phosphorus * scalingFactor,
+						Potassium:       singleUnitNutrition.Potassium * scalingFactor,
+						Zinc:            singleUnitNutrition.Zinc * scalingFactor,
+						Copper:          singleUnitNutrition.Copper * scalingFactor,
+						Manganese:       singleUnitNutrition.Manganese * scalingFactor,
+						Selenium:        singleUnitNutrition.Selenium * scalingFactor,
+						Iodine:          singleUnitNutrition.Iodine * scalingFactor,
+						Molybdenum:      singleUnitNutrition.Molybdenum * scalingFactor,
+						Chromium:        singleUnitNutrition.Chromium * scalingFactor,
+						Fluoride:        singleUnitNutrition.Fluoride * scalingFactor,
+						Chloride:        singleUnitNutrition.Chloride * scalingFactor,
+					}
+				} else {
+					LogDebug("Using cached exact serving match - returning original values without scaling",
+						"name", item.Name, "grams", item.Grams)
+
+					nutrition = s.convertExactCachedToNutrients(cached)
+				}
+
 				item.Nutrients = &nutrition
-
 				return item, nil
 			}
 		}

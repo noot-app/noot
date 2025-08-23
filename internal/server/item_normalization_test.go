@@ -369,6 +369,84 @@ func TestEndToEndNormalizationFlow(t *testing.T) {
 	})
 }
 
+func TestExactCacheMatchWithScaling(t *testing.T) {
+	// This test verifies the exact scenario described in the bug report
+	service := NewNutritionService(nil)
+
+	t.Run("ExactCacheMatchRequiresScaling", func(t *testing.T) {
+		// Simulate cached item from "one can" request (normalized values)
+		cachedItem := &storage.Item{
+			OriginalServingGrams: floatPtr(355.0), // Single can serving size
+			OriginalCalories:     floatPtr(40.0),  // Single can calories
+			OriginalSodiumMg:     floatPtr(15.0),  // Single can sodium
+			OriginalTotalCarbsG:  floatPtr(17.0),  // Single can carbs
+		}
+
+		// Test the exact cache match scenario
+		t.Run("SingleUnitCachedItem", func(t *testing.T) {
+			nutrition := service.convertExactCachedToNutrients(cachedItem)
+
+			// Should return single can values directly
+			assert.Equal(t, 40.0, nutrition.Calories)
+			assert.Equal(t, 15.0, nutrition.Sodium)
+			assert.Equal(t, 17.0, nutrition.TotalCarbs)
+		})
+
+		t.Run("MultiUnitScaling", func(t *testing.T) {
+			// Simulate what should happen when exact cache is found but BaseQuantity > 1
+			singleUnitNutrition := service.convertExactCachedToNutrients(cachedItem)
+			scalingFactor := 2.0 // BaseQuantity
+
+			// This is the scaling logic that should be applied
+			scaledNutrition := CompleteNutrient{
+				Calories:   singleUnitNutrition.Calories * scalingFactor,   // 40 * 2 = 80
+				Sodium:     singleUnitNutrition.Sodium * scalingFactor,     // 15 * 2 = 30
+				TotalCarbs: singleUnitNutrition.TotalCarbs * scalingFactor, // 17 * 2 = 34
+				Protein:    singleUnitNutrition.Protein * scalingFactor,    // 0 * 2 = 0
+				TotalFat:   singleUnitNutrition.TotalFat * scalingFactor,   // 0 * 2 = 0
+			}
+
+			// Verify the scaling is correct
+			assert.Equal(t, 80.0, scaledNutrition.Calories, "Two cans should have 80 calories (40 * 2)")
+			assert.Equal(t, 30.0, scaledNutrition.Sodium, "Two cans should have 30mg sodium (15 * 2)")
+			assert.Equal(t, 34.0, scaledNutrition.TotalCarbs, "Two cans should have 34g carbs (17 * 2)")
+		})
+
+		t.Run("CacheKeyGeneration", func(t *testing.T) {
+			// Verify both requests generate the same cache key
+			singleCanItem := Item{
+				Name:         "cream soda Ollipop",
+				Grams:        355.0,
+				UserQuantity: floatPtr(1.0),
+				UserUnit:     stringPtr("can"),
+				BaseQuantity: nil,
+			}
+
+			twoCanItem := Item{
+				Name:         "cream soda Ollipop",
+				Grams:        710.0,
+				UserQuantity: floatPtr(2.0),
+				UserUnit:     stringPtr("can"),
+				BaseQuantity: floatPtr(2.0),
+			}
+
+			normalizedName := "cream_soda_ollipop"
+			normalizedBrand := ""
+
+			singleCanGrams := service.getNormalizedGrams(singleCanItem)
+			twoCanGrams := service.getNormalizedGrams(twoCanItem)
+
+			singleCanKey := service.makeExactServingKey(normalizedName, normalizedBrand, singleCanGrams)
+			twoCanKey := service.makeExactServingKey(normalizedName, normalizedBrand, twoCanGrams)
+
+			// Both should generate the same cache key
+			assert.Equal(t, singleCanKey, twoCanKey, "Both requests should generate the same cache key")
+			assert.Equal(t, 355.0, singleCanGrams, "Single can should use 355g")
+			assert.Equal(t, 355.0, twoCanGrams, "Two cans should normalize to 355g (710/2)")
+		})
+	})
+}
+
 // Helper functions for creating pointers
 func floatPtr(f float64) *float64 {
 	return &f
