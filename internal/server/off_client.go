@@ -256,12 +256,70 @@ func (c *OFFClient) formatBrandTag(brand string) string {
 	return tag
 }
 
+// isGenericFood determines if an item is likely a generic/unbranded food item
+func (c *OFFClient) isGenericFood(name, brand string) bool {
+	// If explicit brand provided, not generic
+	if brand != "" && strings.TrimSpace(brand) != "" {
+		return false
+	}
+
+	// Common generic food patterns (case-insensitive)
+	name = strings.ToLower(strings.TrimSpace(name))
+
+	// Single word items are often generic ingredients
+	if len(strings.Fields(name)) == 1 {
+		genericWords := []string{
+			"milk", "water", "bread", "rice", "flour", "sugar", "salt",
+			"pepper", "oil", "butter", "cheese", "eggs", "chicken",
+			"beef", "pork", "salmon", "tuna", "tomato", "onion",
+			"garlic", "potato", "avocado", "banana", "apple", "orange",
+		}
+		for _, generic := range genericWords {
+			if name == generic || strings.Contains(name, generic) {
+				return true
+			}
+		}
+	}
+
+	// Common generic food phrases
+	genericPhrases := []string{
+		"whole milk", "skim milk", "smoked salmon", "ground beef",
+		"olive oil", "vegetable oil", "sea salt", "black pepper",
+		"white bread", "brown rice", "fresh", "organic", "raw",
+	}
+
+	for _, phrase := range genericPhrases {
+		if strings.Contains(name, phrase) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // SearchProduct searches for a product by name and optional brand
 func (c *OFFClient) SearchProduct(ctx context.Context, name, brand string) (*OFFProduct, error) {
 	if c == nil {
 		return nil, fmt.Errorf("OFF client not initialized")
 	}
 
+	// Check if this is a generic/unbranded item that OFF won't handle well
+	if c.isGenericFood(name, brand) {
+		LogDebug("Skipping OFF search for generic/unbranded food item", "name", name, "brand", brand)
+		return nil, fmt.Errorf("generic food item not suitable for OFF database: %s", name)
+	}
+
+	// For branded items, require both name and brand for better accuracy
+	if brand == "" || strings.TrimSpace(brand) == "" {
+		LogDebug("Skipping OFF search - no brand specified for processed food", "name", name)
+		return nil, fmt.Errorf("no brand specified for OFF search: %s", name)
+	}
+
+	return c.searchBrandedProduct(ctx, name, brand)
+}
+
+// searchBrandedProduct performs the actual OFF API search for branded products
+func (c *OFFClient) searchBrandedProduct(ctx context.Context, name, brand string) (*OFFProduct, error) {
 	// Build search query - use just the product name for main query
 	query := name
 
@@ -272,19 +330,11 @@ func (c *OFFClient) SearchProduct(ctx context.Context, name, brand string) (*OFF
 	params.Set("fields", "product_name,brands,nutriments,id,code,serving_quantity,serving_quantity_unit,serving_size,ingredients,link,grade,is_beverage")
 	params.Set("page_size", "50") // Limit results
 
-	// Use brands_tags for more precise brand filtering when available
-	if brand != "" {
-		brandTag := c.formatBrandTag(brand)
-		params.Set("brands_tags", brandTag)
-	}
+	// Always use brands_tags for branded product searches
+	brandTag := c.formatBrandTag(brand)
+	params.Set("brands_tags", brandTag)
 
 	fullURL := searchURL + "?" + params.Encode()
-
-	if brand != "" {
-		LogDebug("Querying OFF API with brand filtering", "url", fullURL, "timeout", c.httpClient.Timeout, "brand_tag", params.Get("brands_tags"))
-	} else {
-		LogDebug("Querying OFF API", "url", fullURL, "timeout", c.httpClient.Timeout)
-	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", fullURL, nil)
 	if err != nil {
@@ -295,7 +345,7 @@ func (c *OFFClient) SearchProduct(ctx context.Context, name, brand string) (*OFF
 
 	// Log request start time for timing analysis
 	startTime := time.Now()
-	LogDebug("OFF API request starting", "url", fullURL, "user_agent", c.userAgent)
+	LogDebug("Starting OFF API request", "url", fullURL, "timeout", c.httpClient.Timeout, "user_agent", c.userAgent, "brand_filtered", brand != "", "brand_tag", params.Get("brands_tags"))
 
 	resp, err := c.httpClient.Do(req)
 	duration := time.Since(startTime)
@@ -330,11 +380,6 @@ func (c *OFFClient) SearchProduct(ctx context.Context, name, brand string) (*OFF
 
 	LogDebug("OFF search results parsed", "query", query, "count", len(searchResp.Products), "total_duration", duration)
 
-	// Log the products we found for debugging
-	for i, product := range searchResp.Products {
-		LogDebug("OFF product candidate", "index", i, "name", product.ProductName, "brands", product.Brands)
-	}
-
 	// Find the best match
 	bestProduct := c.findBestMatch(searchResp.Products, name, brand)
 	if bestProduct == nil {
@@ -368,16 +413,16 @@ func (c *OFFClient) findBestMatch(products []OFFProduct, name, brand string) *OF
 		}
 	}
 
-	LogDebug("Best match analysis complete", "best_score", bestScore, "threshold", 0.3, "best_product", func() string {
+	LogDebug("Best match analysis complete", "best_score", bestScore, "threshold", 0.5, "best_product", func() string {
 		if bestProduct != nil {
 			return bestProduct.ProductName
 		}
 		return "none"
 	}())
 
-	// Only return if we have a decent confidence score (lowered to 0.3 for name/brand focus)
-	if bestScore < 0.3 {
-		LogDebug("Rejecting best match due to low score", "best_score", bestScore, "threshold", 0.3)
+	// Higher threshold for branded products - require stronger name/brand similarity
+	if bestScore < 0.5 {
+		LogDebug("Rejecting best match due to low score", "best_score", bestScore, "threshold", 0.5)
 		return nil
 	}
 
@@ -392,16 +437,13 @@ func (c *OFFClient) calculateMatchScore(product *OFFProduct, searchName, searchB
 	nameScore := c.calculateSimilarity(strings.ToLower(product.ProductName), strings.ToLower(searchName))
 	score += nameScore * 0.7
 
-	// Brand similarity (weighted 30%)
+	// Brand similarity (weighted 30%) - now required since we only search branded items
 	brandScore := 0.0
 	if searchBrand != "" && product.Brands != "" {
 		brandScore = c.calculateSimilarity(strings.ToLower(product.Brands), strings.ToLower(searchBrand))
 		score += brandScore * 0.3
-	} else if searchBrand == "" {
-		// No brand penalty if user didn't specify brand
-		brandScore = 1.0 // For logging purposes
-		score += 0.3
 	}
+	// No fallback score for missing brands since we require brands now
 
 	LogDebug("Match score details",
 		"product", product.ProductName,
