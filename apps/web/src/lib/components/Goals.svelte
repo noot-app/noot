@@ -295,31 +295,37 @@
                           {@const mealNutrient = getCurrentNutrient(nutrient)}
                           {@const previousProgress = getStackedProgress(nutrient, previousNutrient)}
                           {@const mealProgress = getStackedProgress(nutrient, mealNutrient)}
+                          {@const totalProgress = Math.min(previousProgress + mealProgress, 100)}
                           
-                          <!-- Stacked progress bar showing previous progress + meal contribution -->
+                          <!-- True stacked progress bar showing previous progress + meal contribution -->
                           <div class="flex-1 relative h-4">
-                            <!-- Background bar (total possible) -->
+                            <!-- Background bar (shows total track) -->
                             <div class="absolute inset-0 bg-base-300 rounded"></div>
                             
-                            <!-- Previous progress bar (bottom layer) -->
+                            <!-- Previous progress bar (solid base layer) -->
                             {#if previousProgress > 0}
-                              <progress 
-                                class="progress progress-primary absolute inset-0 opacity-60"
-                                value={previousProgress} 
-                                max="100"
+                              <div 
+                                class="absolute left-0 top-0 h-full bg-primary/80 rounded transition-all duration-300"
+                                style="width: {previousProgress}%;"
                                 title="Previous daily progress: {formatValue(previousNutrient, unit)} {unit}"
-                              ></progress>
+                              ></div>
                             {/if}
                             
-                            <!-- Meal contribution bar (top layer) -->
+                            <!-- Meal contribution bar (extends from previous progress) -->
                             {#if mealProgress > 0}
-                              <progress 
-                                class="progress progress-accent absolute inset-0"
-                                style="background: transparent;"
-                                value={Math.min(previousProgress + mealProgress, 100)} 
-                                max="100"
+                              <div 
+                                class="absolute top-0 h-full bg-accent rounded-r transition-all duration-300"
+                                style="left: {previousProgress}%; width: {Math.min(mealProgress, 100 - previousProgress)}%;"
                                 title="This meal adds: {formatValue(mealNutrient, unit)} {unit}"
-                              ></progress>
+                              ></div>
+                            {/if}
+                            
+                            <!-- Over-limit indicator if needed -->
+                            {#if totalProgress > 100}
+                              <div 
+                                class="absolute top-0 right-0 h-full w-1 bg-warning rounded-r"
+                                title="Over target by {(totalProgress - 100).toFixed(1)}%"
+                              ></div>
                             {/if}
                           </div>
                         {:else}
@@ -385,31 +391,37 @@
                           {@const mealNutrient = getCurrentNutrient(nutrient)}
                           {@const previousProgress = getStackedProgress(nutrient, previousNutrient)}
                           {@const mealProgress = getStackedProgress(nutrient, mealNutrient)}
+                          {@const totalProgress = Math.min(previousProgress + mealProgress, 100)}
                           
-                          <!-- Stacked progress bar showing previous progress + meal contribution -->
+                          <!-- True stacked progress bar showing previous progress + meal contribution -->
                           <div class="flex-1 relative h-4">
-                            <!-- Background bar (total possible) -->
+                            <!-- Background bar (shows total track) -->
                             <div class="absolute inset-0 bg-base-300 rounded"></div>
                             
-                            <!-- Previous progress bar (bottom layer) - for limits, use warning color -->
+                            <!-- Previous progress bar (solid base layer) - for limits, use warning/orange -->
                             {#if previousProgress > 0}
-                              <progress 
-                                class="progress progress-warning absolute inset-0 opacity-60"
-                                value={previousProgress} 
-                                max="100"
+                              <div 
+                                class="absolute left-0 top-0 h-full bg-warning/70 rounded transition-all duration-300"
+                                style="width: {previousProgress}%;"
                                 title="Previous daily amount: {formatValue(previousNutrient, unit)} {unit}"
-                              ></progress>
+                              ></div>
                             {/if}
                             
-                            <!-- Meal contribution bar (top layer) - use error color for limits -->
+                            <!-- Meal contribution bar (extends from previous progress) - use error/red for limits -->
                             {#if mealProgress > 0}
-                              <progress 
-                                class="progress progress-error absolute inset-0"
-                                style="background: transparent;"
-                                value={Math.min(previousProgress + mealProgress, 100)} 
-                                max="100"
+                              <div 
+                                class="absolute top-0 h-full bg-error rounded-r transition-all duration-300"
+                                style="left: {previousProgress}%; width: {Math.min(mealProgress, 100 - previousProgress)}%;"
                                 title="This meal adds: {formatValue(mealNutrient, unit)} {unit} to limit"
-                              ></progress>
+                              ></div>
+                            {/if}
+                            
+                            <!-- Over-limit indicator if needed -->
+                            {#if totalProgress > 100}
+                              <div 
+                                class="absolute top-0 right-0 h-full w-1 bg-error rounded-r animate-pulse"
+                                title="Over limit by {(totalProgress - 100).toFixed(1)}%"
+                              ></div>
                             {/if}
                           </div>
                         {:else}
