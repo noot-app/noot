@@ -3,6 +3,7 @@
   import { apiClient } from "$lib/api/client";
   import { isPro } from "$lib/auth/store";
   import NutrientCategoryDisplay from "./NutrientCategoryDisplay.svelte";
+  import InfoButton from "./InfoButton.svelte";
   import type { paths } from "$lib/api/schema";
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
@@ -94,7 +95,7 @@
 
 <div class="card bg-base-200 shadow-lg">
   <div class="card-body">
-    <h2 class="card-title flex items-center gap-2 text-primary">
+    <h2 class="card-title text-lg flex items-center gap-2" style="color: var(--color-base-content);">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
@@ -210,7 +211,84 @@
             return progress >= 80; // Success if reaching 80% or more of target
           }).length}
           
-          <div class="stats stats-vertical lg:stats-horizontal bg-base-100 shadow-sm">
+          <!-- Sugar Breakdown Section -->
+          {@const totalSugars = getCurrentNutrient("total_sugars_g")}
+          {@const addedSugars = getCurrentNutrient("added_sugars_g")}
+          {@const naturalSugars = Math.max(0, totalSugars - addedSugars)}
+          {#if totalSugars > 0}
+            <div class="card bg-base-100 shadow-sm mt-6">
+              <div class="card-body p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-semibold text-base flex items-center" style="color: var(--color-base-content);">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Sugar Breakdown
+                  </h4>
+                  <!-- Info button that opens modal -->
+                  <InfoButton modalId="sugar-info-modal" size="sm" />
+                </div>
+
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                  <!-- Total Sugars -->
+                  <div class="text-center">
+                    <div class="stat-value text-xl text-base-content">{totalSugars.toFixed(1)}g</div>
+                    <div class="stat-title">Total Sugars</div>
+                  </div>
+
+                  <!-- Natural Sugars -->
+                  <div class="text-center">
+                    <div class="stat-value text-xl text-success">{naturalSugars.toFixed(1)}g</div>
+                    <div class="stat-title">Natural Sugars</div>
+                    <div class="stat-desc text-xs text-success/70">From whole foods</div>
+                  </div>
+
+                  <!-- Added Sugars -->
+                  <div class="text-center">
+                    <div class="stat-value text-xl text-warning">{addedSugars.toFixed(1)}g</div>
+                    <div class="stat-title">Added Sugars</div>
+                    {#if goals?.upper_limits?.added_sugars_g}
+                      <div class="stat-desc text-xs">
+                        {((addedSugars / goals.upper_limits.added_sugars_g) * 100).toFixed(0)}% of {goals.upper_limits.added_sugars_g}g limit
+                      </div>
+                    {/if}
+                  </div>
+
+                  <!-- Sugar Ratio -->
+                  <div class="text-center">
+                    <div class="stat-value text-xl text-info">
+                      {totalSugars > 0 ? ((naturalSugars / totalSugars) * 100).toFixed(0) : 0}%
+                    </div>
+                    <div class="stat-title">Natural</div>
+                    <div class="stat-desc text-xs text-info/70">vs Added ratio</div>
+                  </div>
+                </div>
+
+                <!-- Visual ratio bar -->
+                {#if totalSugars > 0}
+                  <div class="mt-4">
+                    <div class="flex items-center text-xs text-base-content/70 mb-1">
+                      <span class="text-success">Natural</span>
+                      <span class="flex-1"></span>
+                      <span class="text-warning">Added</span>
+                    </div>
+                    <div class="flex h-2 bg-base-200 rounded-full overflow-hidden">
+                      <div 
+                        class="bg-success transition-all duration-300" 
+                        style="width: {(naturalSugars / totalSugars * 100)}%"
+                      ></div>
+                      <div 
+                        class="bg-warning transition-all duration-300" 
+                        style="width: {(addedSugars / totalSugars * 100)}%"
+                      ></div>
+                    </div>
+                  </div>
+                {/if}
+              </div>
+            </div>
+          {/if}
+          
+          <div class="stats stats-vertical lg:stats-horizontal bg-base-100 shadow-sm mt-6">
             <div class="stat">
               <div class="stat-title">Goals Met</div>
               <div class="stat-value text-lg">
@@ -226,13 +304,47 @@
                   ? (goals.custom_name || "Custom") 
                   : "DRI"}
               </div>
-              <div class="stat-desc">Nutrition guidelines</div>
+              <div class="stat-desc">
+                {goals.source === "custom" 
+                  ? "Custom Nutrition Goal" 
+                  : "Nutrition guidelines"}
+              </div>
             </div>
           </div>
         {/if}
       </div>
     {/if}
   </div>
+</div>
+
+<!-- Sugar Info Modal -->
+<input type="checkbox" id="sugar-info-modal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <label for="sugar-info-modal" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</label>
+    <h3 class="font-bold text-lg mb-4">Natural Sugar vs. Added Sugar</h3>
+    <div class="prose prose-sm max-w-none">
+      <p>Even though the molecules are the same (glucose, fructose, sucrose), sugar's health effects depend entirely on the context in which it's eaten.</p>
+      
+      <ul>
+        <li>
+          <strong>Natural sugars</strong> in whole foods like berries come packaged with fiber, water, vitamins, and phytochemicals. That fiber slows absorption, helping stabilize blood sugar. Plus, studies show that eating whole fruits—especially berries, grapes, and apples—is linked to a <strong>lower risk of developing type 2 diabetes</strong> 
+          (<a href="https://pubmed.ncbi.nlm.nih.gov/23990623/" target="_blank" rel="noopener noreferrer" class="link link-primary">PubMed</a>).
+        </li>
+        <li>
+          <strong>Added sugars</strong>, such as those in soda, juice, or sweets, deliver calories without nutrients. These "empty" calories spike blood sugar, promote fat storage, and are strongly associated with <strong>weight gain, type 2 diabetes, and heart disease</strong> 
+          (<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6723421/" target="_blank" rel="noopener noreferrer" class="link link-primary">PMC</a>, 
+          <a href="https://www.nature.com/articles/s41574-021-00627-6" target="_blank" rel="noopener noreferrer" class="link link-primary">Nature</a>).
+        </li>
+      </ul>
+      
+      <p><strong>Bottom line:</strong> Sugar from whole, minimally processed foods isn't harmful and may even support health. In contrast, excess added sugar—especially in sugary drinks—poses clear risks.</p>
+    </div>
+    <div class="modal-action">
+      <label for="sugar-info-modal" class="btn btn-primary">Got it!</label>
+    </div>
+  </div>
+  <label class="modal-backdrop" for="sugar-info-modal">Close</label>
 </div>
 
 

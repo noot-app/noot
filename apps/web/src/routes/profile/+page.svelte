@@ -5,6 +5,7 @@
   import { dev } from '$app/environment';
   import { toast } from '$lib/stores/toast';
   import Toast from '$lib/components/Toast.svelte';
+  import InfoButton from '$lib/components/InfoButton.svelte';
   import type { paths } from "$lib/api/schema";
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
@@ -813,9 +814,7 @@
                   </div>
                 {:else}
                   <div class="alert alert-info">
-                    <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <InfoButton standalone={true} size="lg" />
                     <span>No biometric data yet. Add your details below for personalized nutrition goals!</span>
                   </div>
                 {/if}
@@ -941,7 +940,7 @@
       </h3>
       
       <div class="alert alert-info mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <InfoButton standalone={true} size="lg" iconClassName="stroke-current" />
         <div>
           <div class="text-sm">Need help setting your nutrition goals?</div>
           <div class="text-xs mt-1">
