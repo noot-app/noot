@@ -35,8 +35,7 @@
         { key: "total_fat_g", label: "Total Fat", unit: "g" },
         { key: "saturated_fat_g", label: "Saturated Fat", unit: "g" },
         { key: "trans_fat_g", label: "Trans Fat", unit: "g" },
-        { key: "cholesterol_mg", label: "Cholesterol", unit: "mg" },
-        { key: "sodium_mg", label: "Sodium", unit: "mg" }
+        { key: "cholesterol_mg", label: "Cholesterol", unit: "mg" }
       ]
     },
     vitamins: {
@@ -68,6 +67,7 @@
         { key: "magnesium_mg", label: "Magnesium", unit: "mg" },
         { key: "phosphorus_mg", label: "Phosphorus", unit: "mg" },
         { key: "potassium_mg", label: "Potassium", unit: "mg" },
+        { key: "sodium_mg", label: "Sodium", unit: "mg" },
         { key: "zinc_mg", label: "Zinc", unit: "mg" },
         { key: "copper_mg", label: "Copper", unit: "mg" },
         { key: "manganese_mg", label: "Manganese", unit: "mg" },
