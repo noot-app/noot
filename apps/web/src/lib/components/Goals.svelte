@@ -100,16 +100,6 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
       Nutrition Targets
-      <!-- DRI tooltip when showing DRI targets -->
-      {#if (showMealContribution && isDriMode)}
-        <div class="tooltip tooltip-bottom" data-tip="Dietary Reference Intakes (DRI) are nutrient reference values developed by health experts to help individuals achieve adequate nutrition.">
-          <a href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dietary-guidance" target="_blank" rel="noopener noreferrer" class="text-info hover:text-info-focus text-sm ml-1" aria-label="Learn more about DRI">
-            <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </a>
-        </div>
-      {/if}
     </h2>
     
     <!-- Subtext for meal contribution -->
@@ -133,22 +123,7 @@
       <div class="space-y-3">
         <!-- Goals Header -->
         <div class="flex justify-between items-center">
-          <div class="text-sm text-base-content/70">
-            {#if goals.source === "custom"}
-              <span class="badge badge-primary">
-                {goals.custom_name || "Custom Goals"}
-              </span>
-            {:else}
-              <div class="tooltip tooltip-bottom" data-tip="Dietary Reference Intakes (DRI) are nutrient reference values developed by health experts. Learn more at nal.usda.gov">
-                <a href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dietary-guidance" target="_blank" rel="noopener noreferrer" class="badge badge-primary hover:badge-primary-focus">
-                DRI Guidelines
-                <svg class="w-3 h-3 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                </a>
-              </div>
-            {/if}
-          </div>
+          <!-- Removed badge section - info will be in stats section instead -->
         </div>
 
         <!-- Key Nutrients Progress -->
@@ -299,10 +274,16 @@
             </div>
             <div class="stat">
               <div class="stat-title">Source</div>
-              <div class="stat-value text-lg">
+              <div class="stat-value text-lg flex items-center gap-2">
                 {goals.source === "custom" 
                   ? (goals.custom_name || "Custom") 
                   : "DRI"}
+                <!-- Info button for modal -->
+                {#if goals.source === "custom"}
+                  <InfoButton modalId="custom-goals-info" />
+                {:else}
+                  <InfoButton modalId="dri-info" />
+                {/if}
               </div>
               <div class="stat-desc">
                 {goals.source === "custom" 
@@ -345,6 +326,89 @@
     </div>
   </div>
   <label class="modal-backdrop" for="sugar-info-modal">Close</label>
+</div>
+
+<!-- DRI Info Modal -->
+<input type="checkbox" id="dri-info" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <label for="dri-info" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</label>
+    <h3 class="font-bold text-lg mb-4">Dietary Reference Intakes (DRI)</h3>
+    <div class="prose prose-sm max-w-none">
+      <p>The Dietary Reference Intakes (DRI) are a set of reference values used to plan and assess nutrient intakes of healthy people. They are developed by health experts and include:</p>
+      
+      <ul>
+        <li><strong>Recommended Dietary Allowance (RDA):</strong> The average daily dietary nutrient intake level sufficient to meet the nutrient requirements of nearly all (97–98 percent) healthy people.</li>
+        <li><strong>Adequate Intake (AI):</strong> Used when an RDA cannot be determined. Based on observed or experimentally-determined estimates of nutrient intake.</li>
+        <li><strong>Tolerable Upper Intake Level (UL):</strong> The highest average daily nutrient intake level likely to pose no risk of adverse health effects.</li>
+      </ul>
+      
+      <p>These guidelines help ensure you get adequate nutrition while avoiding potentially harmful amounts of nutrients.</p>
+      
+      <p class="text-sm text-base-content/70 mt-4">
+        <strong>Source:</strong> U.S. National Academy of Sciences, Engineering, and Medicine
+      </p>
+    </div>
+    <div class="modal-action">
+      <a href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dietary-guidance" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+        Learn More
+        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+      <label for="dri-info" class="btn btn-primary">Got it!</label>
+    </div>
+  </div>
+  <label class="modal-backdrop" for="dri-info">Close</label>
+</div>
+
+<!-- Custom Goals Info Modal -->
+<input type="checkbox" id="custom-goals-info" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <label for="custom-goals-info" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</label>
+    <h3 class="font-bold text-lg mb-4">Custom Nutrition Goals</h3>
+    <div class="prose prose-sm max-w-none">
+      {#if goals && goals.source === "custom"}
+        <p><strong>Goal Name:</strong> {goals.custom_name || "Unnamed Custom Goal"}</p>
+        
+        {#if goals.targets && Object.keys(goals.targets).length > 0}
+          <h4 class="font-semibold mt-4 mb-2">Custom Targets:</h4>
+          <div class="bg-base-200 p-3 rounded text-xs space-y-1">
+            {#each Object.entries(goals.targets) as [nutrient, value]}
+              <div class="flex justify-between">
+                <span class="capitalize">{nutrient.replace(/_/g, ' ')}</span>
+                <span class="font-mono">{value}{nutrient.includes('_mcg') ? 'μg' : nutrient.includes('_mg') ? 'mg' : nutrient.includes('_g') ? 'g' : ''}</span>
+              </div>
+            {/each}
+          </div>
+        {/if}
+        
+        {#if goals.upper_limits && Object.keys(goals.upper_limits).length > 0}
+          <h4 class="font-semibold mt-4 mb-2">Custom Upper Limits:</h4>
+          <div class="bg-warning/10 p-3 rounded text-xs space-y-1">
+            {#each Object.entries(goals.upper_limits) as [nutrient, value]}
+              <div class="flex justify-between">
+                <span class="capitalize">{nutrient.replace(/_/g, ' ')}</span>
+                <span class="font-mono">{value}{nutrient.includes('_mcg') ? 'μg' : nutrient.includes('_mg') ? 'mg' : nutrient.includes('_g') ? 'g' : ''}</span>
+              </div>
+            {/each}
+          </div>
+        {/if}
+        
+        <p class="text-sm text-base-content/70 mt-4">
+          These custom goals override the default DRI recommendations and are tailored to your specific needs.
+        </p>
+      {:else}
+        <p>Custom nutrition goals allow you to set personalized targets that override the default DRI recommendations.</p>
+        <p>Upgrade to Pro to create and use custom nutrition goals tailored to your specific dietary needs.</p>
+      {/if}
+    </div>
+    <div class="modal-action">
+      <label for="custom-goals-info" class="btn btn-primary">Got it!</label>
+    </div>
+  </div>
+  <label class="modal-backdrop" for="custom-goals-info">Close</label>
 </div>
 
 
