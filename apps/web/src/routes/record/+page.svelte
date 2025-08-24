@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
   import Goals from "$lib/components/Goals.svelte";
+  import NutrientComposition from "$lib/components/NutrientComposition.svelte";
 
   let isRecording = false;
   let mediaRecorder: MediaRecorder | null = null;
@@ -617,6 +618,11 @@
                             <span class="font-medium">Total Fat:</span> {item.item.nutrients.total_fat_g.toFixed(1)}g
                           </div>
                         </div>
+                        
+                        <!-- Nutrient Composition Dropdown -->
+                        <NutrientComposition 
+                          nutrients={item.item.nutrients} 
+                        />
                       {/if}
                     </div>
                   </div>

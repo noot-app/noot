@@ -2,6 +2,8 @@
   import { onMount } from "svelte";
   import { apiClient } from "$lib/api/client";
   import { isPro } from "$lib/auth/store";
+  import NutrientCategoryDisplay from "./NutrientCategoryDisplay.svelte";
+  import InfoButton from "./InfoButton.svelte";
   import type { paths } from "$lib/api/schema";
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
@@ -72,80 +74,6 @@
     await loadGoals();
   });
 
-  function getProgress(nutrient: string, current: number): number {
-    // Check if this is an upper limit (should be minimized)
-    if (goals?.upper_limits?.[nutrient] !== undefined) {
-      const limit = goals.upper_limits[nutrient];
-      if (limit === 0) {
-        // For zero limits (like trans fat), any amount is over
-        return current > 0 ? 100 : 0;
-      }
-      // For upper limits, "progress" is how close to the limit (inverted logic)
-      const progress = (current / limit) * 100;
-      return isFinite(progress) ? Math.min(progress, 100) : 0;
-    }
-    
-    // Regular target logic
-    if (goals?.targets[nutrient] === undefined) return 0;
-    const progress = (current / goals.targets[nutrient]) * 100;
-    return isFinite(progress) ? Math.min(progress, 100) : 0;
-  }
-
-  function getActualProgress(nutrient: string, current: number): number {
-    // Check if this is an upper limit
-    if (goals?.upper_limits?.[nutrient] !== undefined) {
-      const limit = goals.upper_limits[nutrient];
-      if (limit === 0) {
-        return current > 0 ? 200 : 0; // Show high percentage for any trans fat
-      }
-      const progress = (current / limit) * 100;
-      return isFinite(progress) ? progress : 0;
-    }
-    
-    // Regular target logic
-    if (goals?.targets[nutrient] === undefined) return 0;
-    const progress = (current / goals.targets[nutrient]) * 100;
-    return isFinite(progress) ? progress : 0;
-  }
-
-  function getOverageText(nutrient: string, current: number): string {
-    // Check if this is an upper limit
-    if (goals?.upper_limits?.[nutrient] !== undefined) {
-      const limit = goals.upper_limits[nutrient];
-      if (limit === 0 && current > 0) {
-        return "⚠️";
-      }
-      if (current > limit) {
-        const overage = ((current / limit) - 1) * 100;
-        return isFinite(overage) ? `⚠️ ${overage.toFixed(0)}% over limit` : "⚠️ Over limit";
-      }
-      return "";
-    }
-    
-    // Regular target logic
-    if (goals?.targets[nutrient] === undefined) return "";
-    const actualProgress = (current / goals.targets[nutrient]) * 100;
-    if (!isFinite(actualProgress) || actualProgress <= 100) return "";
-    const overage = actualProgress - 100;
-    return isFinite(overage) ? `+${overage.toFixed(0)}% over` : "+Over";
-  }
-
-  function formatNutrientName(key: string): string {
-    return key
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, l => l.toUpperCase())
-      // Remove unit suffixes since they're shown separately
-      .replace(/ Mcg$/, "")
-      .replace(/ Mg$/, "")
-      .replace(/ G$/, "");
-  }
-
-  function formatValue(value: number, unit: string): string {
-    if (!isFinite(value) || value === 0) return "0";
-    if (value < 1) return value.toFixed(1);
-    return value.toFixed(0);
-  }
-
   // All nutrients to display - organized by category for complete DRI coverage
   const keyNutrients = [
     // Essential macronutrients
@@ -167,21 +95,11 @@
 
 <div class="card bg-base-200 shadow-lg">
   <div class="card-body">
-    <h2 class="card-title flex items-center gap-2 text-primary">
+    <h2 class="card-title text-lg flex items-center gap-2" style="color: var(--color-base-content);">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
       Nutrition Targets
-      <!-- DRI tooltip when showing DRI targets -->
-      {#if (showMealContribution && isDriMode)}
-        <div class="tooltip tooltip-bottom" data-tip="Dietary Reference Intakes (DRI) are nutrient reference values developed by health experts to help individuals achieve adequate nutrition.">
-          <a href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dietary-guidance" target="_blank" rel="noopener noreferrer" class="text-info hover:text-info-focus text-sm ml-1" aria-label="Learn more about DRI">
-            <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </a>
-        </div>
-      {/if}
     </h2>
     
     <!-- Subtext for meal contribution -->
@@ -205,22 +123,7 @@
       <div class="space-y-3">
         <!-- Goals Header -->
         <div class="flex justify-between items-center">
-          <div class="text-sm text-base-content/70">
-            {#if goals.source === "custom"}
-              <span class="badge badge-primary">
-                {goals.custom_name || "Custom Goals"}
-              </span>
-            {:else}
-              <div class="tooltip tooltip-bottom" data-tip="Dietary Reference Intakes (DRI) are nutrient reference values developed by health experts. Learn more at nal.usda.gov">
-                <a href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dietary-guidance" target="_blank" rel="noopener noreferrer" class="badge badge-primary hover:badge-primary-focus">
-                DRI Guidelines
-                <svg class="w-3 h-3 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-                </a>
-              </div>
-            {/if}
-          </div>
+          <!-- Removed badge section - info will be in stats section instead -->
         </div>
 
         <!-- Key Nutrients Progress -->
@@ -230,54 +133,14 @@
             {@const targetNutrients = keyNutrients.filter(n => goals?.targets[n] !== undefined)}
             {#if targetNutrients.length > 0}
               <div>
-                <div class="space-y-3">
-                  {#each targetNutrients as nutrient}
-                    {@const current = getCurrentNutrient(nutrient)}
-                    {@const target = goals.targets[nutrient]}
-                    {@const progress = getProgress(nutrient, current)}
-                    {@const unit = goals.units[nutrient] || ""}
-                    
-                    <div class="space-y-1">
-                      <div class="flex justify-between items-center text-sm">
-                        <span class="font-medium">
-                          {formatNutrientName(nutrient)}
-                          {#if getOverageText(nutrient, current)}
-                            <span class="text-xs text-info ml-1">{getOverageText(nutrient, current)}</span>
-                          {/if}
-                        </span>
-                        <span class="text-base-content/70">
-                          {formatValue(current, unit)}/{formatValue(target, unit)} {unit}
-                        </span>
-                      </div>
-                      <div class="flex items-center gap-2">
-                        {#if showMealContribution}
-                          <!-- Stacked progress bar showing meal contribution -->
-                          <div class="flex-1 relative">
-                            <progress 
-                              class="progress progress-accent absolute inset-0"
-                              value={progress} 
-                              max="100"
-                              title="This meal's contribution: {progress.toFixed(0)}%"
-                            ></progress>
-                          </div>
-                        {:else}
-                          <!-- Standard progress bar for targets -->
-                          <progress 
-                            class="progress flex-1"
-                            class:progress-success={progress >= 80}
-                            class:progress-warning={progress >= 50 && progress < 80}
-                            class:progress-primary={progress < 50}
-                            value={progress} 
-                            max="100"
-                          ></progress>
-                        {/if}
-                        <span class="text-xs text-base-content/60 min-w-[3rem]">
-                          {getActualProgress(nutrient, current).toFixed(0)}%
-                        </span>
-                      </div>
-                    </div>
-                  {/each}
-                </div>
+                <NutrientCategoryDisplay 
+                  nutrients={currentNutrition} 
+                  showProgress={true}
+                  showGoals={true}
+                  isExpandable={false}
+                  title=""
+                  {showMealContribution}
+                />
               </div>
             {/if}
 
@@ -287,55 +150,15 @@
               <div>
                 <h4 class="font-semibold text-base mb-3 text-warning">Upper Limits (Minimize These)</h4>
                 <p class="text-xs text-base-content/70 mb-3">These nutrients should be consumed as little as possible for optimal health.</p>
-                <div class="space-y-3">
-                  {#each limitNutrients as nutrient}
-                    {@const current = getCurrentNutrient(nutrient)}
-                    {@const limit = goals.upper_limits?.[nutrient] || 0}
-                    {@const progress = getProgress(nutrient, current)}
-                    {@const unit = goals.units[nutrient] || ""}
-                    
-                    <div class="space-y-1">
-                      <div class="flex justify-between items-center text-sm">
-                        <span class="font-medium">
-                          {formatNutrientName(nutrient)}
-                          <span class="badge badge-outline badge-info badge-xs ml-1">Limit</span>
-                          {#if getOverageText(nutrient, current)}
-                            <span class="text-xs text-warning ml-1">{getOverageText(nutrient, current)}</span>
-                          {/if}
-                        </span>
-                        <span class="text-base-content/70">
-                          {formatValue(current, unit)}/{formatValue(limit, unit)} {unit}
-                        </span>
-                      </div>
-                      <div class="flex items-center gap-2">
-                        {#if showMealContribution}
-                          <!-- Stacked progress bar showing meal contribution -->
-                          <div class="flex-1 relative">
-                            <progress 
-                              class="progress progress-warning absolute inset-0"
-                              value={progress} 
-                              max="100"
-                              title="This meal's contribution: {progress.toFixed(0)}% of limit"
-                            ></progress>
-                          </div>
-                        {:else}
-                          <!-- Progress bar for limits (red = bad, green = good) -->
-                          <progress 
-                            class="progress flex-1"
-                            class:progress-success={progress <= 50}
-                            class:progress-warning={progress > 50 && progress <= 100}
-                            class:progress-error={progress > 100}
-                            value={progress} 
-                            max="100"
-                          ></progress>
-                        {/if}
-                        <span class="text-xs text-base-content/60 min-w-[3rem]">
-                          {getActualProgress(nutrient, current).toFixed(0)}%
-                        </span>
-                      </div>
-                    </div>
-                  {/each}
-                </div>
+                <NutrientCategoryDisplay 
+                  nutrients={currentNutrition} 
+                  showProgress={true}
+                  showGoals={true}
+                  isExpandable={false}
+                  title=""
+                  {showMealContribution}
+                  showLimitsOnly={true}
+                />
               </div>
             {/if}
           {/if}
@@ -346,16 +169,101 @@
           {@const availableNutrients = keyNutrients.filter(n => goals?.targets[n] !== undefined || goals?.upper_limits?.[n] !== undefined)}
           {@const metGoals = availableNutrients.filter(n => {
             const current = getCurrentNutrient(n);
-            const progress = getProgress(n, current);
-            // For upper limits, "success" means staying under the limit (low percentage)
+            
+            // Check if this is an upper limit (should be minimized)
             if (goals?.upper_limits?.[n] !== undefined) {
+              const limit = goals.upper_limits[n];
+              if (limit === 0) {
+                return current === 0; // Success if no consumption for zero limits
+              }
+              const progress = (current / limit) * 100;
               return progress <= 80; // Success if under 80% of the upper limit
             }
-            // For regular targets, success is reaching 80% or more
-            return progress >= 80;
+            
+            // Regular target logic
+            if (goals?.targets[n] === undefined) return false;
+            const progress = (current / goals.targets[n]) * 100;
+            return progress >= 80; // Success if reaching 80% or more of target
           }).length}
           
-          <div class="stats stats-vertical lg:stats-horizontal bg-base-100 shadow-sm">
+          <!-- Sugar Breakdown Section -->
+          {@const totalSugars = getCurrentNutrient("total_sugars_g")}
+          {@const addedSugars = getCurrentNutrient("added_sugars_g")}
+          {@const naturalSugars = Math.max(0, totalSugars - addedSugars)}
+          {#if totalSugars > 0}
+            <div class="card bg-base-100 shadow-sm mt-6">
+              <div class="card-body p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-semibold text-base flex items-center" style="color: var(--color-base-content);">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Sugar Breakdown
+                  </h4>
+                  <!-- Info button that opens modal -->
+                  <InfoButton modalId="sugar-info-modal" size="sm" />
+                </div>
+
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                  <!-- Total Sugars -->
+                  <div class="text-center">
+                    <div class="stat-value text-xl text-base-content">{totalSugars.toFixed(1)}g</div>
+                    <div class="stat-title">Total Sugars</div>
+                  </div>
+
+                  <!-- Natural Sugars -->
+                  <div class="text-center">
+                    <div class="stat-value text-xl text-success">{naturalSugars.toFixed(1)}g</div>
+                    <div class="stat-title">Natural Sugars</div>
+                    <div class="stat-desc text-xs text-success/70">From whole foods</div>
+                  </div>
+
+                  <!-- Added Sugars -->
+                  <div class="text-center">
+                    <div class="stat-value text-xl text-warning">{addedSugars.toFixed(1)}g</div>
+                    <div class="stat-title">Added Sugars</div>
+                    {#if goals?.upper_limits?.added_sugars_g}
+                      <div class="stat-desc text-xs">
+                        {((addedSugars / goals.upper_limits.added_sugars_g) * 100).toFixed(0)}% of {goals.upper_limits.added_sugars_g}g limit
+                      </div>
+                    {/if}
+                  </div>
+
+                  <!-- Sugar Ratio -->
+                  <div class="text-center">
+                    <div class="stat-value text-xl text-info">
+                      {totalSugars > 0 ? ((naturalSugars / totalSugars) * 100).toFixed(0) : 0}%
+                    </div>
+                    <div class="stat-title">Natural</div>
+                    <div class="stat-desc text-xs text-info/70">vs Added ratio</div>
+                  </div>
+                </div>
+
+                <!-- Visual ratio bar -->
+                {#if totalSugars > 0}
+                  <div class="mt-4">
+                    <div class="flex items-center text-xs text-base-content/70 mb-1">
+                      <span class="text-success">Natural</span>
+                      <span class="flex-1"></span>
+                      <span class="text-warning">Added</span>
+                    </div>
+                    <div class="flex h-2 bg-base-200 rounded-full overflow-hidden">
+                      <div 
+                        class="bg-success transition-all duration-300" 
+                        style="width: {(naturalSugars / totalSugars * 100)}%"
+                      ></div>
+                      <div 
+                        class="bg-warning transition-all duration-300" 
+                        style="width: {(addedSugars / totalSugars * 100)}%"
+                      ></div>
+                    </div>
+                  </div>
+                {/if}
+              </div>
+            </div>
+          {/if}
+          
+          <div class="stats stats-vertical lg:stats-horizontal bg-base-100 shadow-sm mt-6">
             <div class="stat">
               <div class="stat-title">Goals Met</div>
               <div class="stat-value text-lg">
@@ -366,12 +274,22 @@
             </div>
             <div class="stat">
               <div class="stat-title">Source</div>
-              <div class="stat-value text-lg">
+              <div class="stat-value text-lg flex items-center gap-2">
                 {goals.source === "custom" 
                   ? (goals.custom_name || "Custom") 
                   : "DRI"}
+                <!-- Info button for modal -->
+                {#if goals.source === "custom"}
+                  <InfoButton modalId="custom-goals-info" />
+                {:else}
+                  <InfoButton modalId="dri-info" />
+                {/if}
               </div>
-              <div class="stat-desc">Nutrition guidelines</div>
+              <div class="stat-desc">
+                {goals.source === "custom" 
+                  ? "Custom Nutrition Goal" 
+                  : "Nutrition guidelines"}
+              </div>
             </div>
           </div>
         {/if}
@@ -380,14 +298,117 @@
   </div>
 </div>
 
-<style>
-  progress.progress-success {
-    --progress-color: oklch(var(--su));
-  }
-  progress.progress-warning {
-    --progress-color: oklch(var(--wa));
-  }
-  progress.progress-primary {
-    --progress-color: var(--color-dark);
-  }
-</style>
+<!-- Sugar Info Modal -->
+<input type="checkbox" id="sugar-info-modal" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <label for="sugar-info-modal" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</label>
+    <h3 class="font-bold text-lg mb-4">Natural Sugar vs. Added Sugar</h3>
+    <div class="prose prose-sm max-w-none">
+      <p>Even though the molecules are the same (glucose, fructose, sucrose), sugar's health effects depend entirely on the context in which it's eaten.</p>
+      
+      <ul>
+        <li>
+          <strong>Natural sugars</strong> in whole foods like berries come packaged with fiber, water, vitamins, and phytochemicals. That fiber slows absorption, helping stabilize blood sugar. Plus, studies show that eating whole fruits—especially berries, grapes, and apples—is linked to a <strong>lower risk of developing type 2 diabetes</strong> 
+          (<a href="https://pubmed.ncbi.nlm.nih.gov/23990623/" target="_blank" rel="noopener noreferrer" class="link link-primary">PubMed</a>).
+        </li>
+        <li>
+          <strong>Added sugars</strong>, such as those in soda, juice, or sweets, deliver calories without nutrients. These "empty" calories spike blood sugar, promote fat storage, and are strongly associated with <strong>weight gain, type 2 diabetes, and heart disease</strong> 
+          (<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6723421/" target="_blank" rel="noopener noreferrer" class="link link-primary">PMC</a>, 
+          <a href="https://www.nature.com/articles/s41574-021-00627-6" target="_blank" rel="noopener noreferrer" class="link link-primary">Nature</a>).
+        </li>
+      </ul>
+      
+      <p><strong>Bottom line:</strong> Sugar from whole, minimally processed foods isn't harmful and may even support health. In contrast, excess added sugar—especially in sugary drinks—poses clear risks.</p>
+    </div>
+    <div class="modal-action">
+      <label for="sugar-info-modal" class="btn btn-primary">Got it!</label>
+    </div>
+  </div>
+  <label class="modal-backdrop" for="sugar-info-modal">Close</label>
+</div>
+
+<!-- DRI Info Modal -->
+<input type="checkbox" id="dri-info" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <label for="dri-info" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</label>
+    <h3 class="font-bold text-lg mb-4">Dietary Reference Intakes (DRI)</h3>
+    <div class="prose prose-sm max-w-none">
+      <p>The Dietary Reference Intakes (DRI) are a set of reference values used to plan and assess nutrient intakes of healthy people. They are developed by health experts and include:</p>
+      
+      <ul>
+        <li><strong>Recommended Dietary Allowance (RDA):</strong> The average daily dietary nutrient intake level sufficient to meet the nutrient requirements of nearly all (97–98 percent) healthy people.</li>
+        <li><strong>Adequate Intake (AI):</strong> Used when an RDA cannot be determined. Based on observed or experimentally-determined estimates of nutrient intake.</li>
+        <li><strong>Tolerable Upper Intake Level (UL):</strong> The highest average daily nutrient intake level likely to pose no risk of adverse health effects.</li>
+      </ul>
+      
+      <p>These guidelines help ensure you get adequate nutrition while avoiding potentially harmful amounts of nutrients.</p>
+      
+      <p class="text-sm text-base-content/70 mt-4">
+        <strong>Source:</strong> U.S. National Academy of Sciences, Engineering, and Medicine
+      </p>
+    </div>
+    <div class="modal-action">
+      <a href="https://www.nal.usda.gov/human-nutrition-and-food-safety/dietary-guidance" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+        Learn More
+        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+      <label for="dri-info" class="btn btn-primary">Got it!</label>
+    </div>
+  </div>
+  <label class="modal-backdrop" for="dri-info">Close</label>
+</div>
+
+<!-- Custom Goals Info Modal -->
+<input type="checkbox" id="custom-goals-info" class="modal-toggle" />
+<div class="modal">
+  <div class="modal-box">
+    <label for="custom-goals-info" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</label>
+    <h3 class="font-bold text-lg mb-4">Custom Nutrition Goals</h3>
+    <div class="prose prose-sm max-w-none">
+      {#if goals && goals.source === "custom"}
+        <p><strong>Goal Name:</strong> {goals.custom_name || "Unnamed Custom Goal"}</p>
+        
+        {#if goals.targets && Object.keys(goals.targets).length > 0}
+          <h4 class="font-semibold mt-4 mb-2">Custom Targets:</h4>
+          <div class="bg-base-200 p-3 rounded text-xs space-y-1">
+            {#each Object.entries(goals.targets) as [nutrient, value]}
+              <div class="flex justify-between">
+                <span class="capitalize">{nutrient.replace(/_/g, ' ')}</span>
+                <span class="font-mono">{value}{nutrient.includes('_mcg') ? 'μg' : nutrient.includes('_mg') ? 'mg' : nutrient.includes('_g') ? 'g' : ''}</span>
+              </div>
+            {/each}
+          </div>
+        {/if}
+        
+        {#if goals.upper_limits && Object.keys(goals.upper_limits).length > 0}
+          <h4 class="font-semibold mt-4 mb-2">Custom Upper Limits:</h4>
+          <div class="bg-warning/10 p-3 rounded text-xs space-y-1">
+            {#each Object.entries(goals.upper_limits) as [nutrient, value]}
+              <div class="flex justify-between">
+                <span class="capitalize">{nutrient.replace(/_/g, ' ')}</span>
+                <span class="font-mono">{value}{nutrient.includes('_mcg') ? 'μg' : nutrient.includes('_mg') ? 'mg' : nutrient.includes('_g') ? 'g' : ''}</span>
+              </div>
+            {/each}
+          </div>
+        {/if}
+        
+        <p class="text-sm text-base-content/70 mt-4">
+          These custom goals override the default DRI recommendations and are tailored to your specific needs.
+        </p>
+      {:else}
+        <p>Custom nutrition goals allow you to set personalized targets that override the default DRI recommendations.</p>
+        <p>Upgrade to Pro to create and use custom nutrition goals tailored to your specific dietary needs.</p>
+      {/if}
+    </div>
+    <div class="modal-action">
+      <label for="custom-goals-info" class="btn btn-primary">Got it!</label>
+    </div>
+  </div>
+  <label class="modal-backdrop" for="custom-goals-info">Close</label>
+</div>
+
+

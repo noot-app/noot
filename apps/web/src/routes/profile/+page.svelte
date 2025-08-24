@@ -5,6 +5,7 @@
   import { dev } from '$app/environment';
   import { toast } from '$lib/stores/toast';
   import Toast from '$lib/components/Toast.svelte';
+  import InfoButton from '$lib/components/InfoButton.svelte';
   import type { paths } from "$lib/api/schema";
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
@@ -30,6 +31,25 @@
   $: isFreeUser = user?.subscription_tier === "free";
   let saving = false;
   let savingBiometrics = false;
+
+  // Age visibility state with client-side storage
+  let showAge = true;
+
+  // Load age visibility preference from localStorage
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('noot-show-age');
+    if (stored !== null) {
+      showAge = JSON.parse(stored);
+    }
+  }
+
+  // Function to toggle age visibility and save preference
+  function toggleAgeVisibility() {
+    showAge = !showAge;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('noot-show-age', JSON.stringify(showAge));
+    }
+  }
 
   // Form state
   let customGoalName = "";
@@ -768,10 +788,10 @@
         <div class="card bg-base-200 shadow-lg">
           <div class="card-body p-6">
             <h2 class="card-title flex items-center gap-2">
-              📊 Biometrics
-              {#if calculatedMetrics?.age_years}
-                <div class="badge badge-primary badge-sm">{calculatedMetrics.age_years}y</div>
-              {/if}
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
+              </svg>
+              Biometrics
             </h2>
             
             {#if biometricsLoading}
@@ -810,12 +830,47 @@
                         <div class="stat-value text-lg">{getActivityLevelDisplay(biometrics.activity_level)}</div>
                       </div>
                     {/if}
+                    {#if calculatedMetrics?.age_years && showAge}
+                      <div class="stat bg-base-100 rounded-box p-3 tooltip tooltip-top" data-tip="Your current age based on birth date">
+                        <div class="stat-title text-xs flex items-center gap-1">
+                          Age
+                          <button 
+                            class="btn btn-ghost btn-xs p-0 h-auto min-h-0"
+                            on:click={toggleAgeVisibility}
+                            aria-label="Hide age"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 1-4.243-4.243m4.242 4.242L9.88 9.88" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div class="stat-value text-lg">{calculatedMetrics.age_years}</div>
+                        <div class="stat-desc text-xs">years</div>
+                      </div>
+                    {/if}
+                    {#if calculatedMetrics?.age_years && !showAge}
+                      <div class="stat bg-base-100 rounded-box p-3 tooltip tooltip-top" data-tip="Age is hidden - click to show">
+                        <div class="stat-title text-xs flex items-center gap-1">
+                          Age
+                          <button 
+                            class="btn btn-ghost btn-xs p-0 h-auto min-h-0"
+                            on:click={toggleAgeVisibility}
+                            aria-label="Show age"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div class="stat-value text-lg opacity-20">••</div>
+                        <div class="stat-desc text-xs opacity-50">years</div>
+                      </div>
+                    {/if}
                   </div>
                 {:else}
                   <div class="alert alert-info">
-                    <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <InfoButton standalone={true} size="lg" />
                     <span>No biometric data yet. Add your details below for personalized nutrition goals!</span>
                   </div>
                 {/if}
@@ -941,7 +996,7 @@
       </h3>
       
       <div class="alert alert-info mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <InfoButton standalone={true} size="lg" iconClassName="stroke-current" />
         <div>
           <div class="text-sm">Need help setting your nutrition goals?</div>
           <div class="text-xs mt-1">
