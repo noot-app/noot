@@ -365,8 +365,8 @@
 <!-- Custom Goals Info Modal -->
 <input type="checkbox" id="custom-goals-info" class="modal-toggle" />
 <div class="modal">
-  <div class="modal-box">
-    <label for="custom-goals-info" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</label>
+  <div class="modal-box max-w-lg max-h-[80vh] overflow-y-auto">
+    <label for="custom-goals-info" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10">✕</label>
     <h3 class="font-bold text-lg mb-4">Custom Nutrition Goals</h3>
     <div class="prose prose-sm max-w-none">
       {#if goals && goals.source === "custom"}
@@ -374,7 +374,7 @@
         
         {#if goals.targets && Object.keys(goals.targets).length > 0}
           <h4 class="font-semibold mt-4 mb-2">Custom Targets:</h4>
-          <div class="bg-base-200 p-3 rounded text-xs space-y-1">
+          <div class="bg-base-200 p-3 rounded text-xs space-y-1 max-h-48 overflow-y-auto">
             {#each Object.entries(goals.targets) as [nutrient, value]}
               <div class="flex justify-between">
                 <span class="capitalize">{nutrient.replace(/_/g, ' ')}</span>
@@ -386,7 +386,7 @@
         
         {#if goals.upper_limits && Object.keys(goals.upper_limits).length > 0}
           <h4 class="font-semibold mt-4 mb-2">Custom Upper Limits:</h4>
-          <div class="bg-warning/10 p-3 rounded text-xs space-y-1">
+          <div class="bg-warning/10 p-3 rounded text-xs space-y-1 max-h-32 overflow-y-auto">
             {#each Object.entries(goals.upper_limits) as [nutrient, value]}
               <div class="flex justify-between">
                 <span class="capitalize">{nutrient.replace(/_/g, ' ')}</span>
@@ -397,7 +397,7 @@
         {/if}
         
         <p class="text-sm text-base-content/70 mt-4">
-          These custom goals override the default DRI recommendations and are tailored to your specific needs.
+          These custom goals override the default DRI recommendations and are tailored to your specific needs. You can change them anytime on your profile page.
         </p>
       {:else}
         <p>Custom nutrition goals allow you to set personalized targets that override the default DRI recommendations.</p>
