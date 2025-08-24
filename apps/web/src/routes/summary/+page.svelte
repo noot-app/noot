@@ -178,21 +178,34 @@
 
     <!-- Summary Data -->
     {#if summaryData && !isLoading}
-      <div class="space-y-8">
-        <!-- Overview Stats -->
-        <NutritionStats 
-          calories={summaryData.summary.total_calories || 0}
-          protein={summaryData.summary.total_protein_g || 0}
-          carbs={summaryData.summary.total_carbs_g || 0}
-          fat={summaryData.summary.total_fat_g || 0}
-          size="normal"
-        />
+      <!-- Check if we have any actual data -->
+      {#if (!summaryData.summary.total_calories || summaryData.summary.total_calories === 0) && !summaryData.recent_consumptions?.length}
+        <!-- No Data State -->
+        <div class="text-center py-12">
+          <div class="text-6xl mb-4">🍽️</div>
+          <h3 class="text-2xl font-bold mb-2">No data for {currentView === 'today' ? 'today' : 'this week'}</h3>
+          <p class="text-base-content/70 mb-6">Start logging your meals to see your nutrition summary</p>
+          <a href="/record" class="btn btn-primary">
+            Record Your First Meal
+          </a>
+        </div>
+      {:else}
+        <!-- We have data - show the nutrition components -->
+        <div class="space-y-8">
+          <!-- Overview Stats -->
+          <NutritionStats 
+            calories={summaryData.summary.total_calories || 0}
+            protein={summaryData.summary.total_protein_g || 0}
+            carbs={summaryData.summary.total_carbs_g || 0}
+            fat={summaryData.summary.total_fat_g || 0}
+            size="normal"
+          />
 
-        <!-- Nutrition Goals -->
-        <Goals {currentNutrition} />
+          <!-- Nutrition Goals -->
+          <Goals {currentNutrition} />
 
-        <!-- Daily Breakdown (for week view) -->
-        {#if currentView === 'week' && summaryData.summary.daily_breakdown && summaryData.summary.daily_breakdown.length > 0}
+          <!-- Daily Breakdown (for week view) -->
+          {#if currentView === 'week' && summaryData.summary.daily_breakdown && summaryData.summary.daily_breakdown.length > 0}
           <div class="card bg-base-200 shadow-xl">
             <div class="card-body">
               <h2 class="card-title mb-4">Daily Breakdown</h2>
@@ -282,19 +295,8 @@
             </div>
           </div>
         {/if}
-
-        <!-- No Data State -->
-        {#if (!summaryData.summary.total_calories || summaryData.summary.total_calories === 0) && !summaryData.recent_consumptions?.length}
-          <div class="text-center py-12">
-            <div class="text-6xl mb-4">🍽️</div>
-            <h3 class="text-2xl font-bold mb-2">No data for {currentView === 'today' ? 'today' : 'this week'}</h3>
-            <p class="text-base-content/70 mb-6">Start logging your meals to see your nutrition summary</p>
-            <a href="/record" class="btn btn-primary">
-              Record Your First Meal
-            </a>
-          </div>
-        {/if}
-      </div>
+        </div>
+      {/if}
     {/if}
   </div>
 </div>
