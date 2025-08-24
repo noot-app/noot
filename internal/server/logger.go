@@ -38,6 +38,14 @@ func setupLogger() {
 }
 
 func getLogLevel() slog.Level {
+	// If running in test mode, suppress all logs unless explicitly overridden
+	if isTestMode() {
+		if levelStr := getenv("LOG_LEVEL", ""); levelStr == "" {
+			// Use a level higher than ERROR to suppress all logs during tests
+			return slog.Level(12) // Higher than any standard level
+		}
+	}
+
 	levelStr := strings.ToUpper(getenv("LOG_LEVEL", "INFO"))
 	switch levelStr {
 	case "DEBUG":
@@ -62,6 +70,22 @@ func isDebugMode() bool {
 func isDevMode() bool {
 	env := strings.ToLower(getenv("ENV", getenv("ENVIRONMENT", "production")))
 	return env == "dev" || env == "development" || env == "local"
+}
+
+func isTestMode() bool {
+	// Check if we're running under `go test`
+	for _, arg := range os.Args {
+		if strings.Contains(arg, ".test") || strings.HasSuffix(arg, ".test.exe") {
+			return true
+		}
+	}
+
+	// Check for test-specific environment variables
+	if getenv("GO_TEST", "") == "1" || getenv("TEST_MODE", "") == "true" {
+		return true
+	}
+
+	return false
 }
 
 // Enhanced error with stack trace capability

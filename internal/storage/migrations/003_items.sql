@@ -1,5 +1,5 @@
--- Migration 003: Create items_cache table for reusable nutrition data with soft TTL
-CREATE TABLE IF NOT EXISTS items_cache (
+-- Migration 003: Create items table for reusable nutrition data with soft TTL
+CREATE TABLE IF NOT EXISTS items (
     id TEXT PRIMARY KEY,
     normalized_name TEXT NOT NULL,
     normalized_brand TEXT NOT NULL DEFAULT '',
@@ -46,14 +46,52 @@ CREATE TABLE IF NOT EXISTS items_cache (
     chromium_mcg_per_100g REAL NOT NULL DEFAULT 0,
     fluoride_mg_per_100g REAL NOT NULL DEFAULT 0,
     chloride_mg_per_100g REAL NOT NULL DEFAULT 0,
-    -- Soft TTL fields
-    fetched_at DATETIME NOT NULL,
-    expires_at DATETIME NOT NULL,
+    -- Original serving data for the exact item
+    original_serving_grams REAL,
+    original_calories REAL,
+    original_protein_g REAL,
+    original_total_fat_g REAL,
+    original_saturated_fat_g REAL,
+    original_trans_fat_g REAL,
+    original_cholesterol_mg REAL,
+    original_sodium_mg REAL,
+    original_total_carbs_g REAL,
+    original_dietary_fiber_g REAL,
+    original_total_sugars_g REAL,
+    original_added_sugars_g REAL,
+    original_vitamin_a_mcg REAL,
+    original_vitamin_c_mg REAL,
+    original_vitamin_d_mcg REAL,
+    original_vitamin_e_mg REAL,
+    original_vitamin_k_mcg REAL,
+    original_thiamine_mg REAL,
+    original_riboflavin_mg REAL,
+    original_niacin_mg REAL,
+    original_vitamin_b6_mg REAL,
+    original_folate_mcg REAL,
+    original_vitamin_b12_mcg REAL,
+    original_biotin_mcg REAL,
+    original_pantothenic_acid_mg REAL,
+    original_choline_mg REAL,
+    original_calcium_mg REAL,
+    original_iron_mg REAL,
+    original_magnesium_mg REAL,
+    original_phosphorus_mg REAL,
+    original_potassium_mg REAL,
+    original_zinc_mg REAL,
+    original_copper_mg REAL,
+    original_manganese_mg REAL,
+    original_selenium_mcg REAL,
+    original_iodine_mcg REAL,
+    original_molybdenum_mcg REAL,
+    original_chromium_mcg REAL,
+    original_fluoride_mg REAL,
+    original_chloride_mg REAL,
+    -- Timestamps
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     UNIQUE(normalized_name, normalized_brand)
 );
 
-CREATE INDEX IF NOT EXISTS idx_items_cache_normalized ON items_cache(normalized_name, normalized_brand);
-CREATE INDEX IF NOT EXISTS idx_items_cache_expires_at ON items_cache(expires_at);
-CREATE INDEX IF NOT EXISTS idx_items_cache_display_name ON items_cache(display_name);
+CREATE INDEX IF NOT EXISTS idx_items_normalized ON items(normalized_name, normalized_brand);
+CREATE INDEX IF NOT EXISTS idx_items_display_name ON items(display_name);

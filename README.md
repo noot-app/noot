@@ -51,6 +51,12 @@ An AI-powered nutrition logging web app. Just say what you ate!
     TRANSCRIBE_LANGUAGE=en
     #OPENAI_TRANSCRIBE_RESPONSE_FORMAT=
 
+    # Open Food Facts (OFF) Configuration - Pre-hydrates nutrition data before AI fallback
+    OFF_ENABLED=true                                                         # Enable OFF integration (default: true)
+    OFF_API_URL=https://world.openfoodfacts.org                             # OFF API base URL (default)
+    OFF_USER_AGENT=noot/0.1 (https://github.com/GrantBirki/noot)           # User agent for OFF API (default)
+    OFF_TIMEOUT=5                                                           # Request timeout in seconds (default: 5)
+
     # Upload Configuration
     MAX_UPLOAD_BYTES=104857600  # Maximum upload size in bytes (default: 100MB)
 
@@ -143,6 +149,7 @@ The API follows OpenAPI `3.0.3` specification:
 - SQLite database with automatic migrations for consumption storage
 - OpenAI gpt-4o-mini-transcribe for speech-to-text
 - OpenAI gpt-4o-mini for consumption parsing with complete nutrition data
+- **Open Food Facts (OFF) integration** for faster, more accurate nutrition data before AI fallback
 - Audio uploads are streamed to temporary files to avoid memory spikes
 - Development seeding with realistic consumption data for testing
 - CORS middleware for cross-origin requests from frontend
@@ -162,7 +169,7 @@ The API follows OpenAPI `3.0.3` specification:
 - **Backend**: Go API server ([http://localhost:3001](http://localhost:3001))
 - **Database**: SQLite with automatic migrations
 - **Audio Processing**: OpenAI Whisper via API
-- **Nutrition Data**: OpenAI GPT-4o-mini with structured JSON responses
+- **Nutrition Data**: Open Food Facts (OFF) API with OpenAI GPT-4o-mini fallback for structured JSON responses
 
 ## Theme
 
