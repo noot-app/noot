@@ -33,6 +33,7 @@
   --color-base-200: #f2ede3;
   --color-base-300: #ddd9d0;
   --color-base-content: #3c3d42;
+  --color-base-content-lighter: #81828a;
   --color-primary: #be7454;
   --color-primary-content: #ffffff;
   --color-secondary: #657280;
@@ -135,4 +136,17 @@ button[disabled].authBtn::before {
   font-family: 'MuseoModerno', sans-serif;
   font-weight: 700;
   color: var(--color-neutral);
+}
+
+/* Custom progress bar for upper limits using lighter content color */
+.progress-lighter::-webkit-progress-value {
+  background-color: var(--color-base-content-lighter);
+}
+
+.progress-lighter::-moz-progress-bar {
+  background-color: var(--color-base-content-lighter);
+}
+
+.progress-lighter {
+  --progress-color: var(--color-base-content-lighter);
 }

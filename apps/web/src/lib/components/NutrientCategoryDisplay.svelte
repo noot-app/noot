@@ -182,9 +182,9 @@
     }
     
     if (isLimit) {
-      // For upper limits: gray/neutral until hitting the limit, then red
+      // For upper limits: lighter gray until hitting the limit, then red
       if (progress >= 100) return "progress-error";
-      return "progress-neutral";
+      return "progress-lighter";
     } else {
       if (progress >= 80) return "progress-success";
       if (progress >= 50) return "progress-warning";
