@@ -13,6 +13,8 @@
   export let isExpandable = false; // Whether the component is collapsible
   export let title = "Nutrient Profile";
   export let className = "";
+  export let showMealContribution = false; // New prop for meal-specific view (different progress bar styling)
+  export let showLimitsOnly = false; // Only show nutrients that have upper limits
   
   let goals: Goals | null = null;
   let loading = false;
@@ -133,6 +135,27 @@
     return isFinite(progress) ? Math.min(progress, 200) : 0;
   }
 
+  function getActualProgress(key: string): number {
+    if (!goals) return 0;
+    
+    const current = getNutrientValue(key);
+    
+    // Check if this is an upper limit
+    if (goals?.upper_limits?.[key] !== undefined) {
+      const limit = goals.upper_limits[key];
+      if (limit === 0) {
+        return current > 0 ? 200 : 0; // Show high percentage for any trans fat
+      }
+      const progress = (current / limit) * 100;
+      return isFinite(progress) ? progress : 0;
+    }
+    
+    // Regular target logic
+    if (goals?.targets[key] === undefined) return 0;
+    const progress = (current / goals.targets[key]) * 100;
+    return isFinite(progress) ? progress : 0;
+  }
+
   function formatValue(value: number): string {
     if (!isFinite(value) || value === 0) return "0";
     if (value < 1) return value.toFixed(1);
@@ -142,6 +165,11 @@
   function getProgressBarClass(key: string, progress: number): string {
     if (!goals) return "progress-primary";
     const isLimit = goals?.upper_limits?.[key] !== undefined;
+    
+    if (showMealContribution) {
+      // For meal contribution, use accent color
+      return isLimit ? "progress-warning" : "progress-accent";
+    }
     
     if (isLimit) {
       if (progress <= 50) return "progress-success";
@@ -170,7 +198,70 @@
   }
 
   function hasNutrientData(categoryNutrients: any[]): boolean {
-    return categoryNutrients.some(nutrient => getNutrientValue(nutrient.key) > 0);
+    return categoryNutrients.some(nutrient => {
+      const value = getNutrientValue(nutrient.key);
+      if (value <= 0) return false;
+      
+      // If showLimitsOnly is true, only show nutrients that have upper limits
+      if (showLimitsOnly) {
+        return goals?.upper_limits?.[nutrient.key] !== undefined;
+      }
+      
+      // Otherwise, show nutrients with values (and optionally filter to targets only)
+      return true;
+    });
+  }
+
+  function formatNutrientName(key: string): string {
+    return key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, l => l.toUpperCase())
+      // Remove unit suffixes since they're shown separately
+      .replace(/ Mcg$/, "")
+      .replace(/ Mg$/, "")
+      .replace(/ G$/, "");
+  }
+
+  function getOverageText(key: string, current: number): string {
+    if (!goals) return "";
+    
+    // Check if this is an upper limit
+    if (goals?.upper_limits?.[key] !== undefined) {
+      const limit = goals.upper_limits[key];
+      if (limit === 0 && current > 0) {
+        return "⚠️";
+      }
+      if (current > limit) {
+        const overage = ((current / limit) - 1) * 100;
+        return isFinite(overage) ? `⚠️ ${overage.toFixed(0)}% over limit` : "⚠️ Over limit";
+      }
+      return "";
+    }
+    
+    // Regular target logic
+    if (goals?.targets[key] === undefined) return "";
+    const actualProgress = (current / goals.targets[key]) * 100;
+    if (!isFinite(actualProgress) || actualProgress <= 100) return "";
+    const overage = actualProgress - 100;
+    return isFinite(overage) ? `+${overage.toFixed(0)}% over` : "+Over";
+  }
+
+  // Get all nutrients that have targets (not limits)
+  function getNutrientsWithTargets() {
+    if (!goals) return [];
+    const allNutrients = Object.values(nutrientCategories).flatMap(category => category.nutrients);
+    return allNutrients.filter(nutrient => 
+      goals?.targets[nutrient.key] !== undefined && getNutrientValue(nutrient.key) > 0
+    );
+  }
+
+  // Get all nutrients that have upper limits
+  function getNutrientsWithLimits() {
+    if (!goals) return [];
+    const allNutrients = Object.values(nutrientCategories).flatMap(category => category.nutrients);
+    return allNutrients.filter(nutrient => 
+      goals?.upper_limits?.[nutrient.key] !== undefined && getNutrientValue(nutrient.key) > 0
+    );
   }
 </script>
 
@@ -224,33 +315,56 @@
                 {#each category.nutrients as nutrient}
                   {@const value = getNutrientValue(nutrient.key)}
                   {#if value > 0}
-                    {@const progress = getProgress(nutrient.key)}
-                    {@const dailyText = getDailyText(nutrient.key)}
-                    <div class="flex justify-between items-center text-sm">
-                      <div class="flex-1">
-                        <div class="flex justify-between items-center mb-1">
-                          <span class="font-medium">{nutrient.label}</span>
-                          <span class="text-base-content/70">
-                            {formatValue(value)}{nutrient.unit}
-                            {#if showGoals && dailyText}
-                              <span class="text-xs">/ {dailyText}</span>
-                            {/if}
-                          </span>
-                        </div>
-                        {#if showProgress && showGoals && goals && progress > 0}
-                          <div class="flex items-center gap-2">
-                            <progress 
-                              class="progress progress-sm flex-1 {getProgressBarClass(nutrient.key, progress)}"
-                              value={progress} 
-                              max="100"
-                            ></progress>
-                            <span class="text-xs text-base-content/60 min-w-[3rem]">
-                              {progress.toFixed(0)}%
+                    {#if showLimitsOnly ? goals?.upper_limits?.[nutrient.key] !== undefined : true}
+                      {@const progress = getProgress(nutrient.key)}
+                      {@const dailyText = getDailyText(nutrient.key)}
+                      <div class="flex justify-between items-center text-sm">
+                        <div class="flex-1">
+                          <div class="flex justify-between items-center mb-1">
+                            <span class="font-medium">
+                              {nutrient.label}
+                              {#if showLimitsOnly}
+                                <span class="badge badge-outline badge-info badge-xs ml-1">Limit</span>
+                              {/if}
+                              {#if showGoals && getOverageText(nutrient.key, value)}
+                                <span class="text-xs text-info ml-1">{getOverageText(nutrient.key, value)}</span>
+                              {/if}
+                            </span>
+                            <span class="text-base-content/70">
+                              {formatValue(value)}{nutrient.unit}
+                              {#if showGoals && dailyText}
+                                <span class="text-xs">/ {dailyText}</span>
+                              {/if}
                             </span>
                           </div>
-                        {/if}
+                          {#if showProgress && showGoals && goals && progress > 0}
+                            <div class="flex items-center gap-2">
+                              {#if showMealContribution}
+                                <!-- Stacked progress bar showing meal contribution -->
+                                <div class="flex-1 relative">
+                                  <progress 
+                                    class="progress progress-sm absolute inset-0 {getProgressBarClass(nutrient.key, progress)}"
+                                    value={progress} 
+                                    max="100"
+                                    title="This meal's contribution: {progress.toFixed(0)}%"
+                                  ></progress>
+                                </div>
+                              {:else}
+                                <!-- Standard progress bar -->
+                                <progress 
+                                  class="progress progress-sm flex-1 {getProgressBarClass(nutrient.key, progress)}"
+                                  value={Math.min(progress, 100)} 
+                                  max="100"
+                                ></progress>
+                              {/if}
+                              <span class="text-xs text-base-content/60 min-w-[3rem]">
+                                {getActualProgress(nutrient.key).toFixed(0)}%
+                              </span>
+                            </div>
+                          {/if}
+                        </div>
                       </div>
-                    </div>
+                    {/if}
                   {/if}
                 {/each}
               </div>
