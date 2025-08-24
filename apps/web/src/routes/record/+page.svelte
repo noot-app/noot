@@ -622,7 +622,6 @@
                         <!-- Nutrient Composition Dropdown -->
                         <NutrientComposition 
                           nutrients={item.item.nutrients} 
-                          foodName={item.item.name}
                         />
                       {/if}
                     </div>
