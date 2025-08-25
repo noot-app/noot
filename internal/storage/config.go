@@ -21,9 +21,15 @@ func NewStore(config *Config) (Store, error) {
 	switch config.Type {
 	case "sqlite", "":
 		return NewSQLiteStore(config.Database)
-	case "postgres":
-		// Future implementation for PostgreSQL
-		return nil, fmt.Errorf("postgres support not yet implemented")
+	case "postgres", "supabase":
+		// Build PostgreSQL connection string
+		connStr := config.Database
+		if connStr == "" {
+			// Build from individual components if URL not provided
+			connStr = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+				config.Host, config.Port, config.Username, config.Password, config.Database, config.SSLMode)
+		}
+		return NewPostgreSQLStore(connStr)
 	default:
 		return nil, fmt.Errorf("unsupported database type: %s", config.Type)
 	}

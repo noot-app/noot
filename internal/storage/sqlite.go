@@ -15,8 +15,8 @@ import (
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 
-//go:embed migrations/*.sql
-var migrationFiles embed.FS
+//go:embed migrations/sqlite/*.sql
+var sqliteMigrationFiles embed.FS
 
 // SQLiteStore implements the Store interface using SQLite
 type SQLiteStore struct {
@@ -56,7 +56,7 @@ func (s *SQLiteStore) Close() error {
 // Migrate applies all pending migrations
 func (s *SQLiteStore) Migrate() error {
 	// Get list of migration files
-	entries, err := migrationFiles.ReadDir("migrations")
+	entries, err := sqliteMigrationFiles.ReadDir("migrations/sqlite")
 	if err != nil {
 		return fmt.Errorf("failed to read migration files: %w", err)
 	}
@@ -72,7 +72,7 @@ func (s *SQLiteStore) Migrate() error {
 
 	// Apply each migration
 	for _, file := range files {
-		content, err := migrationFiles.ReadFile("migrations/" + file)
+		content, err := sqliteMigrationFiles.ReadFile("migrations/sqlite/" + file)
 		if err != nil {
 			return fmt.Errorf("failed to read migration file %s: %w", file, err)
 		}

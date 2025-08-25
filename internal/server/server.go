@@ -20,14 +20,19 @@ func Run(ctx context.Context, port string) error {
 	}
 	// Initialize storage using new config approach
 	config := &storage.Config{
-		Type:     getenv("DB_TYPE", "sqlite"),
+		Type:     getenv("DATABASE_PROVIDER", "sqlite"), // Changed from DB_TYPE to DATABASE_PROVIDER
 		Database: getenv("DATABASE_PATH", "./noot.db"),
-		// Future PostgreSQL support
+		// PostgreSQL/Supabase support
 		Host:     getenv("DB_HOST", "localhost"),
 		Port:     getenvInt("DB_PORT", 5432),
 		Username: getenv("DB_USER", ""),
 		Password: getenv("DB_PASS", ""),
 		SSLMode:  getenv("DB_SSLMODE", "prefer"),
+	}
+
+	// For Supabase, use SUPABASE_DB_URL if provided
+	if config.Type == "supabase" && getenv("SUPABASE_DB_URL", "") != "" {
+		config.Database = getenv("SUPABASE_DB_URL", "")
 	}
 
 	store, err := storage.NewStore(config)
