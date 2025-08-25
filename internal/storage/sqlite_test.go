@@ -28,6 +28,7 @@ func TestSQLiteStore(t *testing.T) {
 	t.Run("CreateAndGetUser", func(t *testing.T) {
 		user := &User{
 			Provider: "github",
+			Handle:   "testhandle",
 			Subject:  "testuser",
 			Email:    "test@example.com",
 		}
@@ -57,6 +58,7 @@ func TestSQLiteStore(t *testing.T) {
 		// Create a user first
 		user := &User{
 			Provider: "github",
+			Handle:   "testhandle2",
 			Subject:  "testuser2",
 			Email:    "test2@example.com",
 		}
@@ -93,6 +95,7 @@ func TestSQLiteStore(t *testing.T) {
 		// Create a user
 		user := &User{
 			Provider: "github",
+			Handle:   "testhandle3",
 			Subject:  "testuser3",
 			Email:    "test3@example.com",
 		}
@@ -132,6 +135,7 @@ func TestSQLiteStore(t *testing.T) {
 		// Create a user
 		user := &User{
 			Provider: "github",
+			Handle:   "testhandle4",
 			Subject:  "testuser4",
 			Email:    "test4@example.com",
 		}
@@ -219,6 +223,7 @@ func TestSQLiteStore(t *testing.T) {
 		// Create a user first
 		user := &User{
 			Provider: "github",
+			Handle:   "updatedeletehandle",
 			Subject:  "updatedeleteuser",
 			Email:    "updatedelete@example.com",
 		}
@@ -427,6 +432,7 @@ func TestSQLiteStore(t *testing.T) {
 		// Create a user
 		user := &User{
 			Provider: "github",
+			Handle:   "testhandle5",
 			Subject:  "testuser5",
 			Email:    "test5@example.com",
 		}
@@ -490,6 +496,7 @@ func TestSQLiteStore(t *testing.T) {
 		// Create a user first
 		user := &User{
 			Provider: "github",
+			Handle:   "biometricshandle",
 			Subject:  "biometrics_user",
 			Email:    "biometrics@example.com",
 		}
@@ -569,6 +576,7 @@ func TestSQLiteStore(t *testing.T) {
 			Provider:         "test",
 			Subject:          "goal-test-user",
 			Email:            "goaltest@example.com",
+			Handle:           "goaltesthandle",
 			SubscriptionTier: "pro",
 		}
 		err := store.CreateUser(ctx, user)

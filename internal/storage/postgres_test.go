@@ -218,6 +218,7 @@ func TestDualDatabaseSupport(t *testing.T) {
 			Provider: "test",
 			Subject:  "user1",
 			Email:    "user1@test.com",
+			Handle:   "testuser1",
 		}
 		err = store.CreateUser(ctx, user)
 		require.NoError(t, err)

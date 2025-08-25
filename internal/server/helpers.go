@@ -33,8 +33,8 @@ func getCurrentUser(c *gin.Context, store storage.Store) (*storage.User, error) 
 		return user, nil
 	}
 
-	// Fall back to default user if no authentication (should rarely happen with middleware)
-	return getDefaultUser(c.Request.Context(), store)
+	// No fallback to default user - authentication is required
+	return nil, NewAppError("Authentication required", http.StatusUnauthorized, nil)
 }
 
 // parseDateRangeParams parses date range parameters from HTTP request

@@ -102,8 +102,8 @@ func (s *SQLiteStore) Reset() error {
 // CreateUser creates a new user
 func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 	query := `
-		INSERT INTO users (id, provider, subject, email, subscription_tier, created_at)
-		VALUES (?, ?, ?, ?, ?, ?)`
+		INSERT INTO users (id, handle, provider, subject, email, subscription_tier, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
 	user.ID = generateULID()
@@ -114,12 +114,12 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 		user.SubscriptionTier = SubscriptionTierFree
 	}
 
-	// Validate required fields for SQLite compatibility
+	// Validate required fields
 	if user.Handle == "" {
 		return fmt.Errorf("user handle is required")
 	}
 
-	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email,
+	_, err := s.db.ExecContext(ctx, query, user.ID, user.Handle, user.Provider, user.Subject, user.Email,
 		user.SubscriptionTier, now)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
@@ -566,6 +566,7 @@ func (s *SQLiteStore) Seed() error {
 			Provider:         DefaultSeedProvider,
 			Subject:          DefaultSeedSubject,
 			Email:            DefaultSeedEmail,
+			Handle:           "monalisa",          // Default user handle
 			SubscriptionTier: SubscriptionTierPro, // Give the seed user pro access
 		}
 		if err := s.CreateUser(ctx, user); err != nil {
@@ -585,6 +586,7 @@ func (s *SQLiteStore) Seed() error {
 			Provider:         AliceSeedProvider,
 			Subject:          AliceSeedSubject,
 			Email:            AliceSeedEmail,
+			Handle:           "alice",              // Alice user handle
 			SubscriptionTier: SubscriptionTierFree, // Alice is a free tier user
 		}
 		if err := s.CreateUser(ctx, aliceUser); err != nil {
