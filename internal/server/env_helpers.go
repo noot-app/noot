@@ -24,6 +24,16 @@ func getenvInt(key string, fallback int) int {
 	return fallback
 }
 
+// getenvBool gets environment variable as bool with fallback
+func getenvBool(key string, fallback bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if parsed, err := strconv.ParseBool(value); err == nil {
+			return parsed
+		}
+	}
+	return fallback
+}
+
 // getEnv is an alias for getenv for consistency with gin_middleware.go
 func getEnv(key, fallback string) string {
 	return getenv(key, fallback)

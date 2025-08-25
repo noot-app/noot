@@ -13,15 +13,6 @@ import (
 	"time"
 )
 
-func getenvBool(key string, def bool) bool {
-	if v := os.Getenv(key); v != "" {
-		if parsed, err := strconv.ParseBool(v); err == nil {
-			return parsed
-		}
-	}
-	return def
-}
-
 // Enhanced error response structure
 type ErrorResponse struct {
 	Error   string    `json:"error"`
