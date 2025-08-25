@@ -12,29 +12,39 @@
 
   let { children, requirePro = false }: Props = $props();
 
-  let loading = true;
-  let redirecting = false;
+  let loading = $state(true);
+  let redirecting = $state(false);
+  let authenticated = $state(false);
 
   onMount(() => {
     const unsubscribe = currentUser.subscribe((user) => {
       console.log('AuthGuard: user state changed', user);
+      
+      // If we have a user, stop loading and mark as authenticated
+      if (user) {
+        loading = false;
+        redirecting = false;
+        authenticated = true;
+        
+        // Check if user meets pro requirement
+        if (requirePro && user.subscriptionTier !== 'pro') {
+          authenticated = false;
+          redirecting = true;
+          console.log('AuthGuard: redirecting to upgrade');
+          goto('/upgrade');
+          return;
+        }
+        return;
+      }
+      
+      // No user - handle redirect if not already redirecting
       loading = false;
-
-      if (!user && !redirecting) {
-        // Not authenticated - redirect to login with return URL
+      authenticated = false;
+      if (!redirecting) {
         redirecting = true;
         const returnUrl = encodeURIComponent($page.url.pathname + $page.url.search);
         console.log('AuthGuard: redirecting to login with returnUrl:', returnUrl);
         goto(`/login?returnUrl=${returnUrl}`);
-        return;
-      }
-
-      if (user && requirePro && user.subscriptionTier !== 'pro' && !redirecting) {
-        // User needs pro subscription
-        redirecting = true;
-        console.log('AuthGuard: redirecting to upgrade');
-        goto('/upgrade');
-        return;
       }
     });
 
@@ -47,7 +57,7 @@
     <div class="loading loading-spinner loading-lg"></div>
     <span class="ml-4 text-lg">Loading...</span>
   </div>
-{:else if $currentUser && (!requirePro || $currentUser.subscriptionTier === 'pro')}
+{:else if authenticated}
   {@render children?.()}
 {:else}
   <!-- This shouldn't render as redirect should happen, but just in case -->

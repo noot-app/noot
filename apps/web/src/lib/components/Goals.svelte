@@ -145,7 +145,10 @@
             {/if}
 
             <!-- Upper Limits (Minimize These) -->
-            {@const limitNutrients = keyNutrients.filter(n => goals?.upper_limits?.[n] !== undefined)}
+            {@const limitNutrients = keyNutrients.filter(n => 
+              goals?.upper_limits?.[n] !== undefined && 
+              getCurrentNutrient(n) > 0
+            )}
             {#if limitNutrients.length > 0}
               <div>
                 <h4 class="font-semibold text-base mb-3 text-warning">Upper Limits (Minimize These)</h4>
