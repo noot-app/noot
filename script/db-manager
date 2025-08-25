@@ -266,68 +266,73 @@ fi
 check_requirements "$PROVIDER"
 
 # Execute commands
-case "$PROVIDER" in
-    sqlite)
-        case "$COMMAND" in
-            reset)
-                sqlite_reset
-                ;;
-            migrate)
-                sqlite_migrate
-                ;;
-            seed)
-                sqlite_seed
-                ;;
-            dump)
-                sqlite_dump
-                ;;
-            validate)
-                echo "SQLite validation: checking if database file exists and is readable"
-                if [[ -f "$DB_PATH" ]] && sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM sqlite_master;" > /dev/null 2>&1; then
-                    echo -e "${GREEN}✅ SQLite database is valid${OFF}"
-                else
-                    echo -e "${RED}❌ SQLite database is invalid or missing${OFF}"
-                    exit 1
-                fi
-                ;;
-            *)
-                echo "Unknown command for SQLite: $COMMAND"
-                usage
-                ;;
-        esac
-        ;;
-    supabase)
-        case "$COMMAND" in
-            setup)
-                supabase_setup
-                ;;
-            reset)
-                supabase_reset
-                ;;
-            migrate)
-                supabase_migrate
-                ;;
-            seed)
-                supabase_seed
-                ;;
-            dump)
-                supabase_dump
-                ;;
-            validate)
-                supabase_validate
-                ;;
-            *)
-                echo "Unknown command for Supabase: $COMMAND"
-                usage
-                ;;
-        esac
+case "$COMMAND" in
+    compare)
+        # Special case - compare is cross-provider
+        compare_schemas
         ;;
     *)
-        if [[ "$COMMAND" == "compare" ]]; then
-            compare_schemas
-        else
-            echo "Unknown provider: $PROVIDER"
-            usage
-        fi
+        # Provider-specific commands
+        case "$PROVIDER" in
+            sqlite)
+                case "$COMMAND" in
+                    reset)
+                        sqlite_reset
+                        ;;
+                    migrate)
+                        sqlite_migrate
+                        ;;
+                    seed)
+                        sqlite_seed
+                        ;;
+                    dump)
+                        sqlite_dump
+                        ;;
+                    validate)
+                        echo "SQLite validation: checking if database file exists and is readable"
+                        if [[ -f "$DB_PATH" ]] && sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM sqlite_master;" > /dev/null 2>&1; then
+                            echo -e "${GREEN}✅ SQLite database is valid${OFF}"
+                        else
+                            echo -e "${RED}❌ SQLite database is invalid or missing${OFF}"
+                            exit 1
+                        fi
+                        ;;
+                    *)
+                        echo "Unknown command for SQLite: $COMMAND"
+                        usage
+                        ;;
+                esac
+                ;;
+            supabase)
+                case "$COMMAND" in
+                    setup)
+                        supabase_setup
+                        ;;
+                    reset)
+                        supabase_reset
+                        ;;
+                    migrate)
+                        supabase_migrate
+                        ;;
+                    seed)
+                        supabase_seed
+                        ;;
+                    dump)
+                        supabase_dump
+                        ;;
+                    validate)
+                        supabase_validate
+                        ;;
+                    *)
+                        echo "Unknown command for Supabase: $COMMAND"
+                        usage
+                        ;;
+                esac
+                ;;
+            *)
+                echo "Unknown provider: $PROVIDER"
+                usage
+                ;;
+        esac
         ;;
 esac
