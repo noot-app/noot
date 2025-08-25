@@ -17,5 +17,5 @@
   showProgress={true}
   showGoals={true}
   isExpandable={true}
-  title="View Nutrient Profile"
+  title="View Nutrient Individual Profile"
 />

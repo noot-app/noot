@@ -18,8 +18,6 @@ builds:
     goos:
       - linux
       - darwin
-      - windows
-      - freebsd
     ldflags:
       - -s -w -X {{ .ModulePath }}/internal/version.tag={{.Tag}} -X {{ .ModulePath }}/internal/version.commit={{.FullCommit}} -X {{ .ModulePath }}/internal/version.buildTime={{.CommitDate}}
 

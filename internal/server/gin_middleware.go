@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"os"
+	"net/http"
 	"runtime"
 	"strings"
 	"time"
@@ -93,26 +93,82 @@ func StoreMiddleware(store storage.Store) gin.HandlerFunc {
 	}
 }
 
-// CORSMiddleware adds CORS headers for development
+// CORSMiddleware adds CORS headers with enhanced security
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get allowed origins from environment variable, default to localhost:3000 for development
-		allowedOrigins := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+		// Get allowed origins from environment variable
+		allowedOrigins := getEnv("CORS_ALLOWED_ORIGINS", "")
+		
+		// Handle empty CORS configuration
+		if allowedOrigins == "" {
+			if IsProduction() {
+				// In production, crash if CORS_ALLOWED_ORIGINS is not set
+				LogError("CORS_ALLOWED_ORIGINS must be set in production environment", fmt.Errorf("missing CORS configuration"))
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Server configuration error"})
+				c.Abort()
+				return
+			}
+			// In development, default to localhost
+			allowedOrigins = "http://localhost:3000"
+		}
+		
 		origins := strings.Split(allowedOrigins, ",")
 
-		origin := c.Request.Header.Get("Origin")
+		// Clean and validate origins
+		var validOrigins []string
+		for _, origin := range origins {
+			origin = strings.TrimSpace(origin)
+			if origin != "" && isValidOrigin(origin) {
+				validOrigins = append(validOrigins, origin)
+			} else if origin != "" {
+				LogWarn("Invalid CORS origin configured", "origin", origin)
+			}
+		}
+
+		requestOrigin := c.Request.Header.Get("Origin")
+		originAllowed := false
 
 		// Check if the origin is in the allowed list
-		for _, allowedOrigin := range origins {
-			if strings.TrimSpace(allowedOrigin) == origin {
-				c.Header("Access-Control-Allow-Origin", origin)
+		for _, allowedOrigin := range validOrigins {
+			if allowedOrigin == requestOrigin {
+				c.Header("Access-Control-Allow-Origin", requestOrigin)
+				originAllowed = true
 				break
 			}
 		}
 
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-Dev-User-ID")
-		c.Header("Access-Control-Allow-Credentials", "true")
+		// Only set CORS headers if origin is allowed
+		if originAllowed {
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+
+			// Build allowed headers list - base headers always included
+			baseHeaders := "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With"
+			allowedHeaders := baseHeaders
+
+			// Add development headers in development mode
+			if !IsProduction() {
+				allowedHeaders += ", X-Dev-User-ID"
+			}
+
+			// Add extra headers from environment variable (useful for testing production mode locally)
+			extraHeaders := getEnv("EXTRA_ACCESS_CONTROL_ALLOW_HEADERS", "")
+			if extraHeaders != "" {
+				// Split by comma and add each header
+				for _, header := range strings.Split(extraHeaders, ",") {
+					header = strings.TrimSpace(header)
+					if header != "" {
+						allowedHeaders += ", " + header
+					}
+				}
+				LogDebug("Added extra CORS headers", "extra_headers", extraHeaders)
+			}
+
+			c.Header("Access-Control-Allow-Headers", allowedHeaders)
+			c.Header("Access-Control-Allow-Credentials", "true")
+			c.Header("Access-Control-Max-Age", "86400") // 24 hours
+		} else if requestOrigin != "" {
+			LogWarn("CORS request from unauthorized origin", "origin", requestOrigin)
+		}
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
@@ -121,6 +177,30 @@ func CORSMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// isValidOrigin validates that a CORS origin is properly formatted
+func isValidOrigin(origin string) bool {
+	// Basic validation - must start with http:// or https://
+	if !strings.HasPrefix(origin, "http://") && !strings.HasPrefix(origin, "https://") {
+		return false
+	}
+
+	// In production, require HTTPS. In development, allow HTTP for localhost
+	if IsProduction() {
+		if strings.HasPrefix(origin, "http://") {
+			return false
+		}
+	} else {
+		// In development, allow HTTP only for localhost/127.0.0.1
+		if strings.HasPrefix(origin, "http://") {
+			if !strings.Contains(origin, "localhost") && !strings.Contains(origin, "127.0.0.1") {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 // captureStackGin captures stack trace for Gin context
@@ -149,15 +229,22 @@ func generateRequestID() string {
 }
 
 // DevAuthMiddleware handles development-only user switching via headers
-// TODO: When implementing Supabase auth, this middleware should be replaced with
-// a proper auth middleware that validates JWT tokens and extracts user context
+// This middleware provides additional security safeguards to prevent accidental
+// enablement in production environments
 func DevAuthMiddleware(store storage.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Only allow dev user switching in development environment
-		env := strings.ToLower(getEnv("ENV", "production"))
-		if env != "development" {
+		// Security check - only allow dev auth in development
+		if IsProduction() {
+			LogWarn("Dev auth middleware called in production environment - blocking")
 			c.Next()
 			return
+		}
+
+		// Warn if production JWT config is set when using dev auth
+		jwtSecret := getEnv("SUPABASE_JWT_SECRET", "")
+		supabaseURL := getEnv("PUBLIC_SUPABASE_URL", "")
+		if jwtSecret != "" || supabaseURL != "" {
+			LogWarn("Production JWT configuration detected with dev auth - this may cause confusion")
 		}
 
 		// Check for development user override header
@@ -196,10 +283,42 @@ func DevAuthMiddleware(store storage.Store) gin.HandlerFunc {
 	}
 }
 
-// getEnv gets environment variable with fallback
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
+// SecurityHeadersMiddleware adds security headers to responses
+func SecurityHeadersMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Prevent MIME type sniffing
+		c.Header("X-Content-Type-Options", "nosniff")
+
+		// Prevent clickjacking
+		c.Header("X-Frame-Options", "DENY")
+
+		// Enable XSS protection
+		c.Header("X-XSS-Protection", "1; mode=block")
+
+		// Prevent information disclosure
+		c.Header("X-Powered-By", "") // Remove default server headers
+
+		// Referrer policy
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+
+		// Content Security Policy (basic)
+		if IsProduction() {
+			// Strict CSP for production
+			csp := "default-src 'self'; " +
+				"script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; " +
+				"style-src 'self' 'unsafe-inline' https:; " +
+				"img-src 'self' data: https:; " +
+				"font-src 'self' https:; " +
+				"connect-src 'self' https:; " +
+				"frame-ancestors 'none';"
+			c.Header("Content-Security-Policy", csp)
+
+			// HSTS for HTTPS
+			if c.Request.TLS != nil {
+				c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+			}
+		}
+
+		c.Next()
 	}
-	return fallback
 }

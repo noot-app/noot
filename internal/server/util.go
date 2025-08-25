@@ -13,22 +13,6 @@ import (
 	"time"
 )
 
-func getenv(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
-}
-
-func getenvInt(key string, def int) int {
-	if v := os.Getenv(key); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil {
-			return parsed
-		}
-	}
-	return def
-}
-
 func getenvBool(key string, def bool) bool {
 	if v := os.Getenv(key); v != "" {
 		if parsed, err := strconv.ParseBool(v); err == nil {

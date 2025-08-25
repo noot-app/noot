@@ -442,6 +442,41 @@
               </div>
             {/if}
           {/each}
+          
+          <!-- Sugar Breakdown Section (only if there are sugars) -->
+          {@const totalSugars = getNutrientValue("total_sugars_g")}
+          {@const addedSugars = getNutrientValue("added_sugars_g")}
+          {@const naturalSugars = Math.max(0, totalSugars - addedSugars)}
+          {#if totalSugars > 0}
+            <div class="border-t border-base-300 pt-4">
+              <h4 class="font-semibold text-base mb-3 pb-2 border-b border-base-300 flex items-center" style="color: var(--color-base-content);">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Sugar Breakdown
+              </h4>
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 text-sm">
+                <!-- Total Sugars -->
+                <div class="flex justify-between items-center p-3 bg-base-100 rounded-lg">
+                  <span class="font-medium">Total Sugars</span>
+                  <span class="text-base-content/70">{totalSugars.toFixed(1)}g</span>
+                </div>
+                <!-- Natural Sugars -->
+                <div class="flex justify-between items-center p-3 bg-success/10 rounded-lg">
+                  <span class="font-medium text-success">Natural Sugars</span>
+                  <span class="text-success">{naturalSugars.toFixed(1)}g</span>
+                </div>
+                <!-- Added Sugars -->
+                <div class="flex justify-between items-center p-3 bg-warning/10 rounded-lg">
+                  <span class="font-medium text-warning">Added Sugars</span>
+                  <span class="text-warning">{addedSugars.toFixed(1)}g</span>
+                </div>
+              </div>
+              <div class="text-xs text-base-content/60 mt-2">
+                <strong>Natural sugars</strong> come from whole foods (fruits, vegetables, dairy). <strong>Added sugars</strong> are added during processing.
+              </div>
+            </div>
+          {/if}
         {/if}
 
         {#if showGoals && !goals}

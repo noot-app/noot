@@ -14,6 +14,10 @@ import (
 
 // Run configures routes and starts the HTTP server using Gin
 func Run(ctx context.Context, port string) error {
+	// Validate environment and security configuration on startup
+	if err := validateSecurityConfiguration(); err != nil {
+		return fmt.Errorf("security configuration validation failed: %w", err)
+	}
 	// Initialize storage using new config approach
 	config := &storage.Config{
 		Type:     getenv("DB_TYPE", "sqlite"),
@@ -38,9 +42,8 @@ func Run(ctx context.Context, port string) error {
 	}
 
 	// Run seeding in development
-	env := strings.ToLower(getenv("ENV", "production"))
 	devSeed := strings.ToLower(getenv("DEV_DB_SEED", "false")) == "true"
-	if env == "development" || devSeed {
+	if !IsProduction() || devSeed {
 		if err := store.Seed(); err != nil {
 			LogError("Failed to seed database", err)
 			// Don't fail startup on seed error, just log it
@@ -48,7 +51,7 @@ func Run(ctx context.Context, port string) error {
 	}
 
 	// Set Gin mode
-	if env == "development" {
+	if !IsProduction() {
 		gin.SetMode(gin.DebugMode)
 	} else {
 		gin.SetMode(gin.ReleaseMode)
@@ -61,9 +64,15 @@ func Run(ctx context.Context, port string) error {
 	r.Use(RequestIDMiddleware())
 	r.Use(LoggingMiddleware())
 	r.Use(RecoveryMiddleware())
+	r.Use(SecurityHeadersMiddleware()) // Add security headers
 	r.Use(CORSMiddleware())
 	r.Use(StoreMiddleware(store))
-	r.Use(DevAuthMiddleware(store)) // TODO: Replace with proper auth middleware when implementing Supabase
+
+	// Authentication middleware
+	if !IsProduction() {
+		r.Use(DevAuthMiddleware(store)) // Handles development auth via X-Dev-User-ID header in development only
+	}
+	r.Use(JWTAuthMiddleware(store)) // Handles production auth via JWT tokens
 
 	// Create API server
 	apiServer, err := NewAPIServer(store)
@@ -78,7 +87,7 @@ func Run(ctx context.Context, port string) error {
 		api.RegisterHandlers(v1, apiServer)
 
 		// Development-only routes that override or supplement the generated routes
-		if env == "development" {
+		if !IsProduction() {
 			// OpenAPI spec routes
 			v1.GET("/docs", apiServer.SwaggerUIHandler)
 			v1.GET("/openapi.yaml", apiServer.OpenAPISpecHandler)
@@ -117,4 +126,51 @@ func Run(ctx context.Context, port string) error {
 		LogError("Server error", err)
 		return err
 	}
+}
+
+// validateSecurityConfiguration performs startup security validation
+func validateSecurityConfiguration() error {
+	// Validate JWT configuration in production
+	if IsProduction() {
+		jwtSecret := getenv("SUPABASE_JWT_SECRET", "")
+		supabaseURL := getenv("PUBLIC_SUPABASE_URL", "")
+
+		// For modern Supabase, we need either the URL (for JWKS) or secret (for legacy)
+		if jwtSecret == "" && supabaseURL == "" {
+			return fmt.Errorf("either PUBLIC_SUPABASE_URL (for JWKS) or SUPABASE_JWT_SECRET (for legacy) is required in production")
+		}
+
+		// If using legacy JWT secret, validate its strength
+		if jwtSecret != "" && len(jwtSecret) < 32 {
+			LogWarn("JWT secret is shorter than recommended minimum of 32 characters")
+		}
+
+		// Recommend JWKS over legacy secrets
+		if jwtSecret != "" && supabaseURL == "" {
+			LogWarn("Using legacy JWT secret - consider upgrading to JWKS-based verification with PUBLIC_SUPABASE_URL")
+		}
+
+		// Validate CORS configuration in production
+		corsOrigins := getenv("CORS_ALLOWED_ORIGINS", "")
+		if corsOrigins == "" || corsOrigins == "http://localhost:3000" {
+			return fmt.Errorf("CORS_ALLOWED_ORIGINS must be properly configured in production environment, cannot be empty or localhost")
+		}
+	}
+
+	// Warn about dev auth in production environments
+	if IsProduction() {
+		LogWarn("Production environment detected - ensure dev auth is properly disabled")
+	}
+
+	// Validate environment consistency in development
+	if !IsProduction() {
+		jwtSecret := getenv("SUPABASE_JWT_SECRET", "")
+		if jwtSecret != "" {
+			LogWarn("JWT secret configured in development - authentication will use JWT instead of dev auth")
+		}
+	}
+
+	env := getenv("ENV", "production") // For logging purposes only
+	LogInfo("Security configuration validated", "env", env, "is_production", IsProduction())
+	return nil
 }

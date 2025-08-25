@@ -25,7 +25,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	fmt.Printf("AI Nutrition Webapp running at http://localhost:%s\n", port)
+	fmt.Printf("noot-api running at http://localhost:%s\n", port)
 	if err := server.Run(ctx, port); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
