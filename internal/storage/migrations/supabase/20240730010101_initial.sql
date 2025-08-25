@@ -1,4 +1,5 @@
 -- Create a table for public profiles
+-- We should probably prefer the name 'users' instead of 'profile' when aligning with the sqlite files under the plain `migrations/` dir
 create table profiles (
   id uuid references auth.users on delete cascade not null primary key,
   updated_at timestamp with time zone,
@@ -9,6 +10,7 @@ create table profiles (
 );
 -- Set up Row Level Security (RLS)
 -- See https://supabase.com/docs/guides/auth/row-level-security for more details.
+-- users shouldn't be able to change is their `subscription_tier` field if that ends up being thing unless it flows through stripe or something but idk how that works yet
 alter table profiles
   enable row level security;
 
@@ -33,6 +35,7 @@ alter table stripe_customers enable row level security;
 
 -- Create a table for "Contact Us" form submissions
 -- Limit RLS policies -- only server side access
+-- This seems cool, but not sure if needed at the start
 create table contact_requests (
   id uuid primary key default gen_random_uuid(),
   updated_at timestamp with time zone,
