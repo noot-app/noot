@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -99,7 +98,7 @@ func CORSMiddleware() gin.HandlerFunc {
 		// Get allowed origins from environment variable
 		allowedOrigins := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 		origins := strings.Split(allowedOrigins, ",")
-		
+
 		// Clean and validate origins
 		var validOrigins []string
 		for _, origin := range origins {
@@ -122,11 +121,34 @@ func CORSMiddleware() gin.HandlerFunc {
 				break
 			}
 		}
-		
+
 		// Only set CORS headers if origin is allowed
 		if originAllowed {
 			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-Dev-User-ID")
+
+			// Build allowed headers list - base headers always included
+			baseHeaders := "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With"
+			allowedHeaders := baseHeaders
+
+			// Add development headers in development mode
+			if !IsProduction() {
+				allowedHeaders += ", X-Dev-User-ID"
+			}
+
+			// Add extra headers from environment variable (useful for testing production mode locally)
+			extraHeaders := getEnv("EXTRA_ACCESS_CONTROL_ALLOW_HEADERS", "")
+			if extraHeaders != "" {
+				// Split by comma and add each header
+				for _, header := range strings.Split(extraHeaders, ",") {
+					header = strings.TrimSpace(header)
+					if header != "" {
+						allowedHeaders += ", " + header
+					}
+				}
+				LogDebug("Added extra CORS headers", "extra_headers", extraHeaders)
+			}
+
+			c.Header("Access-Control-Allow-Headers", allowedHeaders)
 			c.Header("Access-Control-Allow-Credentials", "true")
 			c.Header("Access-Control-Max-Age", "86400") // 24 hours
 		} else if requestOrigin != "" {
@@ -148,15 +170,14 @@ func isValidOrigin(origin string) bool {
 	if !strings.HasPrefix(origin, "http://") && !strings.HasPrefix(origin, "https://") {
 		return false
 	}
-	
+
 	// In production, require HTTPS except for localhost
-	env := strings.ToLower(getEnv("ENV", "production"))
-	if env == "production" {
+	if IsProduction() {
 		if strings.HasPrefix(origin, "http://") && !strings.Contains(origin, "localhost") {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -190,29 +211,18 @@ func generateRequestID() string {
 // enablement in production environments
 func DevAuthMiddleware(store storage.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Multi-layer environment validation for security
-		env := strings.ToLower(getEnv("ENV", "production"))
-		
-		// Additional production detection safeguards
-		if env != "development" {
-			// Check for common production indicators
-			if isProductionEnvironment() {
-				LogWarn("Dev auth middleware called in production environment - blocking", "env", env)
-				c.Next()
-				return
-			}
-			
-			// If environment is not explicitly "development" but also not clearly production,
-			// be conservative and skip dev auth
-			LogWarn("Ambiguous environment detected - skipping dev auth for security", "env", env)
+		// Security check - only allow dev auth in development
+		if IsProduction() {
+			LogWarn("Dev auth middleware called in production environment - blocking")
 			c.Next()
 			return
 		}
-		
-		// Ensure JWT secret is not set when using dev auth
+
+		// Warn if production JWT config is set when using dev auth
 		jwtSecret := getEnv("SUPABASE_JWT_SECRET", "")
-		if jwtSecret != "" {
-			LogWarn("JWT secret configured with dev auth - this is a security concern")
+		supabaseURL := getEnv("PUBLIC_SUPABASE_URL", "")
+		if jwtSecret != "" || supabaseURL != "" {
+			LogWarn("Production JWT configuration detected with dev auth - this may cause confusion")
 		}
 
 		// Check for development user override header
@@ -251,55 +261,26 @@ func DevAuthMiddleware(store storage.Store) gin.HandlerFunc {
 	}
 }
 
-// isProductionEnvironment checks for common production environment indicators
-func isProductionEnvironment() bool {
-	// Check for common production environment variables
-	prodIndicators := []string{
-		"VERCEL",
-		"NETLIFY", 
-		"HEROKU",
-		"AWS_LAMBDA_FUNCTION_NAME",
-		"GOOGLE_CLOUD_PROJECT",
-		"CF_PAGES", // Cloudflare Pages
-		"RENDER",
-	}
-	
-	for _, indicator := range prodIndicators {
-		if getEnv(indicator, "") != "" {
-			return true
-		}
-	}
-	
-	// Check for production-like domains or URLs
-	serverName := getEnv("SERVER_NAME", "")
-	if serverName != "" && !strings.Contains(serverName, "localhost") && !strings.Contains(serverName, "127.0.0.1") {
-		return true
-	}
-	
-	return false
-}
-
 // SecurityHeadersMiddleware adds security headers to responses
 func SecurityHeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Prevent MIME type sniffing
 		c.Header("X-Content-Type-Options", "nosniff")
-		
+
 		// Prevent clickjacking
 		c.Header("X-Frame-Options", "DENY")
-		
+
 		// Enable XSS protection
 		c.Header("X-XSS-Protection", "1; mode=block")
-		
+
 		// Prevent information disclosure
 		c.Header("X-Powered-By", "") // Remove default server headers
-		
+
 		// Referrer policy
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
-		
+
 		// Content Security Policy (basic)
-		env := strings.ToLower(getEnv("ENV", "production"))
-		if env == "production" {
+		if IsProduction() {
 			// Strict CSP for production
 			csp := "default-src 'self'; " +
 				"script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; " +
@@ -309,21 +290,13 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 				"connect-src 'self' https:; " +
 				"frame-ancestors 'none';"
 			c.Header("Content-Security-Policy", csp)
-			
+
 			// HSTS for HTTPS
 			if c.Request.TLS != nil {
 				c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 			}
 		}
-		
+
 		c.Next()
 	}
-}
-
-// getEnv gets environment variable with fallback
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
 }

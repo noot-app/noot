@@ -3,7 +3,7 @@
   import { page } from '$app/stores';
   import { navigating } from '$app/stores';
   import { onMount } from 'svelte';
-  import { currentUser, canSwitchUsers, switchUser, getAvailableDevUsers, authProvider } from '$lib/auth/store';
+  import { currentUser, canSwitchUsers, switchUser, getAvailableDevUsers, authProvider, toggleAuthMode, getCurrentAuthMode } from '$lib/auth/store';
   import { isSupabaseEnabled } from '$lib/supabase';
   
   let pageLoadTime = 0;
@@ -27,7 +27,7 @@
   
   function copyDebugInfo() {
     const userDisplay = $currentUser ? `${$currentUser.email} (${$currentUser.subscriptionTier.toUpperCase()})` : 'Not logged in';
-    const authType = isSupabaseEnabled() ? 'Supabase' : 'Dev';
+    const authType = getCurrentAuthMode() === 'supabase' ? 'Supabase' : 'Dev';
     const debugInfo = `
 Dev Info:
 - Route: ${$page.url.pathname}
@@ -64,6 +64,23 @@ Dev Info:
   function handleClickOutside(event: Event) {
     if (!(event.target as Element).closest('.user-selector')) {
       showUserDropdown = false;
+    }
+  }
+
+  // Toggle auth mode (dev vs Supabase) in development
+  async function handleAuthModeToggle() {
+    if (!dev) return;
+    
+    const currentMode = getCurrentAuthMode();
+    const nextMode = currentMode === 'supabase' ? 'dev' : 'supabase';
+    
+    if (nextMode === 'supabase' && !isSupabaseEnabled()) {
+      alert('Supabase is not properly configured. Please check your environment variables.');
+      return;
+    }
+    
+    if (confirm(`Switch from ${currentMode} to ${nextMode} authentication? This will reload the page.`)) {
+      await toggleAuthMode();
     }
   }
   
@@ -212,16 +229,16 @@ Dev Info:
       </span>
       <span class="dev-separator">•</span>
       <span class="dev-item">
-        Auth: <strong class="auth-provider" class:supabase={isSupabaseEnabled()} class:dev-auth={!isSupabaseEnabled()}>
-          {isSupabaseEnabled() ? 'Supabase' : 'Dev Mode'}
+        Auth: <strong class="auth-provider" class:supabase={getCurrentAuthMode() === 'supabase'} class:dev-auth={getCurrentAuthMode() === 'dev'}>
+          {getCurrentAuthMode() === 'supabase' ? 'Supabase' : 'Dev Mode'}
         </strong>
-        {#if !isSupabaseEnabled()}
+        {#if getCurrentAuthMode() === 'dev'}
           <span class="security-warning" title="Development authentication is enabled - not suitable for production">⚠️</span>
         {/if}
       </span>
       <span class="dev-separator">•</span>
       <div class="dev-item user-selector">
-        {#if $canSwitchUsers}
+        {#if $canSwitchUsers && getCurrentAuthMode() === 'dev'}
           <button 
             class="user-button" 
             on:click={toggleUserDropdown}
@@ -255,6 +272,14 @@ Dev Info:
           </strong></span>
         {/if}
       </div>
+      <span class="dev-separator">•</span>
+      <button 
+        class="dev-button auth-toggle" 
+        on:click={handleAuthModeToggle}
+        title="Toggle between Dev and Supabase authentication"
+      >
+        🔄 {getCurrentAuthMode() === 'supabase' ? 'Switch to Dev' : 'Switch to Supabase'}
+      </button>
       <span class="dev-separator">•</span>
       <button 
         class="dev-button" 
@@ -523,6 +548,19 @@ Dev Info:
     0% { opacity: 1; }
     50% { opacity: 0.6; }
     100% { opacity: 1; }
+  }
+  
+  /* Auth toggle button */
+  .auth-toggle {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #10b981;
+    font-weight: 500;
+  }
+  
+  .auth-toggle:hover {
+    background: rgba(16, 185, 129, 0.3);
+    border-color: rgba(16, 185, 129, 0.6);
   }
   
   /* Ensure content below banner doesn't get hidden */
