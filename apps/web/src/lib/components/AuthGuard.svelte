@@ -1,5 +1,8 @@
 <!-- AuthGuard.svelte - Protects routes that require authentication -->
 <script lang="ts">
+  // AuthGuard.svelte - Client-side guard for authenticated/pro users.
+  // NOTE: This is a UX convenience only (redirects, hides UI).
+  // Real access control must be enforced on the server/API with JWT/RLS checks.
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { currentUser } from '$lib/auth/store';
