@@ -68,8 +68,10 @@ func Run(ctx context.Context, port string) error {
 	r.Use(CORSMiddleware())
 	r.Use(StoreMiddleware(store))
 
-	// Authentication middleware - both dev and production
-	r.Use(DevAuthMiddleware(store)) // Handles development auth via X-Dev-User-ID header
+	// Authentication middleware
+	if !IsProduction() {
+		r.Use(DevAuthMiddleware(store)) // Handles development auth via X-Dev-User-ID header in development only
+	}
 	r.Use(JWTAuthMiddleware(store)) // Handles production auth via JWT tokens
 
 	// Create API server
@@ -151,7 +153,7 @@ func validateSecurityConfiguration() error {
 		// Validate CORS configuration in production
 		corsOrigins := getenv("CORS_ALLOWED_ORIGINS", "")
 		if corsOrigins == "" || corsOrigins == "http://localhost:3000" {
-			LogWarn("CORS_ALLOWED_ORIGINS not configured for production - using default localhost")
+			return fmt.Errorf("CORS_ALLOWED_ORIGINS must be properly configured in production environment, cannot be empty or localhost")
 		}
 	}
 

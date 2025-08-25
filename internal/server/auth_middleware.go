@@ -58,7 +58,7 @@ var (
 
 // Rate limiter for user creation to prevent abuse
 var (
-	userCreationLimiter = make(map[string]time.Time)
+	userCreationLimiter = make(map[string][]time.Time) // Track multiple attempts per email
 	userCreationMutex   sync.RWMutex
 )
 
@@ -68,9 +68,19 @@ func cleanupUserCreationLimiter() {
 	defer userCreationMutex.Unlock()
 
 	cutoff := time.Now().Add(-time.Hour) // Keep entries for 1 hour
-	for email, lastAttempt := range userCreationLimiter {
-		if lastAttempt.Before(cutoff) {
+	for email, attempts := range userCreationLimiter {
+		// Filter out old attempts
+		var validAttempts []time.Time
+		for _, attempt := range attempts {
+			if attempt.After(cutoff) {
+				validAttempts = append(validAttempts, attempt)
+			}
+		}
+		
+		if len(validAttempts) == 0 {
 			delete(userCreationLimiter, email)
+		} else {
+			userCreationLimiter[email] = validAttempts
 		}
 	}
 }
@@ -244,13 +254,22 @@ func isUserCreationRateLimited(email string) bool {
 	userCreationMutex.RLock()
 	defer userCreationMutex.RUnlock()
 
-	lastAttempt, exists := userCreationLimiter[email]
+	attempts, exists := userCreationLimiter[email]
 	if !exists {
 		return false
 	}
 
-	// Allow one user creation per email per 10 minutes
-	return time.Since(lastAttempt) < 10*time.Minute
+	// Count valid attempts within the last 10 minutes
+	cutoff := time.Now().Add(-10 * time.Minute)
+	validAttempts := 0
+	for _, attempt := range attempts {
+		if attempt.After(cutoff) {
+			validAttempts++
+		}
+	}
+
+	// Allow up to 2 user creation attempts per email per 10 minutes
+	return validAttempts >= 2
 }
 
 // recordUserCreationAttempt records a user creation attempt
@@ -258,7 +277,15 @@ func recordUserCreationAttempt(email string) {
 	userCreationMutex.Lock()
 	defer userCreationMutex.Unlock()
 
-	userCreationLimiter[email] = time.Now()
+	now := time.Now()
+	attempts, exists := userCreationLimiter[email]
+	if !exists {
+		attempts = make([]time.Time, 0, 2)
+	}
+	
+	// Add current attempt
+	attempts = append(attempts, now)
+	userCreationLimiter[email] = attempts
 
 	// Periodically cleanup old entries
 	if len(userCreationLimiter) > 100 {
@@ -576,10 +603,53 @@ func validateJWTClaims(claims *SupabaseJWTClaims) error {
 	return nil
 }
 
-// isValidEmail performs basic email format validation
+// isValidEmail performs robust email format validation
 func isValidEmail(email string) bool {
-	// Basic validation - contains @ and has reasonable length
-	return strings.Contains(email, "@") && len(email) > 3 && len(email) < 255
+	// Check basic length requirements
+	if len(email) < 5 || len(email) > 254 {
+		return false
+	}
+	
+	// Must contain exactly one @ symbol
+	atIndex := strings.Index(email, "@")
+	if atIndex == -1 || atIndex != strings.LastIndex(email, "@") {
+		return false
+	}
+	
+	// Split into local and domain parts
+	localPart := email[:atIndex]
+	domainPart := email[atIndex+1:]
+	
+	// Validate local part
+	if len(localPart) < 1 || len(localPart) > 64 {
+		return false
+	}
+	
+	// Validate domain part
+	if len(domainPart) < 1 || len(domainPart) > 253 {
+		return false
+	}
+	
+	// Domain must contain at least one dot and end with a valid TLD
+	dotIndex := strings.LastIndex(domainPart, ".")
+	if dotIndex == -1 || dotIndex == 0 || dotIndex == len(domainPart)-1 {
+		return false
+	}
+	
+	// TLD must be at least 2 characters
+	tld := domainPart[dotIndex+1:]
+	if len(tld) < 2 {
+		return false
+	}
+	
+	// Basic character validation - no spaces, must be printable ASCII
+	for _, r := range email {
+		if r == ' ' || r < 32 || r > 126 {
+			return false
+		}
+	}
+	
+	return true
 }
 
 // GetAuthenticatedUser extracts the authenticated user from Gin context
@@ -592,10 +662,12 @@ func GetAuthenticatedUser(c *gin.Context) *storage.User {
 		}
 	}
 
-	// Fall back to dev auth user (development)
-	if user, exists := c.Get("dev_user"); exists {
-		if devUser, ok := user.(*storage.User); ok {
-			return devUser
+	// Fall back to dev auth user (development only)
+	if !IsProduction() {
+		if user, exists := c.Get("dev_user"); exists {
+			if devUser, ok := user.(*storage.User); ok {
+				return devUser
+			}
 		}
 	}
 
@@ -616,8 +688,8 @@ func RequireAuth() gin.HandlerFunc {
 	}
 }
 
-// RequireProSubscription middleware ensures user has pro subscription
-func RequireProSubscription() gin.HandlerFunc {
+// RequireSubscriptionTiers middleware ensures user has one of the specified subscription tiers
+func RequireSubscriptionTiers(allowedTiers ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user := GetAuthenticatedUser(c)
 		if user == nil {
@@ -626,11 +698,27 @@ func RequireProSubscription() gin.HandlerFunc {
 			return
 		}
 
-		if user.SubscriptionTier != storage.SubscriptionTierPro {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Pro subscription required"})
-			c.Abort()
-			return
+		// Check if user's tier is in the allowed list
+		for _, tier := range allowedTiers {
+			if user.SubscriptionTier == tier {
+				c.Next()
+				return
+			}
 		}
-		c.Next()
+
+		// Build error message with allowed tiers
+		var tierNames []string
+		for _, tier := range allowedTiers {
+			tierNames = append(tierNames, tier)
+		}
+		
+		errorMsg := "Subscription required: " + strings.Join(tierNames, " or ")
+		c.JSON(http.StatusForbidden, gin.H{"error": errorMsg})
+		c.Abort()
 	}
+}
+
+// RequireProSubscription middleware ensures user has pro subscription (backward compatibility)
+func RequireProSubscription() gin.HandlerFunc {
+	return RequireSubscriptionTiers(storage.SubscriptionTierPro)
 }

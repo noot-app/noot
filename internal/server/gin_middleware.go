@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"net/http"
 	"runtime"
 	"strings"
 	"time"
@@ -96,7 +97,21 @@ func StoreMiddleware(store storage.Store) gin.HandlerFunc {
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get allowed origins from environment variable
-		allowedOrigins := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+		allowedOrigins := getEnv("CORS_ALLOWED_ORIGINS", "")
+		
+		// Handle empty CORS configuration
+		if allowedOrigins == "" {
+			if IsProduction() {
+				// In production, crash if CORS_ALLOWED_ORIGINS is not set
+				LogError("CORS_ALLOWED_ORIGINS must be set in production environment", fmt.Errorf("missing CORS configuration"))
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Server configuration error"})
+				c.Abort()
+				return
+			}
+			// In development, default to localhost
+			allowedOrigins = "http://localhost:3000"
+		}
+		
 		origins := strings.Split(allowedOrigins, ",")
 
 		// Clean and validate origins
@@ -124,7 +139,7 @@ func CORSMiddleware() gin.HandlerFunc {
 
 		// Only set CORS headers if origin is allowed
 		if originAllowed {
-			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
 
 			// Build allowed headers list - base headers always included
 			baseHeaders := "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With"
@@ -171,10 +186,17 @@ func isValidOrigin(origin string) bool {
 		return false
 	}
 
-	// In production, require HTTPS except for localhost
+	// In production, require HTTPS. In development, allow HTTP for localhost
 	if IsProduction() {
-		if strings.HasPrefix(origin, "http://") && !strings.Contains(origin, "localhost") {
+		if strings.HasPrefix(origin, "http://") {
 			return false
+		}
+	} else {
+		// In development, allow HTTP only for localhost/127.0.0.1
+		if strings.HasPrefix(origin, "http://") {
+			if !strings.Contains(origin, "localhost") && !strings.Contains(origin, "127.0.0.1") {
+				return false
+			}
 		}
 	}
 
