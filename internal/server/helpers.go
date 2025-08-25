@@ -25,17 +25,15 @@ func getDefaultUser(ctx context.Context, store storage.Store) (*storage.User, er
 	return store.GetUserBySubject(ctx, DefaultUserProvider, DefaultUserSubject)
 }
 
-// getCurrentUser retrieves the current user from context (dev user if set, otherwise default)
-// TODO: When implementing Supabase auth, this should extract user from JWT context
+// getCurrentUser retrieves the current authenticated user from context
+// Works with both dev auth (development) and JWT auth (production)
 func getCurrentUser(c *gin.Context, store storage.Store) (*storage.User, error) {
-	// Check if dev user is set in context (development mode only)
-	if devUser, exists := c.Get("dev_user"); exists {
-		if user, ok := devUser.(*storage.User); ok {
-			return user, nil
-		}
+	user := GetAuthenticatedUser(c)
+	if user != nil {
+		return user, nil
 	}
 
-	// Fall back to default user
+	// Fall back to default user if no authentication (should rarely happen with middleware)
 	return getDefaultUser(c.Request.Context(), store)
 }
 

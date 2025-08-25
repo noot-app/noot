@@ -1,6 +1,6 @@
 /**
  * Auth provider interface for abstracting authentication methods
- * TODO: When implementing Supabase auth, create a SupabaseAuthProvider that implements this interface
+ * Implemented by both DevAuthProvider and SupabaseAuthProvider
  */
 export interface AuthProvider {
 	/** Get the currently authenticated user */
@@ -14,8 +14,8 @@ export interface AuthProvider {
 }
 
 /**
- * User interface compatible with both dev and future Supabase implementations
- * TODO: Extend this interface when adding Supabase user properties
+ * User interface compatible with both dev and Supabase implementations
+ * Extended with Supabase user properties
  */
 export interface User {
 	id: string;
