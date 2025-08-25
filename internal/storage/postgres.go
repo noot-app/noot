@@ -108,7 +108,7 @@ func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 		INSERT INTO users (id, provider, subject, email, subscription_tier, active_goal_name, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
-	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, 
+	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject,
 		user.Email, user.SubscriptionTier, user.ActiveGoalName, user.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
@@ -297,7 +297,7 @@ func (s *PostgreSQLStore) UpdateConsumption(ctx context.Context, consumption *Co
 // DeleteConsumption deletes a consumption by ID
 func (s *PostgreSQLStore) DeleteConsumption(ctx context.Context, id string) error {
 	query := `DELETE FROM consumptions WHERE id = $1`
-	
+
 	_, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete consumption: %w", err)

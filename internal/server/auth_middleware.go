@@ -76,7 +76,7 @@ func cleanupUserCreationLimiter() {
 				validAttempts = append(validAttempts, attempt)
 			}
 		}
-		
+
 		if len(validAttempts) == 0 {
 			delete(userCreationLimiter, email)
 		} else {
@@ -282,7 +282,7 @@ func recordUserCreationAttempt(email string) {
 	if !exists {
 		attempts = make([]time.Time, 0, 2)
 	}
-	
+
 	// Add current attempt
 	attempts = append(attempts, now)
 	userCreationLimiter[email] = attempts
@@ -609,46 +609,46 @@ func isValidEmail(email string) bool {
 	if len(email) < 5 || len(email) > 254 {
 		return false
 	}
-	
+
 	// Must contain exactly one @ symbol
 	atIndex := strings.Index(email, "@")
 	if atIndex == -1 || atIndex != strings.LastIndex(email, "@") {
 		return false
 	}
-	
+
 	// Split into local and domain parts
 	localPart := email[:atIndex]
 	domainPart := email[atIndex+1:]
-	
+
 	// Validate local part
 	if len(localPart) < 1 || len(localPart) > 64 {
 		return false
 	}
-	
+
 	// Validate domain part
 	if len(domainPart) < 1 || len(domainPart) > 253 {
 		return false
 	}
-	
+
 	// Domain must contain at least one dot and end with a valid TLD
 	dotIndex := strings.LastIndex(domainPart, ".")
 	if dotIndex == -1 || dotIndex == 0 || dotIndex == len(domainPart)-1 {
 		return false
 	}
-	
+
 	// TLD must be at least 2 characters
 	tld := domainPart[dotIndex+1:]
 	if len(tld) < 2 {
 		return false
 	}
-	
+
 	// Basic character validation - no spaces, must be printable ASCII
 	for _, r := range email {
 		if r == ' ' || r < 32 || r > 126 {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -711,7 +711,7 @@ func RequireSubscriptionTiers(allowedTiers ...string) gin.HandlerFunc {
 		for _, tier := range allowedTiers {
 			tierNames = append(tierNames, tier)
 		}
-		
+
 		errorMsg := "Subscription required: " + strings.Join(tierNames, " or ")
 		c.JSON(http.StatusForbidden, gin.H{"error": errorMsg})
 		c.Abort()

@@ -98,7 +98,7 @@ func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get allowed origins from environment variable
 		allowedOrigins := getEnv("CORS_ALLOWED_ORIGINS", "")
-		
+
 		// Handle empty CORS configuration
 		if allowedOrigins == "" {
 			if IsProduction() {
@@ -111,7 +111,7 @@ func CORSMiddleware() gin.HandlerFunc {
 			// In development, default to localhost
 			allowedOrigins = "http://localhost:3000"
 		}
-		
+
 		origins := strings.Split(allowedOrigins, ",")
 
 		// Clean and validate origins

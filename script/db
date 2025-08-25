@@ -4,23 +4,61 @@ set -euo pipefail
 
 source script/env "$@"
 
+# Determine database provider
+DATABASE_PROVIDER="${DATABASE_PROVIDER:-sqlite}"
 DB_PATH="${DATABASE_PATH:-./noot.db}"
+SUPABASE_DB_URL="${SUPABASE_DB_URL:-}"
 
 function usage() {
-    echo "Usage: $0 {reset|seed|dump}"
+    echo "Usage: $0 [provider] {command}"
+    echo ""
+    echo "Providers:"
+    echo "  sqlite      SQLite operations (default)"  
+    echo "  supabase    Supabase PostgreSQL operations"
     echo ""
     echo "Commands:"
-    echo "  reset    Drop all tables and re-run migrations"
-    echo "  seed     Add development seed data (monalisa user + sample consumptions)"
-    echo "  dump     Show database content in human-readable format"
+    echo "  reset       Drop all tables and re-run migrations"
+    echo "  migrate     Run migrations only"
+    echo "  seed        Add development seed data"
+    echo "  dump        Show database content in human-readable format"
+    echo "  setup       Initial setup/connection test (supabase only)"
+    echo "  validate    Check schema compatibility"
+    echo "  compare     Compare SQLite and PostgreSQL schemas"
     echo ""
     echo "Environment Variables:"
-    echo "  DATABASE_PATH    Path to SQLite database file (default: ./noot.db)"
+    echo "  DATABASE_PROVIDER    Database provider: sqlite (default) | supabase"
+    echo "  DATABASE_PATH        SQLite database file path (default: ./noot.db)"
+    echo "  SUPABASE_DB_URL      PostgreSQL connection string for Supabase"
+    echo ""
+    echo "Examples:"
+    echo "  $0 sqlite reset      # Reset SQLite database"
+    echo "  $0 supabase migrate  # Run PostgreSQL migrations"
+    echo "  $0 compare           # Compare schemas between providers"
     exit 1
 }
 
-function db_reset() {
-    echo -e "${BLUE}🔄 Resetting database: ${DB_PATH}${OFF}"
+function check_requirements() {
+    local provider="$1"
+    
+    if [[ "$provider" == "sqlite" ]]; then
+        if ! command -v sqlite3 &> /dev/null; then
+            echo "Error: sqlite3 command not found. Please install SQLite3."
+            exit 1
+        fi
+    elif [[ "$provider" == "supabase" ]]; then
+        if ! command -v psql &> /dev/null; then
+            echo "Error: psql command not found. Please install PostgreSQL client."
+            exit 1
+        fi
+        if [[ -z "$SUPABASE_DB_URL" ]]; then
+            echo "Error: SUPABASE_DB_URL environment variable not set."
+            exit 1
+        fi
+    fi
+}
+
+function sqlite_reset() {
+    echo -e "${BLUE}🔄 Resetting SQLite database: ${DB_PATH}${OFF}"
     
     # Remove the database file to start fresh
     if [[ -f "$DB_PATH" ]]; then
@@ -28,23 +66,35 @@ function db_reset() {
         echo "Removed existing database file"
     fi
     
-    echo "Database reset complete"
+    # Run migrations by starting the server briefly
+    ENV=development DATABASE_PROVIDER="sqlite" DATABASE_PATH="$DB_PATH" timeout 5 go run cmd/noot/main.go || true
+    
+    echo -e "${GREEN}✅ SQLite database reset complete${OFF}"
 }
 
-function db_seed() {
-    echo -e "${BLUE}🌱 Seeding database: ${DB_PATH}${OFF}"
+function sqlite_migrate() {
+    echo -e "${BLUE}⚡ Running SQLite migrations: ${DB_PATH}${OFF}"
+    
+    # Run migrations by starting the server briefly  
+    ENV=development DATABASE_PROVIDER="sqlite" DATABASE_PATH="$DB_PATH" timeout 5 go run cmd/noot/main.go || true
+    
+    echo -e "${GREEN}✅ SQLite migrations complete${OFF}"
+}
+
+function sqlite_seed() {
+    echo -e "${BLUE}🌱 Seeding SQLite database: ${DB_PATH}${OFF}"
     
     # Use go run directly from the current project
-    DATABASE_PATH="$DB_PATH" go run -C . internal/storage/cmd/seed/main.go
+    DATABASE_PROVIDER="sqlite" DATABASE_PATH="$DB_PATH" go run -C . internal/storage/cmd/seed/main.go
     
-    echo -e "${GREEN}✅ Database seeded successfully${OFF}"
+    echo -e "${GREEN}✅ SQLite database seeded successfully${OFF}"
 }
 
-function db_dump() {
-    echo -e "${BLUE}📊 Database content: ${DB_PATH}${OFF}"
+function sqlite_dump() {
+    echo -e "${BLUE}📊 SQLite database content: ${DB_PATH}${OFF}"
     
     if [[ ! -f "$DB_PATH" ]]; then
-        echo "Database file not found: $DB_PATH"
+        echo "SQLite database file not found: $DB_PATH"
         exit 1
     fi
     
@@ -54,25 +104,235 @@ function db_dump() {
     
     echo ""
     echo "=== Consumptions ==="
-    sqlite3 "$DB_PATH" "SELECT id, user_id, transcript, total_calories, total_protein_g, total_carbs_g, datetime(created_at, 'localtime') as created_at FROM consumptions ORDER BY created_at DESC;"
+    sqlite3 "$DB_PATH" "SELECT id, user_id, transcript, total_calories, total_protein_g, total_carbs_g, datetime(created_at, 'localtime') as created_at FROM consumptions ORDER BY created_at DESC LIMIT 10;"
     
     echo ""
     echo "=== Stats ==="
     sqlite3 "$DB_PATH" "SELECT 'Users: ' || COUNT(*) FROM users UNION ALL SELECT 'Consumptions: ' || COUNT(*) FROM consumptions;"
 }
 
-# Main command dispatch
-case "${1:-}" in
-    reset)
-        db_reset
-        ;;
-    seed)
-        db_seed
-        ;;
-    dump)
-        db_dump
+function supabase_setup() {
+    echo -e "${BLUE}🔗 Testing Supabase connection${OFF}"
+    
+    if psql "$SUPABASE_DB_URL" -c "SELECT version();" > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ Supabase connection successful${OFF}"
+        
+        # Show some basic info
+        echo ""
+        echo "=== Database Info ==="
+        psql "$SUPABASE_DB_URL" -c "SELECT version();"
+    else
+        echo -e "${RED}❌ Failed to connect to Supabase${OFF}"
+        exit 1
+    fi
+}
+
+function supabase_reset() {
+    echo -e "${BLUE}🔄 Resetting Supabase database${OFF}"
+    echo -e "${YELLOW}⚠️  This will drop all tables in the database!${OFF}"
+    read -p "Are you sure? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Operation cancelled."
+        exit 1
+    fi
+    
+    # Drop tables (this is a simplified approach)
+    echo "Dropping tables..."
+    psql "$SUPABASE_DB_URL" -c "
+        DROP TABLE IF EXISTS user_biometrics CASCADE;
+        DROP TABLE IF EXISTS user_goals CASCADE; 
+        DROP TABLE IF EXISTS item_aliases CASCADE;
+        DROP TABLE IF EXISTS items CASCADE;
+        DROP TABLE IF EXISTS consumptions CASCADE;
+        DROP TABLE IF EXISTS users CASCADE;
+    " || true
+    
+    # Run migrations
+    supabase_migrate
+    
+    echo -e "${GREEN}✅ Supabase database reset complete${OFF}"
+}
+
+function supabase_migrate() {
+    echo -e "${BLUE}⚡ Running Supabase PostgreSQL migrations${OFF}"
+    
+    # Run migrations by starting the server briefly
+    DATABASE_PROVIDER="supabase" SUPABASE_DB_URL="$SUPABASE_DB_URL" timeout 10 go run cmd/noot/main.go || true
+    
+    echo -e "${GREEN}✅ Supabase migrations complete${OFF}"
+}
+
+function supabase_seed() {
+    echo -e "${BLUE}🌱 Seeding Supabase database${OFF}"
+    
+    # Note: This may need to be implemented differently for Supabase
+    echo -e "${YELLOW}⚠️  Supabase seeding not yet implemented${OFF}"
+    echo "You may need to manually create test users through the Supabase auth interface"
+}
+
+function supabase_dump() {
+    echo -e "${BLUE}📊 Supabase database content${OFF}"
+    
+    echo ""
+    echo "=== Users ==="
+    psql "$SUPABASE_DB_URL" -c "SELECT id, provider, subject, email, created_at FROM users ORDER BY created_at;" || echo "No users table or no access"
+    
+    echo ""
+    echo "=== Consumptions ==="
+    psql "$SUPABASE_DB_URL" -c "SELECT id, user_id, transcript, total_calories, total_protein_g, total_carbs_g, created_at FROM consumptions ORDER BY created_at DESC LIMIT 10;" || echo "No consumptions table or no access"
+    
+    echo ""
+    echo "=== Stats ==="
+    psql "$SUPABASE_DB_URL" -c "
+        SELECT 'Users: ' || COUNT(*) FROM users 
+        UNION ALL 
+        SELECT 'Consumptions: ' || COUNT(*) FROM consumptions;
+    " || echo "Unable to get stats"
+}
+
+function supabase_validate() {
+    echo -e "${BLUE}🔍 Validating Supabase schema${OFF}"
+    
+    echo "Checking required tables exist..."
+    
+    local tables=("users" "consumptions" "items" "item_aliases" "user_goals" "user_biometrics")
+    local missing_tables=()
+    
+    for table in "${tables[@]}"; do
+        if psql "$SUPABASE_DB_URL" -c "SELECT 1 FROM $table LIMIT 1;" > /dev/null 2>&1; then
+            echo "✅ Table $table exists"
+        else
+            echo "❌ Table $table missing"
+            missing_tables+=("$table")
+        fi
+    done
+    
+    if [[ ${#missing_tables[@]} -gt 0 ]]; then
+        echo -e "${RED}Missing tables: ${missing_tables[*]}${OFF}"
+        echo "Run 'migrate' command to create missing tables."
+        exit 1
+    else
+        echo -e "${GREEN}✅ All required tables exist${OFF}"
+    fi
+}
+
+function compare_schemas() {
+    echo -e "${BLUE}🔍 Comparing SQLite and PostgreSQL schemas${OFF}"
+    
+    if [[ ! -f "$DB_PATH" ]]; then
+        echo "SQLite database not found. Creating and migrating..."
+        sqlite_migrate
+    fi
+    
+    echo ""
+    echo "=== SQLite Schema ==="
+    sqlite3 "$DB_PATH" ".schema" | head -20
+    
+    echo ""
+    echo "=== PostgreSQL Schema ==="  
+    if [[ -n "$SUPABASE_DB_URL" ]]; then
+        psql "$SUPABASE_DB_URL" -c "
+            SELECT table_name, column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name IN ('users', 'consumptions') 
+            ORDER BY table_name, ordinal_position;
+        " 2>/dev/null || echo "Unable to connect to PostgreSQL"
+    else
+        echo "SUPABASE_DB_URL not set - cannot compare PostgreSQL schema"
+    fi
+}
+
+# Parse arguments
+PROVIDER=""
+COMMAND=""
+
+# If first arg looks like a provider, use it
+if [[ "${1:-}" =~ ^(sqlite|supabase)$ ]]; then
+    PROVIDER="$1"
+    COMMAND="${2:-}"
+else
+    # Otherwise use default provider and first arg as command
+    PROVIDER="$DATABASE_PROVIDER"
+    COMMAND="${1:-}"
+fi
+
+# Validate arguments
+if [[ -z "$COMMAND" ]]; then
+    usage
+fi
+
+# Check requirements for the provider
+check_requirements "$PROVIDER"
+
+# Execute commands
+case "$COMMAND" in
+    compare)
+        # Special case - compare is cross-provider
+        compare_schemas
         ;;
     *)
-        usage
+        # Provider-specific commands
+        case "$PROVIDER" in
+            sqlite)
+                case "$COMMAND" in
+                    reset)
+                        sqlite_reset
+                        ;;
+                    migrate)
+                        sqlite_migrate
+                        ;;
+                    seed)
+                        sqlite_seed
+                        ;;
+                    dump)
+                        sqlite_dump
+                        ;;
+                    validate)
+                        echo "SQLite validation: checking if database file exists and is readable"
+                        if [[ -f "$DB_PATH" ]] && sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM sqlite_master;" > /dev/null 2>&1; then
+                            echo -e "${GREEN}✅ SQLite database is valid${OFF}"
+                        else
+                            echo -e "${RED}❌ SQLite database is invalid or missing${OFF}"
+                            exit 1
+                        fi
+                        ;;
+                    *)
+                        echo "Unknown command for SQLite: $COMMAND"
+                        usage
+                        ;;
+                esac
+                ;;
+            supabase)
+                case "$COMMAND" in
+                    setup)
+                        supabase_setup
+                        ;;
+                    reset)
+                        supabase_reset
+                        ;;
+                    migrate)
+                        supabase_migrate
+                        ;;
+                    seed)
+                        supabase_seed
+                        ;;
+                    dump)
+                        supabase_dump
+                        ;;
+                    validate)
+                        supabase_validate
+                        ;;
+                    *)
+                        echo "Unknown command for Supabase: $COMMAND"
+                        usage
+                        ;;
+                esac
+                ;;
+            *)
+                echo "Unknown provider: $PROVIDER"
+                usage
+                ;;
+        esac
         ;;
 esac

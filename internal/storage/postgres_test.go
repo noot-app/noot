@@ -184,12 +184,12 @@ func getTestPostgreSQLConnStr() string {
 	if connStr := getenv("TEST_POSTGRESQL_URL", ""); connStr != "" {
 		return connStr
 	}
-	
+
 	// Try to get from Supabase URL (for convenience in testing)
 	if connStr := getenv("SUPABASE_DB_URL", ""); connStr != "" {
 		return connStr
 	}
-	
+
 	return ""
 }
 
@@ -281,7 +281,7 @@ func TestDualDatabaseSupport(t *testing.T) {
 func TestEnvironmentVariableSupport(t *testing.T) {
 	// This test would be more comprehensive in a real scenario
 	// For now, just test that the config fields are set correctly
-	
+
 	t.Run("ConfigFieldMapping", func(t *testing.T) {
 		config := &Config{
 			Type:     "postgres",
