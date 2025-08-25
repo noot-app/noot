@@ -96,7 +96,7 @@ For production-like environment testing with local Supabase stack.
 
 #### Quick Start
 
-1. **Start Supabase**:
+1. **Start Supabase** (automatically runs migrations + seeds):
 
    ```bash
    supabase start
@@ -114,14 +114,25 @@ For production-like environment testing with local Supabase stack.
    SUPABASE_DB_URL=postgresql://postgres:postgres@localhost:54322/postgres?sslmode=disable
    ```
 
-3. **Initialize & Start**:
+3. **Start Development Server**:
 
    ```bash
-   script/db supabase migrate    # Create tables
+   script/server                 # Start server (database already seeded)
+   # OR reset if needed:
    script/server --clean         # Quick reset & start server  
-   # OR
    script/server --clean-full    # Full Supabase restart & start server
    ```
+
+#### Seeding Process
+
+The system now uses Supabase's built-in `supabase/seed.sql` file which automatically runs after migrations. This provides a much cleaner and more maintainable seeding approach compared to the previous manual Admin API method.
+
+**Benefits of the new approach:**
+
+- Uses official Supabase seeding mechanism
+- Automatically runs with `supabase start` and `supabase db reset`
+- No complex Admin API calls or error handling needed
+- Consistent with Supabase best practices
 
 #### Development Commands
 

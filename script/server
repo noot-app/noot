@@ -12,7 +12,45 @@ function usage() {
     echo "  --clean-full  Full reset (stop/restart services, then clean and reseed)"
     echo ""
     echo "Without options, starts the server with the existing database."
+    echo "For Supabase mode, automatically starts Supabase stack if not running."
     exit 1
+}
+
+function check_and_start_supabase() {
+    local database_provider="${DATABASE_PROVIDER:-sqlite}"
+    
+    # Only check for Supabase if we're using it
+    if [[ "$database_provider" != "supabase" ]]; then
+        return 0
+    fi
+    
+    # Check if supabase command is available
+    if ! command -v supabase &> /dev/null; then
+        echo -e "${RED}❌ Supabase CLI is required but not installed${OFF}"
+        echo "Install it with: npm install -g supabase"
+        exit 1
+    fi
+    
+    echo -e "${BLUE}🔍 Checking Supabase stack status...${OFF}"
+    
+    # Check if Supabase is running by trying to connect to the API
+    if curl -s --connect-timeout 2 "http://127.0.0.1:54321/health" > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ Supabase stack is already running${OFF}"
+        return 0
+    fi
+    
+    echo -e "${BLUE}⚠️  Supabase stack is not running${OFF}"
+    echo -e "${BLUE}🚀 Starting Supabase stack...${OFF}"
+    
+    # Start supabase (this will run migrations + seed automatically)
+    if supabase start; then
+        echo -e "${GREEN}✅ Supabase stack started successfully${OFF}"
+        # Give it a moment to fully initialize
+        sleep 2
+    else
+        echo -e "${RED}❌ Failed to start Supabase stack${OFF}"
+        exit 1
+    fi
 }
 
 function quick_clean_and_start() {
@@ -27,6 +65,9 @@ function quick_clean_and_start() {
     
     # Determine database provider
     DATABASE_PROVIDER="${DATABASE_PROVIDER:-sqlite}"
+    
+    # Ensure Supabase is running if needed
+    check_and_start_supabase
     
     if [[ "$DATABASE_PROVIDER" == "supabase" ]]; then
         echo -e "${BLUE}Step 1: Quick cleaning Supabase database (keeping services running)${OFF}"
@@ -61,6 +102,7 @@ function full_clean_and_start() {
     # Determine database provider
     DATABASE_PROVIDER="${DATABASE_PROVIDER:-sqlite}"
     
+    # For full clean, we don't need to check since we're restarting anyway
     if [[ "$DATABASE_PROVIDER" == "supabase" ]]; then
         echo -e "${BLUE}Step 1: Full cleaning and seeding Supabase (stop/restart services)${OFF}"
         script/supabase-seed --clean
@@ -83,6 +125,17 @@ function full_clean_and_start() {
 
 function start_server() {
     echo -e "${BLUE}🚀 Starting server...${OFF}"
+    
+    # Load .env file to detect database provider
+    if [[ -f .env ]]; then
+        set -a
+        source <(grep -v '^#' .env | grep -v '^$' | sed 's/^/export /')
+        set +a
+    fi
+    
+    # Ensure Supabase is running if needed (for non-cleaning starts)
+    check_and_start_supabase
+    
     go run ./cmd/noot/main.go
 }
 
