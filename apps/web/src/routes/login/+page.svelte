@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { dev } from '$app/environment';
   import { signIn, currentUser } from '$lib/auth/store';
   import { onMount } from 'svelte';
@@ -9,11 +10,14 @@
   let loading = false;
   let error: string | null = null;
 
+  // Get return URL from query params
+  const returnUrl = $page.url.searchParams.get('returnUrl') || '/';
+
   // Redirect if already authenticated
   onMount(() => {
     const unsubscribe = currentUser.subscribe((user) => {
       if (user) {
-        goto('/');
+        goto(returnUrl);
       }
     });
     return unsubscribe;
@@ -34,8 +38,8 @@
       if (result.error) {
         error = result.error.message;
       } else if (result.user) {
-        // Successful login - redirect handled by onMount subscription
-        console.log('Login successful');
+        // Successful login - redirect to return URL
+        goto(returnUrl);
       }
     } catch (err) {
       error = err instanceof Error ? err.message : 'An unexpected error occurred';
@@ -45,7 +49,7 @@
   }
 
   function handleSignUpRedirect() {
-    goto('/signup');
+    goto(`/signup?returnUrl=${encodeURIComponent(returnUrl)}`);
   }
 
   function handleResetPassword() {

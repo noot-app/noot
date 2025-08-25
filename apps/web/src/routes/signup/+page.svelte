@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { dev } from '$app/environment';
   import { signUp, currentUser } from '$lib/auth/store';
   import { onMount } from 'svelte';
@@ -12,11 +13,14 @@
   let error: string | null = null;
   let success = false;
 
+  // Get return URL from query params
+  const returnUrl = $page.url.searchParams.get('returnUrl') || '/';
+
   // Redirect if already authenticated
   onMount(() => {
     const unsubscribe = currentUser.subscribe((user) => {
       if (user) {
-        goto('/');
+        goto(returnUrl);
       }
     });
     return unsubscribe;
@@ -59,7 +63,7 @@
   }
 
   function handleLoginRedirect() {
-    goto('/login');
+    goto(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
   }
 </script>
 

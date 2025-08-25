@@ -3,7 +3,8 @@
   import { page } from '$app/stores';
   import { navigating } from '$app/stores';
   import { onMount } from 'svelte';
-  import { currentUser, canSwitchUsers, switchUser, getAvailableDevUsers } from '$lib/auth/store';
+  import { currentUser, canSwitchUsers, switchUser, getAvailableDevUsers, authProvider } from '$lib/auth/store';
+  import { isSupabaseEnabled } from '$lib/supabase';
   
   let pageLoadTime = 0;
   let memoryUsage = '';
@@ -26,6 +27,7 @@
   
   function copyDebugInfo() {
     const userDisplay = $currentUser ? `${$currentUser.email} (${$currentUser.subscriptionTier.toUpperCase()})` : 'Not logged in';
+    const authType = isSupabaseEnabled() ? 'Supabase' : 'Dev';
     const debugInfo = `
 Dev Info:
 - Route: ${$page.url.pathname}
@@ -34,6 +36,7 @@ Dev Info:
 - Network: ${networkType}
 - Errors: ${errorCount}
 - Warnings: ${warningCount}
+- Auth Provider: ${authType}
 - User: ${userDisplay}
     `.trim();
     
@@ -206,6 +209,12 @@ Dev Info:
       <span class="dev-separator">•</span>
       <span class="dev-item">
         Warnings: <strong class="warning-count" class:has-warnings={warningCount > 0}>{warningCount}</strong>
+      </span>
+      <span class="dev-separator">•</span>
+      <span class="dev-item">
+        Auth: <strong class="auth-provider" class:supabase={isSupabaseEnabled()} class:dev-auth={!isSupabaseEnabled()}>
+          {isSupabaseEnabled() ? 'Supabase' : 'Dev Mode'}
+        </strong>
       </span>
       <span class="dev-separator">•</span>
       <div class="dev-item user-selector">
@@ -477,6 +486,27 @@ Dev Info:
   
   .user-tier.free {
     color: #fbbf24;
+  }
+  
+  /* Auth provider indicator */
+  .auth-provider {
+    color: #c0c0c0;
+  }
+  
+  .auth-provider.supabase {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 0 3px;
+    border-radius: 2px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  
+  .auth-provider.dev-auth {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+    padding: 0 3px;
+    border-radius: 2px;
+    border: 1px solid rgba(251, 191, 36, 0.3);
   }
   
   /* Ensure content below banner doesn't get hidden */
