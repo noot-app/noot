@@ -1,4 +1,6 @@
 -- Migration 002: Create consumptions table with UUID primary keys and denormalized nutrition totals (PostgreSQL)
+-- A consumption represents a meal or food intake event logged by a user. For RLS purposes, users should only be able to access their own consumptions.
+-- This means that they should be able to read, create, update, and delete their own consumptions, but not those of other users.
 CREATE TABLE IF NOT EXISTS consumptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,

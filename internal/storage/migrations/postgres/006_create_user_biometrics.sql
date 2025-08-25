@@ -1,4 +1,7 @@
 -- Migration 006: Create user biometrics table (PostgreSQL)
+-- For RLS purposes, users should only be able to access their own biometrics.
+-- This means that they should be able to read, create, update, and delete their own biometrics, but not those of other users.
+-- All pricing tiers can access their own biometrics.
 CREATE TABLE IF NOT EXISTS user_biometrics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL UNIQUE,

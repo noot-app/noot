@@ -1,9 +1,9 @@
--- Migration 001: Initial schema baseline with ULID primary keys
+-- Migration 001: Initial schema baseline with ULID primary keys (SQLite)
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     provider TEXT NOT NULL,
     subject TEXT NOT NULL,
-    email TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
     subscription_tier TEXT NOT NULL DEFAULT 'free',
     active_goal_name TEXT DEFAULT NULL,
     created_at DATETIME NOT NULL,

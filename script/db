@@ -66,8 +66,16 @@ function sqlite_reset() {
         echo "Removed existing database file"
     fi
     
-    # Run migrations by starting the server briefly
-    ENV=development DATABASE_PROVIDER="sqlite" DATABASE_PATH="$DB_PATH" timeout 5 go run cmd/noot/main.go || true
+    # Run migrations directly
+    echo "Running migrations..."
+    ENV=development DATABASE_PROVIDER="sqlite" DATABASE_PATH="$DB_PATH" go run cmd/noot/main.go --migrate-only 2>/dev/null || {
+        # Fallback: try starting server briefly and let it auto-migrate, then kill it
+        ENV=development DATABASE_PROVIDER="sqlite" DATABASE_PATH="$DB_PATH" go run cmd/noot/main.go &
+        SERVER_PID=$!
+        sleep 2
+        kill $SERVER_PID 2>/dev/null || true
+        wait $SERVER_PID 2>/dev/null || true
+    }
     
     echo -e "${GREEN}✅ SQLite database reset complete${OFF}"
 }
@@ -75,8 +83,15 @@ function sqlite_reset() {
 function sqlite_migrate() {
     echo -e "${BLUE}⚡ Running SQLite migrations: ${DB_PATH}${OFF}"
     
-    # Run migrations by starting the server briefly  
-    ENV=development DATABASE_PROVIDER="sqlite" DATABASE_PATH="$DB_PATH" timeout 5 go run cmd/noot/main.go || true
+    # Run migrations directly
+    ENV=development DATABASE_PROVIDER="sqlite" DATABASE_PATH="$DB_PATH" go run cmd/noot/main.go --migrate-only 2>/dev/null || {
+        # Fallback: try starting server briefly and let it auto-migrate, then kill it
+        ENV=development DATABASE_PROVIDER="sqlite" DATABASE_PATH="$DB_PATH" go run cmd/noot/main.go &
+        SERVER_PID=$!
+        sleep 2
+        kill $SERVER_PID 2>/dev/null || true
+        wait $SERVER_PID 2>/dev/null || true
+    }
     
     echo -e "${GREEN}✅ SQLite migrations complete${OFF}"
 }
@@ -157,8 +172,15 @@ function supabase_reset() {
 function supabase_migrate() {
     echo -e "${BLUE}⚡ Running Supabase PostgreSQL migrations${OFF}"
     
-    # Run migrations by starting the server briefly
-    DATABASE_PROVIDER="supabase" SUPABASE_DB_URL="$SUPABASE_DB_URL" timeout 10 go run cmd/noot/main.go || true
+    # Run migrations directly
+    DATABASE_PROVIDER="supabase" SUPABASE_DB_URL="$SUPABASE_DB_URL" go run cmd/noot/main.go --migrate-only 2>/dev/null || {
+        # Fallback: try starting server briefly and let it auto-migrate, then kill it
+        DATABASE_PROVIDER="supabase" SUPABASE_DB_URL="$SUPABASE_DB_URL" go run cmd/noot/main.go &
+        SERVER_PID=$!
+        sleep 3
+        kill $SERVER_PID 2>/dev/null || true
+        wait $SERVER_PID 2>/dev/null || true
+    }
     
     echo -e "${GREEN}✅ Supabase migrations complete${OFF}"
 }
