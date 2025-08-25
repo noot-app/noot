@@ -14,6 +14,10 @@ import (
 
 // Run configures routes and starts the HTTP server using Gin
 func Run(ctx context.Context, port string) error {
+	// Validate environment and security configuration on startup
+	if err := validateSecurityConfiguration(); err != nil {
+		return fmt.Errorf("security configuration validation failed: %w", err)
+	}
 	// Initialize storage using new config approach
 	config := &storage.Config{
 		Type:     getenv("DB_TYPE", "sqlite"),
@@ -61,6 +65,7 @@ func Run(ctx context.Context, port string) error {
 	r.Use(RequestIDMiddleware())
 	r.Use(LoggingMiddleware())
 	r.Use(RecoveryMiddleware())
+	r.Use(SecurityHeadersMiddleware()) // Add security headers
 	r.Use(CORSMiddleware())
 	r.Use(StoreMiddleware(store))
 	
@@ -120,4 +125,59 @@ func Run(ctx context.Context, port string) error {
 		LogError("Server error", err)
 		return err
 	}
+}
+
+// validateSecurityConfiguration performs startup security validation
+func validateSecurityConfiguration() error {
+	env := strings.ToLower(getenv("ENV", "production"))
+	
+	// Validate JWT configuration in production
+	if env == "production" {
+		jwtSecret := getenv("SUPABASE_JWT_SECRET", "")
+		if jwtSecret == "" {
+			return fmt.Errorf("SUPABASE_JWT_SECRET is required in production")
+		}
+		if len(jwtSecret) < 32 {
+			LogWarn("JWT secret is shorter than recommended minimum of 32 characters")
+		}
+		
+		// Validate CORS configuration in production
+		corsOrigins := getenv("CORS_ALLOWED_ORIGINS", "")
+		if corsOrigins == "" || corsOrigins == "http://localhost:3000" {
+			LogWarn("CORS_ALLOWED_ORIGINS not configured for production - using default localhost")
+		}
+	}
+	
+	// Warn about dev auth in production-like environments
+	if env != "development" {
+		if isProductionEnvironmentForValidation() {
+			LogWarn("Production environment detected - ensure dev auth is properly disabled")
+		}
+	}
+	
+	// Validate environment consistency
+	if env == "development" {
+		jwtSecret := getenv("SUPABASE_JWT_SECRET", "")
+		if jwtSecret != "" {
+			LogWarn("JWT secret configured in development - authentication will use JWT instead of dev auth")
+		}
+	}
+	
+	LogInfo("Security configuration validated", "env", env)
+	return nil
+}
+
+// isProductionEnvironmentForValidation checks for production indicators during startup validation
+func isProductionEnvironmentForValidation() bool {
+	prodIndicators := []string{
+		"VERCEL", "NETLIFY", "HEROKU", "AWS_LAMBDA_FUNCTION_NAME", 
+		"GOOGLE_CLOUD_PROJECT", "CF_PAGES", "RENDER",
+	}
+	
+	for _, indicator := range prodIndicators {
+		if getenv(indicator, "") != "" {
+			return true
+		}
+	}
+	return false
 }

@@ -93,26 +93,45 @@ func StoreMiddleware(store storage.Store) gin.HandlerFunc {
 	}
 }
 
-// CORSMiddleware adds CORS headers for development
+// CORSMiddleware adds CORS headers with enhanced security
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get allowed origins from environment variable, default to localhost:3000 for development
+		// Get allowed origins from environment variable
 		allowedOrigins := getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 		origins := strings.Split(allowedOrigins, ",")
-
-		origin := c.Request.Header.Get("Origin")
-
-		// Check if the origin is in the allowed list
-		for _, allowedOrigin := range origins {
-			if strings.TrimSpace(allowedOrigin) == origin {
-				c.Header("Access-Control-Allow-Origin", origin)
-				break
+		
+		// Clean and validate origins
+		var validOrigins []string
+		for _, origin := range origins {
+			origin = strings.TrimSpace(origin)
+			if origin != "" && isValidOrigin(origin) {
+				validOrigins = append(validOrigins, origin)
+			} else if origin != "" {
+				LogWarn("Invalid CORS origin configured", "origin", origin)
 			}
 		}
 
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-Dev-User-ID")
-		c.Header("Access-Control-Allow-Credentials", "true")
+		requestOrigin := c.Request.Header.Get("Origin")
+		originAllowed := false
+
+		// Check if the origin is in the allowed list
+		for _, allowedOrigin := range validOrigins {
+			if allowedOrigin == requestOrigin {
+				c.Header("Access-Control-Allow-Origin", requestOrigin)
+				originAllowed = true
+				break
+			}
+		}
+		
+		// Only set CORS headers if origin is allowed
+		if originAllowed {
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-Dev-User-ID")
+			c.Header("Access-Control-Allow-Credentials", "true")
+			c.Header("Access-Control-Max-Age", "86400") // 24 hours
+		} else if requestOrigin != "" {
+			LogWarn("CORS request from unauthorized origin", "origin", requestOrigin)
+		}
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
@@ -121,6 +140,24 @@ func CORSMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// isValidOrigin validates that a CORS origin is properly formatted
+func isValidOrigin(origin string) bool {
+	// Basic validation - must start with http:// or https://
+	if !strings.HasPrefix(origin, "http://") && !strings.HasPrefix(origin, "https://") {
+		return false
+	}
+	
+	// In production, require HTTPS except for localhost
+	env := strings.ToLower(getEnv("ENV", "production"))
+	if env == "production" {
+		if strings.HasPrefix(origin, "http://") && !strings.Contains(origin, "localhost") {
+			return false
+		}
+	}
+	
+	return true
 }
 
 // captureStackGin captures stack trace for Gin context
@@ -149,15 +186,33 @@ func generateRequestID() string {
 }
 
 // DevAuthMiddleware handles development-only user switching via headers
-// TODO: When implementing Supabase auth, this middleware should be replaced with
-// a proper auth middleware that validates JWT tokens and extracts user context
+// This middleware provides additional security safeguards to prevent accidental
+// enablement in production environments
 func DevAuthMiddleware(store storage.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Only allow dev user switching in development environment
+		// Multi-layer environment validation for security
 		env := strings.ToLower(getEnv("ENV", "production"))
+		
+		// Additional production detection safeguards
 		if env != "development" {
+			// Check for common production indicators
+			if isProductionEnvironment() {
+				LogWarn("Dev auth middleware called in production environment - blocking", "env", env)
+				c.Next()
+				return
+			}
+			
+			// If environment is not explicitly "development" but also not clearly production,
+			// be conservative and skip dev auth
+			LogWarn("Ambiguous environment detected - skipping dev auth for security", "env", env)
 			c.Next()
 			return
+		}
+		
+		// Ensure JWT secret is not set when using dev auth
+		jwtSecret := getEnv("SUPABASE_JWT_SECRET", "")
+		if jwtSecret != "" {
+			LogWarn("JWT secret configured with dev auth - this is a security concern")
 		}
 
 		// Check for development user override header
@@ -192,6 +247,75 @@ func DevAuthMiddleware(store storage.Store) gin.HandlerFunc {
 			}
 		}
 
+		c.Next()
+	}
+}
+
+// isProductionEnvironment checks for common production environment indicators
+func isProductionEnvironment() bool {
+	// Check for common production environment variables
+	prodIndicators := []string{
+		"VERCEL",
+		"NETLIFY", 
+		"HEROKU",
+		"AWS_LAMBDA_FUNCTION_NAME",
+		"GOOGLE_CLOUD_PROJECT",
+		"CF_PAGES", // Cloudflare Pages
+		"RENDER",
+	}
+	
+	for _, indicator := range prodIndicators {
+		if getEnv(indicator, "") != "" {
+			return true
+		}
+	}
+	
+	// Check for production-like domains or URLs
+	serverName := getEnv("SERVER_NAME", "")
+	if serverName != "" && !strings.Contains(serverName, "localhost") && !strings.Contains(serverName, "127.0.0.1") {
+		return true
+	}
+	
+	return false
+}
+
+// SecurityHeadersMiddleware adds security headers to responses
+func SecurityHeadersMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Prevent MIME type sniffing
+		c.Header("X-Content-Type-Options", "nosniff")
+		
+		// Prevent clickjacking
+		c.Header("X-Frame-Options", "DENY")
+		
+		// Enable XSS protection
+		c.Header("X-XSS-Protection", "1; mode=block")
+		
+		// Prevent information disclosure
+		c.Header("X-Powered-By", "") // Remove default server headers
+		
+		// Referrer policy
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+		
+		// Content Security Policy (basic)
+		env := strings.ToLower(getEnv("ENV", "production"))
+		if env == "production" {
+			// Strict CSP for production
+			csp := "default-src 'self'; " +
+				"script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; " +
+				"style-src 'self' 'unsafe-inline' https:; " +
+				"img-src 'self' data: https:; " +
+				"font-src 'self' https:; " +
+				"connect-src 'self' https:; " +
+				"frame-ancestors 'none';"
+			c.Header("Content-Security-Policy", csp)
+			
+			// HSTS for HTTPS
+			if c.Request.TLS != nil {
+				c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+			}
+		}
+		
 		c.Next()
 	}
 }

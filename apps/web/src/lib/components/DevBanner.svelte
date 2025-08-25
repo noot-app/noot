@@ -215,6 +215,9 @@ Dev Info:
         Auth: <strong class="auth-provider" class:supabase={isSupabaseEnabled()} class:dev-auth={!isSupabaseEnabled()}>
           {isSupabaseEnabled() ? 'Supabase' : 'Dev Mode'}
         </strong>
+        {#if !isSupabaseEnabled()}
+          <span class="security-warning" title="Development authentication is enabled - not suitable for production">⚠️</span>
+        {/if}
       </span>
       <span class="dev-separator">•</span>
       <div class="dev-item user-selector">
@@ -507,6 +510,19 @@ Dev Info:
     padding: 0 3px;
     border-radius: 2px;
     border: 1px solid rgba(251, 191, 36, 0.3);
+  }
+  
+  .security-warning {
+    color: #ff6b6b;
+    font-size: 10px;
+    margin-left: 2px;
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
   }
   
   /* Ensure content below banner doesn't get hidden */
