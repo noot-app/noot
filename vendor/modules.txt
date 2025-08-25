@@ -191,10 +191,6 @@ github.com/speakeasy-api/openapi-overlay/pkg/overlay
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
 github.com/stretchr/testify/require
-# github.com/supabase-community/auth-go v1.4.0
-## explicit; go 1.18
-# github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
-## explicit
 # github.com/twitchyliquid64/golang-asm v0.15.1
 ## explicit; go 1.13
 github.com/twitchyliquid64/golang-asm/asm/arch
