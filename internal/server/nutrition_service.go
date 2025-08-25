@@ -764,9 +764,6 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 		return RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(servingValue, normalizedGrams), decimalPlaces)
 	}
 
-	// Helper function to create pointer to float64
-	float64Ptr := func(val float64) *float64 { return &val }
-
 	return &storage.Item{
 		NormalizedName:  exactKey, // Use the special key as the normalized name
 		NormalizedBrand: "",       // Empty brand for exact matches

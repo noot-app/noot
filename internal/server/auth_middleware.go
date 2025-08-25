@@ -348,7 +348,7 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 
 		if authHeader == "" {
 			LogWarn("No Authorization header found in production mode")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+			jsonError(c, http.StatusUnauthorized, "Authorization header required")
 			c.Abort()
 			return
 		}
@@ -357,7 +357,7 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		tokenParts := strings.Split(authHeader, " ")
 		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
 			LogWarn("Invalid Authorization header format", "header", authHeader[:min(20, len(authHeader))]+"...")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
+			jsonError(c, http.StatusUnauthorized, "Invalid authorization header format")
 			c.Abort()
 			return
 		}
@@ -372,14 +372,14 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 
 		if err != nil {
 			LogWarn("JWT validation failed", "error", err.Error())
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			jsonError(c, http.StatusUnauthorized, "Invalid or expired token")
 			c.Abort()
 			return
 		}
 
 		if user == nil {
 			LogWarn("JWT validated but user not found")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			jsonError(c, http.StatusUnauthorized, "User not found")
 			c.Abort()
 			return
 		}

@@ -265,3 +265,13 @@ func validateTrendsSubscriptionAccess(subscriptionTier string, start, end time.T
 
 	return nil
 }
+
+// jsonError sends a consistent JSON error response
+func jsonError(c *gin.Context, status int, message string) {
+	errorResp := api.ErrorResponse{
+		Error:     message,
+		Code:      status,
+		Timestamp: time.Now().UTC(),
+	}
+	c.JSON(status, errorResp)
+}
