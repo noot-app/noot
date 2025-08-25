@@ -114,6 +114,11 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 		user.SubscriptionTier = SubscriptionTierFree
 	}
 
+	// Validate required fields for SQLite compatibility
+	if user.Handle == "" {
+		return fmt.Errorf("user handle is required")
+	}
+
 	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email,
 		user.SubscriptionTier, now)
 	if err != nil {

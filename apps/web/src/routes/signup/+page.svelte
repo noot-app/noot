@@ -9,6 +9,7 @@
   let password = '';
   let confirmPassword = '';
   let fullName = '';
+  let username = '';
   let loading = false;
   let error: string | null = null;
   let success = false;
@@ -27,7 +28,7 @@
   });
 
   async function handleSignUp() {
-    if (!email || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword || !username) {
       error = 'Please fill in all required fields';
       return;
     }
@@ -42,12 +43,26 @@
       return;
     }
 
+    // Username validation
+    if (username.length < 3) {
+      error = 'Username must be at least 3 characters long';
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      error = 'Username can only contain letters, numbers, and underscores';
+      return;
+    }
+
     loading = true;
     error = null;
     success = false;
 
     try {
-      const result = await signUp(email, password, { fullName: fullName || undefined });
+      const result = await signUp(email, password, { 
+        fullName: fullName || undefined, // Optional: only include if provided
+        handle: username // Required
+      });
       
       if (result.error) {
         error = result.error.message;
@@ -96,10 +111,10 @@
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          <label>
+          <span>
             <strong>Development Mode:</strong> Authentication may be using development settings.
             Check your environment variables for production deployment.
-          </label>
+          </span>
         </div>
       </div>
     {/if}
@@ -110,81 +125,94 @@
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          <label>
+          <span>
             <strong>Account created!</strong> Please check your email for a verification link before signing in.
-          </label>
+          </span>
         </div>
       </div>
     {/if}
 
-    <form class="mt-8 space-y-6" on:submit|preventDefault={handleSignUp}>
-      <div class="space-y-4">
-        <div>
-          <label for="fullName" class="block text-sm font-medium text-base-content">
-            Full Name (Optional)
-          </label>
-          <input
-            id="fullName"
-            name="fullName"
-            type="text"
-            autocomplete="name"
-            bind:value={fullName}
-            class="input input-bordered w-full"
-            placeholder="Your full name"
-            disabled={loading}
-          />
-        </div>
+    <form on:submit|preventDefault={handleSignUp} class="space-y-6">
+      <div>
+        <label for="username" class="block text-sm font-medium text-base-content">
+          Username *
+        </label>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          bind:value={username}
+          required
+          class="input input-bordered w-full"
+          placeholder="Enter your username"
+          disabled={loading}
+        />
+      </div>
 
-        <div>
-          <label for="email" class="block text-sm font-medium text-base-content">
-            Email Address *
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            required
-            bind:value={email}
-            class="input input-bordered w-full"
-            placeholder="your.email@example.com"
-            disabled={loading}
-          />
-        </div>
+      <div>
+        <label for="fullName" class="block text-sm font-medium text-base-content">
+          Full Name
+        </label>
+        <input
+          id="fullName"
+          name="fullName"
+          type="text"
+          bind:value={fullName}
+          class="input input-bordered w-full"
+          placeholder="Enter your full name (optional)"
+          disabled={loading}
+        />
+      </div>
 
-        <div>
-          <label for="password" class="block text-sm font-medium text-base-content">
-            Password *
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autocomplete="new-password"
-            required
-            bind:value={password}
-            class="input input-bordered w-full"
-            placeholder="At least 8 characters"
-            disabled={loading}
-          />
-        </div>
+      <div>
+        <label for="email" class="block text-sm font-medium text-base-content">
+          Email Address *
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autocomplete="email"
+          required
+          bind:value={email}
+          class="input input-bordered w-full"
+          placeholder="your.email@example.com"
+          disabled={loading}
+        />
+      </div>
 
-        <div>
-          <label for="confirmPassword" class="block text-sm font-medium text-base-content">
-            Confirm Password *
-          </label>
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            autocomplete="new-password"
-            required
-            bind:value={confirmPassword}
-            class="input input-bordered w-full"
-            placeholder="Confirm your password"
-            disabled={loading}
-          />
-        </div>
+      <div>
+        <label for="password" class="block text-sm font-medium text-base-content">
+          Password *
+        </label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autocomplete="new-password"
+          required
+          bind:value={password}
+          class="input input-bordered w-full"
+          placeholder="At least 8 characters"
+          disabled={loading}
+        />
+      </div>
+
+      <div>
+        <label for="confirmPassword" class="block text-sm font-medium text-base-content">
+          Confirm Password *
+        </label>
+        <input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          autocomplete="new-password"
+          required
+          bind:value={confirmPassword}
+          class="input input-bordered w-full"
+          placeholder="Confirm your password"
+          disabled={loading}
+        />
       </div>
 
       {#if error}
@@ -193,7 +221,7 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <label>{error}</label>
+            <span>{error}</span>
           </div>
         </div>
       {/if}

@@ -99,17 +99,32 @@ func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 		user.ID = generateUUID()
 	}
 
+	// Validate required fields
+	if user.Handle == "" {
+		return fmt.Errorf("user handle is required")
+	}
+
 	// Set created_at if not provided
 	if user.CreatedAt.IsZero() {
 		user.CreatedAt = time.Now()
 	}
 
-	query := `
-		INSERT INTO users (id, provider, subject, email, subscription_tier, active_goal_name, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	// Set default subscription tier if not provided
+	if user.SubscriptionTier == "" {
+		user.SubscriptionTier = SubscriptionTierFree
+	}
 
-	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject,
-		user.Email, user.SubscriptionTier, user.ActiveGoalName, user.CreatedAt)
+	query := `
+		INSERT INTO users (provider, subject, email, handle, full_name, subscription_tier, created_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7) 
+		RETURNING id`
+
+	var fullName *string
+	if user.FullName != nil {
+		fullName = user.FullName
+	}
+
+	err := s.db.QueryRow(query, user.Provider, user.Subject, user.Email, user.Handle, fullName, user.SubscriptionTier, user.CreatedAt).Scan(&user.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -120,13 +135,13 @@ func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 // GetUser retrieves a user by ID
 func (s *PostgreSQLStore) GetUser(ctx context.Context, id string) (*User, error) {
 	query := `
-		SELECT id, provider, subject, email, subscription_tier, active_goal_name, created_at
+		SELECT id, handle, full_name, provider, subject, email, subscription_tier, active_goal_name, avatar_url, created_at
 		FROM users WHERE id = $1`
 
 	var user User
 	err := s.db.QueryRowContext(ctx, query, id).Scan(
-		&user.ID, &user.Provider, &user.Subject, &user.Email,
-		&user.SubscriptionTier, &user.ActiveGoalName, &user.CreatedAt)
+		&user.ID, &user.Handle, &user.FullName, &user.Provider, &user.Subject, &user.Email,
+		&user.SubscriptionTier, &user.ActiveGoalName, &user.AvatarURL, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -140,18 +155,38 @@ func (s *PostgreSQLStore) GetUser(ctx context.Context, id string) (*User, error)
 // GetUserBySubject retrieves a user by provider and subject
 func (s *PostgreSQLStore) GetUserBySubject(ctx context.Context, provider, subject string) (*User, error) {
 	query := `
-		SELECT id, provider, subject, email, subscription_tier, active_goal_name, created_at
+		SELECT id, handle, full_name, provider, subject, email, subscription_tier, active_goal_name, avatar_url, created_at
 		FROM users WHERE provider = $1 AND subject = $2`
 
 	var user User
 	err := s.db.QueryRowContext(ctx, query, provider, subject).Scan(
-		&user.ID, &user.Provider, &user.Subject, &user.Email,
-		&user.SubscriptionTier, &user.ActiveGoalName, &user.CreatedAt)
+		&user.ID, &user.Handle, &user.FullName, &user.Provider, &user.Subject, &user.Email,
+		&user.SubscriptionTier, &user.ActiveGoalName, &user.AvatarURL, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get user by subject: %w", err)
+	}
+
+	return &user, nil
+}
+
+// GetUserByEmail retrieves a user by email address
+func (s *PostgreSQLStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	query := `
+		SELECT id, handle, full_name, provider, subject, email, subscription_tier, active_goal_name, avatar_url, created_at
+		FROM users WHERE email = $1`
+
+	var user User
+	err := s.db.QueryRowContext(ctx, query, email).Scan(
+		&user.ID, &user.Handle, &user.FullName, &user.Provider, &user.Subject, &user.Email,
+		&user.SubscriptionTier, &user.ActiveGoalName, &user.AvatarURL, &user.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
 
 	return &user, nil

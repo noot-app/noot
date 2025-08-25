@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     subscription_tier TEXT NOT NULL DEFAULT 'free',
     active_goal_name TEXT DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    avatar_url TEXT DEFAULT NULL,
+    avatar_url TEXT DEFAULT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_provider_subject ON users(provider, subject);

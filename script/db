@@ -4,6 +4,14 @@ set -euo pipefail
 
 source script/env "$@"
 
+# Load .env file if it exists
+if [[ -f .env ]]; then
+    # Export all variables from .env, skip comments and empty lines
+    set -a
+    source <(grep -v '^#' .env | grep -v '^$' | sed 's/^/export /')
+    set +a
+fi
+
 # Determine database provider
 DATABASE_PROVIDER="${DATABASE_PROVIDER:-sqlite}"
 DB_PATH="${DATABASE_PATH:-./noot.db}"
@@ -188,9 +196,8 @@ function supabase_migrate() {
 function supabase_seed() {
     echo -e "${BLUE}🌱 Seeding Supabase database${OFF}"
     
-    # Note: This may need to be implemented differently for Supabase
-    echo -e "${YELLOW}⚠️  Supabase seeding not yet implemented${OFF}"
-    echo "You may need to manually create test users through the Supabase auth interface"
+    # Call our dedicated Supabase seeding script
+    script/supabase-seed
 }
 
 function supabase_dump() {

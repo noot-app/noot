@@ -5,27 +5,75 @@ set -euo pipefail
 source script/env "$@"
 
 function usage() {
-    echo "Usage: $0 [--clean]"
+    echo "Usage: $0 [--clean | --clean-full]"
     echo ""
     echo "Options:"
-    echo "  --clean    Clear the database, reseed it, then start the server"
+    echo "  --clean       Quick database reset (clear tables and reseed, keep services running)"
+    echo "  --clean-full  Full reset (stop/restart services, then clean and reseed)"
     echo ""
-    echo "Without --clean, starts the server with the existing database."
+    echo "Without options, starts the server with the existing database."
     exit 1
 }
 
-function clean_and_start() {
-    echo -e "${BLUE}🧹 Cleaning database and starting server...${OFF}"
+function quick_clean_and_start() {
+    echo -e "${BLUE}🧹 Quick cleaning database and starting server...${OFF}"
     
-    # Reset the database (clears all data)
-    echo -e "${BLUE}Step 1: Resetting database${OFF}"
-    script/db reset
+    # Load .env file to detect database provider
+    if [[ -f .env ]]; then
+        set -a
+        source <(grep -v '^#' .env | grep -v '^$' | sed 's/^/export /')
+        set +a
+    fi
     
-    # Seed the database with development data
-    echo -e "${BLUE}Step 2: Seeding database${OFF}"
-    script/db seed
+    # Determine database provider
+    DATABASE_PROVIDER="${DATABASE_PROVIDER:-sqlite}"
     
-    echo -e "${GREEN}✅ Database cleaned and seeded${OFF}"
+    if [[ "$DATABASE_PROVIDER" == "supabase" ]]; then
+        echo -e "${BLUE}Step 1: Quick cleaning Supabase database (keeping services running)${OFF}"
+        script/supabase-seed --quick
+    else
+        # SQLite flow
+        echo -e "${BLUE}Step 1: Resetting database${OFF}"
+        script/db reset
+        
+        echo -e "${BLUE}Step 2: Seeding database${OFF}"
+        script/db seed
+    fi
+    
+    echo -e "${GREEN}✅ Database quickly cleaned and seeded${OFF}"
+    echo -e "${BLUE}🚀 Starting server...${OFF}"
+    echo ""
+    
+    # Start the server
+    go run ./cmd/noot/main.go
+}
+
+function full_clean_and_start() {
+    echo -e "${BLUE}🧹 Full cleaning (stop/restart services) and starting server...${OFF}"
+    
+    # Load .env file to detect database provider
+    if [[ -f .env ]]; then
+        set -a
+        source <(grep -v '^#' .env | grep -v '^$' | sed 's/^/export /')
+        set +a
+    fi
+    
+    # Determine database provider
+    DATABASE_PROVIDER="${DATABASE_PROVIDER:-sqlite}"
+    
+    if [[ "$DATABASE_PROVIDER" == "supabase" ]]; then
+        echo -e "${BLUE}Step 1: Full cleaning and seeding Supabase (stop/restart services)${OFF}"
+        script/supabase-seed --clean
+    else
+        # SQLite flow (same as quick clean for SQLite)
+        echo -e "${BLUE}Step 1: Resetting database${OFF}"
+        script/db reset
+        
+        echo -e "${BLUE}Step 2: Seeding database${OFF}"
+        script/db seed
+    fi
+    
+    echo -e "${GREEN}✅ Database fully cleaned and seeded${OFF}"
     echo -e "${BLUE}🚀 Starting server...${OFF}"
     echo ""
     
@@ -41,7 +89,10 @@ function start_server() {
 # Parse command line arguments
 case "${1:-}" in
     --clean)
-        clean_and_start
+        quick_clean_and_start
+        ;;
+    --clean-full)
+        full_clean_and_start
         ;;
     --help|-h)
         usage

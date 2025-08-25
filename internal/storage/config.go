@@ -26,8 +26,8 @@ func NewStore(config *Config) (Store, error) {
 		connStr := config.Database
 		if connStr == "" {
 			// Build from individual components if URL not provided
-			connStr = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-				config.Host, config.Port, config.Username, config.Password, config.Database, config.SSLMode)
+			connStr = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=postgres sslmode=%s",
+				config.Host, config.Port, config.Username, config.Password, config.SSLMode)
 		}
 		return NewPostgreSQLStore(connStr)
 	default:

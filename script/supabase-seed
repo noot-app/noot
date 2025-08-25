@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+# Load .env file if it exists  
+if [[ -f .env ]]; then
+    set -a
+    source <(grep -v '^#' .env | grep -v '^$' | sed 's/^/export /')
+    set +a
+fi
+
+SUPABASE_DB_URL="${SUPABASE_DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+
+function usage() {
+    echo "Usage: $0 [--clean | --quick]"
+    echo ""
+    echo "Options:"
+    echo "  --clean    Full reset: stop Supabase, restart, clear all data, and reseed"
+    echo "  --quick    Quick reset: clear auth and application tables, then reseed (services keep running)"
+    echo ""
+    echo "This script creates seed users for development:"
+    echo "  - monalisa@birki.io (handle: monalisa, tier: pro)"
+    echo "  - alice@birki.io (handle: alice, tier: free)"
+    exit 1
+}
+
+function check_requirements() {
+    if ! command -v supabase &> /dev/null; then
+        echo -e "${RED}❌ Supabase CLI is required but not installed${OFF}"
+        echo "Install it with: npm install -g supabase"
+        exit 1
+    fi
+    
+    if ! command -v psql &> /dev/null; then
+        echo -e "${RED}❌ psql is required but not installed${OFF}"
+        echo "Install it with: brew install postgresql"
+        exit 1
+    fi
+}
+
+function clean_supabase() {
+    echo -e "${BLUE}🧹 Cleaning Supabase database...${OFF}"
+    
+    # Stop and restart Supabase to get a clean state
+    echo -e "${BLUE}  Stopping Supabase...${OFF}"
+    supabase stop --all --no-backup || true
+    
+    echo -e "${BLUE}  Starting Supabase...${OFF}"
+    supabase start
+    
+    # Wait a moment for services to be ready
+    sleep 3
+    
+    # Run migrations to ensure schema is up to date
+    echo -e "${BLUE}  Running database migrations...${OFF}"
+    script/db supabase migrate
+    
+    echo -e "${GREEN}✅ Supabase cleaned and restarted${OFF}"
+}
+
+function quick_clean_supabase() {
+    echo -e "${BLUE}🧹 Quick cleaning Supabase database (keeping services running)...${OFF}"
+    
+    # Clear auth.users table
+    echo -e "${BLUE}  Clearing auth users...${OFF}"
+    psql "$SUPABASE_DB_URL" -c "DELETE FROM auth.users;" > /dev/null 2>&1 || true
+    
+    # Clear application users table  
+    echo -e "${BLUE}  Clearing application users...${OFF}"
+    psql "$SUPABASE_DB_URL" -c "DELETE FROM users;" > /dev/null 2>&1 || true
+    
+    # Clear other related tables
+    echo -e "${BLUE}  Clearing related tables...${OFF}"
+    psql "$SUPABASE_DB_URL" -c "
+        DELETE FROM user_biometrics;
+        DELETE FROM user_goals;
+        DELETE FROM consumptions;
+        DELETE FROM items;
+        DELETE FROM item_aliases;
+    " > /dev/null 2>&1 || true
+    
+    echo -e "${GREEN}✅ Supabase database quickly cleaned${OFF}"
+}
+
+function create_seed_user() {
+    local email="$1"
+    local password="$2"
+    local handle="$3"
+    local full_name="$4"
+    local tier="$5"
+    
+    echo -e "${BLUE}  Creating user: $email (handle: $handle)${OFF}"
+    
+    # First, delete any existing user with this email to avoid conflicts
+    psql "$SUPABASE_DB_URL" -c "
+        DELETE FROM auth.users WHERE email = '$email';
+        DELETE FROM users WHERE email = '$email';
+    " > /dev/null 2>&1 || true
+    
+    # Use Supabase Admin API to create user (more reliable than direct DB insertion)
+    local create_response
+    create_response=$(curl -s -X POST \
+        "http://127.0.0.1:54321/auth/v1/admin/users" \
+        -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU" \
+        -H "Content-Type: application/json" \
+        -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" \
+        --data-raw "{
+            \"email\": \"$email\",
+            \"password\": \"$password\",
+            \"email_confirm\": true,
+            \"user_metadata\": {
+                \"handle\": \"$handle\",
+                \"full_name\": \"$full_name\"
+            }
+        }")
+    
+    # Extract user ID from response - be very specific to avoid duplicates
+    local user_id
+    user_id=$(echo "$create_response" | python3 -c "import sys, json; print(json.load(sys.stdin)['id'])" 2>/dev/null || echo "$create_response" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+    
+    if [[ -z "$user_id" ]]; then
+        echo -e "${RED}    ❌ Failed to create user. Response: $create_response${OFF}"
+        return 1
+    fi
+    
+    echo -e "${GREEN}    ✅ Created auth user: $user_id${OFF}"
+    
+    # Create user record in our users table
+    echo -e "${BLUE}    Setting up user record in database...${OFF}"
+    
+    # First, delete any existing user with this email to avoid conflicts
+    psql "$SUPABASE_DB_URL" -c "
+        DELETE FROM users WHERE email = '$email';
+    " > /dev/null 2>&1 || true
+    
+    psql "$SUPABASE_DB_URL" -c "
+        INSERT INTO users (id, provider, subject, email, handle, full_name, subscription_tier, created_at)
+        VALUES (
+            gen_random_uuid(),
+            'supabase',
+            '$user_id',
+            '$email',
+            '$handle',
+            $(if [[ -n "$full_name" ]]; then echo "'$full_name'"; else echo "NULL"; fi),
+            '$tier',
+            NOW()
+        );
+    " > /dev/null
+    
+    echo -e "${GREEN}    ✅ User record created (tier: $tier)${OFF}"
+}
+
+function seed_users() {
+    echo -e "${BLUE}🌱 Creating seed users...${OFF}"
+    
+    # Create monalisa (pro user)
+    create_seed_user "monalisa@birki.io" "password123" "monalisa" "Mona Lisa" "pro"
+    
+    # Create alice (free user) 
+    create_seed_user "alice@birki.io" "password123" "alice" "Alice Smith" "free"
+    
+    echo -e "${GREEN}✅ Seed users created successfully${OFF}"
+    echo ""
+    echo -e "${BLUE}You can now login with:${OFF}"
+    echo "  📧 monalisa@birki.io / password123 (pro tier)"
+    echo "  📧 alice@birki.io / password123 (free tier)"
+}
+
+function main() {
+    check_requirements
+    
+    case "${1:-}" in
+        --clean)
+            clean_supabase
+            seed_users
+            ;;
+        --quick)
+            quick_clean_supabase
+            seed_users
+            ;;
+        --help|-h)
+            usage
+            ;;
+        "")
+            seed_users
+            ;;
+        *)
+            echo -e "${RED}❌ Unknown option: $1${OFF}"
+            usage
+            ;;
+    esac
+}
+
+main "$@"

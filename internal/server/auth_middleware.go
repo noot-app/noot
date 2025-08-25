@@ -490,17 +490,7 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 
 	if user == nil {
 		// User doesn't exist, create them
-		// Check rate limiting before creating new user
 		LogDebug("User not found, creating new user", "subject", claims.Subject, "email", claims.Email)
-
-		if isUserCreationRateLimited(claims.Email) {
-			return nil, fmt.Errorf("user creation rate limited for email: %s", claims.Email)
-		}
-
-		// Record the creation attempt
-		recordUserCreationAttempt(claims.Email)
-
-		// If user doesn't exist, create them
 		LogInfo("Creating new user from Supabase JWT", "supabase_id", claims.Subject, "email", claims.Email)
 
 		// Create new user with Supabase ID mapping
@@ -509,6 +499,19 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 			Provider:         "supabase",
 			Subject:          claims.Subject,
 			SubscriptionTier: storage.SubscriptionTierFree, // Default to free tier
+		}
+
+		// Extract handle and full_name from user_metadata
+		if handle, ok := claims.UserData["handle"].(string); ok && handle != "" {
+			user.Handle = handle
+		} else {
+			// Handle is required - this should not happen with proper signup flow
+			LogError("User creation failed: handle is required", nil, "supabase_id", claims.Subject, "email", claims.Email)
+			return nil, fmt.Errorf("user handle is required but not provided in user metadata")
+		}
+
+		if fullName, ok := claims.UserData["full_name"].(string); ok && fullName != "" {
+			user.FullName = &fullName
 		}
 
 		// Save to database
