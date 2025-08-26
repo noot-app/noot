@@ -61,9 +61,6 @@ type ServerInterface interface {
 	// Get nutrition trends
 	// (GET /trends)
 	GetTrends(c *gin.Context, params GetTrendsParams)
-	// Get current user
-	// (GET /user/me)
-	GetCurrentUser(c *gin.Context)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -439,19 +436,6 @@ func (siw *ServerInterfaceWrapper) GetTrends(c *gin.Context) {
 	siw.Handler.GetTrends(c, params)
 }
 
-// GetCurrentUser operation middleware
-func (siw *ServerInterfaceWrapper) GetCurrentUser(c *gin.Context) {
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.GetCurrentUser(c)
-}
-
 // GinServerOptions provides options for the Gin server.
 type GinServerOptions struct {
 	BaseURL      string
@@ -495,5 +479,4 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/health", wrapper.GetHealth)
 	router.GET(options.BaseURL+"/nutrition-summary", wrapper.GetNutritionSummary)
 	router.GET(options.BaseURL+"/trends", wrapper.GetTrends)
-	router.GET(options.BaseURL+"/user/me", wrapper.GetCurrentUser)
 }

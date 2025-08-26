@@ -538,31 +538,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /user/me:
-    get:
-      summary: Get current user
-      description: Get the currently authenticated user's information
-      operationId: getCurrentUser
-      responses:
-        "200":
-          description: Current user information
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "401":
-          description: Unauthorized - no valid authentication
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /biometrics:
     get:
       summary: Get user biometrics

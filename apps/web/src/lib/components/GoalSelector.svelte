@@ -55,9 +55,10 @@
         user = {
           id: data.user.id,
           email: data.user.email,
-          subscriptionTier: data.user.subscription_tier as 'free' | 'pro',
+          subscription_tier: data.user.subscription_tier,
           provider: 'api',
-          subject: data.user.id
+          subject: data.user.id,
+          created_at: data.user.created_at
         };
       }
     } catch (err) {

@@ -1,6 +1,5 @@
 import type { AuthProvider, User } from './provider';
 import { supabase, isSupabaseEnabled } from '$lib/supabase';
-import { apiClient } from '$lib/api/client';
 import type { Session } from '@supabase/supabase-js';
 
 /**
@@ -147,30 +146,40 @@ export class SupabaseAuthProvider implements AuthProvider {
 	}
 
 	/**
-	 * Map Supabase session to our User interface with real backend data
+	 * Map Supabase session to our User interface with real database data
 	 */
 	private async mapSupabaseUserToUser(session: Session): Promise<User> {
 		const supabaseUser = session.user;
 		
 		try {
-			// Fetch real user data from backend
-			const response = await apiClient.GET('/user/me');
+			// Fetch real user data directly from Supabase database using RLS
+			if (!supabase) {
+				throw new Error('Supabase client not available');
+			}
+
+			const { data, error } = await supabase
+				.from('users')
+				.select('id, email, subscription_tier')
+				.eq('id', supabaseUser.id)
+				.single();
 			
-			if (response.data) {
-				// Use data from backend which has the real subscription tier from database
+			if (error) {
+				console.warn('Failed to fetch user data from Supabase:', error);
+			} else if (data) {
+				// Use data directly from database with RLS protection
 				return {
-					id: response.data.id,
-					email: response.data.email,
-					subscriptionTier: response.data.subscription_tier,
+					id: data.id,
+					email: data.email,
+					subscriptionTier: data.subscription_tier as 'free' | 'pro',
 					provider: 'supabase',
 					subject: supabaseUser.id
 				};
 			}
 		} catch (error) {
-			console.warn('Failed to fetch user data from backend, falling back to session data:', error);
+			console.warn('Failed to fetch user data from database, falling back to session data:', error);
 		}
 
-		// Fallback to session data if backend call fails
+		// Fallback to session data if database query fails
 		return {
 			id: supabaseUser.id,
 			email: supabaseUser.email || '',

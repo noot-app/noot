@@ -55,8 +55,15 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own profile" ON users
   FOR SELECT USING (auth.uid() = id);
 
+-- Users can only update certain profile fields (NOT subscription_tier)
 CREATE POLICY "Users can update own profile" ON users  
-  FOR UPDATE USING (auth.uid() = id);
+  FOR UPDATE USING (auth.uid() = id)
+  WITH CHECK (
+    auth.uid() = id AND
+    -- Prevent users from modifying subscription_tier or id
+    subscription_tier = (SELECT subscription_tier FROM users WHERE id = auth.uid()) AND
+    id = auth.uid()
+  );
 
 -- Admin/system can insert users (for the trigger)
 CREATE POLICY "System can insert users" ON users
