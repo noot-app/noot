@@ -39,14 +39,14 @@
   </select>
   
   {#if helpText}
-    <label class="label">
+    <div class="label">
       <span class="label-text-alt">{helpText}</span>
-    </label>
+    </div>
   {/if}
   
   {#if error}
-    <label class="label">
+    <div class="label">
       <span class="label-text-alt text-error">{error}</span>
-    </label>
+    </div>
   {/if}
 </div>

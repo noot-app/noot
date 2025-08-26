@@ -57,9 +57,9 @@ describe("mailer", () => {
       await mailer.sendUserEmail({
         user: mockUser as User,
         subject: "Test",
-        from_email: "test@example.com",
-        template_name: "welcome_email",
-        template_properties: {
+        _from_email: "test@example.com",
+        _template_name: "welcome_email",
+        _template_properties: {
           companyName: "Test Company",
           WebsiteBaseUrl: "https://test.com",
         },
@@ -87,9 +87,9 @@ describe("mailer", () => {
       await mailer.sendUserEmail({
         user: mockUser as User,
         subject: "Test",
-        from_email: "test@example.com",
-        template_name: "welcome_email",
-        template_properties: {},
+        _from_email: "test@example.com",
+        _template_name: "welcome_email",
+        _template_properties: {},
       })
 
       expect(mockSend).not.toHaveBeenCalled()
@@ -108,10 +108,10 @@ describe("mailer", () => {
     it("sends templated email", async () => {
       await mailer.sendTemplatedEmail({
         subject: "Test subject",
-        from_email: "from@example.com",
+        _from_email: "from@example.com",
         to_emails: ["to@example.com"],
-        template_name: "welcome_email",
-        template_properties: {
+        _template_name: "welcome_email",
+        _template_properties: {
           companyName: "Test Company",
           WebsiteBaseUrl: "https://test.com",
         },
