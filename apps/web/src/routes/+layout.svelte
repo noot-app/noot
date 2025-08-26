@@ -4,7 +4,6 @@
   import { expoOut } from "svelte/easing"
   import { slide } from "svelte/transition"
   import { onMount } from "svelte"
-  import { dev } from '$app/environment';
   import { units } from "$lib/stores/units"
   import { initAuth } from "$lib/auth/store"
   import Navbar from "$lib/components/Navbar.svelte"

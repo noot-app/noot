@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { apiClient } from "$lib/api/client";
-  import { isPro } from "$lib/auth/store";
   import NutrientCategoryDisplay from "./NutrientCategoryDisplay.svelte";
   import InfoButton from "./InfoButton.svelte";
   import type { paths } from "$lib/api/schema";
@@ -28,9 +27,6 @@
     }
     return title;
   })();
-
-  // Determine if we're in DRI mode
-  $: isDriMode = isSharedView || (goals?.source === "dri");
 
   // Helper to safely get current nutrient value
   function getCurrentNutrient(nutrient: string): number {

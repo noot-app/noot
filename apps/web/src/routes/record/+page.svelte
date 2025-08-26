@@ -1,7 +1,6 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client";
   import { PUBLIC_APP_NAME } from "$env/static/public";
-  import { onMount } from "svelte";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
   import Goals from "$lib/components/Goals.svelte";
   import NutrientComposition from "$lib/components/NutrientComposition.svelte";
@@ -76,14 +75,6 @@
       mediaRecorder.stop();
       isRecording = false;
       status = "Processing...";
-    }
-  }
-
-  async function toggleRecording() {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      await startRecording();
     }
   }
 

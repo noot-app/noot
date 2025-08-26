@@ -15,15 +15,15 @@ export const sendAdminEmail = async ({
 export const sendUserEmail = async ({
   user,
   subject,
-  from_email,
-  template_name,
-  template_properties,
+  _from_email,
+  _template_name,
+  _template_properties,
 }: {
   user: any
   subject: string
-  from_email: string
-  template_name: string
-  template_properties: Record<string, string>
+  _from_email: string
+  _template_name: string
+  _template_properties: Record<string, string>
 }) => {
   console.log("User email (stub):", user, subject)
   // No-op for PoC
@@ -32,15 +32,15 @@ export const sendUserEmail = async ({
 export const sendTemplatedEmail = async ({
   subject,
   to_emails,
-  from_email,
-  template_name,
-  template_properties,
+  _from_email,
+  _template_name,
+  _template_properties,
 }: {
   subject: string
   to_emails: string[]
-  from_email: string
-  template_name: string
-  template_properties: Record<string, string>
+  _from_email: string
+  _template_name: string
+  _template_properties: Record<string, string>
 }) => {
   console.log("Templated email (stub):", subject, to_emails)
   // No-op for PoC

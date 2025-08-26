@@ -2,7 +2,7 @@ import { dev } from '$app/environment';
 import { env } from '$env/dynamic/public';
 
 /** @type {import('./$types').LayoutServerLoad} */
-export async function load({ cookies, request }) {
+export async function load({ _cookies, _request }) {
   // Server-side auth state management
   // This will be used for SSR and initial page loads
   

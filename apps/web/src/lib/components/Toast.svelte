@@ -1,6 +1,5 @@
 <script lang="ts">
   import { toastStore } from '$lib/stores/toast';
-  import type { Toast } from '$lib/stores/toast';
   import Icon from './Icon.svelte';
 
   export let position: 'top-start' | 'top-center' | 'top-end' | 'bottom-start' | 'bottom-center' | 'bottom-end' = 'bottom-end';

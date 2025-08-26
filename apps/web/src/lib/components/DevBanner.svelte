@@ -3,7 +3,7 @@
   import { page } from '$app/stores';
   import { navigating } from '$app/stores';
   import { onMount } from 'svelte';
-  import { currentUser, canSwitchUsers, switchUser, getAvailableDevUsers, authProvider, toggleAuthMode, getCurrentAuthMode } from '$lib/auth/store';
+  import { currentUser, canSwitchUsers, switchUser, getAvailableDevUsers, toggleAuthMode, getCurrentAuthMode } from '$lib/auth/store';
   import { isSupabaseEnabled } from '$lib/supabase';
   
   let pageLoadTime = 0;
