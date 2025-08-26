@@ -1,9 +1,17 @@
 {
     "name": "noot",
+    "routes": [
+        {
+            "pattern": "nootapp.io",
+            "custom_domain": true
+        }
+    ],
     "account_id": "56e2d322c59f349f819ddc45b1745ffb",
     "main": ".svelte-kit/cloudflare/_worker.js",
     "compatibility_date": "2025-04-06",
-    "compatibility_flags": ["nodejs_compat"],
+    "compatibility_flags": [
+        "nodejs_compat"
+    ],
     "vars": {
         "PUBLIC_API_BASE_URL": "https://api.nootapp.io/api/v1",
         "PUBLIC_APP_NAME": "Noot",
