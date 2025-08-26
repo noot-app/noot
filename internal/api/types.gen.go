@@ -672,20 +672,23 @@ type UpdateGoalsRequest struct {
 
 // User defines model for User.
 type User struct {
+	// AvatarUrl User avatar/profile image URL
+	AvatarUrl *string `json:"avatar_url"`
+
 	// CreatedAt User creation timestamp
 	CreatedAt time.Time `json:"created_at"`
 
 	// Email User email address
 	Email string `json:"email"`
 
-	// Id User ID
+	// FullName User's full display name
+	FullName *string `json:"full_name"`
+
+	// Handle Unique user handle/username
+	Handle string `json:"handle"`
+
+	// Id User ID (auth.users.id UUID for Supabase)
 	Id string `json:"id"`
-
-	// Provider Authentication provider
-	Provider string `json:"provider"`
-
-	// Subject Provider-specific user identifier
-	Subject string `json:"subject"`
 
 	// SubscriptionTier User subscription level
 	SubscriptionTier UserSubscriptionTier `json:"subscription_tier"`

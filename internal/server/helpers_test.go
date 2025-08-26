@@ -226,8 +226,7 @@ func TestGetDefaultUser(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, user)
 
-		assert.Equal(t, DefaultUserProvider, user.Provider)
-		assert.Equal(t, DefaultUserSubject, user.Subject)
+		assert.Equal(t, storage.DefaultSeedUserID, user.ID)
 		assert.Equal(t, SubscriptionTierPro, user.SubscriptionTier)
 	})
 }

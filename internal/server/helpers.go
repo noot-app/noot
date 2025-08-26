@@ -19,10 +19,9 @@ type DateRangeParams struct {
 }
 
 // getDefaultUser retrieves the default user for development/demo purposes
-// TODO: When implementing Supabase auth, replace this with proper user resolution
-// from JWT tokens or session management
+// Uses direct UUID lookup instead of subject/provider pattern
 func getDefaultUser(ctx context.Context, store storage.Store) (*storage.User, error) {
-	return store.GetUserBySubject(ctx, DefaultUserProvider, DefaultUserSubject)
+	return store.GetUser(ctx, storage.DefaultSeedUserID)
 }
 
 // getCurrentUser retrieves the current authenticated user from context

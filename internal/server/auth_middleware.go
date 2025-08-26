@@ -466,8 +466,8 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 	}
 	LogDebug("JWT claims validation passed")
 
-	// Try to get existing user by Supabase ID (subject)
-	LogDebug("Looking up user by subject", "provider", "supabase", "subject", claims.Subject)
+	// Try to get existing user by Supabase ID (direct UUID lookup)
+	LogDebug("Looking up user by UUID", "user_id", claims.Subject)
 
 	if ctx == nil {
 		LogError("Context is nil", nil)
@@ -479,25 +479,24 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 		return nil, fmt.Errorf("storage store is nil")
 	}
 
-	LogDebug("Store is valid, calling GetUserBySubject")
-	user, err := store.GetUserBySubject(ctx, "supabase", claims.Subject)
-	LogDebug("GetUserBySubject completed", "hasError", err != nil, "hasUser", user != nil)
+	LogDebug("Store is valid, calling GetUser")
+	user, err := store.GetUser(ctx, claims.Subject)
+	LogDebug("GetUser completed", "hasError", err != nil, "hasUser", user != nil)
 
 	if err != nil {
-		LogError("Database error while looking up user", err, "subject", claims.Subject)
+		LogError("Database error while looking up user", err, "user_id", claims.Subject)
 		return nil, fmt.Errorf("database error: %w", err)
 	}
 
 	if user == nil {
 		// User doesn't exist, create them
-		LogDebug("User not found, creating new user", "subject", claims.Subject, "email", claims.Email)
-		LogInfo("Creating new user from Supabase JWT", "supabase_id", claims.Subject, "email", claims.Email)
+		LogDebug("User not found, creating new user", "user_id", claims.Subject, "email", claims.Email)
+		LogInfo("Creating new user from Supabase JWT", "user_id", claims.Subject, "email", claims.Email)
 
-		// Create new user with Supabase ID mapping
+		// Create new user with Supabase auth.users.id directly as the ID
 		user = &storage.User{
+			ID:               claims.Subject,        // Use auth.users.id directly
 			Email:            claims.Email,
-			Provider:         "supabase",
-			Subject:          claims.Subject,
 			SubscriptionTier: storage.SubscriptionTierFree, // Default to free tier
 		}
 
@@ -506,7 +505,7 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 			user.Handle = handle
 		} else {
 			// Handle is required - this should not happen with proper signup flow
-			LogError("User creation failed: handle is required", nil, "supabase_id", claims.Subject, "email", claims.Email)
+			LogError("User creation failed: handle is required", nil, "user_id", claims.Subject, "email", claims.Email)
 			return nil, fmt.Errorf("user handle is required but not provided in user metadata")
 		}
 
@@ -529,9 +528,12 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 
 	// Update user email if it changed in Supabase
 	if user.Email != claims.Email {
-		LogWarn("User email changed in Supabase but cannot update local record",
+		LogInfo("User email changed in Supabase, updating local record",
 			"user_id", user.ID, "old_email", user.Email, "new_email", claims.Email)
-		// TODO: Implement UpdateUser method in Store interface if email updates are needed
+		user.Email = claims.Email
+		if err := store.UpdateUser(ctx, user); err != nil {
+			LogWarn("Failed to update user email", "user_id", user.ID, "error", err.Error())
+		}
 	}
 
 	return user, nil

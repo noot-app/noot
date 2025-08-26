@@ -256,9 +256,9 @@ func DevAuthMiddleware(store storage.Store) gin.HandlerFunc {
 			// Resolve user based on dev user ID
 			switch devUserID {
 			case "monalisa":
-				user, err = store.GetUserBySubject(c.Request.Context(), DefaultUserProvider, DefaultUserSubject)
+				user, err = store.GetUser(c.Request.Context(), DefaultUserID)
 			case "alice":
-				user, err = store.GetUserBySubject(c.Request.Context(), AliceUserProvider, AliceUserSubject)
+				user, err = store.GetUser(c.Request.Context(), AliceUserID)
 			default:
 				LogWarn("Invalid dev user ID requested", "user_id", devUserID)
 				c.Next()

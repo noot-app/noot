@@ -94,7 +94,8 @@ func (s *PostgreSQLStore) Reset() error {
 
 // CreateUser creates a new user
 func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
-	// Generate UUID if not provided
+	// For Supabase, the ID should already be provided as auth.users.id
+	// For development, generate UUID if not provided
 	if user.ID == "" {
 		user.ID = generateUUID()
 	}
@@ -102,6 +103,9 @@ func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 	// Validate required fields
 	if user.Handle == "" {
 		return fmt.Errorf("user handle is required")
+	}
+	if user.Email == "" {
+		return fmt.Errorf("user email is required")
 	}
 
 	// Set created_at if not provided
@@ -115,16 +119,10 @@ func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 	}
 
 	query := `
-		INSERT INTO users (provider, subject, email, handle, full_name, subscription_tier, created_at) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7) 
-		RETURNING id`
+		INSERT INTO users (id, email, handle, full_name, subscription_tier, avatar_url, created_at) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
-	var fullName *string
-	if user.FullName != nil {
-		fullName = user.FullName
-	}
-
-	err := s.db.QueryRow(query, user.Provider, user.Subject, user.Email, user.Handle, fullName, user.SubscriptionTier, user.CreatedAt).Scan(&user.ID)
+	_, err := s.db.ExecContext(ctx, query, user.ID, user.Email, user.Handle, user.FullName, user.SubscriptionTier, user.AvatarURL, user.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -135,12 +133,12 @@ func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 // GetUser retrieves a user by ID
 func (s *PostgreSQLStore) GetUser(ctx context.Context, id string) (*User, error) {
 	query := `
-		SELECT id, handle, full_name, provider, subject, email, subscription_tier, active_goal_name, avatar_url, created_at
+		SELECT id, handle, full_name, email, subscription_tier, active_goal_name, avatar_url, created_at
 		FROM users WHERE id = $1`
 
 	var user User
 	err := s.db.QueryRowContext(ctx, query, id).Scan(
-		&user.ID, &user.Handle, &user.FullName, &user.Provider, &user.Subject, &user.Email,
+		&user.ID, &user.Handle, &user.FullName, &user.Email,
 		&user.SubscriptionTier, &user.ActiveGoalName, &user.AvatarURL, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -152,35 +150,15 @@ func (s *PostgreSQLStore) GetUser(ctx context.Context, id string) (*User, error)
 	return &user, nil
 }
 
-// GetUserBySubject retrieves a user by provider and subject
-func (s *PostgreSQLStore) GetUserBySubject(ctx context.Context, provider, subject string) (*User, error) {
-	query := `
-		SELECT id, handle, full_name, provider, subject, email, subscription_tier, active_goal_name, avatar_url, created_at
-		FROM users WHERE provider = $1 AND subject = $2`
-
-	var user User
-	err := s.db.QueryRowContext(ctx, query, provider, subject).Scan(
-		&user.ID, &user.Handle, &user.FullName, &user.Provider, &user.Subject, &user.Email,
-		&user.SubscriptionTier, &user.ActiveGoalName, &user.AvatarURL, &user.CreatedAt)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get user by subject: %w", err)
-	}
-
-	return &user, nil
-}
-
-// GetUserByEmail retrieves a user by email address
+// GetUserByEmail retrieves a user by email address  
 func (s *PostgreSQLStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	query := `
-		SELECT id, handle, full_name, provider, subject, email, subscription_tier, active_goal_name, avatar_url, created_at
+		SELECT id, handle, full_name, email, subscription_tier, active_goal_name, avatar_url, created_at
 		FROM users WHERE email = $1`
 
 	var user User
 	err := s.db.QueryRowContext(ctx, query, email).Scan(
-		&user.ID, &user.Handle, &user.FullName, &user.Provider, &user.Subject, &user.Email,
+		&user.ID, &user.Handle, &user.FullName, &user.Email,
 		&user.SubscriptionTier, &user.ActiveGoalName, &user.AvatarURL, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -190,6 +168,34 @@ func (s *PostgreSQLStore) GetUserByEmail(ctx context.Context, email string) (*Us
 	}
 
 	return &user, nil
+}
+
+// UpdateUser updates an existing user
+func (s *PostgreSQLStore) UpdateUser(ctx context.Context, user *User) error {
+	if user == nil {
+		return fmt.Errorf("user cannot be nil")
+	}
+
+	query := `
+		UPDATE users 
+		SET handle = $2, full_name = $3, email = $4, subscription_tier = $5, active_goal_name = $6, avatar_url = $7
+		WHERE id = $1`
+
+	result, err := s.db.ExecContext(ctx, query, user.ID, user.Handle, user.FullName, user.Email, user.SubscriptionTier, user.ActiveGoalName, user.AvatarURL)
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
 }
 
 // CreateConsumption creates a new consumption
@@ -1137,7 +1143,7 @@ func (s *PostgreSQLStore) Seed() error {
 	ctx := context.Background()
 
 	// Check if user already exists
-	user, err := s.GetUserBySubject(ctx, DefaultSeedProvider, DefaultSeedSubject)
+	user, err := s.GetUser(ctx, DefaultSeedUserID)
 	if err != nil {
 		return fmt.Errorf("failed to check for existing user: %w", err)
 	}
@@ -1145,8 +1151,7 @@ func (s *PostgreSQLStore) Seed() error {
 	// Create default seed user if it doesn't exist
 	if user == nil {
 		user = &User{
-			Provider:         DefaultSeedProvider,
-			Subject:          DefaultSeedSubject,
+			ID:               DefaultSeedUserID,
 			Email:            DefaultSeedEmail,
 			Handle:           "noot",              // Required field
 			SubscriptionTier: SubscriptionTierPro, // Give the seed user pro access
@@ -1157,7 +1162,7 @@ func (s *PostgreSQLStore) Seed() error {
 	}
 
 	// Check if alice user already exists for dev user switching
-	aliceUser, err := s.GetUserBySubject(ctx, AliceSeedProvider, AliceSeedSubject)
+	aliceUser, err := s.GetUser(ctx, AliceSeedUserID)
 	if err != nil {
 		return fmt.Errorf("failed to check for existing alice user: %w", err)
 	}
@@ -1165,8 +1170,7 @@ func (s *PostgreSQLStore) Seed() error {
 	// Create alice user if it doesn't exist
 	if aliceUser == nil {
 		aliceUser = &User{
-			Provider:         AliceSeedProvider,
-			Subject:          AliceSeedSubject,
+			ID:               AliceSeedUserID,
 			Email:            AliceSeedEmail,
 			Handle:           "alice",              // Required field
 			SubscriptionTier: SubscriptionTierFree, // Alice is a free tier user

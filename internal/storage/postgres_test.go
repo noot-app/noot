@@ -40,8 +40,8 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 
 	t.Run("CreateAndGetUser", func(t *testing.T) {
 		user := &User{
-			Provider: "github",
-			Subject:  "testuser",
+			
+			
 			Email:    "test@example.com",
 		}
 
@@ -55,22 +55,22 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 		retrieved, err := store.GetUser(ctx, user.ID)
 		require.NoError(t, err)
 		require.NotNil(t, retrieved)
-		assert.Equal(t, user.Provider, retrieved.Provider)
-		assert.Equal(t, user.Subject, retrieved.Subject)
+		assert.Equal(t, user.ID, retrieved.ID)
+		assert.Equal(t, user.Handle, retrieved.Handle)
 		assert.Equal(t, user.Email, retrieved.Email)
 
-		// Get user by subject
-		bySubject, err := store.GetUserBySubject(ctx, user.Provider, user.Subject)
+		// Get user by email
+		byEmail, err := store.GetUserByEmail(ctx, user.Email)
 		require.NoError(t, err)
-		require.NotNil(t, bySubject)
-		assert.Equal(t, user.ID, bySubject.ID)
+		require.NotNil(t, byEmail)
+		assert.Equal(t, user.ID, byEmail.ID)
 	})
 
 	t.Run("CreateAndGetConsumption", func(t *testing.T) {
 		// Create a user first
 		user := &User{
-			Provider: "github",
-			Subject:  "testuser2",
+			
+			
 			Email:    "test2@example.com",
 		}
 		err := store.CreateUser(ctx, user)
@@ -114,8 +114,8 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 	t.Run("GetConsumptionsByUser", func(t *testing.T) {
 		// Create a user
 		user := &User{
-			Provider: "github",
-			Subject:  "testuser3",
+			
+			
 			Email:    "test3@example.com",
 		}
 		err := store.CreateUser(ctx, user)
@@ -141,8 +141,8 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 	t.Run("GetConsumptionsByUserSince", func(t *testing.T) {
 		// Create a user
 		user := &User{
-			Provider: "github",
-			Subject:  "testuser4",
+			
+			
 			Email:    "test4@example.com",
 		}
 		err := store.CreateUser(ctx, user)
@@ -215,9 +215,10 @@ func TestDualDatabaseSupport(t *testing.T) {
 		require.NoError(t, err)
 
 		user := &User{
-			Provider: "test",
-			Subject:  "user1",
+			
+			
 			Email:    "user1@test.com",
+ID:       generateUUID(),
 			Handle:   "testuser1",
 		}
 		err = store.CreateUser(ctx, user)
