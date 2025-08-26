@@ -22,6 +22,9 @@ CREATE INDEX IF NOT EXISTS idx_users_active_goal ON users(active_goal_name);
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
+  -- Set search_path to empty string for security
+  SET search_path = '';
+  
   INSERT INTO public.users (id, handle, full_name, email, subscription_tier, created_at, avatar_url)
   VALUES (
     NEW.id,
