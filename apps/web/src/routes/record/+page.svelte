@@ -4,6 +4,7 @@
   import NutritionStats from "$lib/components/NutritionStats.svelte";
   import Goals from "$lib/components/Goals.svelte";
   import NutrientComposition from "$lib/components/NutrientComposition.svelte";
+  import Card from "$lib/components/Card.svelte";
 
   let isRecording = false;
   let mediaRecorder: MediaRecorder | null = null;
@@ -500,24 +501,19 @@
         
         <!-- Transcript -->
         {#if transcript}
-          <div class="card bg-base-200 shadow-lg">
-            <div class="card-body">
-              <h3 class="card-title text-sm">What you said:</h3>
-              <p class="text-lg italic">"{transcript}"</p>
-            </div>
-          </div>
+          <Card title="What you said:" compact>
+            <p class="text-lg italic">"{transcript}"</p>
+          </Card>
         {/if}
 
         <!-- Nutrition Summary -->
         {#if result?.summary}
-          <div class="card bg-primary/10 shadow-lg">
-            <div class="card-body">
-              <h3 class="card-title text-primary mb-4">Nutrition Summary</h3>
-              <NutritionStats 
-                calories={result.summary.totals.calories}
-                protein={result.summary.totals.protein_g}
-                carbs={result.summary.totals.total_carbs_g}
-                fat={result.summary.totals.total_fat_g}
+          <Card title="Nutrition Summary" variant="primary">
+            <NutritionStats 
+              calories={result.summary.totals.calories}
+              protein={result.summary.totals.protein_g}
+              carbs={result.summary.totals.total_carbs_g}
+              fat={result.summary.totals.total_fat_g}
                 size="compact"
                 className="bg-transparent shadow-none"
               />
