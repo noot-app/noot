@@ -18,22 +18,9 @@ func Run(ctx context.Context, port string) error {
 	if err := validateSecurityConfiguration(); err != nil {
 		return fmt.Errorf("security configuration validation failed: %w", err)
 	}
-	// Initialize storage using new config approach
-	config := &storage.Config{
-		Type:     getenv("DATABASE_PROVIDER", "sqlite"), // Changed from DB_TYPE to DATABASE_PROVIDER
-		Database: getenv("DATABASE_PATH", "./noot.db"),
-		// PostgreSQL/Supabase support
-		Host:     getenv("DB_HOST", "localhost"),
-		Port:     getenvInt("DB_PORT", 5432),
-		Username: getenv("DB_USER", ""),
-		Password: getenv("DB_PASS", ""),
-		SSLMode:  getenv("DB_SSLMODE", "prefer"),
-	}
-
-	// For Supabase, use SUPABASE_DB_URL if provided
-	if config.Type == "supabase" && getenv("SUPABASE_DB_URL", "") != "" {
-		config.Database = getenv("SUPABASE_DB_URL", "")
-	}
+	
+	// Initialize storage using shared config creation function
+	config := CreateDatabaseConfig()
 
 	store, err := storage.NewStore(config)
 	if err != nil {
