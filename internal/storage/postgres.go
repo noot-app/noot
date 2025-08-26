@@ -110,7 +110,7 @@ func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 
 	// Set created_at if not provided
 	if user.CreatedAt.IsZero() {
-		user.CreatedAt = time.Now()
+		user.CreatedAt = time.Now().UTC()
 	}
 
 	// Set default subscription tier if not provided
@@ -207,7 +207,7 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 
 	// Set created_at if not provided
 	if consumption.CreatedAt.IsZero() {
-		consumption.CreatedAt = time.Now()
+		consumption.CreatedAt = time.Now().UTC()
 	}
 
 	query := `
@@ -295,7 +295,7 @@ func (s *PostgreSQLStore) GetConsumption(ctx context.Context, id string) (*Consu
 
 // UpdateConsumption updates an existing consumption
 func (s *PostgreSQLStore) UpdateConsumption(ctx context.Context, consumption *Consumption) error {
-	now := time.Now()
+	now := time.Now().UTC()
 	consumption.UpdatedAt = &now
 
 	query := `
@@ -612,7 +612,7 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 		item.ID = generateUUID()
 	}
 	if item.CreatedAt.IsZero() {
-		item.CreatedAt = time.Now()
+		item.CreatedAt = time.Now().UTC()
 	}
 
 	query := `
@@ -763,7 +763,7 @@ func buildPostgreSQLUpdateQuery() string {
 
 // CreateItem creates a new item
 func (s *PostgreSQLStore) CreateItem(ctx context.Context, item *Item) error {
-	now := time.Now()
+	now := time.Now().UTC()
 
 	// Generate ID if not set
 	if item.ID == "" {
@@ -819,7 +819,7 @@ func (s *PostgreSQLStore) GetItemByName(ctx context.Context, normalizedName, nor
 
 // UpdateItem updates an existing item
 func (s *PostgreSQLStore) UpdateItem(ctx context.Context, item *Item) error {
-	now := time.Now()
+	now := time.Now().UTC()
 	item.UpdatedAt = now
 
 	query := buildPostgreSQLUpdateQuery()
@@ -879,7 +879,7 @@ func (s *PostgreSQLStore) UpsertUserGoal(ctx context.Context, goal *UserGoal) er
 			overrides_json = EXCLUDED.overrides_json,
 			updated_at = EXCLUDED.updated_at`
 
-	now := time.Now()
+	now := time.Now().UTC()
 	if goal.ID == "" {
 		goal.ID = generateUUID()
 		goal.CreatedAt = now
@@ -1044,7 +1044,7 @@ func (s *PostgreSQLStore) UpsertUserBiometrics(ctx context.Context, biometrics *
 			activity_level = EXCLUDED.activity_level,
 			updated_at = EXCLUDED.updated_at`
 
-	now := time.Now()
+	now := time.Now().UTC()
 	if biometrics.ID == "" {
 		biometrics.ID = generateUUID()
 		biometrics.CreatedAt = now
@@ -1108,7 +1108,7 @@ func (s *PostgreSQLStore) CreateItemAlias(ctx context.Context, alias *ItemAlias)
 		INSERT INTO item_aliases (id, alias_name, alias_brand, canonical_name, canonical_brand, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6)`
 
-	now := time.Now()
+	now := time.Now().UTC()
 	alias.ID = generateUUID()
 	alias.CreatedAt = now
 
