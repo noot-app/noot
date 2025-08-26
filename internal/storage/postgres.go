@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
-//go:embed migrations/postgres/*.sql
 var postgresMigrationFiles embed.FS
 
 // PostgreSQLStore implements the Store interface using PostgreSQL
@@ -47,34 +45,8 @@ func (s *PostgreSQLStore) Close() error {
 }
 
 // Migrate applies all pending migrations
+// This is unused as migrations are managed via `supabase db reset“
 func (s *PostgreSQLStore) Migrate() error {
-	// Get list of migration files
-	entries, err := postgresMigrationFiles.ReadDir("migrations/postgres")
-	if err != nil {
-		return fmt.Errorf("failed to read migration files: %w", err)
-	}
-
-	// Sort migration files by name
-	var files []string
-	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
-			files = append(files, entry.Name())
-		}
-	}
-	sort.Strings(files)
-
-	// Apply each migration
-	for _, file := range files {
-		content, err := postgresMigrationFiles.ReadFile("migrations/postgres/" + file)
-		if err != nil {
-			return fmt.Errorf("failed to read migration file %s: %w", file, err)
-		}
-
-		if _, err := s.db.Exec(string(content)); err != nil {
-			return fmt.Errorf("failed to apply migration %s: %w", file, err)
-		}
-	}
-
 	return nil
 }
 
