@@ -559,7 +559,7 @@ func (s *PostgreSQLStore) GetNutritionSummary(ctx context.Context, userID string
 	// Get daily breakdown for charts
 	dailyQuery := `
 		SELECT 
-			DATE(created_at) as date,
+			DATE(created_at)::text as date,
 			COUNT(*) as consumption_count,
 			COALESCE(SUM(total_calories), 0) as calories,
 			COALESCE(SUM(total_protein_g), 0) as protein,

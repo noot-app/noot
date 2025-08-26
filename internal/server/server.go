@@ -41,9 +41,11 @@ func Run(ctx context.Context, port string) error {
 	}
 	defer store.Close()
 
-	// Run migrations
-	if err := store.Migrate(); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
+	// Run migrations (skip for Supabase as it manages its own migrations)
+	if config.Type != "supabase" {
+		if err := store.Migrate(); err != nil {
+			return fmt.Errorf("failed to run migrations: %w", err)
+		}
 	}
 
 	// Run seeding in development
