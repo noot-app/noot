@@ -3,7 +3,13 @@
     "account_id": "56e2d322c59f349f819ddc45b1745ffb",
     "main": ".svelte-kit/cloudflare/_worker.js",
     "compatibility_date": "2025-04-06",
-    // "compatibility_flags": ["nodejs_compat"]
+    "compatibility_flags": ["nodejs_compat"],
+    "vars": {
+        "PUBLIC_API_BASE_URL": "https://api.nootapp.io/api/v1",
+        "PUBLIC_APP_NAME": "Noot",
+        "PUBLIC_SUPABASE_URL": "https://uygqcgnmlzmuwkpsmixs.supabase.co",
+        "PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5Z3FjZ25tbHptdXdrcHNtaXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzY1NTgsImV4cCI6MjA3MTE1MjU1OH0.xrdH8XimzxjebC2Q4fFMVcX4aWxuznLrcs5_Z_Xx68M"
+    },
     "assets": {
         "binding": "ASSETS",
         "directory": ".svelte-kit/cloudflare"
