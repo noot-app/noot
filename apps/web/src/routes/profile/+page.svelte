@@ -6,6 +6,9 @@
   import { toast } from '$lib/stores/toast';
   import Toast from '$lib/components/Toast.svelte';
   import InfoButton from '$lib/components/InfoButton.svelte';
+  import FormField from '$lib/components/FormField.svelte';
+  import FormSelect from '$lib/components/FormSelect.svelte';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import type { paths } from "$lib/api/schema";
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
@@ -878,79 +881,69 @@
                 <!-- Quick Form -->
                 <div class="space-y-3">
                   <!-- Birth Date -->
-                  <div class="form-control">
-                    <label class="label" for="birthDate">
-                      <span class="label-text text-sm">Birth Date</span>
-                    </label>
-                    <input 
-                      id="birthDate"
-                      type="date" 
-                      class="input input-bordered input-sm"
-                      bind:value={birthDate}
-                      max={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
+                  <FormField 
+                    label="Birth Date"
+                    id="birthDate"
+                    type="date"
+                    size="sm"
+                    max={new Date().toISOString().split('T')[0]}
+                    bind:value={birthDate}
+                  />
 
                   <!-- Sex -->
-                  <div class="form-control">
-                    <label class="label" for="sex">
-                      <span class="label-text text-sm">Sex (for DRI calculations)</span>
-                    </label>
-                    <select id="sex" class="select select-bordered select-sm" bind:value={sex}>
-                      <option value="prefer_not_to_say">Prefer not to say</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
+                  <FormSelect
+                    label="Sex (for DRI calculations)"
+                    id="sex"
+                    size="sm"
+                    bind:value={sex}
+                    options={[
+                      {value: "prefer_not_to_say", label: "Prefer not to say"},
+                      {value: "male", label: "Male"},
+                      {value: "female", label: "Female"},
+                      {value: "other", label: "Other"}
+                    ]}
+                  />
 
                   <!-- Height & Weight Row -->
                   <div class="grid grid-cols-2 gap-2">
-                    <div class="form-control">
-                      <label class="label" for="height">
-                        <span class="label-text text-sm">Height (cm)</span>
-                      </label>
-                      <input 
-                        id="height"
-                        type="number"
-                        class="input input-bordered input-sm"
-                        placeholder="175"
-                        min="50"
-                        max="300"
-                        step="0.1"
-                        bind:value={heightCm}
-                      />
-                    </div>
-                    <div class="form-control">
-                      <label class="label" for="weight">
-                        <span class="label-text text-sm">Weight (kg)</span>
-                      </label>
-                      <input 
-                        id="weight"
-                        type="number"
-                        class="input input-bordered input-sm"
-                        placeholder="70"
-                        min="20"
-                        max="500"
-                        step="0.1"
-                        bind:value={weightKg}
-                      />
-                    </div>
+                    <FormField
+                      label="Height (cm)"
+                      id="height"
+                      type="number"
+                      size="sm"
+                      placeholder="175"
+                      min={50}
+                      max={300}
+                      step={0.1}
+                      bind:value={heightCm}
+                    />
+                    <FormField
+                      label="Weight (kg)"
+                      id="weight"
+                      type="number"
+                      size="sm"
+                      placeholder="70"
+                      min={20}
+                      max={500}
+                      step={0.1}
+                      bind:value={weightKg}
+                    />
                   </div>
 
                   <!-- Activity Level -->
-                  <div class="form-control">
-                    <label class="label" for="activity">
-                      <span class="label-text text-sm">Activity Level</span>
-                    </label>
-                    <select id="activity" class="select select-bordered select-sm" bind:value={activityLevel}>
-                      <option value="sedentary">Level 1 - Sedentary (little/no exercise)</option>
-                      <option value="lightly_active">Level 2 - Lightly Active (1-3 days/week)</option>
-                      <option value="moderately_active">Level 3 - Moderately Active (3-5 days/week)</option>
-                      <option value="very_active">Level 4 - Very Active (6-7 days/week)</option>
-                      <option value="extra_active">Level 5 - Extra Active (very hard exercise daily)</option>
-                    </select>
-                  </div>
+                  <FormSelect
+                    label="Activity Level"
+                    id="activity"
+                    size="sm"
+                    bind:value={activityLevel}
+                    options={[
+                      {value: "sedentary", label: "Level 1 - Sedentary (little/no exercise)"},
+                      {value: "lightly_active", label: "Level 2 - Lightly Active (1-3 days/week)"},
+                      {value: "moderately_active", label: "Level 3 - Moderately Active (3-5 days/week)"},
+                      {value: "very_active", label: "Level 4 - Very Active (6-7 days/week)"},
+                      {value: "extra_active", label: "Level 5 - Extra Active (very hard exercise daily)"}
+                    ]}
+                  />
                 </div>
 
                 <!-- Actions -->
@@ -1176,53 +1169,32 @@
 </div>
 
 <!-- Delete Goal Confirmation Modal -->
-{#if showDeleteModal}
-  <div class="modal modal-open">
-    <div class="modal-box">
-      <h3 class="font-bold text-lg mb-4">Delete Goal Set</h3>
-      
-      <div class="space-y-4">
-        <p>Are you sure you want to delete the goal set <strong>"{goalToDelete}"</strong>?</p>
-        <div class="alert alert-warning">
-          <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
-          <span>This action cannot be undone.</span>
-        </div>
-        {#if goalSets.length === 1}
-          <div class="bg-info/10 p-3 rounded-lg">
-            <p class="text-sm text-info-content">
-              🧬 This is your last custom goal set. Deleting it will return you to DRI (Dietary Reference Intakes) defaults.
-            </p>
-          </div>
-        {/if}
-      </div>
-      
-      <div class="modal-action">
-        <button 
-          class="btn btn-ghost"
-          on:click={cancelDeleteGoalSet}
-        >
-          Cancel
-        </button>
-        <button 
-          class="btn btn-error"
-          on:click={confirmDeleteGoalSet}
-        >
-          Delete Goal Set
-        </button>
-      </div>
+<!-- Delete Goal Set Confirmation Modal -->
+<ConfirmModal 
+  bind:show={showDeleteModal}
+  title="Delete Goal Set"
+  confirmText="Delete Goal Set"
+  confirmVariant="error"
+  onConfirm={confirmDeleteGoalSet}
+  onCancel={cancelDeleteGoalSet}
+>
+  <div class="space-y-4">
+    <p>Are you sure you want to delete the goal set <strong>"{goalToDelete}"</strong>?</p>
+    <div class="alert alert-warning">
+      <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+      </svg>
+      <span>This action cannot be undone.</span>
     </div>
-    <div 
-      class="modal-backdrop" 
-      on:click={cancelDeleteGoalSet}
-      on:keydown={(e) => e.key === 'Escape' && cancelDeleteGoalSet()}
-      role="button" 
-      tabindex="0"
-      aria-label="Close modal"
-    ></div>
+    {#if goalSets.length === 1}
+      <div class="bg-info/10 p-3 rounded-lg">
+        <p class="text-sm text-info-content">
+          🧬 This is your last custom goal set. Deleting it will return you to DRI (Dietary Reference Intakes) defaults.
+        </p>
+      </div>
+    {/if}
   </div>
-{/if}
+</ConfirmModal>
 
 <!-- Reset to DRI Defaults Confirmation Modal -->
 {#if showResetDRIModal}
