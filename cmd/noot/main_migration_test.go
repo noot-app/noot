@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"path/filepath"
 	"strconv"
 	"testing"
 
@@ -17,36 +16,6 @@ func TestRunMigrationsOnly(t *testing.T) {
 		setupEnv       func()
 		cleanupEnv     func()
 	}{
-		{
-			name:    "sqlite migrations success",
-			dbType:  "sqlite",
-			expectError: false,
-			setupEnv: func() {
-				tempDir := t.TempDir()
-				dbPath := filepath.Join(tempDir, "test_migrations.db")
-				os.Setenv("DATABASE_PROVIDER", "sqlite")
-				os.Setenv("DATABASE_PATH", dbPath)
-			},
-			cleanupEnv: func() {
-				os.Unsetenv("DATABASE_PROVIDER")
-				os.Unsetenv("DATABASE_PATH")
-			},
-		},
-		{
-			name:    "default config migrations success",
-			dbType:  "sqlite",
-			expectError: false,
-			setupEnv: func() {
-				// Test default config by not setting any env vars
-				// Clean up any existing env vars
-				os.Unsetenv("DATABASE_PROVIDER")
-				os.Unsetenv("DATABASE_PATH")
-			},
-			cleanupEnv: func() {
-				// Clean up default database file if created
-				os.Remove("./noot.db")
-			},
-		},
 		{
 			name:    "postgres config (will skip actual connection)",
 			dbType:  "postgres", 
@@ -104,12 +73,12 @@ func TestCreateDatabaseConfig(t *testing.T) {
 			name: "default configuration",
 			setupEnv: func() {
 				os.Unsetenv("DATABASE_PROVIDER")
-				os.Unsetenv("DATABASE_PATH")
+				os.Unsetenv("SUPABASE_DB_URL")
 			},
 			cleanupEnv: func() {},
 			expected: storage.Config{
-				Type:     "sqlite",
-				Database: "./noot.db",
+				Type:     "supabase",
+				Database: "",
 				Host:     "localhost",
 				Port:     5432,
 				Username: "",
@@ -121,7 +90,6 @@ func TestCreateDatabaseConfig(t *testing.T) {
 			name: "postgres configuration",
 			setupEnv: func() {
 				os.Setenv("DATABASE_PROVIDER", "postgres")
-				os.Setenv("DATABASE_PATH", "testdb")
 				os.Setenv("DB_HOST", "testhost")
 				os.Setenv("DB_PORT", "5433")
 				os.Setenv("DB_USER", "testuser")
@@ -130,7 +98,6 @@ func TestCreateDatabaseConfig(t *testing.T) {
 			},
 			cleanupEnv: func() {
 				os.Unsetenv("DATABASE_PROVIDER")
-				os.Unsetenv("DATABASE_PATH")
 				os.Unsetenv("DB_HOST")
 				os.Unsetenv("DB_PORT")
 				os.Unsetenv("DB_USER")
@@ -139,7 +106,7 @@ func TestCreateDatabaseConfig(t *testing.T) {
 			},
 			expected: storage.Config{
 				Type:     "postgres",
-				Database: "testdb", 
+				Database: "", 
 				Host:     "testhost",
 				Port:     5433,
 				Username: "testuser",
@@ -151,12 +118,10 @@ func TestCreateDatabaseConfig(t *testing.T) {
 			name: "supabase configuration with URL override",
 			setupEnv: func() {
 				os.Setenv("DATABASE_PROVIDER", "supabase")
-				os.Setenv("DATABASE_PATH", "default_db")
 				os.Setenv("SUPABASE_DB_URL", "postgresql://user:pass@host:port/db")
 			},
 			cleanupEnv: func() {
 				os.Unsetenv("DATABASE_PROVIDER")
-				os.Unsetenv("DATABASE_PATH")
 				os.Unsetenv("SUPABASE_DB_URL")
 			},
 			expected: storage.Config{
@@ -180,8 +145,8 @@ func TestCreateDatabaseConfig(t *testing.T) {
 			// We need to use the server package function since we removed duplicates
 			// Import the function to test it
 			config := storage.Config{
-				Type:     getEnvWithDefault("DATABASE_PROVIDER", "sqlite"),
-				Database: getEnvWithDefault("DATABASE_PATH", "./noot.db"),
+				Type:     getEnvWithDefault("DATABASE_PROVIDER", "supabase"),
+				Database: getEnvWithDefault("SUPABASE_DB_URL", ""),
 				Host:     getEnvWithDefault("DB_HOST", "localhost"),
 				Port:     getEnvIntWithDefault("DB_PORT", 5432),
 				Username: getEnvWithDefault("DB_USER", ""),

@@ -60,8 +60,8 @@ An AI-powered nutrition logging web app. Just say what you ate!
     # Upload Configuration
     MAX_UPLOAD_BYTES=104857600  # Maximum upload size in bytes (default: 100MB)
 
-    # Database Configuration
-    DATABASE_PATH=./noot.db     # Path to SQLite database file (default: ./noot.db)
+    # Database Configuration - Use Supabase for local and production
+    # Follow Supabase local development setup: https://supabase.com/docs/guides/local-development
     DEV_DB_SEED=true           # Enable database seeding in development (optional)
     ```
 
@@ -146,7 +146,7 @@ The API follows OpenAPI `3.0.3` specification:
 
 ### Backend
 
-- SQLite database with automatic migrations for consumption storage
+- Supabase/PostgreSQL database with automatic migrations for consumption storage
 - OpenAI gpt-4o-mini-transcribe for speech-to-text
 - OpenAI gpt-4o-mini for consumption parsing with complete nutrition data
 - **Open Food Facts (OFF) integration** for faster, more accurate nutrition data before AI fallback
@@ -167,7 +167,7 @@ The API follows OpenAPI `3.0.3` specification:
 
 - **Frontend**: SvelteKit ([http://localhost:3000](http://localhost:3000))
 - **Backend**: Go API server ([http://localhost:3001](http://localhost:3001))
-- **Database**: SQLite with automatic migrations
+- **Database**: Supabase/PostgreSQL with automatic migrations
 - **Audio Processing**: OpenAI Whisper via API
 - **Nutrition Data**: Open Food Facts (OFF) API with OpenAI GPT-4o-mini fallback for structured JSON responses
 

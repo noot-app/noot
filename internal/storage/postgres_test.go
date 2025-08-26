@@ -189,38 +189,8 @@ func getTestPostgreSQLConnStr() string {
 	return ""
 }
 
-// TestDualDatabaseSupport tests that both SQLite and PostgreSQL can be configured
+// TestDualDatabaseSupport tests PostgreSQL/Supabase database configuration
 func TestDualDatabaseSupport(t *testing.T) {
-	t.Run("SQLiteConfig", func(t *testing.T) {
-		config := &Config{
-			Type:     "sqlite",
-			Database: ":memory:",
-		}
-
-		store, err := NewStore(config)
-		require.NoError(t, err)
-		defer store.Close()
-
-		// Should create SQLiteStore
-		_, ok := store.(*SQLiteStore)
-		assert.True(t, ok, "Expected SQLiteStore")
-
-		// Test basic operation
-		ctx := context.Background()
-		err = store.Migrate()
-		require.NoError(t, err)
-
-		user := &User{
-
-			Email:  "user1@test.com",
-			ID:     generateUUID(),
-			Handle: "testuser1",
-		}
-		err = store.CreateUser(ctx, user)
-		require.NoError(t, err)
-		assert.NotEmpty(t, user.ID)
-	})
-
 	t.Run("PostgreSQLConfig", func(t *testing.T) {
 		connStr := getTestPostgreSQLConnStr()
 		if connStr == "" {
@@ -262,15 +232,22 @@ func TestDualDatabaseSupport(t *testing.T) {
 	})
 
 	t.Run("DefaultConfig", func(t *testing.T) {
-		config := &Config{} // Empty config should default to SQLite
+		connStr := getTestPostgreSQLConnStr()
+		if connStr == "" {
+			t.Skip("Skipping default config test - no connection string")
+		}
+		
+		config := &Config{
+			Database: connStr,
+		} // Empty Type should default to Supabase/Postgres
 
 		store, err := NewStore(config)
 		require.NoError(t, err)
 		defer store.Close()
 
-		// Should create SQLiteStore by default
-		_, ok := store.(*SQLiteStore)
-		assert.True(t, ok, "Expected SQLiteStore as default")
+		// Should create PostgreSQLStore by default
+		_, ok := store.(*PostgreSQLStore)
+		assert.True(t, ok, "Expected PostgreSQLStore as default")
 	})
 }
 
