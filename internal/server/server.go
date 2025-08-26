@@ -42,6 +42,8 @@ func Run(ctx context.Context, port string) error {
 	defer store.Close()
 
 	// Run migrations (skip for Supabase as it manages its own migrations)
+	// TODO rather than doing this, we could add a flag to NewStore to indicate whether to run migrations
+	// or have a separate method on the Store interface to indicate if migrations should be run
 	if config.Type != "supabase" {
 		if err := store.Migrate(); err != nil {
 			return fmt.Errorf("failed to run migrations: %w", err)
