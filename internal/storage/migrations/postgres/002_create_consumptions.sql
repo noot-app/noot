@@ -53,3 +53,19 @@ CREATE TABLE IF NOT EXISTS consumptions (
 CREATE INDEX IF NOT EXISTS idx_consumptions_user_id ON consumptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_consumptions_created_at ON consumptions(created_at);
 CREATE INDEX IF NOT EXISTS idx_consumptions_user_created ON consumptions(user_id, created_at);
+
+-- Enable RLS for consumptions table
+ALTER TABLE consumptions ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies for consumptions
+CREATE POLICY "Users can view own consumptions" ON consumptions
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own consumptions" ON consumptions  
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own consumptions" ON consumptions
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own consumptions" ON consumptions
+  FOR DELETE USING (auth.uid() = user_id);

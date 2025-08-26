@@ -495,7 +495,7 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 
 		// Create new user with Supabase auth.users.id directly as the ID
 		user = &storage.User{
-			ID:               claims.Subject,        // Use auth.users.id directly
+			ID:               claims.Subject, // Use auth.users.id directly
 			Email:            claims.Email,
 			SubscriptionTier: storage.SubscriptionTierFree, // Default to free tier
 		}

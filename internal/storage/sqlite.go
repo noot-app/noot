@@ -106,7 +106,7 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 		VALUES (?, ?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
-	
+
 	// For SQLite development, generate UUID if not provided
 	// In production with Supabase, the ID should be the auth.users.id
 	if user.ID == "" {

@@ -25,3 +25,19 @@ CREATE TABLE IF NOT EXISTS user_biometrics (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_biometrics_user_id ON user_biometrics(user_id);
+
+-- Enable RLS for user_biometrics table
+ALTER TABLE user_biometrics ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies for user_biometrics
+CREATE POLICY "Users can view own biometrics" ON user_biometrics
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own biometrics" ON user_biometrics  
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own biometrics" ON user_biometrics
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own biometrics" ON user_biometrics
+  FOR DELETE USING (auth.uid() = user_id);

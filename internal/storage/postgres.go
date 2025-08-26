@@ -150,7 +150,7 @@ func (s *PostgreSQLStore) GetUser(ctx context.Context, id string) (*User, error)
 	return &user, nil
 }
 
-// GetUserByEmail retrieves a user by email address  
+// GetUserByEmail retrieves a user by email address
 func (s *PostgreSQLStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	query := `
 		SELECT id, handle, full_name, email, subscription_tier, active_goal_name, avatar_url, created_at

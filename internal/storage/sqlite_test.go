@@ -27,9 +27,9 @@ func TestSQLiteStore(t *testing.T) {
 
 	t.Run("CreateAndGetUser", func(t *testing.T) {
 		user := &User{
-			ID:       generateULID(), // For testing, provide the ID
-			Handle:   "testhandle",
-			Email:    "test@example.com",
+			ID:     generateULID(), // For testing, provide the ID
+			Handle: "testhandle",
+			Email:  "test@example.com",
 		}
 
 		// Create user
@@ -56,9 +56,9 @@ func TestSQLiteStore(t *testing.T) {
 	t.Run("CreateAndGetConsumption", func(t *testing.T) {
 		// Create a user first
 		user := &User{
-			ID:       generateULID(),
-			Handle:   "testhandle2",
-			Email:    "test2@example.com",
+			ID:     generateULID(),
+			Handle: "testhandle2",
+			Email:  "test2@example.com",
 		}
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
@@ -92,10 +92,10 @@ func TestSQLiteStore(t *testing.T) {
 	t.Run("GetConsumptionsByUser", func(t *testing.T) {
 		// Create a user
 		user := &User{
-			
-			Handle:   "testhandle3",
-			
-			Email:    "test3@example.com",
+
+			Handle: "testhandle3",
+
+			Email: "test3@example.com",
 		}
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
@@ -132,10 +132,10 @@ func TestSQLiteStore(t *testing.T) {
 	t.Run("GetConsumptionsByUserSince", func(t *testing.T) {
 		// Create a user
 		user := &User{
-			
-			Handle:   "testhandle4",
-			
-			Email:    "test4@example.com",
+
+			Handle: "testhandle4",
+
+			Email: "test4@example.com",
 		}
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
@@ -220,10 +220,10 @@ func TestSQLiteStore(t *testing.T) {
 	t.Run("UpdateAndDeleteConsumption", func(t *testing.T) {
 		// Create a user first
 		user := &User{
-			
-			Handle:   "updatedeletehandle",
-			
-			Email:    "updatedelete@example.com",
+
+			Handle: "updatedeletehandle",
+
+			Email: "updatedelete@example.com",
 		}
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
@@ -429,10 +429,10 @@ func TestSQLiteStore(t *testing.T) {
 	t.Run("GetNutritionSummary", func(t *testing.T) {
 		// Create a user
 		user := &User{
-			
-			Handle:   "testhandle5",
-			
-			Email:    "test5@example.com",
+
+			Handle: "testhandle5",
+
+			Email: "test5@example.com",
 		}
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
@@ -493,10 +493,10 @@ func TestSQLiteStore(t *testing.T) {
 	t.Run("UserBiometricsOperations", func(t *testing.T) {
 		// Create a user first
 		user := &User{
-			
-			Handle:   "biometricshandle",
-			
-			Email:    "biometrics@example.com",
+
+			Handle: "biometricshandle",
+
+			Email: "biometrics@example.com",
 		}
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)

@@ -40,9 +40,8 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 
 	t.Run("CreateAndGetUser", func(t *testing.T) {
 		user := &User{
-			
-			
-			Email:    "test@example.com",
+
+			Email: "test@example.com",
 		}
 
 		// Create user
@@ -69,9 +68,8 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 	t.Run("CreateAndGetConsumption", func(t *testing.T) {
 		// Create a user first
 		user := &User{
-			
-			
-			Email:    "test2@example.com",
+
+			Email: "test2@example.com",
 		}
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
@@ -114,9 +112,8 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 	t.Run("GetConsumptionsByUser", func(t *testing.T) {
 		// Create a user
 		user := &User{
-			
-			
-			Email:    "test3@example.com",
+
+			Email: "test3@example.com",
 		}
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
@@ -141,9 +138,8 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 	t.Run("GetConsumptionsByUserSince", func(t *testing.T) {
 		// Create a user
 		user := &User{
-			
-			
-			Email:    "test4@example.com",
+
+			Email: "test4@example.com",
 		}
 		err := store.CreateUser(ctx, user)
 		require.NoError(t, err)
@@ -215,11 +211,10 @@ func TestDualDatabaseSupport(t *testing.T) {
 		require.NoError(t, err)
 
 		user := &User{
-			
-			
-			Email:    "user1@test.com",
-ID:       generateUUID(),
-			Handle:   "testuser1",
+
+			Email:  "user1@test.com",
+			ID:     generateUUID(),
+			Handle: "testuser1",
 		}
 		err = store.CreateUser(ctx, user)
 		require.NoError(t, err)

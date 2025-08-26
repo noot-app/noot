@@ -14,3 +14,19 @@ CREATE TABLE IF NOT EXISTS user_goals (
 
 CREATE INDEX IF NOT EXISTS idx_user_goals_user_id ON user_goals(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_goals_updated_at ON user_goals(updated_at);
+
+-- Enable RLS for user_goals table
+ALTER TABLE user_goals ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies for user_goals
+CREATE POLICY "Users can view own goals" ON user_goals
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own goals" ON user_goals  
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own goals" ON user_goals
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own goals" ON user_goals
+  FOR DELETE USING (auth.uid() = user_id);
