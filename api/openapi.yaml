@@ -959,21 +959,21 @@ components:
       type: object
       required:
         - id
-        - provider
-        - subject
+        - handle
         - email
         - subscription_tier
         - created_at
       properties:
         id:
           type: string
-          description: User ID
-        provider:
+          description: User ID (auth.users.id UUID for Supabase)
+        handle:
           type: string
-          description: Authentication provider
-        subject:
+          description: Unique user handle/username
+        full_name:
           type: string
-          description: Provider-specific user identifier
+          nullable: true
+          description: User's full display name
         email:
           type: string
           description: User email address
@@ -981,6 +981,10 @@ components:
           type: string
           enum: [free, pro]
           description: User subscription level
+        avatar_url:
+          type: string
+          nullable: true
+          description: User avatar/profile image URL
         created_at:
           type: string
           format: date-time

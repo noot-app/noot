@@ -80,10 +80,11 @@ func parseDateRangeParamsFromAPI(params api.GetNutritionSummaryParams) (*DateRan
 func convertUser(user *storage.User) api.User {
 	return api.User{
 		Id:               user.ID,
-		Provider:         user.Provider,
-		Subject:          user.Subject,
+		Handle:           user.Handle,
+		FullName:         user.FullName,
 		Email:            user.Email,
 		SubscriptionTier: api.UserSubscriptionTier(user.SubscriptionTier),
+		AvatarUrl:        user.AvatarURL,
 		CreatedAt:        user.CreatedAt,
 	}
 }

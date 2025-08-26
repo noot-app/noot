@@ -76,7 +76,7 @@ func cleanupUserCreationLimiter() {
 				validAttempts = append(validAttempts, attempt)
 			}
 		}
-		
+
 		if len(validAttempts) == 0 {
 			delete(userCreationLimiter, email)
 		} else {
@@ -282,7 +282,7 @@ func recordUserCreationAttempt(email string) {
 	if !exists {
 		attempts = make([]time.Time, 0, 2)
 	}
-	
+
 	// Add current attempt
 	attempts = append(attempts, now)
 	userCreationLimiter[email] = attempts
@@ -466,8 +466,8 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 	}
 	LogDebug("JWT claims validation passed")
 
-	// Try to get existing user by Supabase ID (subject)
-	LogDebug("Looking up user by subject", "provider", "supabase", "subject", claims.Subject)
+	// Try to get existing user by Supabase ID (direct UUID lookup)
+	LogDebug("Looking up user by UUID", "user_id", claims.Subject)
 
 	if ctx == nil {
 		LogError("Context is nil", nil)
@@ -479,36 +479,38 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 		return nil, fmt.Errorf("storage store is nil")
 	}
 
-	LogDebug("Store is valid, calling GetUserBySubject")
-	user, err := store.GetUserBySubject(ctx, "supabase", claims.Subject)
-	LogDebug("GetUserBySubject completed", "hasError", err != nil, "hasUser", user != nil)
+	LogDebug("Store is valid, calling GetUser")
+	user, err := store.GetUser(ctx, claims.Subject)
+	LogDebug("GetUser completed", "hasError", err != nil, "hasUser", user != nil)
 
 	if err != nil {
-		LogError("Database error while looking up user", err, "subject", claims.Subject)
+		LogError("Database error while looking up user", err, "user_id", claims.Subject)
 		return nil, fmt.Errorf("database error: %w", err)
 	}
 
 	if user == nil {
 		// User doesn't exist, create them
-		// Check rate limiting before creating new user
-		LogDebug("User not found, creating new user", "subject", claims.Subject, "email", claims.Email)
+		LogDebug("User not found, creating new user", "user_id", claims.Subject, "email", claims.Email)
+		LogInfo("Creating new user from Supabase JWT", "user_id", claims.Subject, "email", claims.Email)
 
-		if isUserCreationRateLimited(claims.Email) {
-			return nil, fmt.Errorf("user creation rate limited for email: %s", claims.Email)
+		// Create new user with Supabase auth.users.id directly as the ID
+		user = &storage.User{
+			ID:               claims.Subject, // Use auth.users.id directly
+			Email:            claims.Email,
+			SubscriptionTier: storage.SubscriptionTierFree, // Default to free tier
 		}
 
-		// Record the creation attempt
-		recordUserCreationAttempt(claims.Email)
+		// Extract handle and full_name from user_metadata
+		if handle, ok := claims.UserData["handle"].(string); ok && handle != "" {
+			user.Handle = handle
+		} else {
+			// Handle is required - this should not happen with proper signup flow
+			LogError("User creation failed: handle is required", nil, "user_id", claims.Subject, "email", claims.Email)
+			return nil, fmt.Errorf("user handle is required but not provided in user metadata")
+		}
 
-		// If user doesn't exist, create them
-		LogInfo("Creating new user from Supabase JWT", "supabase_id", claims.Subject, "email", claims.Email)
-
-		// Create new user with Supabase ID mapping
-		user = &storage.User{
-			Email:            claims.Email,
-			Provider:         "supabase",
-			Subject:          claims.Subject,
-			SubscriptionTier: storage.SubscriptionTierFree, // Default to free tier
+		if fullName, ok := claims.UserData["full_name"].(string); ok && fullName != "" {
+			user.FullName = &fullName
 		}
 
 		// Save to database
@@ -526,9 +528,12 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 
 	// Update user email if it changed in Supabase
 	if user.Email != claims.Email {
-		LogWarn("User email changed in Supabase but cannot update local record",
+		LogInfo("User email changed in Supabase, updating local record",
 			"user_id", user.ID, "old_email", user.Email, "new_email", claims.Email)
-		// TODO: Implement UpdateUser method in Store interface if email updates are needed
+		user.Email = claims.Email
+		if err := store.UpdateUser(ctx, user); err != nil {
+			LogWarn("Failed to update user email", "user_id", user.ID, "error", err.Error())
+		}
 	}
 
 	return user, nil
@@ -609,46 +614,46 @@ func isValidEmail(email string) bool {
 	if len(email) < 5 || len(email) > 254 {
 		return false
 	}
-	
+
 	// Must contain exactly one @ symbol
 	atIndex := strings.Index(email, "@")
 	if atIndex == -1 || atIndex != strings.LastIndex(email, "@") {
 		return false
 	}
-	
+
 	// Split into local and domain parts
 	localPart := email[:atIndex]
 	domainPart := email[atIndex+1:]
-	
+
 	// Validate local part
 	if len(localPart) < 1 || len(localPart) > 64 {
 		return false
 	}
-	
+
 	// Validate domain part
 	if len(domainPart) < 1 || len(domainPart) > 253 {
 		return false
 	}
-	
+
 	// Domain must contain at least one dot and end with a valid TLD
 	dotIndex := strings.LastIndex(domainPart, ".")
 	if dotIndex == -1 || dotIndex == 0 || dotIndex == len(domainPart)-1 {
 		return false
 	}
-	
+
 	// TLD must be at least 2 characters
 	tld := domainPart[dotIndex+1:]
 	if len(tld) < 2 {
 		return false
 	}
-	
+
 	// Basic character validation - no spaces, must be printable ASCII
 	for _, r := range email {
 		if r == ' ' || r < 32 || r > 126 {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -711,7 +716,7 @@ func RequireSubscriptionTiers(allowedTiers ...string) gin.HandlerFunc {
 		for _, tier := range allowedTiers {
 			tierNames = append(tierNames, tier)
 		}
-		
+
 		errorMsg := "Subscription required: " + strings.Join(tierNames, " or ")
 		c.JSON(http.StatusForbidden, gin.H{"error": errorMsg})
 		c.Abort()

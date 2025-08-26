@@ -68,7 +68,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 	/**
 	 * Sign up with email and password
 	 */
-	async signUp(email: string, password: string, metadata?: { fullName?: string }): Promise<{ user: User | null; error: Error | null }> {
+	async signUp(email: string, password: string, metadata?: { fullName?: string; handle?: string }): Promise<{ user: User | null; error: Error | null }> {
 		if (!supabase) return { user: null, error: new Error('Supabase not configured') };
 
 		try {
@@ -76,7 +76,10 @@ export class SupabaseAuthProvider implements AuthProvider {
 				email,
 				password,
 				options: {
-					data: metadata ? { full_name: metadata.fullName } : undefined
+					data: metadata ? { 
+						full_name: metadata.fullName,
+						handle: metadata.handle 
+					} : undefined
 				}
 			});
 			

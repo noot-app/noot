@@ -216,7 +216,7 @@ export async function signIn(email: string, password: string): Promise<{ user: U
 /**
  * Sign up with email and password (Supabase only)
  */
-export async function signUp(email: string, password: string, metadata?: { fullName?: string }): Promise<{ user: User | null; error: Error | null }> {
+export async function signUp(email: string, password: string, metadata?: { fullName?: string; handle?: string }): Promise<{ user: User | null; error: Error | null }> {
 	if (!authProvider) {
 		return { user: null, error: new Error('No auth provider available') };
 	}

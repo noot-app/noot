@@ -16,10 +16,8 @@ const (
 
 // User configuration aliases for consistency
 const (
-	DefaultUserProvider  = storage.DefaultSeedProvider
-	DefaultUserSubject   = storage.DefaultSeedSubject
-	AliceUserProvider    = storage.AliceSeedProvider
-	AliceUserSubject     = storage.AliceSeedSubject
+	DefaultUserID        = storage.DefaultSeedUserID
+	AliceUserID          = storage.AliceSeedUserID
 	SubscriptionTierFree = storage.SubscriptionTierFree
 	SubscriptionTierPro  = storage.SubscriptionTierPro
 )

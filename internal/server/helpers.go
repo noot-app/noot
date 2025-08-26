@@ -19,10 +19,9 @@ type DateRangeParams struct {
 }
 
 // getDefaultUser retrieves the default user for development/demo purposes
-// TODO: When implementing Supabase auth, replace this with proper user resolution
-// from JWT tokens or session management
+// Uses direct UUID lookup instead of subject/provider pattern
 func getDefaultUser(ctx context.Context, store storage.Store) (*storage.User, error) {
-	return store.GetUserBySubject(ctx, DefaultUserProvider, DefaultUserSubject)
+	return store.GetUser(ctx, storage.DefaultSeedUserID)
 }
 
 // getCurrentUser retrieves the current authenticated user from context
@@ -33,8 +32,8 @@ func getCurrentUser(c *gin.Context, store storage.Store) (*storage.User, error) 
 		return user, nil
 	}
 
-	// Fall back to default user if no authentication (should rarely happen with middleware)
-	return getDefaultUser(c.Request.Context(), store)
+	// No fallback to default user - authentication is required
+	return nil, NewAppError("Authentication required", http.StatusUnauthorized, nil)
 }
 
 // parseDateRangeParams parses date range parameters from HTTP request

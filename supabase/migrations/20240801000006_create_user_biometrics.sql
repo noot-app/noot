@@ -1,0 +1,43 @@
+-- Migration 006: Create user biometrics table (PostgreSQL)
+-- For RLS purposes, users should only be able to access their own biometrics.
+-- This means that they should be able to read, create, update, and delete their own biometrics, but not those of other users.
+-- All pricing tiers can access their own biometrics.
+CREATE TABLE IF NOT EXISTS user_biometrics (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE,
+    
+    -- Basic Demographics (for DRI)
+    birth_date DATE NULL,
+    sex TEXT CHECK (sex IN ('male','female','other','prefer_not_to_say')) DEFAULT 'prefer_not_to_say',
+    
+    -- Physical Measurements
+    height_cm REAL NULL,
+    weight_kg REAL NULL,
+    
+    -- Activity & Lifestyle
+    activity_level TEXT CHECK (activity_level IN ('sedentary','lightly_active','moderately_active','very_active','extra_active')) DEFAULT 'lightly_active',
+    
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_biometrics_user_id ON user_biometrics(user_id);
+
+-- Enable RLS for user_biometrics table
+ALTER TABLE user_biometrics ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies for user_biometrics
+CREATE POLICY "Users can view own biometrics" ON user_biometrics
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own biometrics" ON user_biometrics  
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own biometrics" ON user_biometrics
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own biometrics" ON user_biometrics
+  FOR DELETE USING (auth.uid() = user_id);

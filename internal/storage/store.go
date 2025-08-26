@@ -10,7 +10,8 @@ type Store interface {
 	// User operations
 	CreateUser(ctx context.Context, user *User) error
 	GetUser(ctx context.Context, id string) (*User, error)
-	GetUserBySubject(ctx context.Context, provider, subject string) (*User, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	UpdateUser(ctx context.Context, user *User) error
 
 	// Consumption operations
 	CreateConsumption(ctx context.Context, consumption *Consumption) error
@@ -62,13 +63,14 @@ type Store interface {
 
 // User represents a user in the system
 type User struct {
-	ID               string    `json:"id"`
-	Provider         string    `json:"provider"`
-	Subject          string    `json:"subject"`
-	Email            string    `json:"email"`
+	ID               string    `json:"id"`                // Auth provider's user ID (e.g., Supabase auth.users.id)
+	Handle           string    `json:"handle"`            // Unique username/handle
+	FullName         *string   `json:"full_name"`         // Optional display name
+	Email            string    `json:"email"`             // Email address
 	SubscriptionTier string    `json:"subscription_tier"` // "free", "pro"
 	ActiveGoalName   *string   `json:"active_goal_name"`  // Name of the active goal set (Pro users only)
 	CreatedAt        time.Time `json:"created_at"`
+	AvatarURL        *string   `json:"avatar_url"` // Optional profile image URL
 }
 
 // UserBiometrics represents user physical and demographic data

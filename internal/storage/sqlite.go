@@ -15,8 +15,8 @@ import (
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 
-//go:embed migrations/*.sql
-var migrationFiles embed.FS
+//go:embed migrations/sqlite/*.sql
+var sqliteMigrationFiles embed.FS
 
 // SQLiteStore implements the Store interface using SQLite
 type SQLiteStore struct {
@@ -56,7 +56,7 @@ func (s *SQLiteStore) Close() error {
 // Migrate applies all pending migrations
 func (s *SQLiteStore) Migrate() error {
 	// Get list of migration files
-	entries, err := migrationFiles.ReadDir("migrations")
+	entries, err := sqliteMigrationFiles.ReadDir("migrations/sqlite")
 	if err != nil {
 		return fmt.Errorf("failed to read migration files: %w", err)
 	}
@@ -72,7 +72,7 @@ func (s *SQLiteStore) Migrate() error {
 
 	// Apply each migration
 	for _, file := range files {
-		content, err := migrationFiles.ReadFile("migrations/" + file)
+		content, err := sqliteMigrationFiles.ReadFile("migrations/sqlite/" + file)
 		if err != nil {
 			return fmt.Errorf("failed to read migration file %s: %w", file, err)
 		}
@@ -99,14 +99,19 @@ func (s *SQLiteStore) Reset() error {
 	return s.Migrate()
 }
 
-// CreateUser creates a new user
+// CreateUser creates a new user with UUID as ID
 func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 	query := `
-		INSERT INTO users (id, provider, subject, email, subscription_tier, created_at)
-		VALUES (?, ?, ?, ?, ?, ?)`
+		INSERT INTO users (id, handle, full_name, email, subscription_tier, avatar_url, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`
 
 	now := time.Now().UTC()
-	user.ID = generateULID()
+
+	// For SQLite development, generate UUID if not provided
+	// In production with Supabase, the ID should be the auth.users.id
+	if user.ID == "" {
+		user.ID = generateULID() // For development compatibility
+	}
 	user.CreatedAt = now
 
 	// Set default subscription tier if not provided
@@ -114,8 +119,16 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 		user.SubscriptionTier = SubscriptionTierFree
 	}
 
-	_, err := s.db.ExecContext(ctx, query, user.ID, user.Provider, user.Subject, user.Email,
-		user.SubscriptionTier, now)
+	// Validate required fields
+	if user.Handle == "" {
+		return fmt.Errorf("user handle is required")
+	}
+	if user.Email == "" {
+		return fmt.Errorf("user email is required")
+	}
+
+	_, err := s.db.ExecContext(ctx, query, user.ID, user.Handle, user.FullName, user.Email,
+		user.SubscriptionTier, user.AvatarURL, now)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -125,11 +138,11 @@ func (s *SQLiteStore) CreateUser(ctx context.Context, user *User) error {
 
 // GetUser retrieves a user by ID
 func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
-	query := `SELECT id, provider, subject, email, subscription_tier, active_goal_name, created_at FROM users WHERE id = ?`
+	query := `SELECT id, handle, full_name, email, subscription_tier, active_goal_name, created_at, avatar_url FROM users WHERE id = ?`
 
 	user := &User{}
 	err := s.db.QueryRowContext(ctx, query, id).
-		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.ActiveGoalName, &user.CreatedAt)
+		Scan(&user.ID, &user.Handle, &user.FullName, &user.Email, &user.SubscriptionTier, &user.ActiveGoalName, &user.CreatedAt, &user.AvatarURL)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // User not found
@@ -140,21 +153,42 @@ func (s *SQLiteStore) GetUser(ctx context.Context, id string) (*User, error) {
 	return user, nil
 }
 
-// GetUserBySubject retrieves a user by provider and subject
-func (s *SQLiteStore) GetUserBySubject(ctx context.Context, provider, subject string) (*User, error) {
-	query := `SELECT id, provider, subject, email, subscription_tier, active_goal_name, created_at FROM users WHERE provider = ? AND subject = ?`
+// GetUserByEmail retrieves a user by email address
+func (s *SQLiteStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	query := `SELECT id, handle, full_name, email, subscription_tier, active_goal_name, created_at, avatar_url FROM users WHERE email = ?`
 
 	user := &User{}
-	err := s.db.QueryRowContext(ctx, query, provider, subject).
-		Scan(&user.ID, &user.Provider, &user.Subject, &user.Email, &user.SubscriptionTier, &user.ActiveGoalName, &user.CreatedAt)
+	err := s.db.QueryRowContext(ctx, query, email).
+		Scan(&user.ID, &user.Handle, &user.FullName, &user.Email, &user.SubscriptionTier, &user.ActiveGoalName, &user.CreatedAt, &user.AvatarURL)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // User not found
 		}
-		return nil, fmt.Errorf("failed to get user by subject: %w", err)
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
 
 	return user, nil
+}
+
+// UpdateUser updates an existing user
+func (s *SQLiteStore) UpdateUser(ctx context.Context, user *User) error {
+	query := `UPDATE users SET handle = ?, full_name = ?, email = ?, subscription_tier = ?, active_goal_name = ?, avatar_url = ? WHERE id = ?`
+
+	result, err := s.db.ExecContext(ctx, query, user.Handle, user.FullName, user.Email, user.SubscriptionTier, user.ActiveGoalName, user.AvatarURL, user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
 }
 
 // CreateConsumption creates a new consumption
@@ -550,7 +584,7 @@ func (s *SQLiteStore) Seed() error {
 	ctx := context.Background()
 
 	// Check if user already exists
-	user, err := s.GetUserBySubject(ctx, DefaultSeedProvider, DefaultSeedSubject)
+	user, err := s.GetUser(ctx, DefaultSeedUserID)
 	if err != nil {
 		return fmt.Errorf("failed to check for existing user: %w", err)
 	}
@@ -558,9 +592,9 @@ func (s *SQLiteStore) Seed() error {
 	// Create default seed user if it doesn't exist
 	if user == nil {
 		user = &User{
-			Provider:         DefaultSeedProvider,
-			Subject:          DefaultSeedSubject,
+			ID:               DefaultSeedUserID,
 			Email:            DefaultSeedEmail,
+			Handle:           "monalisa",          // Default user handle
 			SubscriptionTier: SubscriptionTierPro, // Give the seed user pro access
 		}
 		if err := s.CreateUser(ctx, user); err != nil {
@@ -569,7 +603,7 @@ func (s *SQLiteStore) Seed() error {
 	}
 
 	// Check if alice user already exists for dev user switching
-	aliceUser, err := s.GetUserBySubject(ctx, AliceSeedProvider, AliceSeedSubject)
+	aliceUser, err := s.GetUser(ctx, AliceSeedUserID)
 	if err != nil {
 		return fmt.Errorf("failed to check for existing alice user: %w", err)
 	}
@@ -577,9 +611,9 @@ func (s *SQLiteStore) Seed() error {
 	// Create alice user if it doesn't exist
 	if aliceUser == nil {
 		aliceUser = &User{
-			Provider:         AliceSeedProvider,
-			Subject:          AliceSeedSubject,
+			ID:               AliceSeedUserID,
 			Email:            AliceSeedEmail,
+			Handle:           "alice",              // Alice user handle
 			SubscriptionTier: SubscriptionTierFree, // Alice is a free tier user
 		}
 		if err := s.CreateUser(ctx, aliceUser); err != nil {

@@ -98,7 +98,7 @@ func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get allowed origins from environment variable
 		allowedOrigins := getEnv("CORS_ALLOWED_ORIGINS", "")
-		
+
 		// Handle empty CORS configuration
 		if allowedOrigins == "" {
 			if IsProduction() {
@@ -111,7 +111,7 @@ func CORSMiddleware() gin.HandlerFunc {
 			// In development, default to localhost
 			allowedOrigins = "http://localhost:3000"
 		}
-		
+
 		origins := strings.Split(allowedOrigins, ",")
 
 		// Clean and validate origins
@@ -256,9 +256,9 @@ func DevAuthMiddleware(store storage.Store) gin.HandlerFunc {
 			// Resolve user based on dev user ID
 			switch devUserID {
 			case "monalisa":
-				user, err = store.GetUserBySubject(c.Request.Context(), DefaultUserProvider, DefaultUserSubject)
+				user, err = store.GetUser(c.Request.Context(), DefaultUserID)
 			case "alice":
-				user, err = store.GetUserBySubject(c.Request.Context(), AliceUserProvider, AliceUserSubject)
+				user, err = store.GetUser(c.Request.Context(), AliceUserID)
 			default:
 				LogWarn("Invalid dev user ID requested", "user_id", devUserID)
 				c.Next()
