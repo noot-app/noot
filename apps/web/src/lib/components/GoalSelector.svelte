@@ -50,7 +50,16 @@
 
       goalSets = data.goal_sets;
       activeGoalName = data.active_goal_name || "";
-      user = data.user;
+      // Map the API user to our frontend User interface
+      if (data.user) {
+        user = {
+          id: data.user.id,
+          email: data.user.email,
+          subscriptionTier: data.user.subscription_tier as 'free' | 'pro',
+          provider: 'api',
+          subject: data.user.id
+        };
+      }
     } catch (err) {
       error = `Failed to load goal sets: ${err}`;
       console.error("Goal sets error:", err);

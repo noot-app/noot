@@ -232,6 +232,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/user/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get current user
+         * @description Get the currently authenticated user's information
+         */
+        get: operations["getCurrentUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/biometrics": {
         parameters: {
             query?: never;
@@ -428,12 +448,12 @@ export interface components {
             };
         };
         User: {
-            /** @description User ID */
+            /** @description User ID (auth.users.id UUID for Supabase) */
             id: string;
-            /** @description Authentication provider */
-            provider: string;
-            /** @description Provider-specific user identifier */
-            subject: string;
+            /** @description Unique user handle/username */
+            handle: string;
+            /** @description User's full display name */
+            full_name?: string | null;
             /** @description User email address */
             email: string;
             /**
@@ -441,6 +461,8 @@ export interface components {
              * @enum {string}
              */
             subscription_tier: "free" | "pro";
+            /** @description User avatar/profile image URL */
+            avatar_url?: string | null;
             /**
              * Format: date-time
              * @description User creation timestamp
@@ -1480,6 +1502,44 @@ export interface operations {
             };
             /** @description User not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getCurrentUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current user information */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Unauthorized - no valid authentication */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

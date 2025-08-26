@@ -32,25 +32,29 @@ export const apiClient = new Proxy(baseClient, {
     const originalMethod = target[prop as keyof typeof target];
     
     if (typeof originalMethod === 'function' && (prop === 'GET' || prop === 'POST' || prop === 'PUT' || prop === 'DELETE' || prop === 'PATCH')) {
-      return async function(url: string, init?: any) {
+      return async function(url: string, init?: unknown) {
         init = init || {};
-        init.headers = init.headers || {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const typedInit = init as Record<string, any>;
+        typedInit.headers = typedInit.headers || {};
 
         // Add dev user header in development mode
         if (dev && typeof localStorage !== 'undefined') {
           const selectedUser = localStorage.getItem('dev-selected-user');
           if (selectedUser) {
-            init.headers['X-Dev-User-ID'] = selectedUser;
+            typedInit.headers['X-Dev-User-ID'] = selectedUser;
           }
         }
 
         // Add JWT authorization header in production (or when Supabase is enabled in dev)
         const accessToken = await getAccessToken();
         if (accessToken) {
-          init.headers['Authorization'] = `Bearer ${accessToken}`;
+          typedInit.headers['Authorization'] = `Bearer ${accessToken}`;
         }
         
-        return originalMethod.call(target, url, init);
+        // Call the original method
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (originalMethod as (...args: any[]) => any).call(target, url, typedInit);
       };
     }
     

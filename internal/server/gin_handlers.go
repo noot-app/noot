@@ -42,6 +42,32 @@ func (s *APIServer) GetHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// GetCurrentUser implements ServerInterface.GetCurrentUser
+func (s *APIServer) GetCurrentUser(c *gin.Context) {
+	// Get the current user from auth middleware context
+	currentUser, err := getCurrentUser(c, s.store)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, api.ErrorResponse{
+			Code:  http.StatusUnauthorized,
+			Error: "Unauthorized",
+		})
+		return
+	}
+
+	// Convert storage.User to api.User
+	apiUser := api.User{
+		Id:               currentUser.ID,
+		Handle:           currentUser.Handle,
+		FullName:         currentUser.FullName,
+		Email:            currentUser.Email,
+		SubscriptionTier: api.UserSubscriptionTier(currentUser.SubscriptionTier),
+		AvatarUrl:        currentUser.AvatarURL,
+		CreatedAt:        currentUser.CreatedAt,
+	}
+
+	c.JSON(http.StatusOK, apiUser)
+}
+
 // CreateConsumption implements ServerInterface.CreateConsumption
 func (s *APIServer) CreateConsumption(c *gin.Context) {
 	requestID := c.GetString("request_id")
