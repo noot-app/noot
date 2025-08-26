@@ -514,11 +514,10 @@
               protein={result.summary.totals.protein_g}
               carbs={result.summary.totals.total_carbs_g}
               fat={result.summary.totals.total_fat_g}
-                size="compact"
-                className="bg-transparent shadow-none"
-              />
-            </div>
-          </div>
+              size="compact"
+              className="bg-transparent shadow-none"
+            />
+          </Card>
         {/if}
 
         <!-- Food Items -->
