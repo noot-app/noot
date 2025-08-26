@@ -5,29 +5,21 @@ set -euo pipefail
 source script/env "$@"
 
 function usage() {
-    echo "Usage: $0 [--clean | --clean-full]"
+    echo "Usage: $0 [--clean]"
     echo ""
     echo "Options:"
-    echo "  --clean       Quick database reset (clear tables and reseed, keep services running)"
-    echo "  --clean-full  Full reset (stop/restart services, then clean and reseed)"
+    echo "  --clean       Reset database and start server (calls script/db reset)"
     echo ""
     echo "Without options, starts the server with the existing database."
-    echo "For Supabase mode, automatically starts Supabase stack if not running."
+    echo "This script will automatically start Supabase if it is not running."
     exit 1
 }
 
-function check_and_start_supabase() {
-    local database_provider="${DATABASE_PROVIDER:-sqlite}"
-    
-    # Only check for Supabase if we're using it
-    if [[ "$database_provider" != "supabase" ]]; then
-        return 0
-    fi
-    
+function check_and_start_supabase() {    
     # Check if supabase command is available
     if ! command -v supabase &> /dev/null; then
         echo -e "${RED}❌ Supabase CLI is required but not installed${OFF}"
-        echo "Install it with: npm install -g supabase"
+        echo "Install it with: brew install supabase/tap/supabase"
         exit 1
     fi
     
@@ -45,8 +37,25 @@ function check_and_start_supabase() {
     # Start supabase (this will run migrations + seed automatically)
     if supabase start; then
         echo -e "${GREEN}✅ Supabase stack started successfully${OFF}"
-        # Give it a moment to fully initialize
-        sleep 2
+        
+        # Wait for services to be fully ready
+        echo -e "${BLUE}⏳ Waiting for services to be ready...${OFF}"
+        local max_attempts=30
+        local attempt=1
+        
+        while [[ $attempt -le $max_attempts ]]; do
+            if curl -s --connect-timeout 1 "http://127.0.0.1:54321/health" > /dev/null 2>&1; then
+                echo -e "${GREEN}✅ All services are ready${OFF}"
+                return 0
+            fi
+            
+            echo -e "${BLUE}⏳ Attempt $attempt/$max_attempts - waiting for services...${OFF}"
+            sleep 2
+            ((attempt++))
+        done
+        
+        echo -e "${RED}❌ Services did not become ready within expected time${OFF}"
+        exit 1
     else
         echo -e "${RED}❌ Failed to start Supabase stack${OFF}"
         exit 1
@@ -56,66 +65,14 @@ function check_and_start_supabase() {
 function quick_clean_and_start() {
     echo -e "${BLUE}🧹 Quick cleaning database and starting server...${OFF}"
     
-    # Load .env file to detect database provider
-    if [[ -f .env ]]; then
-        set -a
-        source <(grep -v '^#' .env | grep -v '^$' | sed 's/^/export /')
-        set +a
-    fi
-    
-    # Determine database provider
-    DATABASE_PROVIDER="${DATABASE_PROVIDER:-sqlite}"
-    
     # Ensure Supabase is running if needed
     check_and_start_supabase
-    
-    if [[ "$DATABASE_PROVIDER" == "supabase" ]]; then
-        echo -e "${BLUE}Step 1: Quick cleaning Supabase database (keeping services running)${OFF}"
-        script/supabase-seed --quick
-    else
-        # SQLite flow
-        echo -e "${BLUE}Step 1: Resetting database${OFF}"
-        script/db reset
-        
-        echo -e "${BLUE}Step 2: Seeding database${OFF}"
-        script/db seed
-    fi
-    
-    echo -e "${GREEN}✅ Database quickly cleaned and seeded${OFF}"
-    echo -e "${BLUE}🚀 Starting server...${OFF}"
-    echo ""
-    
-    # Start the server
-    go run ./cmd/noot/main.go
-}
 
-function full_clean_and_start() {
-    echo -e "${BLUE}🧹 Full cleaning (stop/restart services) and starting server...${OFF}"
+    # Reset the database using our dedicated script
+    echo -e "${BLUE}📊 Resetting database...${OFF}"
+    script/db reset
     
-    # Load .env file to detect database provider
-    if [[ -f .env ]]; then
-        set -a
-        source <(grep -v '^#' .env | grep -v '^$' | sed 's/^/export /')
-        set +a
-    fi
-    
-    # Determine database provider
-    DATABASE_PROVIDER="${DATABASE_PROVIDER:-sqlite}"
-    
-    # For full clean, we don't need to check since we're restarting anyway
-    if [[ "$DATABASE_PROVIDER" == "supabase" ]]; then
-        echo -e "${BLUE}Step 1: Full cleaning and seeding Supabase (stop/restart services)${OFF}"
-        script/supabase-seed --clean
-    else
-        # SQLite flow (same as quick clean for SQLite)
-        echo -e "${BLUE}Step 1: Resetting database${OFF}"
-        script/db reset
-        
-        echo -e "${BLUE}Step 2: Seeding database${OFF}"
-        script/db seed
-    fi
-    
-    echo -e "${GREEN}✅ Database fully cleaned and seeded${OFF}"
+    echo -e "${GREEN}✅ Database reset and seeded${OFF}"
     echo -e "${BLUE}🚀 Starting server...${OFF}"
     echo ""
     
@@ -125,15 +82,7 @@ function full_clean_and_start() {
 
 function start_server() {
     echo -e "${BLUE}🚀 Starting server...${OFF}"
-    
-    # Load .env file to detect database provider
-    if [[ -f .env ]]; then
-        set -a
-        source <(grep -v '^#' .env | grep -v '^$' | sed 's/^/export /')
-        set +a
-    fi
-    
-    # Ensure Supabase is running if needed (for non-cleaning starts)
+
     check_and_start_supabase
     
     go run ./cmd/noot/main.go
@@ -144,17 +93,14 @@ case "${1:-}" in
     --clean)
         quick_clean_and_start
         ;;
-    --clean-full)
-        full_clean_and_start
-        ;;
-    --help|-h)
+    --help|-h|help)
         usage
         ;;
     "")
         start_server
         ;;
     *)
-        echo "Unknown option: $1"
+        echo -e "${RED}❌ Unknown option: $1${OFF}"
         echo ""
         usage
         ;;

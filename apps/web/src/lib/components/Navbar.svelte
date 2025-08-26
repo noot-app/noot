@@ -1,6 +1,5 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import { PUBLIC_APP_NAME } from "$env/static/public";
   
   let isMenuOpen = false;
 

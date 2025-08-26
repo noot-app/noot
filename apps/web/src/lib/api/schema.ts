@@ -428,12 +428,12 @@ export interface components {
             };
         };
         User: {
-            /** @description User ID */
+            /** @description User ID (auth.users.id UUID for Supabase) */
             id: string;
-            /** @description Authentication provider */
-            provider: string;
-            /** @description Provider-specific user identifier */
-            subject: string;
+            /** @description Unique user handle/username */
+            handle: string;
+            /** @description User's full display name */
+            full_name?: string | null;
             /** @description User email address */
             email: string;
             /**
@@ -441,6 +441,8 @@ export interface components {
              * @enum {string}
              */
             subscription_tier: "free" | "pro";
+            /** @description User avatar/profile image URL */
+            avatar_url?: string | null;
             /**
              * Format: date-time
              * @description User creation timestamp

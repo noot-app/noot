@@ -4,6 +4,27 @@ import (
 	"github.com/grantbirki/noot/internal/storage"
 )
 
+// CreateDatabaseConfig creates a database configuration from environment variables
+// This eliminates duplication between main.go and server.go
+func CreateDatabaseConfig() *storage.Config {
+	config := &storage.Config{
+		Type:     getenv("DATABASE_PROVIDER", "sqlite"),
+		Database: getenv("DATABASE_PATH", "./noot.db"),
+		Host:     getenv("DB_HOST", "localhost"),
+		Port:     getenvInt("DB_PORT", 5432),
+		Username: getenv("DB_USER", ""),
+		Password: getenv("DB_PASS", ""),
+		SSLMode:  getenv("DB_SSLMODE", "prefer"),
+	}
+
+	// For Supabase, use SUPABASE_DB_URL if provided
+	if config.Type == "supabase" && getenv("SUPABASE_DB_URL", "") != "" {
+		config.Database = getenv("SUPABASE_DB_URL", "")
+	}
+
+	return config
+}
+
 // itemWithNutritionToConsumption converts server response data to a consumption record
 func itemWithNutritionToConsumption(userID string, transcript string, items []ItemWithNutrition, summary Summary) *storage.Consumption {
 	return &storage.Consumption{

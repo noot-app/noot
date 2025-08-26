@@ -51,7 +51,7 @@ if [ -d "apps/web" ]; then
         echo "Generating TypeScript API types from OpenAPI specification..."
         
         # Check if package.json exists and has the generate:api script
-        if [ -f package.json ] && npm run --silent 2>/dev/null | grep -q "generate:api"; then
+        if [ -f package.json ] && grep -q "generate:api" package.json; then
             if npm run generate:api; then
                 echo "Frontend API types generated successfully"
             else

@@ -39,6 +39,7 @@
     on:keydown={handleEscapeKey}
     role="dialog" 
     aria-modal="true"
+    tabindex="-1"
   >
     <div class="modal-box {sizeClass}">
       {#if title}

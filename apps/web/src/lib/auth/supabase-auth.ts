@@ -31,7 +31,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 				return null;
 			}
 
-			return this.mapSupabaseUserToUser(session);
+			return await this.mapSupabaseUserToUser(session);
 		} catch (error) {
 			console.error('Error getting current user:', error);
 			return null;
@@ -48,20 +48,29 @@ export class SupabaseAuthProvider implements AuthProvider {
 	/**
 	 * Sign in with email and password
 	 */
-	async signIn(email: string, password: string): Promise<{ user: User | null; error: Error | null }> {
-		if (!supabase) return { user: null, error: new Error('Supabase not configured') };
+	async signIn(email: string, password: string): Promise<{ user: User | null; error: string | null }> {
+		if (!supabase) {
+			return { user: null, error: 'Supabase not configured' };
+		}
 
 		try {
-			const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-			
+			const { data, error } = await supabase.auth.signInWithPassword({
+				email,
+				password
+			});
+
 			if (error) {
-				return { user: null, error };
+				return { user: null, error: error.message };
 			}
 
-			const user = data.session ? this.mapSupabaseUserToUser(data.session) : null;
+			if (!data.session) {
+				return { user: null, error: 'No session created' };
+			}
+
+			const user = await this.mapSupabaseUserToUser(data.session);
 			return { user, error: null };
 		} catch (error) {
-			return { user: null, error: error as Error };
+			return { user: null, error: String(error) };
 		}
 	}
 
@@ -87,7 +96,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 				return { user: null, error };
 			}
 
-			const user = data.session ? this.mapSupabaseUserToUser(data.session) : null;
+			const user = data.session ? await this.mapSupabaseUserToUser(data.session) : null;
 			return { user, error: null };
 		} catch (error) {
 			return { user: null, error: error as Error };
@@ -128,8 +137,8 @@ export class SupabaseAuthProvider implements AuthProvider {
 	onAuthStateChange(callback: (user: User | null) => void) {
 		if (!supabase) return () => {};
 
-		const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-			const user = session ? this.mapSupabaseUserToUser(session) : null;
+		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+			const user = session ? await this.mapSupabaseUserToUser(session) : null;
 			callback(user);
 		});
 
@@ -137,19 +146,44 @@ export class SupabaseAuthProvider implements AuthProvider {
 	}
 
 	/**
-	 * Map Supabase session to our User interface
+	 * Map Supabase session to our User interface with real database data
 	 */
-	private mapSupabaseUserToUser(session: Session): User {
+	private async mapSupabaseUserToUser(session: Session): Promise<User> {
 		const supabaseUser = session.user;
 		
-		// For now, default to free tier - in production you'd query your subscription service
-		// TODO: Implement proper subscription tier detection from database or Stripe
-		const subscriptionTier: 'free' | 'pro' = 'free';
+		try {
+			// Fetch real user data directly from Supabase database using RLS
+			if (!supabase) {
+				throw new Error('Supabase client not available');
+			}
 
+			const { data, error } = await supabase
+				.from('users')
+				.select('id, email, subscription_tier')
+				.eq('id', supabaseUser.id)
+				.single();
+			
+			if (error) {
+				console.warn('Failed to fetch user data from Supabase:', error);
+			} else if (data) {
+				// Use data directly from database with RLS protection
+				return {
+					id: data.id,
+					email: data.email,
+					subscriptionTier: data.subscription_tier as 'free' | 'pro',
+					provider: 'supabase',
+					subject: supabaseUser.id
+				};
+			}
+		} catch (error) {
+			console.warn('Failed to fetch user data from database, falling back to session data:', error);
+		}
+
+		// Fallback to session data if database query fails
 		return {
 			id: supabaseUser.id,
 			email: supabaseUser.email || '',
-			subscriptionTier,
+			subscriptionTier: 'free', // Default fallback
 			provider: 'supabase',
 			subject: supabaseUser.id
 		};

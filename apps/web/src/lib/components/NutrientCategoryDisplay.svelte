@@ -228,16 +228,6 @@
     });
   }
 
-  function formatNutrientName(key: string): string {
-    return key
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, l => l.toUpperCase())
-      // Remove unit suffixes since they're shown separately
-      .replace(/ Mcg$/, "")
-      .replace(/ Mg$/, "")
-      .replace(/ G$/, "");
-  }
-
   function getOverageText(key: string, current: number): string {
     if (!goals) return "";
     
@@ -260,15 +250,6 @@
     if (!isFinite(actualProgress) || actualProgress <= 100) return "";
     const overage = actualProgress - 100;
     return isFinite(overage) ? `+${overage.toFixed(0)}% over` : "+Over";
-  }
-
-  // Get all nutrients that have targets (not limits)
-  function getNutrientsWithTargets() {
-    if (!goals) return [];
-    const allNutrients = Object.values(nutrientCategories).flatMap(category => category.nutrients);
-    return allNutrients.filter(nutrient => 
-      goals?.targets[nutrient.key] !== undefined && getNutrientValue(nutrient.key) > 0
-    );
   }
 
   // Get all nutrients that have upper limits
@@ -373,7 +354,7 @@
           </div>
         {:else}
           <!-- Categorized view for regular nutrients -->
-          {#each Object.entries(nutrientCategories) as [categoryKey, category]}
+          {#each Object.entries(nutrientCategories) as [_categoryKey, category]}
             {#if hasNutrientData(category.nutrients)}
               <div>
                 <h4 class="font-semibold text-base mb-3 pb-2 border-b border-base-300 flex items-center" style="color: var(--color-base-content);">

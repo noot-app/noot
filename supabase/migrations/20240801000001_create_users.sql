@@ -22,6 +22,9 @@ CREATE INDEX IF NOT EXISTS idx_users_active_goal ON users(active_goal_name);
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
+  -- Set search_path to empty string for security
+  SET search_path = '';
+  
   INSERT INTO public.users (id, handle, full_name, email, subscription_tier, created_at, avatar_url)
   VALUES (
     NEW.id,
@@ -52,8 +55,15 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own profile" ON users
   FOR SELECT USING (auth.uid() = id);
 
+-- Users can only update certain profile fields (NOT subscription_tier)
 CREATE POLICY "Users can update own profile" ON users  
-  FOR UPDATE USING (auth.uid() = id);
+  FOR UPDATE USING (auth.uid() = id)
+  WITH CHECK (
+    auth.uid() = id AND
+    -- Prevent users from modifying subscription_tier or id
+    subscription_tier = (SELECT subscription_tier FROM users WHERE id = auth.uid()) AND
+    id = auth.uid()
+  );
 
 -- Admin/system can insert users (for the trigger)
 CREATE POLICY "System can insert users" ON users
