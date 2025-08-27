@@ -84,34 +84,40 @@ func TestSanitizeText(t *testing.T) {
 			desc:     "Control characters should be removed",
 		},
 		{
-			name:     "potential SQL injection",
-			input:    "Apple'; DROP TABLE users; --",
-			expected: "Apple';  TABLE users; --",
-			desc:     "SQL keywords should be sanitized",
-		},
-		{
 			name:     "potential script injection",
 			input:    "Apple<script>alert('xss')</script>",
 			expected: "Apple",
-			desc:     "Script tags should be completely removed",
+			desc:     "Script tags should be completely removed by bluemonday",
 		},
 		{
 			name:     "javascript handler",
-			input:    "Apple onclick=alert('xss')",
-			expected: "Apple  alert('xss')",
-			desc:     "JavaScript handlers should be sanitized",
+			input:    "Apple<div onclick='alert(1)'>Brand</div>",
+			expected: "AppleBrand",
+			desc:     "HTML with JavaScript handlers should be sanitized",
 		},
 		{
-			name:     "case insensitive SQL",
-			input:    "Apple UNION SELECT * FROM users",
-			expected: "Apple   * FROM users",
-			desc:     "Case insensitive SQL patterns should be caught",
+			name:     "HTML tags removal",
+			input:    "Apple <b>Bold</b> <i>Italic</i> Brand",
+			expected: "Apple Bold Italic Brand",
+			desc:     "HTML tags should be removed, leaving text content",
 		},
 		{
-			name:     "legitimate text with SQL words",
+			name:     "complex HTML with potential XSS",
+			input:    "<div>Apple</div><script>alert('xss')</script><img src='x' onerror='alert(1)'>",
+			expected: "Apple",
+			desc:     "Complex HTML with XSS attempts should be completely sanitized",
+		},
+		{
+			name:     "SQL text in normal context",
 			input:    "I like to select apples from the store",
-			expected: "I like to  apples from the store",
-			desc:     "SQL words in context should be sanitized for safety",
+			expected: "I like to select apples from the store",
+			desc:     "Normal text with SQL-like words should be preserved (not a security risk in text content)",
+		},
+		{
+			name:     "mixed content",
+			input:    "Apple & <b>Brand</b> with special chars: <>\"'",
+			expected: "Apple &amp; Brand with special chars: &lt;&gt;&#34;&#39;",
+			desc:     "Mixed content should be properly escaped",
 		},
 	}
 
@@ -120,8 +126,8 @@ func TestSanitizeText(t *testing.T) {
 			result := sanitizeText(tt.input)
 			assert.Equal(t, tt.expected, result, tt.desc)
 
-			// Additional security checks - should not contain dangerous patterns
-			dangerousPatterns := []string{"script", "javascript", "vbscript", "select ", "union ", "drop ", "insert ", "update ", "delete "}
+			// Additional security checks - should not contain script tags or JavaScript
+			dangerousPatterns := []string{"<script", "javascript:", "vbscript:", "onclick=", "onerror=", "onload="}
 			lowerResult := strings.ToLower(result)
 			for _, pattern := range dangerousPatterns {
 				assert.NotContains(t, lowerResult, pattern, "Result should not contain dangerous pattern: %s", pattern)

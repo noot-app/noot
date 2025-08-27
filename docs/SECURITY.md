@@ -46,10 +46,41 @@ const (
 ```
 
 ### Output Sanitization
-- Control character removal
-- SQL injection pattern detection
-- XSS pattern filtering
-- Input length validation
+
+The application uses the **bluemonday** package for robust HTML/text sanitization:
+
+```go
+// Uses bluemonday's StrictPolicy for comprehensive sanitization
+var textSanitizer = bluemonday.StrictPolicy()
+
+func sanitizeText(text string) string {
+    // Remove control characters
+    text = strings.Map(func(r rune) rune {
+        if unicode.IsControl(r) && r != '\n' && r != '\r' && r != '\t' {
+            return -1
+        }
+        return r
+    }, text)
+
+    // Use bluemonday for comprehensive sanitization
+    sanitized := textSanitizer.Sanitize(text)
+    return strings.TrimSpace(sanitized)
+}
+```
+
+**Why bluemonday instead of manual regex patterns?**
+- Industry-standard HTML sanitizer used by major projects like GitHub
+- Comprehensive allowlist-based approach (defines what's safe vs. blocking known bad)
+- Actively maintained with regular security updates
+- Handles edge cases and encoding issues that manual regex patterns often miss
+- More robust than manual SQL injection detection patterns
+
+**Security measures:**
+- HTML tag removal and entity encoding
+- JavaScript handler prevention (onclick, onerror, etc.)
+- Script tag elimination
+- XSS attack prevention
+- Control character filtering
 
 ### Secure Logging
 - Transcript data is truncated in logs

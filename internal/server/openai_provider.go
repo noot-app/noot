@@ -11,10 +11,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/microcosm-cc/bluemonday"
 )
 
 // OpenAIProvider implements the AIProvider interface using OpenAI's API
@@ -141,9 +142,14 @@ func validateParsedItems(items []Item) []Item {
 	return validItems
 }
 
-// sanitizeText removes potentially dangerous characters from text fields
+// textSanitizer is a bluemonday policy for sanitizing text content
+// It allows only plain text and removes all HTML tags and potentially dangerous content
+var textSanitizer = bluemonday.StrictPolicy()
+
+// sanitizeText removes potentially dangerous characters and content from text fields
+// Uses bluemonday for robust, well-tested sanitization instead of manual regex patterns
 func sanitizeText(text string) string {
-	// Remove control characters
+	// Remove control characters first
 	text = strings.Map(func(r rune) rune {
 		if unicode.IsControl(r) && r != '\n' && r != '\r' && r != '\t' {
 			return -1
@@ -151,26 +157,16 @@ func sanitizeText(text string) string {
 		return r
 	}, text)
 
-	// Remove common SQL injection patterns (defense in depth)
-	dangerousPatterns := []string{
-		`(?i)(union|select|insert|update|delete|drop|create|alter|exec|execute)[\s\(]`,
-		`(?i)<script[^>]*>.*?</script>`, // Script tags
-		`(?i)<[^>]*script[^>]*>`,        // Any tag with script
-		`(?i)javascript[\s\(:)]`,
-		`(?i)vbscript[\s\(:)]`,
-		`(?i)on\w+\s*=`, // Event handlers
+	// Use bluemonday to sanitize the text
+	// StrictPolicy() removes all HTML tags and JavaScript, preventing XSS and other attacks
+	sanitized := textSanitizer.Sanitize(text)
+
+	// Log if sanitization changed the text (indicating potential attack)
+	if sanitized != text {
+		LogWarn("Potentially dangerous content detected and sanitized", "text_preview", truncateForLog(text))
 	}
 
-	for _, pattern := range dangerousPatterns {
-		re := regexp.MustCompile(pattern)
-		if re.MatchString(text) {
-			LogWarn("Potentially dangerous content detected in text, sanitizing", "text_preview", truncateForLog(text))
-			// Replace dangerous patterns with safe alternatives
-			text = re.ReplaceAllString(text, " ")
-		}
-	}
-
-	return strings.TrimSpace(text)
+	return strings.TrimSpace(sanitized)
 }
 
 // truncateForLog safely truncates text for logging without exposing sensitive data
