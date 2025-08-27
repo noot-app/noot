@@ -116,3 +116,9 @@ CREATE TABLE IF NOT EXISTS items (
 
 CREATE INDEX IF NOT EXISTS idx_items_normalized ON items(normalized_name, normalized_brand);
 CREATE INDEX IF NOT EXISTS idx_items_display_name ON items(display_name);
+
+-- Enable RLS to restrict public access
+ALTER TABLE items ENABLE ROW LEVEL SECURITY;
+
+-- No public policies - only service role can access this table
+-- This ensures items table is only accessible from the backend API
