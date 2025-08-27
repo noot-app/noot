@@ -11,8 +11,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // OpenAIProvider implements the AIProvider interface using OpenAI's API
@@ -61,6 +63,123 @@ func filterResponseForLogging(responseBody []byte) string {
 	}
 
 	return string(filtered)
+}
+
+// Security constants for input validation
+const (
+	maxTranscriptLength = 10000 // Maximum allowed transcript length
+	maxItemNameLength   = 200   // Maximum allowed item name length
+	maxBrandLength      = 100   // Maximum allowed brand name length
+)
+
+// sanitizeTranscriptOutput validates and sanitizes AI transcript output
+func sanitizeTranscriptOutput(text string) string {
+	// Limit length to prevent potential issues
+	if len(text) > maxTranscriptLength {
+		LogWarn("Transcript length exceeded maximum, truncating", "length", len(text), "max", maxTranscriptLength)
+		text = text[:maxTranscriptLength]
+	}
+
+	// Remove any control characters except common whitespace
+	sanitized := strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' || r == ' ' {
+			return r
+		}
+		if unicode.IsControl(r) {
+			return -1 // Remove control characters
+		}
+		return r
+	}, text)
+
+	// Trim whitespace
+	return strings.TrimSpace(sanitized)
+}
+
+// validateParsedItems performs security validation on parsed items from AI
+func validateParsedItems(items []Item) []Item {
+	validItems := make([]Item, 0, len(items))
+
+	for _, item := range items {
+		// Validate and sanitize item name
+		if len(item.Name) == 0 {
+			LogWarn("Skipping item with empty name")
+			continue
+		}
+		if len(item.Name) > maxItemNameLength {
+			LogWarn("Item name too long, truncating", "original_length", len(item.Name), "max", maxItemNameLength)
+			item.Name = item.Name[:maxItemNameLength]
+		}
+
+		// Sanitize item name
+		item.Name = sanitizeText(item.Name)
+
+		// Validate and sanitize brand if present
+		if item.Brand != nil {
+			if len(*item.Brand) > maxBrandLength {
+				LogWarn("Brand name too long, truncating", "original_length", len(*item.Brand), "max", maxBrandLength)
+				truncated := (*item.Brand)[:maxBrandLength]
+				item.Brand = &truncated
+			}
+			sanitized := sanitizeText(*item.Brand)
+			item.Brand = &sanitized
+		}
+
+		// Validate quantity values are reasonable
+		if item.Grams < 0 || item.Grams > 10000 { // 10kg max per item
+			LogWarn("Item grams value out of reasonable range", "name", item.Name, "grams", item.Grams)
+			item.Grams = 0 // Reset to safe default
+		}
+
+		if item.UserQuantity != nil && (*item.UserQuantity < 0 || *item.UserQuantity > 1000) {
+			LogWarn("User quantity out of reasonable range", "name", item.Name, "quantity", *item.UserQuantity)
+			item.UserQuantity = nil // Remove invalid value
+		}
+
+		validItems = append(validItems, item)
+	}
+
+	return validItems
+}
+
+// sanitizeText removes potentially dangerous characters from text fields
+func sanitizeText(text string) string {
+	// Remove control characters
+	text = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) && r != '\n' && r != '\r' && r != '\t' {
+			return -1
+		}
+		return r
+	}, text)
+
+	// Remove common SQL injection patterns (defense in depth)
+	dangerousPatterns := []string{
+		`(?i)(union|select|insert|update|delete|drop|create|alter|exec|execute)[\s\(]`,
+		`(?i)<script[^>]*>.*?</script>`, // Script tags
+		`(?i)<[^>]*script[^>]*>`,        // Any tag with script
+		`(?i)javascript[\s\(:)]`,
+		`(?i)vbscript[\s\(:)]`,
+		`(?i)on\w+\s*=`, // Event handlers
+	}
+
+	for _, pattern := range dangerousPatterns {
+		re := regexp.MustCompile(pattern)
+		if re.MatchString(text) {
+			LogWarn("Potentially dangerous content detected in text, sanitizing", "text_preview", truncateForLog(text))
+			// Replace dangerous patterns with safe alternatives
+			text = re.ReplaceAllString(text, " ")
+		}
+	}
+
+	return strings.TrimSpace(text)
+}
+
+// truncateForLog safely truncates text for logging without exposing sensitive data
+func truncateForLog(text string) string {
+	const maxLogLength = 50
+	if len(text) <= maxLogLength {
+		return text
+	}
+	return text[:maxLogLength] + "..."
 }
 
 func (p *OpenAIProvider) transcriptionPrompt() string {
@@ -141,7 +260,7 @@ func (p *OpenAIProvider) TranscribeAudio(ctx context.Context, filePath, mimeType
 
 	if strings.EqualFold(respFormat, "text") {
 		b, _ := io.ReadAll(resp.Body)
-		result := string(b)
+		result := sanitizeTranscriptOutput(string(b))
 		LogDebug("Transcription completed", "length", len(result))
 		return result, nil
 	}
@@ -153,13 +272,27 @@ func (p *OpenAIProvider) TranscribeAudio(ctx context.Context, filePath, mimeType
 		return "", NewAppError("Failed to parse transcription response", http.StatusInternalServerError, err)
 	}
 
-	LogDebug("Transcription completed", "length", len(out.Text))
-	return out.Text, nil
+	// Security: Validate and sanitize transcript output
+	sanitized := sanitizeTranscriptOutput(out.Text)
+	LogDebug("Transcription completed", "length", len(sanitized))
+	return sanitized, nil
 }
 
 // ParseItems implements AIProvider.ParseItems
 func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) (ParsedItems, error) {
-	LogDebug("Starting OpenAI ParseItems request", "transcript", transcriptText)
+	// Security: Validate input transcript length and content
+	if len(transcriptText) > maxTranscriptLength {
+		return ParsedItems{}, NewAppError("Transcript too long for processing", http.StatusBadRequest,
+			fmt.Errorf("transcript length %d exceeds maximum %d", len(transcriptText), maxTranscriptLength))
+	}
+
+	if len(strings.TrimSpace(transcriptText)) == 0 {
+		return ParsedItems{}, NewAppError("Empty transcript provided", http.StatusBadRequest,
+			fmt.Errorf("transcript cannot be empty"))
+	}
+
+	// Log with truncated transcript for security
+	LogDebug("Starting OpenAI ParseItems request", "transcript_preview", truncateForLog(transcriptText))
 
 	// Build input message as JSON
 	inputObj := map[string]string{
@@ -168,7 +301,8 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 	inputBytes, _ := json.Marshal(inputObj)
 	input := string(inputBytes)
 
-	LogDebug("Starting OpenAI ParseItems request", "transcript", transcriptText, "input_message", input)
+	// Security: Log truncated input to avoid exposing full transcript in logs
+	LogDebug("Sending OpenAI ParseItems request", "input_preview", truncateForLog(input))
 
 	// Get prompt configuration from environment variables
 	promptID := strings.TrimSpace(os.Getenv("OPENAI_PARSE_ITEMS_PROMPT_ID"))
@@ -331,7 +465,10 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 		})
 	}
 
-	LogDebug("Item parsing completed", "items_found", len(clean), "items", clean)
+	// Security: Validate and sanitize parsed items before returning
+	clean = validateParsedItems(clean)
+
+	LogDebug("Item parsing completed", "items_found", len(clean))
 	return ParsedItems{Items: clean}, nil
 }
 
@@ -342,7 +479,18 @@ func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteN
 
 // GetNutritionWithContext implements AIProvider.GetNutritionWithContext
 func (p *OpenAIProvider) GetNutritionWithContext(ctx context.Context, item Item, nutritionContext interface{}) (CompleteNutrient, error) {
-	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name)
+	// Security: Validate item input
+	if len(strings.TrimSpace(item.Name)) == 0 {
+		return CompleteNutrient{}, NewAppError("Item name cannot be empty", http.StatusBadRequest,
+			fmt.Errorf("item name is required"))
+	}
+
+	if len(item.Name) > maxItemNameLength {
+		return CompleteNutrient{}, NewAppError("Item name too long", http.StatusBadRequest,
+			fmt.Errorf("item name length %d exceeds maximum %d", len(item.Name), maxItemNameLength))
+	}
+
+	LogDebug("Starting OpenAI GetNutrition request", "item_name", truncateForLog(item.Name))
 
 	// Build input message as JSON
 	inputObj := map[string]any{
