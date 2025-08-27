@@ -145,11 +145,6 @@ func CORSMiddleware() gin.HandlerFunc {
 			baseHeaders := "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With"
 			allowedHeaders := baseHeaders
 
-			// Add development headers in development mode
-			if !IsProduction() {
-				allowedHeaders += ", X-Dev-User-ID"
-			}
-
 			// Add extra headers from environment variable (useful for testing production mode locally)
 			extraHeaders := getEnv("EXTRA_ACCESS_CONTROL_ALLOW_HEADERS", "")
 			if extraHeaders != "" {
@@ -226,61 +221,6 @@ func generateRequestID() string {
 	bytes := make([]byte, 6)
 	rand.Read(bytes)
 	return hex.EncodeToString(bytes)
-}
-
-// DevAuthMiddleware handles development-only user switching via headers
-// This middleware provides additional security safeguards to prevent accidental
-// enablement in production environments
-func DevAuthMiddleware(store storage.Store) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Security check - only allow dev auth in development
-		if IsProduction() {
-			LogWarn("Dev auth middleware called in production environment - blocking")
-			c.Next()
-			return
-		}
-
-		// Warn if production JWT config is set when using dev auth
-		jwtSecret := getEnv("SUPABASE_JWT_SECRET", "")
-		supabaseURL := getEnv("PUBLIC_SUPABASE_URL", "")
-		if jwtSecret != "" || supabaseURL != "" {
-			LogWarn("Production JWT configuration detected with dev auth - this may cause confusion")
-		}
-
-		// Check for development user override header
-		devUserID := c.GetHeader("X-Dev-User-ID")
-		if devUserID != "" {
-			var user *storage.User
-			var err error
-
-			// Resolve user based on dev user ID
-			switch devUserID {
-			case "monalisa":
-				user, err = store.GetUser(c.Request.Context(), DefaultUserID)
-			case "alice":
-				user, err = store.GetUser(c.Request.Context(), AliceUserID)
-			default:
-				LogWarn("Invalid dev user ID requested", "user_id", devUserID)
-				c.Next()
-				return
-			}
-
-			if err != nil {
-				LogError("Failed to get dev user", err, "user_id", devUserID)
-				c.Next()
-				return
-			}
-
-			if user != nil {
-				// Set the user in context for handlers to use
-				// TODO: When implementing Supabase auth, ensure this context key is consistent
-				c.Set("dev_user", user)
-				LogDebug("Dev user context set", "user_id", devUserID, "email", user.Email)
-			}
-		}
-
-		c.Next()
-	}
 }
 
 // SecurityHeadersMiddleware adds security headers to responses

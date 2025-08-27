@@ -3,7 +3,7 @@
   import { page } from '$app/stores';
   import { navigating } from '$app/stores';
   import { onMount } from 'svelte';
-  import { currentUser, getCurrentAuthMode } from '$lib/auth/store';
+  import { currentUser } from '$lib/auth/store';
   import { isSupabaseEnabled } from '$lib/supabase';
   
   let pageLoadTime = 0;
@@ -22,7 +22,7 @@
   
   function copyDebugInfo() {
     const userDisplay = $currentUser ? `${$currentUser.email} (${$currentUser.subscriptionTier.toUpperCase()})` : 'Not logged in';
-    const authType = getCurrentAuthMode() === 'supabase' ? 'Supabase' : 'Dev';
+    const authType = isSupabaseEnabled() ? 'Supabase' : 'Not Configured';
     const debugInfo = `
 Dev Info:
 - Route: ${$page.url.pathname}
@@ -181,11 +181,11 @@ Dev Info:
       </span>
       <span class="dev-separator">•</span>
       <span class="dev-item">
-        Auth: <strong class="auth-provider" class:supabase={getCurrentAuthMode() === 'supabase'} class:dev-auth={getCurrentAuthMode() === 'dev'}>
-          {getCurrentAuthMode() === 'supabase' ? 'Supabase' : 'Dev Mode'}
+        Auth: <strong class="auth-provider" class:supabase={isSupabaseEnabled()}>
+          {isSupabaseEnabled() ? 'Supabase' : 'Not Configured'}
         </strong>
-        {#if getCurrentAuthMode() === 'dev'}
-          <span class="security-warning" title="Development authentication is enabled - not suitable for production">⚠️</span>
+        {#if !isSupabaseEnabled()}
+          <span class="security-warning" title="Authentication is not properly configured">⚠️</span>
         {/if}
       </span>
       <span class="dev-separator">•</span>
@@ -334,14 +334,6 @@ Dev Info:
     padding: 0 3px;
     border-radius: 2px;
     border: 1px solid rgba(16, 185, 129, 0.3);
-  }
-  
-  .auth-provider.dev-auth {
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.1);
-    padding: 0 3px;
-    border-radius: 2px;
-    border: 1px solid rgba(251, 191, 36, 0.3);
   }
   
   .security-warning {

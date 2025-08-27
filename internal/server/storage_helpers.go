@@ -8,8 +8,8 @@ import (
 // This eliminates duplication between main.go and server.go
 func CreateDatabaseConfig() *storage.Config {
 	config := &storage.Config{
-		Type:     getenv("DATABASE_PROVIDER", "sqlite"),
-		Database: getenv("DATABASE_PATH", "./noot.db"),
+		Type:     getenv("DATABASE_PROVIDER", "supabase"),
+		Database: getenv("SUPABASE_DB_URL", ""),
 		Host:     getenv("DB_HOST", "localhost"),
 		Port:     getenvInt("DB_PORT", 5432),
 		Username: getenv("DB_USER", ""),

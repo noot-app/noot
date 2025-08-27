@@ -152,7 +152,7 @@ paths:
 
   /consumptions:
     get:
-      summary: List consumptions (development only)
+      summary: List consumptions
       description: Get a list of stored consumptions for the default user
       operationId: getConsumptions
       responses:
@@ -177,7 +177,7 @@ paths:
 
   /nutrition-summary:
     get:
-      summary: Get nutrition summary (development only)
+      summary: Get nutrition summary
       description: Get aggregated nutrition data over a time period
       operationId: getNutritionSummary
       parameters:

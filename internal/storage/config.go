@@ -7,10 +7,10 @@ import (
 
 // Config represents database configuration that can be used for different database types
 type Config struct {
-	Type     string // "sqlite" or "postgres"
+	Type     string // "postgres" or "supabase"
 	Host     string // For PostgreSQL
 	Port     int    // For PostgreSQL
-	Database string // Database name or file path for SQLite
+	Database string // Database connection string or name
 	Username string // For PostgreSQL
 	Password string // For PostgreSQL
 	SSLMode  string // For PostgreSQL
@@ -19,9 +19,7 @@ type Config struct {
 // NewStore creates a new store based on the configuration
 func NewStore(config *Config) (Store, error) {
 	switch config.Type {
-	case "sqlite", "":
-		return NewSQLiteStore(config.Database)
-	case "postgres", "supabase":
+	case "postgres", "supabase", "":
 		// Build PostgreSQL connection string
 		connStr := config.Database
 		if connStr == "" {
@@ -39,8 +37,8 @@ func NewStore(config *Config) (Store, error) {
 func NewStoreFromEnv() (Store, error) {
 	// This would read from environment variables like:
 	// DB_TYPE, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS, etc.
-	// For now, default to SQLite
-	return NewSQLiteStore("./noot.db")
+	// For now, return error as this needs proper implementation
+	return nil, fmt.Errorf("NewStoreFromEnv not implemented - use NewStore with proper Config")
 }
 
 // StoreManager provides additional store management functionality

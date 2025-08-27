@@ -38,9 +38,4 @@ bin/
 *.db-journal
 *.db-wal
 
-# SQLite connection strings that may be created accidentally
-*\?_fk=on*
-*\?*journal_mode*
-
-
 main

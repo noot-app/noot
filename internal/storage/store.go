@@ -56,9 +56,6 @@ type Store interface {
 
 	// Database lifecycle
 	Close() error
-	Migrate() error
-	Seed() error
-	Reset() error
 }
 
 // User represents a user in the system

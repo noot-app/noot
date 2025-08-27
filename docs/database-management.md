@@ -1,160 +1,126 @@
 # Database Management System
 
-This document describes the dual database management system that supports both SQLite (for development) and PostgreSQL/Supabase (for production and local testing).
+This document describes the database management system that uses Supabase/PostgreSQL for all environments (development and production).
 
 ## Overview
 
-The Noot application now supports two database providers:
+The Noot application uses **Supabase/PostgreSQL** exclusively:
 
-- **SQLite**: Default for local development - simple, no setup required
-- **Supabase/PostgreSQL**: For production and local Supabase development stack
+- **Local Development**: Use Supabase CLI to run a local PostgreSQL instance
+- **Production**: Connect to hosted Supabase/PostgreSQL database
 
 ## Environment Variables
 
 | Variable | Description | Default | Examples |
 |----------|-------------|---------|----------|
-| `DATABASE_PROVIDER` | Database provider to use | `sqlite` | `sqlite`, `supabase` |
-| `DATABASE_PATH` | SQLite database file path | `./noot.db` | `./dev.db`, `:memory:` |
+| `DATABASE_PROVIDER` | Database provider to use | `supabase` | `supabase`, `postgres` |
 | `SUPABASE_DB_URL` | PostgreSQL connection string | - | `postgresql://user:pass@host:5432/db?sslmode=disable` |
 | `PUBLIC_SUPABASE_URL` | Supabase API URL | - | `http://localhost:54321` (local) or `https://xxx.supabase.co` (cloud) |
 | `ENV` | Application environment | `production` | `development`, `production` |
 
 ## Database Manager Script
 
-The `script/db` provides unified management for both database types with **server-free execution** for fast operations.
+The `script/db` provides unified management for Supabase/PostgreSQL databases with **server-free execution** for fast operations.
 
 ### Usage
 
 ```bash
-script/db [provider] {command}
+script/db {command}
 ```
 
 **Note:** All database commands run without starting the HTTP server, making them fast and port-conflict free.
 
-### Providers
-
-- `sqlite` - SQLite operations (default when no provider specified)
-- `supabase` - Supabase PostgreSQL operations (works with both local and cloud)
-
 ### Commands
 
-| Command | Description | SQLite | Supabase | Performance |
-|---------|-------------|--------|----------|-------------|
-| `reset` | Drop all tables and re-run migrations | ✅ | ✅ | Fast (migration-only) |
-| `migrate` | Run migrations only | ✅ | ✅ | ⚡ Very Fast (migration-only) |
-| `seed` | Add development seed data | ✅ | ⚠️ | Fast |
-| `dump` | Show database content | ✅ | ✅ | ⚡ Very Fast (direct SQL) |
-| `validate` | Check schema compatibility | ✅ | ✅ | ⚡ Very Fast (direct SQL) |
-| `setup` | Initial setup/connection test | - | ✅ | ⚡ Very Fast (direct SQL) |
-| `compare` | Compare SQLite and PostgreSQL schemas | ✅ (cross-provider) | | Fast |
+| Command | Description | Supabase | Performance |
+|---------|-------------|----------|-------------|
+| `reset` | Drop all tables and re-run migrations | ✅ | Fast (migration-only) |
+| `--clean` | Full clean reset: stop Supabase, restart, and run all migrations + seed | ✅ | Fast |
+| `--quick` | Quick reset: reset database without restarting services, run migrations + seed | ✅ | ⚡ Very Fast |
 
-**Performance Note:** All commands use optimized execution paths (direct SQL or `--migrate-only` flag) to avoid HTTP server startup.
+**Performance Note:** All commands use optimized execution paths to avoid HTTP server startup.
 
 ### Examples
 
 ```bash
-# SQLite operations (default provider)
-script/db reset              # Reset SQLite database
-script/db sqlite migrate     # Explicitly use SQLite for migrations
-script/db sqlite seed        # Add development data
-script/db sqlite dump        # Show database content
-
 # Supabase operations (local or cloud)
-script/db supabase setup     # Test Supabase connection
-script/db supabase migrate   # Run PostgreSQL migrations (fast, no server)
-script/db supabase dump      # Show Supabase content
-script/db supabase validate  # Validate schema (fast, no server)
-
-# Cross-database operations
-script/db compare            # Compare schemas
+script/db --clean            # Full reset: stop Supabase, restart, and run migrations + seed
+script/db --quick            # Quick reset without restarting services
+script/db reset              # Run supabase db reset on local development database
+script/db reset --production # Run supabase db reset on linked production database (with warning)
 ```
 
 ## Development Workflow
 
-### Local Development (SQLite - Default)
+### Local Development with Supabase CLI
 
-1. **Setup**: No additional setup required
+1. **Setup**: Install Supabase CLI and start local stack
 
    ```bash
-   script/db reset    # Creates and migrates database
-   script/db seed     # Adds sample data
+   # Install Supabase CLI (if not already installed)
+   brew install supabase/tap/supabase
+   
+   # Start local Supabase stack (includes PostgreSQL)
+   supabase start
    ```
 
 2. **Daily use**:
 
    ```bash
-   script/db dump     # View data
-   script/db reset    # Fresh start
+   script/db --quick   # Quick reset without restarting services
+   script/db --clean   # Full reset: stop Supabase, restart, and run migrations + seed
    
    # Existing workflow still works:
    script/server --clean  # Reset, seed, and start server
    ```
 
-### Local Supabase Development
+### Supabase Configuration
 
-For production-like environment testing with local Supabase stack.
+Configure your environment variables (`.env`):
 
-#### Quick Start
+```ini
+DATABASE_PROVIDER=supabase
+PUBLIC_SUPABASE_URL=http://localhost:54321
+SUPABASE_DB_URL=postgresql://postgres:postgres@localhost:54322/postgres?sslmode=disable
+```
 
-1. **Start Supabase** (automatically runs migrations + seeds):
+### Running the Development Server
 
-   ```bash
-   supabase start
-   # Services available at:
-   # - API: http://localhost:54321
-   # - DB: postgresql://postgres:postgres@localhost:54322/postgres  
-   # - Studio: http://localhost:54323
-   ```
+```bash
+script/server                 # Start server (database already seeded)
+# OR reset if needed:
+script/server --clean         # Reset database and start server  
+```
 
-2. **Configure Environment** (`.env`):
+### Seeding Process
 
-   ```ini
-   DATABASE_PROVIDER=supabase
-   PUBLIC_SUPABASE_URL=http://localhost:54321
-   SUPABASE_DB_URL=postgresql://postgres:postgres@localhost:54322/postgres?sslmode=disable
-   ```
+The system uses Supabase's built-in `supabase/seed.sql` file which automatically runs after migrations. This provides a clean and maintainable seeding approach.
 
-3. **Start Development Server**:
-
-   ```bash
-   script/server                 # Start server (database already seeded)
-   # OR reset if needed:
-   script/server --clean         # Quick reset & start server  
-   script/server --clean-full    # Full Supabase restart & start server
-   ```
-
-#### Seeding Process
-
-The system now uses Supabase's built-in `supabase/seed.sql` file which automatically runs after migrations. This provides a much cleaner and more maintainable seeding approach compared to the previous manual Admin API method.
-
-**Benefits of the new approach:**
+**Benefits of this approach:**
 
 - Uses official Supabase seeding mechanism
 - Automatically runs with `supabase start` and `supabase db reset`
-- No complex Admin API calls or error handling needed
 - Consistent with Supabase best practices
 
-#### Development Commands
+### Development Commands
 
 | Command | Speed | Description |
 |---------|-------|-------------|
-| `script/server --clean` | ⚡ Fast | Quick table reset, reseed, start server |
-| `script/server --clean-full` | 🐌 Slow | Full Supabase restart, reseed, start server |
-| `script/supabase-seed --quick` | ⚡ Fast | Clear tables, reseed users only |
-| `script/supabase-seed --clean` | 🐌 Slow | Stop/restart Supabase, reseed users |
+| `script/server --clean` | ⚡ Fast | Reset database and start server |
+| `script/db --quick` | ⚡ Fast | Quick database reset without restarting services |
+| `script/db --clean` | 🐌 Slow | Full Supabase restart and database reset |
 
-#### Seeded Test Users
+### Seeded Test Users
 
-Both reset commands create these test users:
+Database reset commands create these test users:
 
 - `monalisa@birki.io` / `password123` (pro tier)
 - `alice@birki.io` / `password123` (free tier)
 
-#### Key Benefits
+### Key Benefits
 
-- **Quick iteration**: `--clean` keeps services running (5-10x faster)
-- **Full reset**: `--clean-full` when you need completely fresh state
-- **Auth integration**: Proper Supabase auth + application user sync
+- **Quick iteration**: `--quick` keeps services running (5-10x faster)
+- **Full reset**: `--clean` when you need completely fresh state
 - **Production-like**: PostgreSQL features, RLS, auth flows
 
 ### Cloud Supabase Production Testing
@@ -172,8 +138,6 @@ For testing against your production Supabase instance:
 3. **Initialize**:
 
    ```bash
-   script/db supabase setup      # Test connection
-   script/db supabase migrate    # Run migrations
    script/server                 # Start with cloud database
    ```
 

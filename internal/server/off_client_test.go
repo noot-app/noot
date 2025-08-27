@@ -18,6 +18,12 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
+// flexFloatPtr creates a pointer to a FlexFloat for tests
+func flexFloatPtr(f float64) *FlexFloat {
+	ff := FlexFloat(f)
+	return &ff
+}
+
 func TestNewOFFClient(t *testing.T) {
 	tests := []struct {
 		name    string

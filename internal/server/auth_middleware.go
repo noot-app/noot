@@ -311,15 +311,7 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 			if env == "development" {
 				jwtSecret := getEnv("SUPABASE_JWT_SECRET", "")
 				if jwtSecret != "" {
-					// Check if we already have a dev user set by DevAuthMiddleware
-					if devUser, exists := c.Get("dev_user"); exists {
-						// We have dev auth active - use that instead of JWT validation
-						LogDebug("Using dev auth user instead of JWT validation")
-						c.Set("auth_user", devUser)
-						c.Next()
-						return
-					}
-					// If JWT secret is configured and no dev user, use JWT auth
+					// If JWT secret is configured in development, use JWT auth
 					LogWarn("JWT secret configured in development - enforcing JWT authentication")
 					isProduction = true
 				} else {
@@ -658,21 +650,11 @@ func isValidEmail(email string) bool {
 }
 
 // GetAuthenticatedUser extracts the authenticated user from Gin context
-// Works with both dev auth and JWT auth middleware
 func GetAuthenticatedUser(c *gin.Context) *storage.User {
-	// Check for JWT auth user first (production)
+	// Check for JWT auth user
 	if user, exists := c.Get("auth_user"); exists {
 		if authUser, ok := user.(*storage.User); ok {
 			return authUser
-		}
-	}
-
-	// Fall back to dev auth user (development only)
-	if !IsProduction() {
-		if user, exists := c.Get("dev_user"); exists {
-			if devUser, ok := user.(*storage.User); ok {
-				return devUser
-			}
 		}
 	}
 

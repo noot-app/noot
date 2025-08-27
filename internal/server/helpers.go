@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,14 +17,7 @@ type DateRangeParams struct {
 	Days      int
 }
 
-// getDefaultUser retrieves the default user for development/demo purposes
-// Uses direct UUID lookup instead of subject/provider pattern
-func getDefaultUser(ctx context.Context, store storage.Store) (*storage.User, error) {
-	return store.GetUser(ctx, storage.DefaultSeedUserID)
-}
-
 // getCurrentUser retrieves the current authenticated user from context
-// Works with both dev auth (development) and JWT auth (production)
 func getCurrentUser(c *gin.Context, store storage.Store) (*storage.User, error) {
 	user := GetAuthenticatedUser(c)
 	if user != nil {

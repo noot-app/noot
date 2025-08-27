@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +17,7 @@ func Run(ctx context.Context, port string) error {
 	if err := validateSecurityConfiguration(); err != nil {
 		return fmt.Errorf("security configuration validation failed: %w", err)
 	}
-	
+
 	// Initialize storage using shared config creation function
 	config := CreateDatabaseConfig()
 
@@ -27,24 +26,6 @@ func Run(ctx context.Context, port string) error {
 		return fmt.Errorf("failed to initialize storage: %w", err)
 	}
 	defer store.Close()
-
-	// Run migrations (skip for Supabase as it manages its own migrations)
-	// TODO rather than doing this, we could add a flag to NewStore to indicate whether to run migrations
-	// or have a separate method on the Store interface to indicate if migrations should be run
-	if config.Type != "supabase" {
-		if err := store.Migrate(); err != nil {
-			return fmt.Errorf("failed to run migrations: %w", err)
-		}
-	}
-
-	// Run seeding in development
-	devSeed := strings.ToLower(getenv("DEV_DB_SEED", "false")) == "true"
-	if !IsProduction() || devSeed {
-		if err := store.Seed(); err != nil {
-			LogError("Failed to seed database", err)
-			// Don't fail startup on seed error, just log it
-		}
-	}
 
 	// Set Gin mode
 	if !IsProduction() {
@@ -65,10 +46,7 @@ func Run(ctx context.Context, port string) error {
 	r.Use(StoreMiddleware(store))
 
 	// Authentication middleware
-	if !IsProduction() {
-		r.Use(DevAuthMiddleware(store)) // Handles development auth via X-Dev-User-ID header in development only
-	}
-	r.Use(JWTAuthMiddleware(store)) // Handles production auth via JWT tokens
+	r.Use(JWTAuthMiddleware(store)) // Handles Supabase auth via JWT tokens
 
 	// Create API server
 	apiServer, err := NewAPIServer(store)
@@ -153,16 +131,11 @@ func validateSecurityConfiguration() error {
 		}
 	}
 
-	// Warn about dev auth in production environments
-	if IsProduction() {
-		LogWarn("Production environment detected - ensure dev auth is properly disabled")
-	}
-
-	// Validate environment consistency in development
+	// Validate environment consistency
 	if !IsProduction() {
 		jwtSecret := getenv("SUPABASE_JWT_SECRET", "")
 		if jwtSecret != "" {
-			LogWarn("JWT secret configured in development - authentication will use JWT instead of dev auth")
+			LogInfo("JWT secret configured - using Supabase authentication")
 		}
 	}
 
