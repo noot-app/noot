@@ -3,18 +3,7 @@ package server
 import (
 	"context"
 	"errors"
-	"testing"
 )
-
-func TestNutritionService_OFF_Integration(t *testing.T) {
-	// Skip this test as it requires SQLite which has been removed
-	t.Skip("Skipping test that requires SQLite - SQLite support removed")
-}
-
-func TestNutritionService_OFF_Disabled(t *testing.T) {
-	// Skip this test as it requires SQLite which has been removed
-	t.Skip("Skipping test that requires SQLite - SQLite support removed")
-}
 
 // Mock AI provider for testing
 type mockAIProvider struct {
@@ -43,14 +32,4 @@ func (m *mockAIProvider) GetNutritionWithContext(ctx context.Context, item Item,
 		return CompleteNutrient{}, errors.New("mock error")
 	}
 	return m.nutritionResponse, nil
-}
-
-func TestNutritionService_OFF_ServingSizeContext(t *testing.T) {
-	// Skip this test as it requires SQLite which has been removed
-	t.Skip("Skipping test that requires SQLite - SQLite support removed")
-}
-
-func TestNutritionService_OFF_AdditionalFieldsContext(t *testing.T) {
-	// Skip this test as it requires SQLite which has been removed
-	t.Skip("Skipping test that requires SQLite - SQLite support removed")
 }

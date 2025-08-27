@@ -8,22 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIServer_GetHealth(t *testing.T) {
-	// Skip this test as it requires SQLite which has been removed
-	t.Skip("Skipping test that requires SQLite - SQLite support removed")
-}
-
-func TestNewAPIServer(t *testing.T) {
-	// Skip this test as it requires SQLite which has been removed
-	t.Skip("Skipping test that requires SQLite - SQLite support removed")
-}
-
 func TestCreateDatabaseConfig(t *testing.T) {
 	tests := []struct {
-		name     string
-		setupEnv func()
+		name       string
+		setupEnv   func()
 		cleanupEnv func()
-		expected storage.Config
+		expected   storage.Config
 	}{
 		{
 			name: "default configuration",
@@ -57,7 +47,7 @@ func TestCreateDatabaseConfig(t *testing.T) {
 			},
 			expected: storage.Config{
 				Type:     "postgres",
-				Database: "", 
+				Database: "",
 				Host:     "testhost",
 				Port:     5433,
 				Username: "testuser",
