@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 
 /**
  * Supabase auth provider for production authentication
- * Implements the AuthProvider interface for seamless switching between dev and prod auth
+ * Implements the AuthProvider interface
  */
 export class SupabaseAuthProvider implements AuthProvider {
 	constructor() {

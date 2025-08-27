@@ -31,7 +31,7 @@ type ServerInterface interface {
 	// Update a consumption record
 	// (PUT /consumption/{id})
 	UpdateConsumption(c *gin.Context, id string)
-	// List consumptions (development only)
+	// List consumptions
 	// (GET /consumptions)
 	GetConsumptions(c *gin.Context)
 	// Export nutrition data (Pro only)
@@ -55,7 +55,7 @@ type ServerInterface interface {
 	// Health check
 	// (GET /health)
 	GetHealth(c *gin.Context)
-	// Get nutrition summary (development only)
+	// Get nutrition summary
 	// (GET /nutrition-summary)
 	GetNutritionSummary(c *gin.Context, params GetNutritionSummaryParams)
 	// Get nutrition trends

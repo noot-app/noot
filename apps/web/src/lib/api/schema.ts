@@ -76,7 +76,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List consumptions (development only)
+         * List consumptions
          * @description Get a list of stored consumptions for the default user
          */
         get: operations["getConsumptions"];
@@ -96,7 +96,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get nutrition summary (development only)
+         * Get nutrition summary
          * @description Get aggregated nutrition data over a time period
          */
         get: operations["getNutritionSummary"];
