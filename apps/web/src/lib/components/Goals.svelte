@@ -73,7 +73,8 @@
   // All nutrients to display - organized by category for complete DRI coverage
   const keyNutrients = [
     // Essential macronutrients
-    "calories", "protein_g", "total_carbs_g", "total_fat_g", "saturated_fat_g", "trans_fat_g", "dietary_fiber_g", "total_sugars_g", "added_sugars_g", "cholesterol_mg", "sodium_mg",
+    "calories", "protein_g", "total_carbs_g", "total_fat_g", "saturated_fat_g", "trans_fat_g", "monounsaturated_fat_g", "polyunsaturated_fat_g", 
+    "omega3_ala_g", "omega3_epa_g", "omega3_dha_g", "omega6_g", "dietary_fiber_g", "total_sugars_g", "added_sugars_g", "cholesterol_mg", "sodium_mg", "alcohol_g",
     
     // B-Complex vitamins
     "thiamine_mg", "riboflavin_mg", "niacin_mg", "vitamin_b6_mg", "folate_mcg", "vitamin_b12_mcg", "biotin_mcg", "pantothenic_acid_mg",
@@ -85,7 +86,10 @@
     "vitamin_c_mg", "choline_mg",
     
     // Essential minerals
-    "calcium_mg", "iron_mg", "magnesium_mg", "phosphorus_mg", "potassium_mg", "zinc_mg", "copper_mg", "manganese_mg", "selenium_mcg", "iodine_mcg", "molybdenum_mcg", "chromium_mcg", "fluoride_mg", "chloride_mg"
+    "calcium_mg", "iron_mg", "magnesium_mg", "phosphorus_mg", "potassium_mg", "zinc_mg", "copper_mg", "manganese_mg", "selenium_mcg", "iodine_mcg", "molybdenum_mcg", "chromium_mcg", "fluoride_mg", "chloride_mg",
+    
+    // Other compounds
+    "caffeine_mg", "creatine_mg"
   ];
 </script>
 

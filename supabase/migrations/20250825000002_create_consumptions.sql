@@ -45,6 +45,18 @@ CREATE TABLE IF NOT EXISTS consumptions (
     chromium_mcg REAL NOT NULL DEFAULT 0,
     fluoride_mg REAL NOT NULL DEFAULT 0,
     chloride_mg REAL NOT NULL DEFAULT 0,
+    omega3_ala_g REAL NOT NULL DEFAULT 0,
+    omega3_epa_g REAL NOT NULL DEFAULT 0,
+    omega3_dha_g REAL NOT NULL DEFAULT 0,
+    omega6_g REAL NOT NULL DEFAULT 0,
+    creatine_mg REAL NOT NULL DEFAULT 0,
+    caffeine_mg REAL NOT NULL DEFAULT 0,
+    alcohol_g REAL NOT NULL DEFAULT 0,
+    polyunsaturated_fat_g REAL NOT NULL DEFAULT 0,
+    monounsaturated_fat_g REAL NOT NULL DEFAULT 0,
+    -- Additional metadata fields
+    note TEXT CONSTRAINT consumptions_note_length_check CHECK (LENGTH(note) <= 1000),
+    label TEXT CONSTRAINT consumptions_label_length_check CHECK (LENGTH(label) <= 63),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE, -- When the consumption was last modified
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

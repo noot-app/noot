@@ -54,6 +54,15 @@ func GetNutrientFields() []NutrientField {
 		{"chromium_mcg_per_100g", "ChromiumMcgPer100g"},
 		{"fluoride_mg_per_100g", "FluorideMgPer100g"},
 		{"chloride_mg_per_100g", "ChlorideMgPer100g"},
+		{"monounsaturated_fat_g_per_100g", "MonounsaturatedFatGPer100g"},
+		{"polyunsaturated_fat_g_per_100g", "PolyunsaturatedFatGPer100g"},
+		{"omega3_ala_g_per_100g", "Omega3AlaGPer100g"},
+		{"omega3_epa_g_per_100g", "Omega3EpaGPer100g"},
+		{"omega3_dha_g_per_100g", "Omega3DhaGPer100g"},
+		{"omega6_g_per_100g", "Omega6GPer100g"},
+		{"alcohol_g_per_100g", "AlcoholGPer100g"},
+		{"caffeine_mg_per_100g", "CaffeineMgPer100g"},
+		{"creatine_mg_per_100g", "CreatineMgPer100g"},
 	}
 
 	originalFields := []NutrientField{
@@ -97,6 +106,15 @@ func GetNutrientFields() []NutrientField {
 		{"original_chromium_mcg", "OriginalChromiumMcg"},
 		{"original_fluoride_mg", "OriginalFluorideMg"},
 		{"original_chloride_mg", "OriginalChlorideMg"},
+		{"original_monounsaturated_fat_g", "OriginalMonounsaturatedFatG"},
+		{"original_polyunsaturated_fat_g", "OriginalPolyunsaturatedFatG"},
+		{"original_omega3_ala_g", "OriginalOmega3AlaG"},
+		{"original_omega3_epa_g", "OriginalOmega3EpaG"},
+		{"original_omega3_dha_g", "OriginalOmega3DhaG"},
+		{"original_omega6_g", "OriginalOmega6G"},
+		{"original_alcohol_g", "OriginalAlcoholG"},
+		{"original_caffeine_mg", "OriginalCaffeineMg"},
+		{"original_creatine_mg", "OriginalCreatineMg"},
 	}
 
 	// Combine both sets

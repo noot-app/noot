@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"embed"
 	"fmt"
 	"strings"
 	"time"
@@ -11,8 +10,6 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
-
-var postgresMigrationFiles embed.FS
 
 // PostgreSQLStore implements the Store interface using PostgreSQL
 type PostgreSQLStore struct {
@@ -173,11 +170,15 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 			calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
 			zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg,
 			molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg,
+			omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
+			creatine_mg, caffeine_mg, alcohol_g,
+			polyunsaturated_fat_g, monounsaturated_fat_g,
 			created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
 			$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
-			$31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44
+			$31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44,
+			$45, $46, $47, $48, $49, $50, $51, $52, $53
 		)`
 
 	_, err := s.db.ExecContext(ctx, query,
@@ -195,6 +196,9 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 		consumption.Zinc, consumption.Copper, consumption.Manganese,
 		consumption.Selenium, consumption.Iodine, consumption.Molybdenum,
 		consumption.Chromium, consumption.Fluoride, consumption.Chloride,
+		consumption.Omega3Ala, consumption.Omega3Epa, consumption.Omega3Dha,
+		consumption.Omega6, consumption.Creatine, consumption.Caffeine, consumption.Alcohol,
+		consumption.PolyunsaturatedFat, consumption.MonounsaturatedFat,
 		consumption.CreatedAt, consumption.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create consumption: %w", err)
@@ -215,6 +219,9 @@ func (s *PostgreSQLStore) GetConsumption(ctx context.Context, id string) (*Consu
 			   calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
 			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg,
 			   molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg,
+			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
+			   creatine_mg, caffeine_mg, alcohol_g,
+			   polyunsaturated_fat_g, monounsaturated_fat_g,
 			   created_at, updated_at
 		FROM consumptions WHERE id = $1`
 
@@ -234,6 +241,9 @@ func (s *PostgreSQLStore) GetConsumption(ctx context.Context, id string) (*Consu
 		&consumption.Zinc, &consumption.Copper, &consumption.Manganese,
 		&consumption.Selenium, &consumption.Iodine, &consumption.Molybdenum,
 		&consumption.Chromium, &consumption.Fluoride, &consumption.Chloride,
+		&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
+		&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
+		&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
 		&consumption.CreatedAt, &consumption.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -311,6 +321,9 @@ func (s *PostgreSQLStore) GetConsumptionsByUser(ctx context.Context, userID stri
 			   calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
 			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg,
 			   molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg,
+			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
+			   creatine_mg, caffeine_mg, alcohol_g,
+			   polyunsaturated_fat_g, monounsaturated_fat_g,
 			   created_at, updated_at
 		FROM consumptions 
 		WHERE user_id = $1 
@@ -341,6 +354,9 @@ func (s *PostgreSQLStore) GetConsumptionsByUser(ctx context.Context, userID stri
 			&consumption.Zinc, &consumption.Copper, &consumption.Manganese,
 			&consumption.Selenium, &consumption.Iodine, &consumption.Molybdenum,
 			&consumption.Chromium, &consumption.Fluoride, &consumption.Chloride,
+			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
+			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
+			&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
 			&consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
@@ -367,6 +383,9 @@ func (s *PostgreSQLStore) GetConsumptionsByUserSince(ctx context.Context, userID
 			   calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
 			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg,
 			   molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg,
+			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
+			   creatine_mg, caffeine_mg, alcohol_g,
+			   polyunsaturated_fat_g, monounsaturated_fat_g,
 			   created_at, updated_at
 		FROM consumptions 
 		WHERE user_id = $1 AND created_at >= $2
@@ -396,6 +415,9 @@ func (s *PostgreSQLStore) GetConsumptionsByUserSince(ctx context.Context, userID
 			&consumption.Zinc, &consumption.Copper, &consumption.Manganese,
 			&consumption.Selenium, &consumption.Iodine, &consumption.Molybdenum,
 			&consumption.Chromium, &consumption.Fluoride, &consumption.Chloride,
+			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
+			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
+			&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
 			&consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
@@ -446,7 +468,24 @@ func (s *PostgreSQLStore) GetNutritionSummary(ctx context.Context, userID string
 			COALESCE(SUM(zinc_mg), 0) as total_zinc,
 			COALESCE(SUM(copper_mg), 0) as total_copper,
 			COALESCE(SUM(manganese_mg), 0) as total_manganese,
-			COALESCE(SUM(selenium_mcg), 0) as total_selenium
+			COALESCE(SUM(selenium_mcg), 0) as total_selenium,
+			COALESCE(SUM(iodine_mcg), 0) as total_iodine,
+			COALESCE(SUM(molybdenum_mcg), 0) as total_molybdenum,
+			COALESCE(SUM(chromium_mcg), 0) as total_chromium,
+			COALESCE(SUM(fluoride_mg), 0) as total_fluoride,
+			COALESCE(SUM(chloride_mg), 0) as total_chloride,
+			COALESCE(SUM(biotin_mcg), 0) as total_biotin,
+			COALESCE(SUM(pantothenic_acid_mg), 0) as total_pantothenic_acid,
+			COALESCE(SUM(choline_mg), 0) as total_choline,
+			COALESCE(SUM(omega3_ala_g), 0) as total_omega3_ala,
+			COALESCE(SUM(omega3_epa_g), 0) as total_omega3_epa,
+			COALESCE(SUM(omega3_dha_g), 0) as total_omega3_dha,
+			COALESCE(SUM(omega6_g), 0) as total_omega6,
+			COALESCE(SUM(creatine_mg), 0) as total_creatine,
+			COALESCE(SUM(caffeine_mg), 0) as total_caffeine,
+			COALESCE(SUM(alcohol_g), 0) as total_alcohol,
+			COALESCE(SUM(polyunsaturated_fat_g), 0) as total_polyunsaturated_fat,
+			COALESCE(SUM(monounsaturated_fat_g), 0) as total_monounsaturated_fat
 		FROM consumptions 
 		WHERE user_id = $1 AND created_at >= $2 AND created_at <= $3`
 
@@ -484,6 +523,23 @@ func (s *PostgreSQLStore) GetNutritionSummary(ctx context.Context, userID string
 		&summary.TotalCopper,
 		&summary.TotalManganese,
 		&summary.TotalSelenium,
+		&summary.TotalIodine,
+		&summary.TotalMolybdenum,
+		&summary.TotalChromium,
+		&summary.TotalFluoride,
+		&summary.TotalChloride,
+		&summary.TotalBiotin,
+		&summary.TotalPantothenicAcid,
+		&summary.TotalCholine,
+		&summary.TotalOmega3Ala,
+		&summary.TotalOmega3Epa,
+		&summary.TotalOmega3Dha,
+		&summary.TotalOmega6,
+		&summary.TotalCreatine,
+		&summary.TotalCaffeine,
+		&summary.TotalAlcohol,
+		&summary.TotalPolyunsaturatedFat,
+		&summary.TotalMonounsaturatedFat,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nutrition summary totals: %w", err)

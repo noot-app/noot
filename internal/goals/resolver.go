@@ -228,6 +228,8 @@ func (r *GoalResolver) extractNutrientValues(data map[string]interface{}, goals 
 		"saturated_fat_g": true,
 		"trans_fat_g":     true,
 		"cholesterol_mg":  true,
+		"alcohol_g":       true,
+		"caffeine_mg":     true,
 	}
 
 	for nutrient, valueData := range data {
@@ -337,6 +339,8 @@ func (r *GoalResolver) addDVNutrients(goals *Goals) {
 		"saturated_fat_g": true,
 		"trans_fat_g":     true,
 		"cholesterol_mg":  true,
+		"alcohol_g":       true,
+		"caffeine_mg":     true,
 	}
 
 	for dvKey, apiKey := range dvNutrients {
@@ -396,6 +400,20 @@ func (r *GoalResolver) addDVNutrients(goals *Goals) {
 		// AHA recommendation: <300mg per day
 		goals.UpperLimits["cholesterol_mg"] = 300
 		goals.Units["cholesterol_mg"] = "mg"
+	}
+
+	// Add upper limits for functional compounds
+	if _, exists := goals.UpperLimits["alcohol_g"]; !exists {
+		// Moderate drinking guidelines: up to 14g per day for women, 28g for men
+		// Using 14g as conservative limit (equivalent to 1 standard drink)
+		goals.UpperLimits["alcohol_g"] = 14
+		goals.Units["alcohol_g"] = "g"
+	}
+
+	if _, exists := goals.UpperLimits["caffeine_mg"]; !exists {
+		// FDA guideline: up to 400mg per day for healthy adults
+		goals.UpperLimits["caffeine_mg"] = 400
+		goals.Units["caffeine_mg"] = "mg"
 	}
 }
 
