@@ -69,7 +69,7 @@ on public.profiles
 for select
 using (auth.uid() = id);
 
--- Each user can update their own profile (but not subscription_tier)
+-- Each user can update their own profile (but not subscription_tier or id)
 create policy "Users can update their own profile"
 on public.profiles
 for update
