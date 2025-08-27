@@ -1,12 +1,36 @@
 /* Hero Landing Page Component Styles */
 
 /* Global overflow prevention */
-:global(html, body) {
+:global(html),
+:global(body) {
   overflow-x: hidden;
+  /* Improve mobile scroll performance */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Optimize mobile touch scrolling */
+:global(body) {
+  touch-action: pan-y;
+}
+
+/* Mobile-specific global optimizations */
+@media (max-width: 768px) {
+  :global(html),
+  :global(body) {
+    /* Use browser's native scroll behavior on mobile */
+    -webkit-overflow-scrolling: auto;
+    scroll-behavior: auto;
+  }
 }
 
 /* Navbar z-index management */
-:global(nav, .navbar, header, .navbar-start, .navbar-center, .navbar-end) {
+:global(nav),
+:global(.navbar),
+:global(header),
+:global(.navbar-start),
+:global(.navbar-center),
+:global(.navbar-end) {
   position: relative;
   z-index: 1000 !important;
 }
@@ -15,6 +39,16 @@
 .hero-content {
   position: relative;
   z-index: 2;
+}
+
+/* Mobile-specific hero content optimizations */
+@media (max-width: 768px) {
+  .hero-content {
+    /* Remove problematic transforms on mobile */
+    will-change: auto;
+    -webkit-transform: none;
+    transform: none;
+  }
 }
 
 /* Typography responsive classes */
@@ -58,6 +92,13 @@
 /* General animations */
 .fade-in-up {
   animation: fadeInUp 0.8s ease-out;
+}
+
+/* Disable fade-in animation on mobile to prevent scroll stuttering */
+@media (max-width: 768px) {
+  .fade-in-up {
+    animation: none;
+  }
 }
 
 @keyframes fadeInUp {

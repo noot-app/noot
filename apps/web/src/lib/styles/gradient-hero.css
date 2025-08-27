@@ -11,6 +11,26 @@
   min-height: 100vh;
 }
 
+/* Desktop optimizations only */
+@media (min-width: 769px) {
+  .gradient-hero {
+    contain: layout style paint;
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .gradient-hero {
+    /* Disable complex optimizations on mobile */
+    will-change: auto;
+    -webkit-transform: none;
+    transform: none;
+  }
+}
+
 .gradient-hero::after {
   content: "";
   position: absolute;
@@ -49,6 +69,29 @@
   pointer-events: none;
 }
 
+/* Mobile optimizations for rising sun */
+@media (max-width: 768px) {
+  .rising-sun {
+    /* Simplify background for better mobile performance */
+    background: 
+      radial-gradient(ellipse 120vw 60vh at center bottom, #ff3000 0%, #ff4500 10%, #ff6b35 20%, #ff8c42 35%, transparent 70%),
+      radial-gradient(ellipse 100vw 55vh at center bottom, #d2691e 0%, #e67e22 5%, #f39c12 10%, transparent 60%);
+    background-blend-mode: normal;
+    opacity: 0.5;
+    bottom: -5vh;
+    height: 120vh;
+  }
+}
+
+/* Desktop optimizations for rising sun */
+@media (min-width: 769px) {
+  .rising-sun {
+    will-change: transform;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
 .rising-sun::after {
   content: "";
   position: absolute;
@@ -75,18 +118,7 @@
 
 /* Mobile optimizations (≤768px) */
 @media (max-width: 768px) {
-  .rising-sun {
-    background: 
-      radial-gradient(ellipse 120vw 60vh at center bottom, #ff3000 0%, #ff4500 10%, #ff6b35 20%, #ff8c42 35%, transparent 70%),
-      radial-gradient(ellipse 100vw 55vh at center bottom, #d2691e 0%, #e67e22 5%, #f39c12 10%, transparent 60%),
-      radial-gradient(ellipse 80vw 50vh at center bottom, #b22222 0%, #dc143c 3%, #e74c3c 5%, transparent 50%),
-      radial-gradient(ellipse 140vw 75vh at center bottom, 
-        #ff3000 0%, #ff4500 10%, #ff6b35 15%, #f39c12 25%, 
-        #e67e22 40%, #d35400 60%, transparent 90%);
-    opacity: var(--sun-mobile-opacity);
-    bottom: -5vh;
-    height: 120vh;
-  }
+  /* Mobile styles already handled in main sections above */
 }
 
 /* Critical fix for 769px breakpoint gap */
