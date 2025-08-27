@@ -1,15 +1,5 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  
-  let isMenuOpen = false;
-
-  function toggleMenu() {
-    isMenuOpen = !isMenuOpen;
-  }
-
-  function closeMenu() {
-    isMenuOpen = false;
-  }
 
   // Navigation items
   const navItems = [
@@ -39,41 +29,30 @@
   </div>
 
   <div class="navbar-end">
-    <!-- Mobile hamburger menu -->
-    <div class="dropdown lg:hidden">
-      <button 
-        class="btn btn-square btn-ghost"
-        on:click={toggleMenu}
-        aria-label="Toggle navigation menu"
-      >
+    <!-- Mobile hamburger menu using DaisyUI's native dropdown -->
+    <div class="dropdown dropdown-end lg:hidden">
+      <div tabindex="0" role="button" class="btn btn-square btn-ghost">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          {#if isMenuOpen}
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          {:else}
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          {/if}
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
-      </button>
-      
-      {#if isMenuOpen}
-        <ul class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-          {#each navItems as item}
-            <li>
-              <a 
-                href={item.href} 
-                class="flex items-center gap-3"
-                class:active={currentPath === item.href}
-                on:click={closeMenu}
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon} />
-                </svg>
-                {item.label}
-              </a>
-            </li>
-          {/each}
-        </ul>
-      {/if}
+      </div>
+      <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+      <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+        {#each navItems as item}
+          <li>
+            <a 
+              href={item.href} 
+              class="flex items-center gap-3"
+              class:active={currentPath === item.href}
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon} />
+              </svg>
+              {item.label}
+            </a>
+          </li>
+        {/each}
+      </ul>
     </div>
 
     <!-- Desktop navigation -->
