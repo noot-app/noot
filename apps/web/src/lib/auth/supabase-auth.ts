@@ -151,7 +151,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 			}
 
 			const { data, error } = await supabase
-				.from('users')
+				.from('profiles')
 				.select('id, email, subscription_tier')
 				.eq('id', supabaseUser.id)
 				.single();

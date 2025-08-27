@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS consumptions (
     label TEXT CONSTRAINT consumptions_label_length_check CHECK (LENGTH(label) <= 63),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE, -- When the consumption was last modified
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_consumptions_user_id ON consumptions(user_id);

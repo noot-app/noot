@@ -8,13 +8,14 @@ set -euo pipefail
 source script/env "$@"
 
 function usage() {
-    echo "Usage: $0 [--clean | --quick | reset [--production]]"
+    echo "Usage: $0 [--clean | --quick | reset [--production] | test]"
     echo ""
     echo "Options:"
     echo "  --clean         Full reset: stop Supabase, restart, and run all migrations + seed"
     echo "  --quick         Quick reset: reset database without restarting services, run migrations + seed"
     echo "  reset           Run supabase db reset on local development database"
     echo "  reset --production  Run supabase db reset on linked production database (with warning)"
+    echo "  test            Run database integration tests"
     echo ""
     echo "This script leverages Supabase's built-in seeding via supabase/seed.sql"
     echo "Creates seed users for development:"
@@ -92,6 +93,21 @@ function run_quick() {
     echo -e "${GREEN}✅ Quick reset completed${OFF}"
 }
 
+function run_test() {
+    echo -e "${BLUE}🧪 Running database integration tests...${OFF}"
+    
+    # Ensure Go is available
+    if ! command -v go &> /dev/null; then
+        echo -e "${RED}❌ Go is required but not installed${OFF}"
+        exit 1
+    fi
+    
+    # Run the database tests with vendor modules
+    go test -mod=vendor -v ./supabase/tests/... -count=1
+    
+    echo -e "${GREEN}✅ Database tests completed${OFF}"
+}
+
 function main() {
     check_requirements
     
@@ -115,6 +131,9 @@ function main() {
             fi
             
             run_reset "$production_flag"
+            ;;
+        test)
+            run_test
             ;;
         -h|--help|help)
             usage

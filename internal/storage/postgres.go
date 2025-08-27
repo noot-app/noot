@@ -68,7 +68,7 @@ func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 	}
 
 	query := `
-		INSERT INTO users (id, email, handle, full_name, subscription_tier, avatar_url, created_at) 
+		INSERT INTO profiles (id, email, handle, full_name, subscription_tier, avatar_url, created_at) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	_, err := s.db.ExecContext(ctx, query, user.ID, user.Email, user.Handle, user.FullName, user.SubscriptionTier, user.AvatarURL, user.CreatedAt)
@@ -83,7 +83,7 @@ func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 func (s *PostgreSQLStore) GetUser(ctx context.Context, id string) (*User, error) {
 	query := `
 		SELECT id, handle, full_name, email, subscription_tier, active_goal_name, avatar_url, created_at
-		FROM users WHERE id = $1`
+		FROM profiles WHERE id = $1`
 
 	var user User
 	err := s.db.QueryRowContext(ctx, query, id).Scan(
@@ -103,7 +103,7 @@ func (s *PostgreSQLStore) GetUser(ctx context.Context, id string) (*User, error)
 func (s *PostgreSQLStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	query := `
 		SELECT id, handle, full_name, email, subscription_tier, active_goal_name, avatar_url, created_at
-		FROM users WHERE email = $1`
+		FROM profiles WHERE email = $1`
 
 	var user User
 	err := s.db.QueryRowContext(ctx, query, email).Scan(
@@ -126,7 +126,7 @@ func (s *PostgreSQLStore) UpdateUser(ctx context.Context, user *User) error {
 	}
 
 	query := `
-		UPDATE users 
+		UPDATE profiles 
 		SET handle = $2, full_name = $3, email = $4, subscription_tier = $5, active_goal_name = $6, avatar_url = $7
 		WHERE id = $1`
 
@@ -984,7 +984,7 @@ func (s *PostgreSQLStore) SetActiveGoal(ctx context.Context, userID, goalName st
 	}
 
 	// Update user's active goal
-	query := `UPDATE users SET active_goal_name = $1 WHERE id = $2`
+	query := `UPDATE profiles SET active_goal_name = $1 WHERE id = $2`
 	result, err := s.db.ExecContext(ctx, query, goalName, userID)
 	if err != nil {
 		return fmt.Errorf("failed to set active goal: %w", err)
@@ -1005,7 +1005,7 @@ func (s *PostgreSQLStore) SetActiveGoal(ctx context.Context, userID, goalName st
 // ClearActiveGoal clears the active goal for a user (sets it to NULL)
 func (s *PostgreSQLStore) ClearActiveGoal(ctx context.Context, userID string) error {
 	// Update user's active goal to NULL
-	query := `UPDATE users SET active_goal_name = NULL WHERE id = $1`
+	query := `UPDATE profiles SET active_goal_name = NULL WHERE id = $1`
 	result, err := s.db.ExecContext(ctx, query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to clear active goal: %w", err)
@@ -1025,7 +1025,7 @@ func (s *PostgreSQLStore) ClearActiveGoal(ctx context.Context, userID string) er
 
 // GetActiveGoalName retrieves the active goal name for a user
 func (s *PostgreSQLStore) GetActiveGoalName(ctx context.Context, userID string) (*string, error) {
-	query := `SELECT active_goal_name FROM users WHERE id = $1`
+	query := `SELECT active_goal_name FROM profiles WHERE id = $1`
 
 	var activeGoalName *string
 	err := s.db.QueryRowContext(ctx, query, userID).Scan(&activeGoalName)

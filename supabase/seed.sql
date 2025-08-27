@@ -93,10 +93,10 @@ INSERT INTO auth.identities (
 );
 
 -- Update subscription tiers for test users
-UPDATE public.users 
+UPDATE public.profiles 
 SET subscription_tier = 'pro' 
 WHERE email = 'monalisa@birki.io';
 
 -- Note: Alice remains 'free' tier as set by the trigger
 -- Note: Application users will be created automatically by the authentication trigger
--- when these auth.users are inserted, so they should now appear in public.users table.
+-- when these auth.users are inserted, so they should now appear in public.profiles table.

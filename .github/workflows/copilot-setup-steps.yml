@@ -19,3 +19,15 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
+
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version-file: apps/web/.node-version
+          cache: 'npm'
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.39.2
+
+      - name: bootstrap
+        run: script/bootstrap
