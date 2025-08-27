@@ -11,6 +11,8 @@ type Item struct {
 	UserUnit     *string           `json:"user_unit"`     // original user input unit for display
 	Brand        *string           `json:"brand"`
 	BaseQuantity *float64          `json:"base_quantity,omitempty"` // base quantity to normalize to (e.g., for "2 cans", this would be 2)
+	Note         *string           `json:"note,omitempty"`
+	Label        *string           `json:"label,omitempty"`
 	Nutrients    *CompleteNutrient `json:"nutrients,omitempty"`
 }
 
@@ -45,20 +47,29 @@ type CompleteNutrient struct {
 	Choline         float64 `json:"choline_mg"`
 
 	// Key minerals
-	Calcium    float64 `json:"calcium_mg"`
-	Iron       float64 `json:"iron_mg"`
-	Magnesium  float64 `json:"magnesium_mg"`
-	Phosphorus float64 `json:"phosphorus_mg"`
-	Potassium  float64 `json:"potassium_mg"`
-	Zinc       float64 `json:"zinc_mg"`
-	Copper     float64 `json:"copper_mg"`
-	Manganese  float64 `json:"manganese_mg"`
-	Selenium   float64 `json:"selenium_mcg"`
-	Iodine     float64 `json:"iodine_mcg"`
-	Molybdenum float64 `json:"molybdenum_mcg"`
-	Chromium   float64 `json:"chromium_mcg"`
-	Fluoride   float64 `json:"fluoride_mg"`
-	Chloride   float64 `json:"chloride_mg"`
+	Calcium            float64 `json:"calcium_mg"`
+	Iron               float64 `json:"iron_mg"`
+	Magnesium          float64 `json:"magnesium_mg"`
+	Phosphorus         float64 `json:"phosphorus_mg"`
+	Potassium          float64 `json:"potassium_mg"`
+	Zinc               float64 `json:"zinc_mg"`
+	Copper             float64 `json:"copper_mg"`
+	Manganese          float64 `json:"manganese_mg"`
+	Selenium           float64 `json:"selenium_mcg"`
+	Iodine             float64 `json:"iodine_mcg"`
+	Molybdenum         float64 `json:"molybdenum_mcg"`
+	Chromium           float64 `json:"chromium_mcg"`
+	Fluoride           float64 `json:"fluoride_mg"`
+	Chloride           float64 `json:"chloride_mg"`
+	Omega3Ala          float64 `json:"omega3_ala_g"`
+	Omega3Epa          float64 `json:"omega3_epa_g"`
+	Omega3Dha          float64 `json:"omega3_dha_g"`
+	Omega6             float64 `json:"omega6_g"`
+	Creatine           float64 `json:"creatine_mg"`
+	Caffeine           float64 `json:"caffeine_mg"`
+	Alcohol            float64 `json:"alcohol_g"`
+	PolyunsaturatedFat float64 `json:"polyunsaturated_fat_g"`
+	MonounsaturatedFat float64 `json:"monounsaturated_fat_g"`
 }
 
 type ItemWithNutrition struct {

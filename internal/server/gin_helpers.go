@@ -217,6 +217,40 @@ func getConsumptionMetric(consumption *storage.Consumption, metric string) float
 		return consumption.Manganese
 	case "selenium_mcg":
 		return consumption.Selenium
+	case "iodine_mcg":
+		return consumption.Iodine
+	case "molybdenum_mcg":
+		return consumption.Molybdenum
+	case "chromium_mcg":
+		return consumption.Chromium
+	case "fluoride_mg":
+		return consumption.Fluoride
+	case "chloride_mg":
+		return consumption.Chloride
+	case "biotin_mcg":
+		return consumption.Biotin
+	case "pantothenic_acid_mg":
+		return consumption.PantothenicAcid
+	case "choline_mg":
+		return consumption.Choline
+	case "monounsaturated_fat_g":
+		return consumption.MonounsaturatedFat
+	case "polyunsaturated_fat_g":
+		return consumption.PolyunsaturatedFat
+	case "omega3_ala_g":
+		return consumption.Omega3Ala
+	case "omega3_epa_g":
+		return consumption.Omega3Epa
+	case "omega3_dha_g":
+		return consumption.Omega3Dha
+	case "omega6_g":
+		return consumption.Omega6
+	case "alcohol_g":
+		return consumption.Alcohol
+	case "caffeine_mg":
+		return consumption.Caffeine
+	case "creatine_mg":
+		return consumption.Creatine
 	default:
 		return 0
 	}

@@ -64,5 +64,25 @@ func itemWithNutritionToConsumption(userID string, transcript string, items []It
 		Copper:     summary.Totals.Copper,
 		Manganese:  summary.Totals.Manganese,
 		Selenium:   summary.Totals.Selenium,
+		Iodine:     summary.Totals.Iodine,
+		Molybdenum: summary.Totals.Molybdenum,
+		Chromium:   summary.Totals.Chromium,
+		Fluoride:   summary.Totals.Fluoride,
+		Chloride:   summary.Totals.Chloride,
+		// Additional vitamins
+		Biotin:          summary.Totals.Biotin,
+		PantothenicAcid: summary.Totals.PantothenicAcid,
+		Choline:         summary.Totals.Choline,
+		// New fatty acids
+		MonounsaturatedFat: summary.Totals.MonounsaturatedFat,
+		PolyunsaturatedFat: summary.Totals.PolyunsaturatedFat,
+		Omega3Ala:          summary.Totals.Omega3Ala,
+		Omega3Epa:          summary.Totals.Omega3Epa,
+		Omega3Dha:          summary.Totals.Omega3Dha,
+		Omega6:             summary.Totals.Omega6,
+		// Functional compounds
+		Alcohol:  summary.Totals.Alcohol,
+		Caffeine: summary.Totals.Caffeine,
+		Creatine: summary.Totals.Creatine,
 	}
 }

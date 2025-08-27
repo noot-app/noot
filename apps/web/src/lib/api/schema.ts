@@ -329,6 +329,10 @@ export interface components {
             user_unit?: string | null;
             /** @description Brand name */
             brand?: string | null;
+            /** @description Additional note about the item */
+            note?: string | null;
+            /** @description Custom label for the item */
+            label?: string | null;
             nutrients?: components["schemas"]["CompleteNutrient"];
         };
         ItemWithNutrition: {
@@ -415,6 +419,24 @@ export interface components {
             iodine_mcg: number;
             /** @description Molybdenum in micrograms */
             molybdenum_mcg: number;
+            /** @description Omega-3 ALA (Alpha-linolenic acid) in grams */
+            omega3_ala_g: number;
+            /** @description Omega-3 EPA (Eicosapentaenoic acid) in grams */
+            omega3_epa_g: number;
+            /** @description Omega-3 DHA (Docosahexaenoic acid) in grams */
+            omega3_dha_g: number;
+            /** @description Omega-6 fatty acids in grams */
+            omega6_g: number;
+            /** @description Creatine in milligrams */
+            creatine_mg: number;
+            /** @description Caffeine in milligrams */
+            caffeine_mg: number;
+            /** @description Alcohol in grams */
+            alcohol_g: number;
+            /** @description Polyunsaturated fat in grams */
+            polyunsaturated_fat_g: number;
+            /** @description Monounsaturated fat in grams */
+            monounsaturated_fat_g: number;
         };
         Summary: {
             totals: components["schemas"]["CompleteNutrient"];
@@ -456,6 +478,10 @@ export interface components {
             user_id: string;
             /** @description Original transcribed text */
             transcript: string;
+            /** @description Additional note about the consumption */
+            note?: string | null;
+            /** @description Custom label for the consumption */
+            label?: string | null;
             items: components["schemas"]["ItemWithNutrition"][];
             summary: components["schemas"]["Summary"];
             /**
@@ -557,6 +583,24 @@ export interface components {
             total_iodine_mcg: number;
             /** @description Total molybdenum in micrograms */
             total_molybdenum_mcg: number;
+            /** @description Total Omega-3 ALA (Alpha-linolenic acid) in grams */
+            total_omega3_ala_g: number;
+            /** @description Total Omega-3 EPA (Eicosapentaenoic acid) in grams */
+            total_omega3_epa_g: number;
+            /** @description Total Omega-3 DHA (Docosahexaenoic acid) in grams */
+            total_omega3_dha_g: number;
+            /** @description Total Omega-6 fatty acids in grams */
+            total_omega6_g: number;
+            /** @description Total creatine in milligrams */
+            total_creatine_mg: number;
+            /** @description Total caffeine in milligrams */
+            total_caffeine_mg: number;
+            /** @description Total alcohol in grams */
+            total_alcohol_g: number;
+            /** @description Total polyunsaturated fat in grams */
+            total_polyunsaturated_fat_g: number;
+            /** @description Total monounsaturated fat in grams */
+            total_monounsaturated_fat_g: number;
             /** @description Average calories per day */
             avg_calories_per_day: number;
             /** @description Average protein per day in grams */
