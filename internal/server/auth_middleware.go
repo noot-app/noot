@@ -311,15 +311,7 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 			if env == "development" {
 				jwtSecret := getEnv("SUPABASE_JWT_SECRET", "")
 				if jwtSecret != "" {
-					// Check if we already have a dev user set by DevAuthMiddleware
-					if devUser, exists := c.Get("dev_user"); exists {
-						// We have dev auth active - use that instead of JWT validation
-						LogDebug("Using dev auth user instead of JWT validation")
-						c.Set("auth_user", devUser)
-						c.Next()
-						return
-					}
-					// If JWT secret is configured and no dev user, use JWT auth
+					// If JWT secret is configured in development, use JWT auth
 					LogWarn("JWT secret configured in development - enforcing JWT authentication")
 					isProduction = true
 				} else {

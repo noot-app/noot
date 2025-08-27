@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -28,15 +27,6 @@ func Run(ctx context.Context, port string) error {
 	}
 	defer store.Close()
 
-	// Run seeding in development
-	devSeed := strings.ToLower(getenv("DEV_DB_SEED", "false")) == "true"
-	if !IsProduction() || devSeed {
-		if err := store.Seed(); err != nil {
-			LogError("Failed to seed database", err)
-			// Don't fail startup on seed error, just log it
-		}
-	}
-
 	// Set Gin mode
 	if !IsProduction() {
 		gin.SetMode(gin.DebugMode)
@@ -56,10 +46,7 @@ func Run(ctx context.Context, port string) error {
 	r.Use(StoreMiddleware(store))
 
 	// Authentication middleware
-	if !IsProduction() {
-		r.Use(DevAuthMiddleware(store)) // Handles development auth via X-Dev-User-ID header in development only
-	}
-	r.Use(JWTAuthMiddleware(store)) // Handles production auth via JWT tokens
+	r.Use(JWTAuthMiddleware(store)) // Handles Supabase auth via JWT tokens
 
 	// Create API server
 	apiServer, err := NewAPIServer(store)

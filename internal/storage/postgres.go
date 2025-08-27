@@ -45,20 +45,6 @@ func (s *PostgreSQLStore) Close() error {
 }
 
 // Reset drops all tables and re-applies migrations
-func (s *PostgreSQLStore) Reset() error {
-	// Drop tables in reverse dependency order
-	tables := GetDropTableOrder()
-	for _, table := range tables {
-		if _, err := s.db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", table)); err != nil {
-			return fmt.Errorf("failed to drop table %s: %w", table, err)
-		}
-	}
-
-	// Note: Migrations are now handled by Supabase CLI, not the REST API
-	// Tables will be recreated by running  or `supabase start`
-	return nil
-}
-
 // CreateUser creates a new user
 func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 	// For Supabase, the ID should already be provided as auth.users.id
@@ -1103,49 +1089,4 @@ func (s *PostgreSQLStore) GetCanonicalName(ctx context.Context, aliasName, alias
 	}
 
 	return canonicalName, canonicalBrand, nil
-}
-
-// Seed adds development seed data
-func (s *PostgreSQLStore) Seed() error {
-	ctx := context.Background()
-
-	// Check if user already exists
-	user, err := s.GetUser(ctx, DefaultSeedUserID)
-	if err != nil {
-		return fmt.Errorf("failed to check for existing user: %w", err)
-	}
-
-	// Create default seed user if it doesn't exist
-	if user == nil {
-		user = &User{
-			ID:               DefaultSeedUserID,
-			Email:            DefaultSeedEmail,
-			Handle:           "noot",              // Required field
-			SubscriptionTier: SubscriptionTierPro, // Give the seed user pro access
-		}
-		if err := s.CreateUser(ctx, user); err != nil {
-			return fmt.Errorf("failed to create seed user: %w", err)
-		}
-	}
-
-	// Check if alice user already exists for dev user switching
-	aliceUser, err := s.GetUser(ctx, AliceSeedUserID)
-	if err != nil {
-		return fmt.Errorf("failed to check for existing alice user: %w", err)
-	}
-
-	// Create alice user if it doesn't exist
-	if aliceUser == nil {
-		aliceUser = &User{
-			ID:               AliceSeedUserID,
-			Email:            AliceSeedEmail,
-			Handle:           "alice",              // Required field
-			SubscriptionTier: SubscriptionTierFree, // Alice is a free tier user
-		}
-		if err := s.CreateUser(ctx, aliceUser); err != nil {
-			return fmt.Errorf("failed to create alice seed user: %w", err)
-		}
-	}
-
-	return nil
 }

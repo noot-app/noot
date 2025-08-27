@@ -194,8 +194,3 @@ func TestApplyDaysLimit(t *testing.T) {
 		})
 	}
 }
-
-func TestGetDefaultUser(t *testing.T) {
-	// Skip this test as it requires SQLite which has been removed
-	t.Skip("Skipping test that requires SQLite - SQLite support removed")
-}

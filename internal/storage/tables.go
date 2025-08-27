@@ -16,15 +16,3 @@ var TableNames = struct {
 	ItemAliases:      "item_aliases",
 	UserGoals:        "user_goals",
 }
-
-// GetDropTableOrder returns tables in reverse dependency order for safe dropping
-func GetDropTableOrder() []string {
-	return []string{
-		TableNames.ItemAliases,
-		TableNames.ConsumptionItems,
-		TableNames.Items,
-		TableNames.UserGoals,
-		TableNames.Consumptions,
-		TableNames.Users,
-	}
-}
