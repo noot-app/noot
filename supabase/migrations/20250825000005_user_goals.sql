@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS user_goals (
     overrides_json TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE,
     UNIQUE(user_id, name)
 );
 
@@ -23,9 +23,9 @@ CREATE POLICY "Pro users can view own goals" ON user_goals
   FOR SELECT USING (
     auth.uid() = user_id 
     AND EXISTS (
-      SELECT 1 FROM users 
-      WHERE users.id = auth.uid() 
-      AND users.subscription_tier = 'pro'
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.subscription_tier = 'pro'
     )
   );
 
@@ -33,9 +33,9 @@ CREATE POLICY "Pro users can insert own goals" ON user_goals
   FOR INSERT WITH CHECK (
     auth.uid() = user_id 
     AND EXISTS (
-      SELECT 1 FROM users 
-      WHERE users.id = auth.uid() 
-      AND users.subscription_tier = 'pro'
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.subscription_tier = 'pro'
     )
   );
 
@@ -43,9 +43,9 @@ CREATE POLICY "Pro users can update own goals" ON user_goals
   FOR UPDATE USING (
     auth.uid() = user_id 
     AND EXISTS (
-      SELECT 1 FROM users 
-      WHERE users.id = auth.uid() 
-      AND users.subscription_tier = 'pro'
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.subscription_tier = 'pro'
     )
   );
 
@@ -53,8 +53,8 @@ CREATE POLICY "Pro users can delete own goals" ON user_goals
   FOR DELETE USING (
     auth.uid() = user_id 
     AND EXISTS (
-      SELECT 1 FROM users 
-      WHERE users.id = auth.uid() 
-      AND users.subscription_tier = 'pro'
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.subscription_tier = 'pro'
     )
   );
