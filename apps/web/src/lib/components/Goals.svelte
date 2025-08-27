@@ -147,7 +147,7 @@
             <!-- Upper Limits (Minimize These) -->
             {@const limitNutrients = keyNutrients.filter(n => 
               goals?.upper_limits?.[n] !== undefined && 
-              getCurrentNutrient(n) > 0
+              (getCurrentNutrient(n) > 0 || !showMealContribution)
             )}
             {#if limitNutrients.length > 0}
               <div>

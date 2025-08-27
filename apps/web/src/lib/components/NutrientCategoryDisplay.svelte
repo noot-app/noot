@@ -231,6 +231,27 @@
   function hasNutrientData(categoryNutrients: any[]): boolean {
     return categoryNutrients.some(nutrient => {
       const value = getNutrientValue(nutrient.key);
+      
+      // For summary page (!showMealContribution), always show categories with goals/targets
+      // even if all nutrients have zero values
+      if (!showMealContribution && goals) {
+        const hasTarget = goals?.targets?.[nutrient.key] !== undefined;
+        const hasLimit = goals?.upper_limits?.[nutrient.key] !== undefined;
+        
+        if (showLimitsOnly) {
+          return hasLimit;
+        }
+        
+        // For regular categorized view, exclude nutrients that have upper limits
+        // (they should only appear in the "minimize these" section)
+        if (hasLimit) {
+          return false;
+        }
+        
+        return hasTarget;
+      }
+      
+      // For meal contribution view, only show nutrients with values > 0
       if (value <= 0) return false;
       
       // If showLimitsOnly is true, only show nutrients that have upper limits
@@ -278,7 +299,8 @@
     if (!goals) return [];
     const allNutrients = Object.values(nutrientCategories).flatMap(category => category.nutrients);
     return allNutrients.filter(nutrient => 
-      goals?.upper_limits?.[nutrient.key] !== undefined && getNutrientValue(nutrient.key) > 0
+      goals?.upper_limits?.[nutrient.key] !== undefined && 
+      (getNutrientValue(nutrient.key) > 0 || !showMealContribution)
     );
   }
 </script>
@@ -344,7 +366,7 @@
                       {/if}
                     </span>
                   </div>
-                  {#if showProgress && showGoals && goals && progress > 0}
+                  {#if showProgress && showGoals && goals && (progress > 0 || !showMealContribution)}
                     <div class="flex items-center gap-2">
                       {#if showMealContribution}
                         <!-- Stacked progress bar showing meal contribution -->
@@ -387,7 +409,7 @@
                 <div class="space-y-2">
                   {#each category.nutrients as nutrient}
                     {@const value = getNutrientValue(nutrient.key)}
-                    {#if value > 0}
+                    {#if value > 0 || (!showMealContribution && goals && (goals?.targets?.[nutrient.key] !== undefined || (showLimitsOnly && goals?.upper_limits?.[nutrient.key] !== undefined)))}
                       {#if showLimitsOnly ? goals?.upper_limits?.[nutrient.key] !== undefined : goals?.upper_limits?.[nutrient.key] === undefined}
                         {@const progress = getProgress(nutrient.key)}
                         {@const dailyText = getDailyText(nutrient.key)}
@@ -410,7 +432,7 @@
                                 {/if}
                               </span>
                             </div>
-                            {#if showProgress && showGoals && goals && progress > 0}
+                            {#if showProgress && showGoals && goals && (progress > 0 || !showMealContribution)}
                               <div class="flex items-center gap-2">
                                 {#if showMealContribution}
                                   <!-- Stacked progress bar showing meal contribution -->
