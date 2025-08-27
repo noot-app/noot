@@ -54,7 +54,14 @@ function run_reset() {
     if [[ "$production_flag" == "true" ]]; then
         confirm_production_reset
         echo -e "${PURPLE}⚡ Resetting production database...${OFF}"
-        supabase db reset --linked
+        echo -e "${YELLOW}Note: By default the reset will run with --no-seed to avoid filling the production database with dev users.${OFF}"
+        read -p "Do you want to ENABLE seeding? This is NOT the default. (y/N) default is to just say (n): " enable_seed
+        if [[ "$enable_seed" =~ ^[Yy]$ ]]; then
+            echo -e "${YELLOW}⚠️  You chose to ENABLE seeding. This will run without --no-seed.${OFF}"
+            supabase db reset --linked
+        else
+            supabase db reset --linked --no-seed
+        fi
     else
         echo -e "${PURPLE}⚡ Resetting local development database...${OFF}"
         supabase db reset
