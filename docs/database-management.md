@@ -50,6 +50,36 @@ script/db reset              # Run supabase db reset on local development databa
 script/db reset --production # Run supabase db reset on linked production database (with warning)
 ```
 
+## Security Model
+
+### Authentication vs Profile Data
+
+The Noot application implements Supabase's recommended security pattern:
+
+- **Authentication data**: Managed by Supabase Auth in `auth.users`
+- **Profile data**: Stored in `public.users` with foreign key to `auth.users(id)`
+- **Automatic creation**: Database trigger creates profile when user signs up
+- **Access control**: Row Level Security (RLS) policies protect data
+
+### Why We Don't Grant Permissions to `supabase_auth_admin`
+
+**❌ Problematic approach:**
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.users TO supabase_auth_admin;
+```
+
+**Issues with this approach:**
+- Creates security risks by over-privileging the auth system
+- Violates trust boundaries between auth and app data
+- Allows uncontrolled modifications to app-specific data
+
+**✅ Our secure approach:**
+- Use `SECURITY DEFINER` trigger function for controlled elevated privileges
+- Enable RLS policies for fine-grained access control
+- Maintain separation between auth system and app data
+
+See [`docs/database-security.md`](database-security.md) for detailed security documentation.
+
 ## Development Workflow
 
 ### Local Development with Supabase CLI

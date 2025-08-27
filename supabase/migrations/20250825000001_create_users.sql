@@ -1,4 +1,13 @@
 -- Migration 001: Initial schema baseline using auth.users.id directly as primary key (PostgreSQL)
+--
+-- SECURITY DESIGN: This migration implements Supabase's recommended security pattern:
+-- 1. Separates auth data (auth.users) from app profile data (public.users)
+-- 2. Uses a trigger to automatically create profiles when users sign up
+-- 3. Employs RLS policies to protect user data access
+-- 4. Uses SECURITY DEFINER for controlled elevated privileges
+--
+-- IMPORTANT: We do NOT grant DML permissions to supabase_auth_admin on public.users.
+-- This would be a security risk. Instead, we use the trigger pattern below.
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY, -- This will be auth.users.id directly
     handle TEXT NOT NULL UNIQUE,
@@ -19,10 +28,14 @@ CREATE INDEX IF NOT EXISTS idx_users_handle ON users(handle);
 CREATE INDEX IF NOT EXISTS idx_users_active_goal ON users(active_goal_name);
 
 -- Create trigger for automatic user creation when auth users are created
+-- This trigger provides secure, controlled access for profile creation without
+-- granting broad DML permissions to supabase_auth_admin
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  -- Set search_path to empty string for security
+  -- SECURITY: Set search_path to empty string for security
+  -- This function uses SECURITY DEFINER to run with elevated privileges
+  -- instead of granting DML permissions to supabase_auth_admin
   SET search_path = '';
   
   INSERT INTO public.users (id, handle, full_name, email, subscription_tier, created_at, avatar_url)
@@ -49,9 +62,11 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Enable RLS on users table for security
+-- This ensures users can only access their own data
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
--- Create RLS policies
+-- Create RLS policies - these provide fine-grained access control
+-- without needing to grant broad permissions to supabase_auth_admin
 CREATE POLICY "Users can view own profile" ON users
   FOR SELECT USING (auth.uid() = id);
 
