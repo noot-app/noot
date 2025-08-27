@@ -1,6 +1,5 @@
 import createClient from 'openapi-fetch';
 import { PUBLIC_API_BASE_URL } from '$env/static/public';
-import { dev } from '$app/environment';
 import type { paths } from './schema';
 
 // Create base client
@@ -38,15 +37,7 @@ export const apiClient = new Proxy(baseClient, {
         const typedInit = init as Record<string, any>;
         typedInit.headers = typedInit.headers || {};
 
-        // Add dev user header in development mode
-        if (dev && typeof localStorage !== 'undefined') {
-          const selectedUser = localStorage.getItem('dev-selected-user');
-          if (selectedUser) {
-            typedInit.headers['X-Dev-User-ID'] = selectedUser;
-          }
-        }
-
-        // Add JWT authorization header in production (or when Supabase is enabled in dev)
+        // Add JWT authorization header
         const accessToken = await getAccessToken();
         if (accessToken) {
           typedInit.headers['Authorization'] = `Bearer ${accessToken}`;

@@ -44,7 +44,6 @@ func (s *PostgreSQLStore) Close() error {
 	return s.db.Close()
 }
 
-// Reset drops all tables and re-applies migrations
 // CreateUser creates a new user
 func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 	// For Supabase, the ID should already be provided as auth.users.id

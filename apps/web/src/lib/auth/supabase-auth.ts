@@ -39,13 +39,6 @@ export class SupabaseAuthProvider implements AuthProvider {
 	}
 
 	/**
-	 * User switching is not supported in production Supabase auth
-	 */
-	supportsUserSwitching(): boolean {
-		return false;
-	}
-
-	/**
 	 * Sign in with email and password
 	 */
 	async signIn(email: string, password: string): Promise<{ user: User | null; error: string | null }> {

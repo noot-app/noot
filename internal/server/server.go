@@ -131,16 +131,11 @@ func validateSecurityConfiguration() error {
 		}
 	}
 
-	// Warn about dev auth in production environments
-	if IsProduction() {
-		LogWarn("Production environment detected - ensure dev auth is properly disabled")
-	}
-
-	// Validate environment consistency in development
+	// Validate environment consistency
 	if !IsProduction() {
 		jwtSecret := getenv("SUPABASE_JWT_SECRET", "")
 		if jwtSecret != "" {
-			LogWarn("JWT secret configured in development - authentication will use JWT instead of dev auth")
+			LogInfo("JWT secret configured - using Supabase authentication")
 		}
 	}
 

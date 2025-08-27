@@ -62,7 +62,6 @@ An AI-powered nutrition logging web app. Just say what you ate!
 
     # Database Configuration - Use Supabase for local and production
     # Follow Supabase local development setup: https://supabase.com/docs/guides/local-development
-    DEV_DB_SEED=true           # Enable database seeding in development (optional)
     ```
 
 4) **Run the API:** `PORT=3001 script/server` (use `--production` for production mode).
@@ -115,7 +114,7 @@ An AI-powered nutrition logging web app. Just say what you ate!
 - **Test:** `script/test`
 - **Lint:** `script/lint`  
 - **Build:** `script/build` (or `script/build --single-target` for faster iteration)
-- **Dev Server:** `PORT=3001 script/server` (optionally pass in `--clean` to reset and re-seed the local database)
+- **Dev Server:** `PORT=3001 script/server` (use `script/server --production` for production mode)
 - **API Docs:** Visit [http://localhost:3001/api/v1/docs](http://localhost:3001/api/v1/docs) when running in development mode
 
 ### Frontend (SvelteKit Site)
@@ -139,19 +138,19 @@ The API follows OpenAPI `3.0.3` specification:
 ### Database Management
 
 - **Reset:** `script/db reset` — Drop all tables and start fresh
-- **Seed:** `script/db seed` — Add development data (monalisa user + sample consumptions)
+- **Seed:** Handled by Supabase CLI during local development setup
 - **Dump:** `script/db dump` — View database contents in human-readable format
 
 ## Technical Details
 
 ### Backend
 
-- Supabase/PostgreSQL database with automatic migrations for consumption storage
+- Supabase/PostgreSQL database with CLI-managed migrations and seeding for consumption storage
 - OpenAI gpt-4o-mini-transcribe for speech-to-text
 - OpenAI gpt-4o-mini for consumption parsing with complete nutrition data
 - **Open Food Facts (OFF) integration** for faster, more accurate nutrition data before AI fallback
 - Audio uploads are streamed to temporary files to avoid memory spikes
-- Development seeding with realistic consumption data for testing
+- JWT authentication via Supabase Auth for user management
 - CORS middleware for cross-origin requests from frontend
 
 ### Frontend

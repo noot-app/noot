@@ -145,11 +145,6 @@ func CORSMiddleware() gin.HandlerFunc {
 			baseHeaders := "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With"
 			allowedHeaders := baseHeaders
 
-			// Add development headers in development mode
-			if !IsProduction() {
-				allowedHeaders += ", X-Dev-User-ID"
-			}
-
 			// Add extra headers from environment variable (useful for testing production mode locally)
 			extraHeaders := getEnv("EXTRA_ACCESS_CONTROL_ALLOW_HEADERS", "")
 			if extraHeaders != "" {
