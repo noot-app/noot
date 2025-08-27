@@ -79,7 +79,7 @@ func TestUserCreationFlow(t *testing.T) {
 		// Verify reset completed successfully
 		outputStr := string(output)
 		assert.Contains(t, outputStr, "Database reset completed", "Reset should complete successfully")
-		assert.Contains(t, outputStr, "Applying migration 20250825000001_create_users.sql", "User migration should be applied")
+		assert.Contains(t, outputStr, "Applying migration 20250825000001_profiles.sql", "User migration should be applied")
 
 		// Wait a moment for containers to fully restart
 		time.Sleep(2 * time.Second)

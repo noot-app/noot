@@ -2,14 +2,14 @@ package storage
 
 // TableNames defines the database table names for easier migration to other databases
 var TableNames = struct {
-	Users            string
+	Profiles         string
 	Consumptions     string
 	ConsumptionItems string
 	Items            string
 	ItemAliases      string
 	UserGoals        string
 }{
-	Users:            "users",
+	Profiles:         "profiles",
 	Consumptions:     "consumptions",
 	ConsumptionItems: "consumption_items",
 	Items:            "items",
