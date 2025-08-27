@@ -24,6 +24,7 @@ jobs:
         with:
           node-version-file: apps/web/.node-version
           cache: 'npm'
+          cache-dependency-path: 'apps/web/package-lock.json'
 
       - uses: supabase/setup-cli@v1
         with:
