@@ -1,16 +1,25 @@
 import { dev } from '$app/environment';
 
 /**
+ * Represents various error formats that can be parsed
+ */
+type ErrorLike = 
+  | string 
+  | Error 
+  | { message?: string; error?: string } 
+  | unknown;
+
+/**
  * Parse an error from various formats into a user-friendly string
  */
-export function parseErrorMessage(error: any): string {
+export function parseErrorMessage(error: ErrorLike): string {
   // If it's a plain string, return it
   if (typeof error === 'string') {
     return error;
   }
 
   // If it has a message property, use that
-  if (error?.message && typeof error.message === 'string') {
+  if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') {
     return error.message;
   }
 
@@ -20,7 +29,7 @@ export function parseErrorMessage(error: any): string {
   }
 
   // Try to extract meaningful error from API response
-  if (error?.error && typeof error.error === 'string') {
+  if (typeof error === 'object' && error !== null && 'error' in error && typeof error.error === 'string') {
     return error.error;
   }
 
@@ -31,7 +40,7 @@ export function parseErrorMessage(error: any): string {
 /**
  * Format error message for user display with optional translations
  */
-export function formatErrorForUser(rawError: any, translations?: Record<string, string>): string {
+export function formatErrorForUser(rawError: ErrorLike, translations?: Record<string, string>): string {
   const errorMessage = parseErrorMessage(rawError);
   
   // Default error translations
@@ -58,8 +67,7 @@ export function formatErrorForUser(rawError: any, translations?: Record<string, 
  * Common error handling wrapper for API calls
  */
 export async function handleApiCall<T>(
-  apiCall: () => Promise<T>,
-  errorMessage: string = 'An error occurred'
+  apiCall: () => Promise<T>
 ): Promise<{ data?: T; error?: string }> {
   try {
     const data = await apiCall();
