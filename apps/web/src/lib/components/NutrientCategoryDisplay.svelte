@@ -366,7 +366,7 @@
                       {/if}
                     </span>
                   </div>
-                  {#if showProgress && showGoals && goals && progress > 0}
+                  {#if showProgress && showGoals && goals && (progress > 0 || !showMealContribution)}
                     <div class="flex items-center gap-2">
                       {#if showMealContribution}
                         <!-- Stacked progress bar showing meal contribution -->
@@ -432,7 +432,7 @@
                                 {/if}
                               </span>
                             </div>
-                            {#if showProgress && showGoals && goals && progress > 0}
+                            {#if showProgress && showGoals && goals && (progress > 0 || !showMealContribution)}
                               <div class="flex items-center gap-2">
                                 {#if showMealContribution}
                                   <!-- Stacked progress bar showing meal contribution -->
