@@ -32,10 +32,6 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 	require.NoError(t, err, "Failed to create PostgreSQL store")
 	defer store.Close()
 
-	// Test migration
-	err = store.Migrate()
-	require.NoError(t, err, "Failed to run migrations")
-
 	ctx := context.Background()
 
 	t.Run("CreateAndGetUser", func(t *testing.T) {
@@ -236,7 +232,7 @@ func TestDualDatabaseSupport(t *testing.T) {
 		if connStr == "" {
 			t.Skip("Skipping default config test - no connection string")
 		}
-		
+
 		config := &Config{
 			Database: connStr,
 		} // Empty Type should default to Supabase/Postgres

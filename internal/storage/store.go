@@ -56,7 +56,6 @@ type Store interface {
 
 	// Database lifecycle
 	Close() error
-	Migrate() error
 	Seed() error
 	Reset() error
 }

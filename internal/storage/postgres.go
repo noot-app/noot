@@ -44,12 +44,6 @@ func (s *PostgreSQLStore) Close() error {
 	return s.db.Close()
 }
 
-// Migrate applies all pending migrations
-// This is unused as migrations are managed via `supabase db reset“
-func (s *PostgreSQLStore) Migrate() error {
-	return nil
-}
-
 // Reset drops all tables and re-applies migrations
 func (s *PostgreSQLStore) Reset() error {
 	// Drop tables in reverse dependency order
@@ -60,8 +54,9 @@ func (s *PostgreSQLStore) Reset() error {
 		}
 	}
 
-	// Re-apply migrations
-	return s.Migrate()
+	// Note: Migrations are now handled by Supabase CLI, not the REST API
+	// Tables will be recreated by running  or `supabase start`
+	return nil
 }
 
 // CreateUser creates a new user

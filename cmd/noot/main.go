@@ -8,27 +8,7 @@ import (
 	"syscall"
 
 	"github.com/grantbirki/noot/internal/server"
-	"github.com/grantbirki/noot/internal/storage"
 )
-
-// runMigrationsOnly runs database migrations without starting the server
-func runMigrationsOnly() error {
-	// Initialize storage using shared config creation function
-	config := server.CreateDatabaseConfig()
-
-	store, err := storage.NewStore(config)
-	if err != nil {
-		return fmt.Errorf("failed to initialize storage: %w", err)
-	}
-	defer store.Close()
-
-	// Run migrations
-	if err := store.Migrate(); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
-	}
-
-	return nil
-}
 
 func main() {
 	// Optional .env loader
@@ -36,18 +16,6 @@ func main() {
 
 	// Initialize logger after env variables are loaded
 	server.InitLogger()
-
-	// Check for migrate-only flag
-	for _, arg := range os.Args[1:] {
-		if arg == "--migrate-only" {
-			if err := runMigrationsOnly(); err != nil {
-				fmt.Printf("Migration failed: %v\n", err)
-				os.Exit(1)
-			}
-			fmt.Println("Migrations completed successfully")
-			return
-		}
-	}
 
 	port := os.Getenv("PORT")
 	if port == "" {

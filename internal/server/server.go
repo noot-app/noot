@@ -18,7 +18,7 @@ func Run(ctx context.Context, port string) error {
 	if err := validateSecurityConfiguration(); err != nil {
 		return fmt.Errorf("security configuration validation failed: %w", err)
 	}
-	
+
 	// Initialize storage using shared config creation function
 	config := CreateDatabaseConfig()
 
@@ -27,15 +27,6 @@ func Run(ctx context.Context, port string) error {
 		return fmt.Errorf("failed to initialize storage: %w", err)
 	}
 	defer store.Close()
-
-	// Run migrations (skip for Supabase as it manages its own migrations)
-	// TODO rather than doing this, we could add a flag to NewStore to indicate whether to run migrations
-	// or have a separate method on the Store interface to indicate if migrations should be run
-	if config.Type != "supabase" {
-		if err := store.Migrate(); err != nil {
-			return fmt.Errorf("failed to run migrations: %w", err)
-		}
-	}
 
 	// Run seeding in development
 	devSeed := strings.ToLower(getenv("DEV_DB_SEED", "false")) == "true"
