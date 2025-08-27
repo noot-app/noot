@@ -40,7 +40,7 @@
 
   <div class="navbar-end">
     <!-- Mobile hamburger menu -->
-    <div class="dropdown lg:hidden">
+    <div class="dropdown dropdown-end lg:hidden">
       <button 
         class="btn btn-square btn-ghost"
         on:click={toggleMenu}
@@ -56,7 +56,7 @@
       </button>
       
       {#if isMenuOpen}
-        <ul class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+        <ul class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-44 sm:w-52 dropdown-end">
           {#each navItems as item}
             <li>
               <a 
