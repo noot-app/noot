@@ -18,7 +18,7 @@ func Run(ctx context.Context, port string) error {
 	if err := validateSecurityConfiguration(); err != nil {
 		return fmt.Errorf("security configuration validation failed: %w", err)
 	}
-	
+
 	// Initialize storage using shared config creation function
 	config := CreateDatabaseConfig()
 

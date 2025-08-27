@@ -9,6 +9,11 @@
   position: relative;
   overflow: visible;
   min-height: 100vh;
+  /* Optimize rendering for mobile scroll */
+  contain: layout style paint;
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .gradient-hero::after {
@@ -47,6 +52,10 @@
   mask: linear-gradient(to bottom, black 0%, black 70%, transparent 95%);
   -webkit-mask: linear-gradient(to bottom, black 0%, black 70%, transparent 95%);
   pointer-events: none;
+  /* Optimize for mobile scrolling */
+  will-change: transform;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .rising-sun::after {
@@ -86,6 +95,14 @@
     opacity: var(--sun-mobile-opacity);
     bottom: -5vh;
     height: 120vh;
+    /* Simplify blending for better mobile performance */
+    background-blend-mode: normal;
+  }
+  
+  /* Optimize gradient hero for mobile */
+  .gradient-hero {
+    background-attachment: scroll;
+    contain: layout style;
   }
 }
 

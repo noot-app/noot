@@ -17,7 +17,7 @@ import (
 func TestAPIServer_GetHealth(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
-	
+
 	// Create an in-memory SQLite store for testing
 	config := &storage.Config{
 		Type:     "sqlite",
@@ -26,7 +26,7 @@ func TestAPIServer_GetHealth(t *testing.T) {
 	store, err := storage.NewStore(config)
 	require.NoError(t, err)
 	defer store.Close()
-	
+
 	apiServer, err := NewAPIServer(store)
 	require.NoError(t, err)
 
@@ -90,10 +90,10 @@ func TestNewAPIServer(t *testing.T) {
 
 func TestCreateDatabaseConfig(t *testing.T) {
 	tests := []struct {
-		name     string
-		setupEnv func()
+		name       string
+		setupEnv   func()
 		cleanupEnv func()
-		expected storage.Config
+		expected   storage.Config
 	}{
 		{
 			name: "default configuration",
@@ -128,7 +128,7 @@ func TestCreateDatabaseConfig(t *testing.T) {
 			},
 			expected: storage.Config{
 				Type:     "postgres",
-				Database: "testdb", 
+				Database: "testdb",
 				Host:     "testhost",
 				Port:     5433,
 				Username: "testuser",

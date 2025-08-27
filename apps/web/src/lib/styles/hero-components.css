@@ -3,6 +3,14 @@
 /* Global overflow prevention */
 :global(html, body) {
   overflow-x: hidden;
+  /* Improve mobile scroll performance */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Optimize mobile touch scrolling */
+:global(body) {
+  touch-action: pan-y;
 }
 
 /* Navbar z-index management */
@@ -15,6 +23,10 @@
 .hero-content {
   position: relative;
   z-index: 2;
+  /* Optimize mobile scroll performance */
+  will-change: transform;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 /* Typography responsive classes */

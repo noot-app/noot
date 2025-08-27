@@ -11,15 +11,15 @@ import (
 
 func TestRunMigrationsOnly(t *testing.T) {
 	tests := []struct {
-		name           string
-		dbType         string
-		expectError    bool
-		setupEnv       func()
-		cleanupEnv     func()
+		name        string
+		dbType      string
+		expectError bool
+		setupEnv    func()
+		cleanupEnv  func()
 	}{
 		{
-			name:    "sqlite migrations success",
-			dbType:  "sqlite",
+			name:        "sqlite migrations success",
+			dbType:      "sqlite",
 			expectError: false,
 			setupEnv: func() {
 				tempDir := t.TempDir()
@@ -33,8 +33,8 @@ func TestRunMigrationsOnly(t *testing.T) {
 			},
 		},
 		{
-			name:    "default config migrations success",
-			dbType:  "sqlite",
+			name:        "default config migrations success",
+			dbType:      "sqlite",
 			expectError: false,
 			setupEnv: func() {
 				// Test default config by not setting any env vars
@@ -48,8 +48,8 @@ func TestRunMigrationsOnly(t *testing.T) {
 			},
 		},
 		{
-			name:    "postgres config (will skip actual connection)",
-			dbType:  "postgres", 
+			name:        "postgres config (will skip actual connection)",
+			dbType:      "postgres",
 			expectError: true, // Will fail because no actual postgres connection
 			setupEnv: func() {
 				os.Setenv("DATABASE_PROVIDER", "postgres")
@@ -62,7 +62,7 @@ func TestRunMigrationsOnly(t *testing.T) {
 			cleanupEnv: func() {
 				os.Unsetenv("DATABASE_PROVIDER")
 				os.Unsetenv("DB_HOST")
-				os.Unsetenv("DB_PORT") 
+				os.Unsetenv("DB_PORT")
 				os.Unsetenv("DB_USER")
 				os.Unsetenv("DB_PASS")
 				os.Unsetenv("DB_SSLMODE")
@@ -82,7 +82,7 @@ func TestRunMigrationsOnly(t *testing.T) {
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
-			
+
 			if !tt.expectError && err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
@@ -93,12 +93,12 @@ func TestRunMigrationsOnly(t *testing.T) {
 func TestCreateDatabaseConfig(t *testing.T) {
 	// This test verifies that the CreateDatabaseConfig function exists and works
 	// Since we removed the local functions from main.go
-	
+
 	tests := []struct {
-		name     string
-		setupEnv func()
+		name       string
+		setupEnv   func()
 		cleanupEnv func()
-		expected storage.Config
+		expected   storage.Config
 	}{
 		{
 			name: "default configuration",
@@ -139,7 +139,7 @@ func TestCreateDatabaseConfig(t *testing.T) {
 			},
 			expected: storage.Config{
 				Type:     "postgres",
-				Database: "testdb", 
+				Database: "testdb",
 				Host:     "testhost",
 				Port:     5433,
 				Username: "testuser",
