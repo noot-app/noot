@@ -72,6 +72,26 @@ type OFFNutriments struct {
 	Selenium100g        *FlexFloat `json:"selenium_100g"`         // mcg
 	Iodine100g          *FlexFloat `json:"iodine_100g"`           // mcg
 
+	// ---- OPTIONAL / ADDITIONAL FIELDS (per 100g) ----
+	TransFat100g           *FlexFloat `json:"trans-fat_100g"`             // g
+	Cholesterol100g        *FlexFloat `json:"cholesterol_100g"`           // mg
+	AddedSugars100g        *FlexFloat `json:"added-sugars_100g"`          // g
+	Biotin100g             *FlexFloat `json:"biotin_100g"`                // mcg
+	Choline100g            *FlexFloat `json:"choline_100g"`               // mg
+	Molybdenum100g         *FlexFloat `json:"molybdenum_100g"`            // mcg
+	Chromium100g           *FlexFloat `json:"chromium_100g"`              // mcg
+	Fluoride100g           *FlexFloat `json:"fluoride_100g"`              // mg
+	MonounsaturatedFat100g *FlexFloat `json:"monounsaturated-fat_100g"`   // g
+	PolyunsaturatedFat100g *FlexFloat `json:"polyunsaturated-fat_100g"`   // g
+	Omega3Ala100g          *FlexFloat `json:"alpha-linolenic-acid_100g"`  // g (ALA)
+	Omega3Epa100g          *FlexFloat `json:"eicosapentaenoic-acid_100g"` // g (EPA)
+	Omega3Dha100g          *FlexFloat `json:"docosahexaenoic-acid_100g"`  // g (DHA)
+	Omega6100g             *FlexFloat `json:"omega-6-fat_100g"`           // g
+	Alcohol100g            *FlexFloat `json:"alcohol_100g"`               // g (OFF may also use percent fields)
+	Caffeine100g           *FlexFloat `json:"caffeine_100g"`              // mg
+	Creatine100g           *FlexFloat `json:"creatine_100g"`              // mg (rare)
+	Chloride100g           *FlexFloat `json:"chloride_100g"`              // mg
+
 	// Per serving values (exact per serving, more accurate than scaling)
 	EnergyKcalServing      *FlexFloat `json:"energy-kcal_serving"`
 	ProteinsServing        *FlexFloat `json:"proteins_serving"`
@@ -103,6 +123,26 @@ type OFFNutriments struct {
 	ManganeseServing       *FlexFloat `json:"manganese_serving"`
 	SeleniumServing        *FlexFloat `json:"selenium_serving"`
 	IodineServing          *FlexFloat `json:"iodine_serving"`
+
+	// ---- OPTIONAL / ADDITIONAL FIELDS (per serving) ----
+	TransFatServing           *FlexFloat `json:"trans-fat_serving"`
+	CholesterolServing        *FlexFloat `json:"cholesterol_serving"`
+	AddedSugarsServing        *FlexFloat `json:"added-sugars_serving"`
+	BiotinServing             *FlexFloat `json:"biotin_serving"`
+	CholineServing            *FlexFloat `json:"choline_serving"`
+	MolybdenumServing         *FlexFloat `json:"molybdenum_serving"`
+	ChromiumServing           *FlexFloat `json:"chromium_serving"`
+	FluorideServing           *FlexFloat `json:"fluoride_serving"`
+	MonounsaturatedFatServing *FlexFloat `json:"monounsaturated-fat_serving"`
+	PolyunsaturatedFatServing *FlexFloat `json:"polyunsaturated-fat_serving"`
+	Omega3AlaServing          *FlexFloat `json:"alpha-linolenic-acid_serving"`
+	Omega3EpaServing          *FlexFloat `json:"eicosapentaenoic-acid_serving"`
+	Omega3DhaServing          *FlexFloat `json:"docosahexaenoic-acid_serving"`
+	Omega6Serving             *FlexFloat `json:"omega-6-fat_serving"`
+	AlcoholServing            *FlexFloat `json:"alcohol_serving"`
+	CaffeineServing           *FlexFloat `json:"caffeine_serving"`
+	CreatineServing           *FlexFloat `json:"creatine_serving"`
+	ChlorideServing           *FlexFloat `json:"chloride_serving"`
 }
 
 // FlexFloat handles JSON values that can be either string or number
@@ -549,16 +589,27 @@ func (c *OFFClient) ConvertToCompleteNutrient(product *OFFProduct, targetGrams f
 		Selenium:        getBestValue(product.Nutriments.SeleniumServing, product.Nutriments.Selenium100g),
 		Iodine:          getBestValue(product.Nutriments.IodineServing, product.Nutriments.Iodine100g),
 
-		// Fields not typically available in OFF - leave as zero (could be enhanced with LLM)
-		TransFat:    0,
-		Cholesterol: 0,
-		AddedSugars: 0,
-		Biotin:      0, // Not in standard OFF fields
-		Choline:     0, // Not in standard OFF fields
-		Molybdenum:  0, // Not in standard OFF fields
-		Chromium:    0, // Not in standard OFF fields
-		Fluoride:    0, // Not in standard OFF fields
-		Chloride:    0, // Not in standard OFF fields
+		// Additional nutrients - use OFF data when available, otherwise zero
+		TransFat:    getBestValue(product.Nutriments.TransFatServing, product.Nutriments.TransFat100g),
+		Cholesterol: getBestValue(product.Nutriments.CholesterolServing, product.Nutriments.Cholesterol100g),
+		AddedSugars: getBestValue(product.Nutriments.AddedSugarsServing, product.Nutriments.AddedSugars100g),
+		Biotin:      getBestValue(product.Nutriments.BiotinServing, product.Nutriments.Biotin100g),
+		Choline:     getBestValue(product.Nutriments.CholineServing, product.Nutriments.Choline100g),
+		Molybdenum:  getBestValue(product.Nutriments.MolybdenumServing, product.Nutriments.Molybdenum100g),
+		Chromium:    getBestValue(product.Nutriments.ChromiumServing, product.Nutriments.Chromium100g),
+		Fluoride:    getBestValue(product.Nutriments.FluorideServing, product.Nutriments.Fluoride100g),
+
+		// New fatty acids and functional compounds - use OFF data when available
+		MonounsaturatedFat: getBestValue(product.Nutriments.MonounsaturatedFatServing, product.Nutriments.MonounsaturatedFat100g),
+		PolyunsaturatedFat: getBestValue(product.Nutriments.PolyunsaturatedFatServing, product.Nutriments.PolyunsaturatedFat100g),
+		Omega3Ala:          getBestValue(product.Nutriments.Omega3AlaServing, product.Nutriments.Omega3Ala100g),
+		Omega3Epa:          getBestValue(product.Nutriments.Omega3EpaServing, product.Nutriments.Omega3Epa100g),
+		Omega3Dha:          getBestValue(product.Nutriments.Omega3DhaServing, product.Nutriments.Omega3Dha100g),
+		Omega6:             getBestValue(product.Nutriments.Omega6Serving, product.Nutriments.Omega6100g),
+		Alcohol:            getBestValue(product.Nutriments.AlcoholServing, product.Nutriments.Alcohol100g),
+		Caffeine:           getBestValue(product.Nutriments.CaffeineServing, product.Nutriments.Caffeine100g),
+		Creatine:           getBestValue(product.Nutriments.CreatineServing, product.Nutriments.Creatine100g),
+		Chloride:           getBestValue(product.Nutriments.ChlorideServing, product.Nutriments.Chloride100g),
 	}
 }
 

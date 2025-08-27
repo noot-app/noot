@@ -97,8 +97,14 @@ type CompleteNutrient struct {
 	// AddedSugarsG Added sugars in grams
 	AddedSugarsG float32 `json:"added_sugars_g"`
 
+	// AlcoholG Alcohol in grams
+	AlcoholG float32 `json:"alcohol_g"`
+
 	// BiotinMcg Biotin in micrograms
 	BiotinMcg float32 `json:"biotin_mcg"`
+
+	// CaffeineMg Caffeine in milligrams
+	CaffeineMg float32 `json:"caffeine_mg"`
 
 	// CalciumMg Calcium in milligrams
 	CalciumMg float32 `json:"calcium_mg"`
@@ -120,6 +126,9 @@ type CompleteNutrient struct {
 
 	// CopperMg Copper in milligrams
 	CopperMg float32 `json:"copper_mg"`
+
+	// CreatineMg Creatine in milligrams
+	CreatineMg float32 `json:"creatine_mg"`
 
 	// DietaryFiberG Dietary fiber in grams
 	DietaryFiberG float32 `json:"dietary_fiber_g"`
@@ -145,14 +154,32 @@ type CompleteNutrient struct {
 	// MolybdenumMcg Molybdenum in micrograms
 	MolybdenumMcg float32 `json:"molybdenum_mcg"`
 
+	// MonounsaturatedFatG Monounsaturated fat in grams
+	MonounsaturatedFatG float32 `json:"monounsaturated_fat_g"`
+
 	// NiacinMg Niacin (B3) in milligrams
 	NiacinMg float32 `json:"niacin_mg"`
+
+	// Omega3AlaG Omega-3 ALA (Alpha-linolenic acid) in grams
+	Omega3AlaG float32 `json:"omega3_ala_g"`
+
+	// Omega3DhaG Omega-3 DHA (Docosahexaenoic acid) in grams
+	Omega3DhaG float32 `json:"omega3_dha_g"`
+
+	// Omega3EpaG Omega-3 EPA (Eicosapentaenoic acid) in grams
+	Omega3EpaG float32 `json:"omega3_epa_g"`
+
+	// Omega6G Omega-6 fatty acids in grams
+	Omega6G float32 `json:"omega6_g"`
 
 	// PantothenicAcidMg Pantothenic Acid (B5) in milligrams
 	PantothenicAcidMg float32 `json:"pantothenic_acid_mg"`
 
 	// PhosphorusMg Phosphorus in milligrams
 	PhosphorusMg float32 `json:"phosphorus_mg"`
+
+	// PolyunsaturatedFatG Polyunsaturated fat in grams
+	PolyunsaturatedFatG float32 `json:"polyunsaturated_fat_g"`
 
 	// PotassiumMg Potassium in milligrams
 	PotassiumMg float32 `json:"potassium_mg"`
@@ -218,9 +245,15 @@ type Consumption struct {
 	CreatedAt time.Time `json:"created_at"`
 
 	// Id Consumption ID
-	Id      string              `json:"id"`
-	Items   []ItemWithNutrition `json:"items"`
-	Summary Summary             `json:"summary"`
+	Id    string              `json:"id"`
+	Items []ItemWithNutrition `json:"items"`
+
+	// Label Custom label for the consumption
+	Label *string `json:"label"`
+
+	// Note Additional note about the consumption
+	Note    *string `json:"note"`
+	Summary Summary `json:"summary"`
 
 	// Transcript Original transcribed text
 	Transcript string `json:"transcript"`
@@ -403,8 +436,14 @@ type Item struct {
 	// Grams Weight in grams (standardized internally)
 	Grams float32 `json:"grams"`
 
+	// Label Custom label for the item
+	Label *string `json:"label"`
+
 	// Name Name of the food item
-	Name      string            `json:"name"`
+	Name string `json:"name"`
+
+	// Note Additional note about the item
+	Note      *string           `json:"note"`
 	Nutrients *CompleteNutrient `json:"nutrients,omitempty"`
 
 	// UserQuantity Original user input quantity for display
@@ -469,8 +508,14 @@ type NutritionSummary struct {
 	// TotalAddedSugarsG Total added sugars in grams
 	TotalAddedSugarsG float32 `json:"total_added_sugars_g"`
 
+	// TotalAlcoholG Total alcohol in grams
+	TotalAlcoholG float32 `json:"total_alcohol_g"`
+
 	// TotalBiotinMcg Total biotin in micrograms
 	TotalBiotinMcg float32 `json:"total_biotin_mcg"`
+
+	// TotalCaffeineMg Total caffeine in milligrams
+	TotalCaffeineMg float32 `json:"total_caffeine_mg"`
 
 	// TotalCalciumMg Total calcium in milligrams
 	TotalCalciumMg float32 `json:"total_calcium_mg"`
@@ -495,6 +540,9 @@ type NutritionSummary struct {
 
 	// TotalCopperMg Total copper in milligrams
 	TotalCopperMg float32 `json:"total_copper_mg"`
+
+	// TotalCreatineMg Total creatine in milligrams
+	TotalCreatineMg float32 `json:"total_creatine_mg"`
 
 	// TotalFatG Total fat in grams
 	TotalFatG float32 `json:"total_fat_g"`
@@ -523,14 +571,32 @@ type NutritionSummary struct {
 	// TotalMolybdenumMcg Total molybdenum in micrograms
 	TotalMolybdenumMcg float32 `json:"total_molybdenum_mcg"`
 
+	// TotalMonounsaturatedFatG Total monounsaturated fat in grams
+	TotalMonounsaturatedFatG float32 `json:"total_monounsaturated_fat_g"`
+
 	// TotalNiacinMg Total niacin (B3) in milligrams
 	TotalNiacinMg float32 `json:"total_niacin_mg"`
+
+	// TotalOmega3AlaG Total Omega-3 ALA (Alpha-linolenic acid) in grams
+	TotalOmega3AlaG float32 `json:"total_omega3_ala_g"`
+
+	// TotalOmega3DhaG Total Omega-3 DHA (Docosahexaenoic acid) in grams
+	TotalOmega3DhaG float32 `json:"total_omega3_dha_g"`
+
+	// TotalOmega3EpaG Total Omega-3 EPA (Eicosapentaenoic acid) in grams
+	TotalOmega3EpaG float32 `json:"total_omega3_epa_g"`
+
+	// TotalOmega6G Total Omega-6 fatty acids in grams
+	TotalOmega6G float32 `json:"total_omega6_g"`
 
 	// TotalPantothenicAcidMg Total pantothenic acid (B5) in milligrams
 	TotalPantothenicAcidMg float32 `json:"total_pantothenic_acid_mg"`
 
 	// TotalPhosphorusMg Total phosphorus in milligrams
 	TotalPhosphorusMg float32 `json:"total_phosphorus_mg"`
+
+	// TotalPolyunsaturatedFatG Total polyunsaturated fat in grams
+	TotalPolyunsaturatedFatG float32 `json:"total_polyunsaturated_fat_g"`
 
 	// TotalPotassiumMg Total potassium in milligrams
 	TotalPotassiumMg float32 `json:"total_potassium_mg"`

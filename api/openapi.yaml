@@ -760,6 +760,16 @@ components:
           type: string
           nullable: true
           description: Brand name
+        note:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Additional note about the item
+        label:
+          type: string
+          nullable: true
+          maxLength: 63
+          description: Custom label for the item
         nutrients:
           $ref: "#/components/schemas/CompleteNutrient"
 
@@ -816,6 +826,15 @@ components:
         - fluoride_mg
         - iodine_mcg
         - molybdenum_mcg
+        - omega3_ala_g
+        - omega3_epa_g
+        - omega3_dha_g
+        - omega6_g
+        - creatine_mg
+        - caffeine_mg
+        - alcohol_g
+        - polyunsaturated_fat_g
+        - monounsaturated_fat_g
       properties:
         calories:
           type: number
@@ -934,6 +953,33 @@ components:
         molybdenum_mcg:
           type: number
           description: Molybdenum in micrograms
+        omega3_ala_g:
+          type: number
+          description: Omega-3 ALA (Alpha-linolenic acid) in grams
+        omega3_epa_g:
+          type: number
+          description: Omega-3 EPA (Eicosapentaenoic acid) in grams
+        omega3_dha_g:
+          type: number
+          description: Omega-3 DHA (Docosahexaenoic acid) in grams
+        omega6_g:
+          type: number
+          description: Omega-6 fatty acids in grams
+        creatine_mg:
+          type: number
+          description: Creatine in milligrams
+        caffeine_mg:
+          type: number
+          description: Caffeine in milligrams
+        alcohol_g:
+          type: number
+          description: Alcohol in grams
+        polyunsaturated_fat_g:
+          type: number
+          description: Polyunsaturated fat in grams
+        monounsaturated_fat_g:
+          type: number
+          description: Monounsaturated fat in grams
 
     Summary:
       type: object
@@ -1009,6 +1055,16 @@ components:
         transcript:
           type: string
           description: Original transcribed text
+        note:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Additional note about the consumption
+        label:
+          type: string
+          nullable: true
+          maxLength: 63
+          description: Custom label for the consumption
         items:
           type: array
           items:
@@ -1066,6 +1122,15 @@ components:
         - total_fluoride_mg
         - total_iodine_mcg
         - total_molybdenum_mcg
+        - total_omega3_ala_g
+        - total_omega3_epa_g
+        - total_omega3_dha_g
+        - total_omega6_g
+        - total_creatine_mg
+        - total_caffeine_mg
+        - total_alcohol_g
+        - total_polyunsaturated_fat_g
+        - total_monounsaturated_fat_g
         - avg_calories_per_day
         - avg_protein_per_day
         - avg_fat_per_day
@@ -1205,6 +1270,33 @@ components:
         total_molybdenum_mcg:
           type: number
           description: Total molybdenum in micrograms
+        total_omega3_ala_g:
+          type: number
+          description: Total Omega-3 ALA (Alpha-linolenic acid) in grams
+        total_omega3_epa_g:
+          type: number
+          description: Total Omega-3 EPA (Eicosapentaenoic acid) in grams
+        total_omega3_dha_g:
+          type: number
+          description: Total Omega-3 DHA (Docosahexaenoic acid) in grams
+        total_omega6_g:
+          type: number
+          description: Total Omega-6 fatty acids in grams
+        total_creatine_mg:
+          type: number
+          description: Total creatine in milligrams
+        total_caffeine_mg:
+          type: number
+          description: Total caffeine in milligrams
+        total_alcohol_g:
+          type: number
+          description: Total alcohol in grams
+        total_polyunsaturated_fat_g:
+          type: number
+          description: Total polyunsaturated fat in grams
+        total_monounsaturated_fat_g:
+          type: number
+          description: Total monounsaturated fat in grams
         avg_calories_per_day:
           type: number
           description: Average calories per day

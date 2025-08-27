@@ -95,41 +95,52 @@ type Consumption struct {
 	DietaryFiber  float64 `json:"dietary_fiber_g"`
 	TotalSodium   float64 `json:"total_sodium_mg"`
 	// Additional micronutrient totals
-	SaturatedFat    float64    `json:"saturated_fat_g"`
-	TransFat        float64    `json:"trans_fat_g"`
-	Cholesterol     float64    `json:"cholesterol_mg"`
-	TotalSugars     float64    `json:"total_sugars_g"`
-	AddedSugars     float64    `json:"added_sugars_g"`
-	VitaminA        float64    `json:"vitamin_a_mcg"`
-	VitaminC        float64    `json:"vitamin_c_mg"`
-	VitaminD        float64    `json:"vitamin_d_mcg"`
-	VitaminE        float64    `json:"vitamin_e_mg"`
-	VitaminK        float64    `json:"vitamin_k_mcg"`
-	Thiamine        float64    `json:"thiamine_mg"`
-	Riboflavin      float64    `json:"riboflavin_mg"`
-	Niacin          float64    `json:"niacin_mg"`
-	VitaminB6       float64    `json:"vitamin_b6_mg"`
-	Folate          float64    `json:"folate_mcg"`
-	VitaminB12      float64    `json:"vitamin_b12_mcg"`
-	Biotin          float64    `json:"biotin_mcg"`
-	PantothenicAcid float64    `json:"pantothenic_acid_mg"`
-	Choline         float64    `json:"choline_mg"`
-	Calcium         float64    `json:"calcium_mg"`
-	Iron            float64    `json:"iron_mg"`
-	Magnesium       float64    `json:"magnesium_mg"`
-	Phosphorus      float64    `json:"phosphorus_mg"`
-	Potassium       float64    `json:"potassium_mg"`
-	Zinc            float64    `json:"zinc_mg"`
-	Copper          float64    `json:"copper_mg"`
-	Manganese       float64    `json:"manganese_mg"`
-	Selenium        float64    `json:"selenium_mcg"`
-	Iodine          float64    `json:"iodine_mcg"`
-	Molybdenum      float64    `json:"molybdenum_mcg"`
-	Chromium        float64    `json:"chromium_mcg"`
-	Fluoride        float64    `json:"fluoride_mg"`
-	Chloride        float64    `json:"chloride_mg"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       *time.Time `json:"updated_at,omitempty"`
+	SaturatedFat       float64    `json:"saturated_fat_g"`
+	TransFat           float64    `json:"trans_fat_g"`
+	Cholesterol        float64    `json:"cholesterol_mg"`
+	TotalSugars        float64    `json:"total_sugars_g"`
+	AddedSugars        float64    `json:"added_sugars_g"`
+	VitaminA           float64    `json:"vitamin_a_mcg"`
+	VitaminC           float64    `json:"vitamin_c_mg"`
+	VitaminD           float64    `json:"vitamin_d_mcg"`
+	VitaminE           float64    `json:"vitamin_e_mg"`
+	VitaminK           float64    `json:"vitamin_k_mcg"`
+	Thiamine           float64    `json:"thiamine_mg"`
+	Riboflavin         float64    `json:"riboflavin_mg"`
+	Niacin             float64    `json:"niacin_mg"`
+	VitaminB6          float64    `json:"vitamin_b6_mg"`
+	Folate             float64    `json:"folate_mcg"`
+	VitaminB12         float64    `json:"vitamin_b12_mcg"`
+	Biotin             float64    `json:"biotin_mcg"`
+	PantothenicAcid    float64    `json:"pantothenic_acid_mg"`
+	Choline            float64    `json:"choline_mg"`
+	Calcium            float64    `json:"calcium_mg"`
+	Iron               float64    `json:"iron_mg"`
+	Magnesium          float64    `json:"magnesium_mg"`
+	Phosphorus         float64    `json:"phosphorus_mg"`
+	Potassium          float64    `json:"potassium_mg"`
+	Zinc               float64    `json:"zinc_mg"`
+	Copper             float64    `json:"copper_mg"`
+	Manganese          float64    `json:"manganese_mg"`
+	Selenium           float64    `json:"selenium_mcg"`
+	Iodine             float64    `json:"iodine_mcg"`
+	Molybdenum         float64    `json:"molybdenum_mcg"`
+	Chromium           float64    `json:"chromium_mcg"`
+	Fluoride           float64    `json:"fluoride_mg"`
+	Chloride           float64    `json:"chloride_mg"`
+	Omega3Ala          float64    `json:"omega3_ala_g"`
+	Omega3Epa          float64    `json:"omega3_epa_g"`
+	Omega3Dha          float64    `json:"omega3_dha_g"`
+	Omega6             float64    `json:"omega6_g"`
+	Creatine           float64    `json:"creatine_mg"`
+	Caffeine           float64    `json:"caffeine_mg"`
+	Alcohol            float64    `json:"alcohol_g"`
+	PolyunsaturatedFat float64    `json:"polyunsaturated_fat_g"`
+	MonounsaturatedFat float64    `json:"monounsaturated_fat_g"`
+	Note               *string    `json:"note,omitempty"`
+	Label              *string    `json:"label,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          *time.Time `json:"updated_at,omitempty"`
 }
 
 // Item represents permanent nutrition data for a food item (evolved from ItemCache)
@@ -141,87 +152,107 @@ type Item struct {
 	DisplayBrand    string `json:"display_brand"`
 
 	// Original serving data (exact values for one serving of the item - ex: one can of soda, one burger, one carrot, one handful of blueberries, one plate of pasta with pesto sauce, etc)
-	OriginalServingGrams      *float64 `json:"original_serving_grams,omitempty"`
-	OriginalCalories          *float64 `json:"original_calories,omitempty"`
-	OriginalProteinG          *float64 `json:"original_protein_g,omitempty"`
-	OriginalTotalFatG         *float64 `json:"original_total_fat_g,omitempty"`
-	OriginalSaturatedFatG     *float64 `json:"original_saturated_fat_g,omitempty"`
-	OriginalTransFatG         *float64 `json:"original_trans_fat_g,omitempty"`
-	OriginalCholesterolMg     *float64 `json:"original_cholesterol_mg,omitempty"`
-	OriginalSodiumMg          *float64 `json:"original_sodium_mg,omitempty"`
-	OriginalTotalCarbsG       *float64 `json:"original_total_carbs_g,omitempty"`
-	OriginalDietaryFiberG     *float64 `json:"original_dietary_fiber_g,omitempty"`
-	OriginalTotalSugarsG      *float64 `json:"original_total_sugars_g,omitempty"`
-	OriginalAddedSugarsG      *float64 `json:"original_added_sugars_g,omitempty"`
-	OriginalVitaminAMcg       *float64 `json:"original_vitamin_a_mcg,omitempty"`
-	OriginalVitaminCMg        *float64 `json:"original_vitamin_c_mg,omitempty"`
-	OriginalVitaminDMcg       *float64 `json:"original_vitamin_d_mcg,omitempty"`
-	OriginalVitaminEMg        *float64 `json:"original_vitamin_e_mg,omitempty"`
-	OriginalVitaminKMcg       *float64 `json:"original_vitamin_k_mcg,omitempty"`
-	OriginalThiamineMg        *float64 `json:"original_thiamine_mg,omitempty"`
-	OriginalRiboflavinMg      *float64 `json:"original_riboflavin_mg,omitempty"`
-	OriginalNiacinMg          *float64 `json:"original_niacin_mg,omitempty"`
-	OriginalVitaminB6Mg       *float64 `json:"original_vitamin_b6_mg,omitempty"`
-	OriginalFolateMcg         *float64 `json:"original_folate_mcg,omitempty"`
-	OriginalVitaminB12Mcg     *float64 `json:"original_vitamin_b12_mcg,omitempty"`
-	OriginalBiotinMcg         *float64 `json:"original_biotin_mcg,omitempty"`
-	OriginalPantothenicAcidMg *float64 `json:"original_pantothenic_acid_mg,omitempty"`
-	OriginalCholineMg         *float64 `json:"original_choline_mg,omitempty"`
-	OriginalCalciumMg         *float64 `json:"original_calcium_mg,omitempty"`
-	OriginalIronMg            *float64 `json:"original_iron_mg,omitempty"`
-	OriginalMagnesiumMg       *float64 `json:"original_magnesium_mg,omitempty"`
-	OriginalPhosphorusMg      *float64 `json:"original_phosphorus_mg,omitempty"`
-	OriginalPotassiumMg       *float64 `json:"original_potassium_mg,omitempty"`
-	OriginalZincMg            *float64 `json:"original_zinc_mg,omitempty"`
-	OriginalCopperMg          *float64 `json:"original_copper_mg,omitempty"`
-	OriginalManganeseMg       *float64 `json:"original_manganese_mg,omitempty"`
-	OriginalSeleniumMcg       *float64 `json:"original_selenium_mcg,omitempty"`
-	OriginalIodineMcg         *float64 `json:"original_iodine_mcg,omitempty"`
-	OriginalMolybdenumMcg     *float64 `json:"original_molybdenum_mcg,omitempty"`
-	OriginalChromiumMcg       *float64 `json:"original_chromium_mcg,omitempty"`
-	OriginalFluorideMg        *float64 `json:"original_fluoride_mg,omitempty"`
-	OriginalChlorideMg        *float64 `json:"original_chloride_mg,omitempty"`
+	OriginalServingGrams        *float64 `json:"original_serving_grams,omitempty"`
+	OriginalCalories            *float64 `json:"original_calories,omitempty"`
+	OriginalProteinG            *float64 `json:"original_protein_g,omitempty"`
+	OriginalTotalFatG           *float64 `json:"original_total_fat_g,omitempty"`
+	OriginalSaturatedFatG       *float64 `json:"original_saturated_fat_g,omitempty"`
+	OriginalTransFatG           *float64 `json:"original_trans_fat_g,omitempty"`
+	OriginalCholesterolMg       *float64 `json:"original_cholesterol_mg,omitempty"`
+	OriginalSodiumMg            *float64 `json:"original_sodium_mg,omitempty"`
+	OriginalTotalCarbsG         *float64 `json:"original_total_carbs_g,omitempty"`
+	OriginalDietaryFiberG       *float64 `json:"original_dietary_fiber_g,omitempty"`
+	OriginalTotalSugarsG        *float64 `json:"original_total_sugars_g,omitempty"`
+	OriginalAddedSugarsG        *float64 `json:"original_added_sugars_g,omitempty"`
+	OriginalVitaminAMcg         *float64 `json:"original_vitamin_a_mcg,omitempty"`
+	OriginalVitaminCMg          *float64 `json:"original_vitamin_c_mg,omitempty"`
+	OriginalVitaminDMcg         *float64 `json:"original_vitamin_d_mcg,omitempty"`
+	OriginalVitaminEMg          *float64 `json:"original_vitamin_e_mg,omitempty"`
+	OriginalVitaminKMcg         *float64 `json:"original_vitamin_k_mcg,omitempty"`
+	OriginalThiamineMg          *float64 `json:"original_thiamine_mg,omitempty"`
+	OriginalRiboflavinMg        *float64 `json:"original_riboflavin_mg,omitempty"`
+	OriginalNiacinMg            *float64 `json:"original_niacin_mg,omitempty"`
+	OriginalVitaminB6Mg         *float64 `json:"original_vitamin_b6_mg,omitempty"`
+	OriginalFolateMcg           *float64 `json:"original_folate_mcg,omitempty"`
+	OriginalVitaminB12Mcg       *float64 `json:"original_vitamin_b12_mcg,omitempty"`
+	OriginalBiotinMcg           *float64 `json:"original_biotin_mcg,omitempty"`
+	OriginalPantothenicAcidMg   *float64 `json:"original_pantothenic_acid_mg,omitempty"`
+	OriginalCholineMg           *float64 `json:"original_choline_mg,omitempty"`
+	OriginalCalciumMg           *float64 `json:"original_calcium_mg,omitempty"`
+	OriginalIronMg              *float64 `json:"original_iron_mg,omitempty"`
+	OriginalMagnesiumMg         *float64 `json:"original_magnesium_mg,omitempty"`
+	OriginalPhosphorusMg        *float64 `json:"original_phosphorus_mg,omitempty"`
+	OriginalPotassiumMg         *float64 `json:"original_potassium_mg,omitempty"`
+	OriginalZincMg              *float64 `json:"original_zinc_mg,omitempty"`
+	OriginalCopperMg            *float64 `json:"original_copper_mg,omitempty"`
+	OriginalManganeseMg         *float64 `json:"original_manganese_mg,omitempty"`
+	OriginalSeleniumMcg         *float64 `json:"original_selenium_mcg,omitempty"`
+	OriginalIodineMcg           *float64 `json:"original_iodine_mcg,omitempty"`
+	OriginalMolybdenumMcg       *float64 `json:"original_molybdenum_mcg,omitempty"`
+	OriginalChromiumMcg         *float64 `json:"original_chromium_mcg,omitempty"`
+	OriginalFluorideMg          *float64 `json:"original_fluoride_mg,omitempty"`
+	OriginalChlorideMg          *float64 `json:"original_chloride_mg,omitempty"`
+	OriginalOmega3AlaG          *float64 `json:"original_omega3_ala_g,omitempty"`
+	OriginalOmega3EpaG          *float64 `json:"original_omega3_epa_g,omitempty"`
+	OriginalOmega3DhaG          *float64 `json:"original_omega3_dha_g,omitempty"`
+	OriginalOmega6G             *float64 `json:"original_omega6_g,omitempty"`
+	OriginalCreatineMg          *float64 `json:"original_creatine_mg,omitempty"`
+	OriginalCaffeineMg          *float64 `json:"original_caffeine_mg,omitempty"`
+	OriginalAlcoholG            *float64 `json:"original_alcohol_g,omitempty"`
+	OriginalPolyunsaturatedFatG *float64 `json:"original_polyunsaturated_fat_g,omitempty"`
+	OriginalMonounsaturatedFatG *float64 `json:"original_monounsaturated_fat_g,omitempty"`
 
 	// Normalized nutrition data per 100g (for scaling)
-	CaloriesPer100g          float64 `json:"calories_per_100g"`
-	ProteinGPer100g          float64 `json:"protein_g_per_100g"`
-	TotalFatGPer100g         float64 `json:"total_fat_g_per_100g"`
-	SaturatedFatGPer100g     float64 `json:"saturated_fat_g_per_100g"`
-	TransFatGPer100g         float64 `json:"trans_fat_g_per_100g"`
-	CholesterolMgPer100g     float64 `json:"cholesterol_mg_per_100g"`
-	SodiumMgPer100g          float64 `json:"sodium_mg_per_100g"`
-	TotalCarbsGPer100g       float64 `json:"total_carbs_g_per_100g"`
-	DietaryFiberGPer100g     float64 `json:"dietary_fiber_g_per_100g"`
-	TotalSugarsGPer100g      float64 `json:"total_sugars_g_per_100g"`
-	AddedSugarsGPer100g      float64 `json:"added_sugars_g_per_100g"`
-	VitaminAMcgPer100g       float64 `json:"vitamin_a_mcg_per_100g"`
-	VitaminCMgPer100g        float64 `json:"vitamin_c_mg_per_100g"`
-	VitaminDMcgPer100g       float64 `json:"vitamin_d_mcg_per_100g"`
-	VitaminEMgPer100g        float64 `json:"vitamin_e_mg_per_100g"`
-	VitaminKMcgPer100g       float64 `json:"vitamin_k_mcg_per_100g"`
-	ThiamineMgPer100g        float64 `json:"thiamine_mg_per_100g"`
-	RiboflavinMgPer100g      float64 `json:"riboflavin_mg_per_100g"`
-	NiacinMgPer100g          float64 `json:"niacin_mg_per_100g"`
-	VitaminB6MgPer100g       float64 `json:"vitamin_b6_mg_per_100g"`
-	FolateMcgPer100g         float64 `json:"folate_mcg_per_100g"`
-	VitaminB12McgPer100g     float64 `json:"vitamin_b12_mcg_per_100g"`
-	BiotinMcgPer100g         float64 `json:"biotin_mcg_per_100g"`
-	PantothenicAcidMgPer100g float64 `json:"pantothenic_acid_mg_per_100g"`
-	CholineMgPer100g         float64 `json:"choline_mg_per_100g"`
-	CalciumMgPer100g         float64 `json:"calcium_mg_per_100g"`
-	IronMgPer100g            float64 `json:"iron_mg_per_100g"`
-	MagnesiumMgPer100g       float64 `json:"magnesium_mg_per_100g"`
-	PhosphorusMgPer100g      float64 `json:"phosphorus_mg_per_100g"`
-	PotassiumMgPer100g       float64 `json:"potassium_mg_per_100g"`
-	ZincMgPer100g            float64 `json:"zinc_mg_per_100g"`
-	CopperMgPer100g          float64 `json:"copper_mg_per_100g"`
-	ManganeseMgPer100g       float64 `json:"manganese_mg_per_100g"`
-	SeleniumMcgPer100g       float64 `json:"selenium_mcg_per_100g"`
-	IodineMcgPer100g         float64 `json:"iodine_mcg_per_100g"`
-	MolybdenumMcgPer100g     float64 `json:"molybdenum_mcg_per_100g"`
-	ChromiumMcgPer100g       float64 `json:"chromium_mcg_per_100g"`
-	FluorideMgPer100g        float64 `json:"fluoride_mg_per_100g"`
-	ChlorideMgPer100g        float64 `json:"chloride_mg_per_100g"`
+	CaloriesPer100g            float64 `json:"calories_per_100g"`
+	ProteinGPer100g            float64 `json:"protein_g_per_100g"`
+	TotalFatGPer100g           float64 `json:"total_fat_g_per_100g"`
+	SaturatedFatGPer100g       float64 `json:"saturated_fat_g_per_100g"`
+	TransFatGPer100g           float64 `json:"trans_fat_g_per_100g"`
+	CholesterolMgPer100g       float64 `json:"cholesterol_mg_per_100g"`
+	SodiumMgPer100g            float64 `json:"sodium_mg_per_100g"`
+	TotalCarbsGPer100g         float64 `json:"total_carbs_g_per_100g"`
+	DietaryFiberGPer100g       float64 `json:"dietary_fiber_g_per_100g"`
+	TotalSugarsGPer100g        float64 `json:"total_sugars_g_per_100g"`
+	AddedSugarsGPer100g        float64 `json:"added_sugars_g_per_100g"`
+	VitaminAMcgPer100g         float64 `json:"vitamin_a_mcg_per_100g"`
+	VitaminCMgPer100g          float64 `json:"vitamin_c_mg_per_100g"`
+	VitaminDMcgPer100g         float64 `json:"vitamin_d_mcg_per_100g"`
+	VitaminEMgPer100g          float64 `json:"vitamin_e_mg_per_100g"`
+	VitaminKMcgPer100g         float64 `json:"vitamin_k_mcg_per_100g"`
+	ThiamineMgPer100g          float64 `json:"thiamine_mg_per_100g"`
+	RiboflavinMgPer100g        float64 `json:"riboflavin_mg_per_100g"`
+	NiacinMgPer100g            float64 `json:"niacin_mg_per_100g"`
+	VitaminB6MgPer100g         float64 `json:"vitamin_b6_mg_per_100g"`
+	FolateMcgPer100g           float64 `json:"folate_mcg_per_100g"`
+	VitaminB12McgPer100g       float64 `json:"vitamin_b12_mcg_per_100g"`
+	BiotinMcgPer100g           float64 `json:"biotin_mcg_per_100g"`
+	PantothenicAcidMgPer100g   float64 `json:"pantothenic_acid_mg_per_100g"`
+	CholineMgPer100g           float64 `json:"choline_mg_per_100g"`
+	CalciumMgPer100g           float64 `json:"calcium_mg_per_100g"`
+	IronMgPer100g              float64 `json:"iron_mg_per_100g"`
+	MagnesiumMgPer100g         float64 `json:"magnesium_mg_per_100g"`
+	PhosphorusMgPer100g        float64 `json:"phosphorus_mg_per_100g"`
+	PotassiumMgPer100g         float64 `json:"potassium_mg_per_100g"`
+	ZincMgPer100g              float64 `json:"zinc_mg_per_100g"`
+	CopperMgPer100g            float64 `json:"copper_mg_per_100g"`
+	ManganeseMgPer100g         float64 `json:"manganese_mg_per_100g"`
+	SeleniumMcgPer100g         float64 `json:"selenium_mcg_per_100g"`
+	IodineMcgPer100g           float64 `json:"iodine_mcg_per_100g"`
+	MolybdenumMcgPer100g       float64 `json:"molybdenum_mcg_per_100g"`
+	ChromiumMcgPer100g         float64 `json:"chromium_mcg_per_100g"`
+	FluorideMgPer100g          float64 `json:"fluoride_mg_per_100g"`
+	ChlorideMgPer100g          float64 `json:"chloride_mg_per_100g"`
+	Omega3AlaGPer100g          float64 `json:"omega3_ala_g_per_100g"`
+	Omega3EpaGPer100g          float64 `json:"omega3_epa_g_per_100g"`
+	Omega3DhaGPer100g          float64 `json:"omega3_dha_g_per_100g"`
+	Omega6GPer100g             float64 `json:"omega6_g_per_100g"`
+	CreatineMgPer100g          float64 `json:"creatine_mg_per_100g"`
+	CaffeineMgPer100g          float64 `json:"caffeine_mg_per_100g"`
+	AlcoholGPer100g            float64 `json:"alcohol_g_per_100g"`
+	PolyunsaturatedFatGPer100g float64 `json:"polyunsaturated_fat_g_per_100g"`
+	MonounsaturatedFatGPer100g float64 `json:"monounsaturated_fat_g_per_100g"`
+	Note                       *string `json:"note,omitempty"`
+	Label                      *string `json:"label,omitempty"`
 	// Timestamps for 30-day refresh logic
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -232,9 +263,11 @@ type ConsumptionItem struct {
 	ID            string    `json:"id"`
 	ConsumptionID string    `json:"consumption_id"`
 	ItemID        string    `json:"item_id"`
-	Grams         float64   `json:"grams"`         // Actual grams consumed (normalized internally)
-	UserQuantity  *float64  `json:"user_quantity"` // Original user input quantity for display
-	UserUnit      *string   `json:"user_unit"`     // Original user input unit for display
+	Grams         float64   `json:"grams"`           // Actual grams consumed (normalized internally)
+	UserQuantity  *float64  `json:"user_quantity"`   // Original user input quantity for display
+	UserUnit      *string   `json:"user_unit"`       // Original user input unit for display
+	Note          *string   `json:"note,omitempty"`  // Additional note about the item
+	Label         *string   `json:"label,omitempty"` // Custom label for the item
 	CreatedAt     time.Time `json:"created_at"`
 }
 
@@ -287,20 +320,29 @@ type NutritionSummary struct {
 	TotalCholine         float64 `json:"total_choline_mg"`
 
 	// Minerals
-	TotalCalcium    float64 `json:"total_calcium_mg"`
-	TotalIron       float64 `json:"total_iron_mg"`
-	TotalMagnesium  float64 `json:"total_magnesium_mg"`
-	TotalPhosphorus float64 `json:"total_phosphorus_mg"`
-	TotalPotassium  float64 `json:"total_potassium_mg"`
-	TotalZinc       float64 `json:"total_zinc_mg"`
-	TotalCopper     float64 `json:"total_copper_mg"`
-	TotalManganese  float64 `json:"total_manganese_mg"`
-	TotalSelenium   float64 `json:"total_selenium_mcg"`
-	TotalIodine     float64 `json:"total_iodine_mcg"`
-	TotalMolybdenum float64 `json:"total_molybdenum_mcg"`
-	TotalChromium   float64 `json:"total_chromium_mcg"`
-	TotalFluoride   float64 `json:"total_fluoride_mg"`
-	TotalChloride   float64 `json:"total_chloride_mg"`
+	TotalCalcium            float64 `json:"total_calcium_mg"`
+	TotalIron               float64 `json:"total_iron_mg"`
+	TotalMagnesium          float64 `json:"total_magnesium_mg"`
+	TotalPhosphorus         float64 `json:"total_phosphorus_mg"`
+	TotalPotassium          float64 `json:"total_potassium_mg"`
+	TotalZinc               float64 `json:"total_zinc_mg"`
+	TotalCopper             float64 `json:"total_copper_mg"`
+	TotalManganese          float64 `json:"total_manganese_mg"`
+	TotalSelenium           float64 `json:"total_selenium_mcg"`
+	TotalIodine             float64 `json:"total_iodine_mcg"`
+	TotalMolybdenum         float64 `json:"total_molybdenum_mcg"`
+	TotalChromium           float64 `json:"total_chromium_mcg"`
+	TotalFluoride           float64 `json:"total_fluoride_mg"`
+	TotalChloride           float64 `json:"total_chloride_mg"`
+	TotalOmega3Ala          float64 `json:"total_omega3_ala_g"`
+	TotalOmega3Epa          float64 `json:"total_omega3_epa_g"`
+	TotalOmega3Dha          float64 `json:"total_omega3_dha_g"`
+	TotalOmega6             float64 `json:"total_omega6_g"`
+	TotalCreatine           float64 `json:"total_creatine_mg"`
+	TotalCaffeine           float64 `json:"total_caffeine_mg"`
+	TotalAlcohol            float64 `json:"total_alcohol_g"`
+	TotalPolyunsaturatedFat float64 `json:"total_polyunsaturated_fat_g"`
+	TotalMonounsaturatedFat float64 `json:"total_monounsaturated_fat_g"`
 
 	// Averages per day - basic macronutrients
 	AvgCaloriesPerDay float64 `json:"avg_calories_per_day"`

@@ -83,7 +83,14 @@
     // Fat types
     saturated_fat_g: summaryData.summary.total_saturated_fat_g || 0,
     trans_fat_g: summaryData.summary.total_trans_fat_g || 0,
+    monounsaturated_fat_g: summaryData.summary.total_monounsaturated_fat_g || 0,
+    polyunsaturated_fat_g: summaryData.summary.total_polyunsaturated_fat_g || 0,
+    omega3_ala_g: summaryData.summary.total_omega3_ala_g || 0,
+    omega3_epa_g: summaryData.summary.total_omega3_epa_g || 0,
+    omega3_dha_g: summaryData.summary.total_omega3_dha_g || 0,
+    omega6_g: summaryData.summary.total_omega6_g || 0,
     cholesterol_mg: summaryData.summary.total_cholesterol_mg || 0,
+    alcohol_g: summaryData.summary.total_alcohol_g || 0,
     
     // Sugar types
     total_sugars_g: summaryData.summary.total_sugars_g || 0,
@@ -124,6 +131,10 @@
     chromium_mcg: summaryData.summary.total_chromium_mcg || 0,
     fluoride_mg: summaryData.summary.total_fluoride_mg || 0,
     chloride_mg: summaryData.summary.total_chloride_mg || 0,
+    
+    // Other compounds
+    caffeine_mg: summaryData.summary.total_caffeine_mg || 0,
+    creatine_mg: summaryData.summary.total_creatine_mg || 0,
   } : undefined;
 </script>
 

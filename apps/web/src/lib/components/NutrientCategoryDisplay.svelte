@@ -34,6 +34,8 @@
         { key: "added_sugars_g", label: "Added Sugars", unit: "g" },
         { key: "total_fat_g", label: "Total Fat", unit: "g" },
         { key: "saturated_fat_g", label: "Saturated Fat", unit: "g" },
+        { key: "monounsaturated_fat_g", label: "Monounsaturated Fat", unit: "g" },
+        { key: "polyunsaturated_fat_g", label: "Polyunsaturated Fat", unit: "g" },
         { key: "trans_fat_g", label: "Trans Fat", unit: "g" },
         { key: "cholesterol_mg", label: "Cholesterol", unit: "mg" }
       ]
@@ -77,6 +79,25 @@
         { key: "chromium_mcg", label: "Chromium", unit: "mcg" },
         { key: "fluoride_mg", label: "Fluoride", unit: "mg" },
         { key: "chloride_mg", label: "Chloride", unit: "mg" }
+      ]
+    },
+    emerging_nutrients: {
+      title: "\"Emerging\" Nutrients",
+      icon: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+      nutrients: [
+        { key: "omega3_ala_g", label: "Omega-3 ALA", unit: "g" },
+        { key: "omega3_epa_g", label: "Omega-3 EPA", unit: "g" },
+        { key: "omega3_dha_g", label: "Omega-3 DHA", unit: "g" },
+        { key: "omega6_g", label: "Omega-6 Fatty Acids", unit: "g" }
+      ]
+    },
+    functional_compounds: {
+      title: "Functional Compounds",
+      icon: "M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7.01 5 5 7.01 5 9.5S7.01 14 9.5 14 14 11.99 14 9.5 11.99 5 9.5 5z",
+      nutrients: [
+        { key: "alcohol_g", label: "Alcohol", unit: "g" },
+        { key: "caffeine_mg", label: "Caffeine", unit: "mg" },
+        { key: "creatine_mg", label: "Creatine", unit: "mg" }
       ]
     }
   };

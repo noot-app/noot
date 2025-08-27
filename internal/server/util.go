@@ -249,6 +249,23 @@ func summarize(items []ItemWithNutrition) Summary {
 			totals.Copper += n.Copper
 			totals.Manganese += n.Manganese
 			totals.Selenium += n.Selenium
+			totals.Iodine += n.Iodine
+			totals.Molybdenum += n.Molybdenum
+			totals.Chromium += n.Chromium
+			totals.Fluoride += n.Fluoride
+			totals.Chloride += n.Chloride
+			totals.Biotin += n.Biotin
+			totals.PantothenicAcid += n.PantothenicAcid
+			totals.Choline += n.Choline
+			totals.Omega3Ala += n.Omega3Ala
+			totals.Omega3Epa += n.Omega3Epa
+			totals.Omega3Dha += n.Omega3Dha
+			totals.Omega6 += n.Omega6
+			totals.Creatine += n.Creatine
+			totals.Caffeine += n.Caffeine
+			totals.Alcohol += n.Alcohol
+			totals.PolyunsaturatedFat += n.PolyunsaturatedFat
+			totals.MonounsaturatedFat += n.MonounsaturatedFat
 		}
 	}
 
