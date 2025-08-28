@@ -74,7 +74,11 @@ export async function signIn(email: string, password: string): Promise<{ user: U
 
 	// Check if the provider supports sign in (Supabase auth)
 	if ('signIn' in authProvider && typeof authProvider.signIn === 'function') {
-		return await authProvider.signIn(email, password);
+		const result = await authProvider.signIn(email, password);
+		return {
+			user: result.user,
+			error: result.error ? new Error(result.error) : null
+		};
 	}
 
 	return { user: null, error: new Error('Sign in not supported by current auth provider') };
@@ -90,7 +94,11 @@ export async function signUp(email: string, password: string, metadata?: { fullN
 
 	// Check if the provider supports sign up (Supabase auth)
 	if ('signUp' in authProvider && typeof authProvider.signUp === 'function') {
-		return await authProvider.signUp(email, password, metadata);
+		const result = await authProvider.signUp(email, password, metadata);
+		return {
+			user: result.user,
+			error: result.error ? new Error(result.error) : null
+		};
 	}
 
 	return { user: null, error: new Error('Sign up not supported by current auth provider') };
@@ -110,7 +118,9 @@ export async function signOut(): Promise<{ error: Error | null }> {
 		if (!result.error) {
 			currentUser.set(null);
 		}
-		return result;
+		return {
+			error: result.error ? new Error(result.error) : null
+		};
 	}
 
 	return { error: new Error('Sign out not supported by current auth provider') };
@@ -126,7 +136,10 @@ export async function resetPassword(email: string): Promise<{ error: Error | nul
 
 	// Check if the provider supports password reset (Supabase auth)
 	if ('resetPassword' in authProvider && typeof authProvider.resetPassword === 'function') {
-		return await authProvider.resetPassword(email);
+		const result = await authProvider.resetPassword(email);
+		return {
+			error: result.error ? new Error(result.error) : null
+		};
 	}
 
 	return { error: new Error('Password reset not supported by current auth provider') };

@@ -36,7 +36,30 @@
       const result = await signIn(email, password);
       
       if (result.error) {
-        error = result.error.message;
+        // Get the error message, handling both string and Error object types
+        const errorMessage = typeof result.error === 'string' ? result.error : result.error.message;
+
+        // log the error
+        console.warn('Login failure:', errorMessage);
+        
+        // Try to parse error as JSON to get error code, otherwise use message
+        let errorCode = null;
+        try {
+          const errorData = JSON.parse(errorMessage);
+          errorCode = errorData.code;
+        } catch {
+          // If not JSON, we'll handle it in the default case
+        }
+        
+        // Handle specific error codes with custom messages
+        switch (errorCode) {
+          case 'email_not_confirmed':
+            error = 'Email not confirmed. Please check your email for the confirmation link.';
+            break;
+          default:
+            // For non-JSON errors or unhandled codes, use the original message
+            error = errorMessage;
+        }
       } else if (result.user) {
         // Successful login - redirect to return URL
         goto(returnUrl);
@@ -128,12 +151,10 @@
 
       {#if error}
         <div class="alert alert-error">
-          <div class="flex-1">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <div>{error}</div>
-          </div>
+          <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>{error}</span>
         </div>
       {/if}
 

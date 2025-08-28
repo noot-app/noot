@@ -53,7 +53,9 @@ export class SupabaseAuthProvider implements AuthProvider {
 			});
 
 			if (error) {
-				return { user: null, error: error.message };
+				// Log the full error object to see what properties are available
+				console.warn('Supabase auth error:', error);
+				return { user: null, error: JSON.stringify({ code: error.code || error.name || 'unknown_error', message: error.message }) };
 			}
 
 			if (!data.session) {
@@ -70,8 +72,8 @@ export class SupabaseAuthProvider implements AuthProvider {
 	/**
 	 * Sign up with email and password
 	 */
-	async signUp(email: string, password: string, metadata?: { fullName?: string; handle?: string }): Promise<{ user: User | null; error: Error | null }> {
-		if (!supabase) return { user: null, error: new Error('Supabase not configured') };
+	async signUp(email: string, password: string, metadata?: { fullName?: string; handle?: string }): Promise<{ user: User | null; error: string | null }> {
+		if (!supabase) return { user: null, error: JSON.stringify({ code: 'no_supabase', message: 'Supabase not configured' }) };
 
 		try {
 			const { data, error } = await supabase.auth.signUp({
@@ -86,41 +88,50 @@ export class SupabaseAuthProvider implements AuthProvider {
 			});
 			
 			if (error) {
-				return { user: null, error };
+				console.warn('Supabase signup error:', error);
+				return { user: null, error: JSON.stringify({ code: error.code || error.name || 'unknown_error', message: error.message }) };
 			}
 
 			const user = data.session ? await this.mapSupabaseUserToUser(data.session) : null;
 			return { user, error: null };
 		} catch (error) {
-			return { user: null, error: error as Error };
+			return { user: null, error: JSON.stringify({ code: 'signup_error', message: String(error) }) };
 		}
 	}
 
 	/**
 	 * Sign out
 	 */
-	async signOut(): Promise<{ error: Error | null }> {
-		if (!supabase) return { error: new Error('Supabase not configured') };
+	async signOut(): Promise<{ error: string | null }> {
+		if (!supabase) return { error: JSON.stringify({ code: 'no_supabase', message: 'Supabase not configured' }) };
 
 		try {
 			const { error } = await supabase.auth.signOut();
-			return { error };
+			if (error) {
+				console.warn('Supabase signout error:', error);
+				return { error: JSON.stringify({ code: error.code || error.name || 'unknown_error', message: error.message }) };
+			}
+			return { error: null };
 		} catch (error) {
-			return { error: error as Error };
+			return { error: JSON.stringify({ code: 'signout_error', message: String(error) }) };
 		}
 	}
 
 	/**
 	 * Reset password
 	 */
-	async resetPassword(email: string): Promise<{ error: Error | null }> {
-		if (!supabase) return { error: new Error('Supabase not configured') };
+	async resetPassword(email: string): Promise<{ error: string | null }> {
+		if (!supabase) return { error: JSON.stringify({ code: 'no_supabase', message: 'Supabase not configured' }) };
 
 		try {
 			const { error } = await supabase.auth.resetPasswordForEmail(email);
-			return { error };
+			if (error) {
+				console.warn('Supabase reset password error:', error);
+				return { error: JSON.stringify({ code: error.code || error.name || 'unknown_error', message: error.message }) };
+			}
+			return { error: null };
 		} catch (error) {
-			return { error: error as Error };
+			return { error: JSON.stringify({ code: 'reset_password_error', message: String(error) }) };
 		}
 	}
 
