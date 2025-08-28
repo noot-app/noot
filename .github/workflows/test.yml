@@ -35,3 +35,7 @@ jobs:
 
       - name: test
         run: script/test
+
+      - name: test frontend
+        working-directory: apps/web
+        run: npm run test_run
