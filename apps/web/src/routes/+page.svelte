@@ -13,7 +13,7 @@
     // Trigger phone animation after a brief delay
     setTimeout(() => {
       phoneAnimated = true;
-    }, 500);
+    }, 25); // ms delay from dom rendering
   });
 </script>
 
@@ -199,7 +199,7 @@
       <div>
         <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary mb-4">Start Tracking Smarter Today</h2>
         <p class="text-base lg:text-xl text-base-content/80 max-w-2xl mx-auto">
-          Join thousands of users who have simplified their nutrition tracking with voice-first AI technology.
+          Join a community of people that care about quality nutrition.
         </p>
       </div>
       

@@ -28,6 +28,27 @@
   animation: pulse-gentle 2s ease-in-out infinite;
 }
 
+/* Keyframes for floating animation */
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg); 
+  }
+  50% { 
+    transform: translateY(-10px) rotate(1deg); 
+  }
+}
+
+@keyframes pulse-gentle {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+  50% { 
+    transform: scale(1.05); 
+    opacity: 0.9; 
+  }
+}
+
 /* Disable animations on mobile to prevent scroll interference */
 @media (max-width: 768px) {
   .phone-float,
