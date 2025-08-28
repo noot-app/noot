@@ -133,11 +133,11 @@ func validateSecurityConfiguration() error {
 	if !IsProduction() {
 		jwtSecret := getenv("SUPABASE_JWT_SECRET", "")
 		if jwtSecret != "" {
-			LogInfo("JWT secret configured - using Supabase authentication")
+			LogDebug("JWT secret configured - using Supabase authentication")
 		}
 	}
 
 	env := getenv("ENV", "production") // For logging purposes only
-	LogInfo("Security configuration validated", "env", env, "is_production", IsProduction())
+	LogDebug("Security configuration validated", "env", env, "is_production", IsProduction())
 	return nil
 }
