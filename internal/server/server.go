@@ -45,22 +45,20 @@ func Run(ctx context.Context, port string) error {
 	r.Use(CORSMiddleware())
 	r.Use(StoreMiddleware(store))
 
-	// Authentication middleware
-	r.Use(JWTAuthMiddleware(store)) // Handles Supabase auth via JWT tokens
-
 	// Create API server
 	apiServer, err := NewAPIServer(store)
 	if err != nil {
 		return fmt.Errorf("failed to create API server: %w", err)
 	}
 
-	// API v1 routes with OpenAPI generated routing
+	// API v1 routes with JWT middleware that skips authentication for public endpoints
 	v1 := r.Group("/api/v1")
+	v1.Use(JWTAuthMiddleware(store)) // JWT middleware will skip auth for public endpoints
 	{
-		// Use the generated RegisterHandlers to include all routes including biometrics
+		// Use the generated RegisterHandlers to include all routes
 		api.RegisterHandlers(v1, apiServer)
 
-		// Development-only routes that override or supplement the generated routes
+		// Development-only routes
 		if !IsProduction() {
 			// OpenAPI spec routes
 			v1.GET("/docs", apiServer.SwaggerUIHandler)

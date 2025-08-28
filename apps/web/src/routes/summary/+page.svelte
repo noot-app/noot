@@ -1,9 +1,12 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client";
-  import { PUBLIC_APP_NAME } from "$env/static/public";
+  import { env } from "$env/dynamic/public";
   import { onMount } from "svelte";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
   import Goals from "$lib/components/Goals.svelte";
+
+  // Get app name from runtime environment
+  $: appName = env.PUBLIC_APP_NAME || 'Noot';
 
   let currentView: 'today' | 'week' = 'today';
   let isLoading = false;
@@ -139,7 +142,7 @@
 </script>
 
 <svelte:head>
-  <title>Summary - {PUBLIC_APP_NAME}</title>
+  <title>Summary - {appName}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-base-100">

@@ -21,7 +21,6 @@
 
   onMount(() => {
     const unsubscribe = currentUser.subscribe((user) => {
-      console.log('AuthGuard: user state changed', user);
       
       // If we have a user, stop loading and mark as authenticated
       if (user) {
@@ -46,7 +45,6 @@
       if (!redirecting) {
         redirecting = true;
         const returnUrl = encodeURIComponent($page.url.pathname + $page.url.search);
-        console.log('AuthGuard: redirecting to login with returnUrl:', returnUrl);
         goto(`/login?returnUrl=${returnUrl}`);
       }
     });

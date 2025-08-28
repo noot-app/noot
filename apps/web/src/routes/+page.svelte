@@ -1,6 +1,9 @@
 <script lang="ts">
-  import { PUBLIC_APP_NAME } from "$env/static/public";
+  import { env } from "$env/dynamic/public";
   import { onMount } from "svelte";
+  
+  // Get app name from runtime environment
+  $: appName = env.PUBLIC_APP_NAME || 'Noot';
   
   // Import component styles
   import "$lib/styles/gradient-hero.css";
@@ -18,7 +21,7 @@
 </script>
 
 <svelte:head>
-  <title>{PUBLIC_APP_NAME}</title>
+  <title>{appName}</title>
   <meta name="description" content="The easiest nutrition tracker ever. Press record, speak naturally, get instant nutrition insights with AI-powered voice recognition." />
 </svelte:head>
 
@@ -47,7 +50,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                     d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             </svg>
-            Try {PUBLIC_APP_NAME} Now
+            Try {appName} Now
           </a>
           <a href="#how-it-works" class="btn btn-outline btn-lg text-base lg:text-lg px-6 lg:px-8 learn-how-btn btn-mobile">
             Learn How
@@ -89,9 +92,9 @@
 <section class="py-12 lg:py-20 bg-base-100">
   <div class="container mx-auto px-4 max-w-6xl">
     <div class="text-center mb-12 lg:mb-16">
-      <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary mb-4">Why {PUBLIC_APP_NAME}?</h2>
+      <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary mb-4">Why {appName}?</h2>
       <p class="text-base lg:text-lg text-base-content/70 max-w-2xl mx-auto">
-        Traditional nutrition apps are clunky and time-consuming. {PUBLIC_APP_NAME} makes tracking effortless.
+        Traditional nutrition apps are clunky and time-consuming. {appName} makes tracking effortless.
       </p>
     </div>
     
@@ -298,7 +301,7 @@
     <div class="border-t border-base-300 pt-4 lg:pt-6">
       <!-- Copyright -->
       <div class="text-center mb-2">
-        <p class="text-xs lg:text-sm text-base-content/70">Copyright © {new Date().getFullYear()} - All rights reserved by {PUBLIC_APP_NAME}</p>
+        <p class="text-xs lg:text-sm text-base-content/70">Copyright © {new Date().getFullYear()} - All rights reserved by {appName}</p>
       </div>
       
       <!-- Made with love -->
