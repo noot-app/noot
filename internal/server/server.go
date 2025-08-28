@@ -44,7 +44,6 @@ func Run(ctx context.Context, port string) error {
 	r.Use(SecurityHeadersMiddleware()) // Add security headers
 	r.Use(CORSMiddleware())
 	r.Use(StoreMiddleware(store))
-	r.Use(CSRFMiddleware()) // Add CSRF protection
 
 	// Authentication middleware
 	r.Use(JWTAuthMiddleware(store)) // Handles Supabase auth via JWT tokens

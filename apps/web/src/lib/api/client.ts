@@ -25,41 +25,6 @@ async function getAccessToken(): Promise<string | null> {
   return null;
 }
 
-// CSRF token management
-let currentCSRFToken: string | null = null;
-
-// Get CSRF token from localStorage or request a new one
-async function getCSRFToken(): Promise<string | null> {
-  if (typeof window === 'undefined') return null;
-  
-  // Try to get token from memory first
-  if (currentCSRFToken) {
-    return currentCSRFToken;
-  }
-  
-  // Try to get a new token by making a GET request to any authenticated endpoint
-  try {
-    const response = await fetch(`${PUBLIC_API_BASE_URL}/health`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${await getAccessToken() || ''}`
-      }
-    });
-    
-    if (response.ok) {
-      const token = response.headers.get('X-CSRF-Token');
-      if (token) {
-        currentCSRFToken = token;
-        return token;
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to get CSRF token:', error);
-  }
-  
-  return null;
-}
-
 // Wrap client to add authentication headers
 export const apiClient = new Proxy(baseClient, {
   get(target, prop) {
@@ -78,27 +43,13 @@ export const apiClient = new Proxy(baseClient, {
           typedInit.headers['Authorization'] = `Bearer ${accessToken}`;
         }
         
-        // Add CSRF token for state-changing operations
-        if (prop === 'POST' || prop === 'PUT' || prop === 'DELETE' || prop === 'PATCH') {
-          const csrfToken = await getCSRFToken();
-          if (csrfToken) {
-            typedInit.headers['X-CSRF-Token'] = csrfToken;
-          }
-        }
+        // Note: CSRF protection not needed for Bearer token auth
+        // Bearer tokens are not sent automatically by browsers, so CSRF attacks
+        // cannot make the victim's browser include the Authorization header
         
         // Call the original method
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const response = await (originalMethod as (...args: any[]) => any).call(target, url, typedInit);
-        
-        // Update CSRF token from response headers if available
-        if (response && response.response && response.response.headers) {
-          const newCSRFToken = response.response.headers.get('X-CSRF-Token');
-          if (newCSRFToken) {
-            currentCSRFToken = newCSRFToken;
-          }
-        }
-        
-        return response;
+        return (originalMethod as (...args: any[]) => any).call(target, url, typedInit);
       };
     }
     
