@@ -56,9 +56,9 @@ case "${1:-}" in
       exit 1
     fi
     
-    # Deploy backend first
+    # Deploy backend first, must use --ci to not attach
     echo "Step 1/2: Deploying backend..."
-    railway up --service noot-api
+    railway up --service noot-api --ci
     
     # Then deploy frontend
     echo "Step 2/2: Deploying frontend..."

@@ -6,13 +6,15 @@ source script/env "$@"
 
 echo -e "${BLUE}🥾 Bootstrapping...${OFF}"
 
-# Install goreleaser only if not already installed and in CI environment
-if [[ "${CI:-}" == "true" ]]; then
+# Install goreleaser only if --install-goreleaser flag is provided
+if [[ " $* " == *" --install-goreleaser "* ]]; then
   if ! command -v goreleaser &> /dev/null; then
     GORELEASER_VERSION=$(cat .goreleaser-version)
     echo "GORELEASER_VERSION=${GORELEASER_VERSION}" >> $GITHUB_OUTPUT
     echo "Using goreleaser version ${GORELEASER_VERSION}"      
     sudo dpkg -i vendor_bin/goreleaser_${GORELEASER_VERSION}_amd64.deb
+  else
+    echo -e "${GREEN}✅ goreleaser already installed${OFF}"
   fi
 fi
 
@@ -35,8 +37,14 @@ if [[ -d "apps/web" && -f "apps/web/package.json" ]]; then
   
   # Install npm dependencies
   if command -v npm &> /dev/null; then
-    npm install
-    echo -e "${GREEN}✅ npm dependencies installed successfully${OFF}"
+    # Use npm ci for faster, reproducible installs in CI environments
+    if [[ "${1:-}" == "--ci" ]]; then
+      npm ci
+      echo -e "${GREEN}✅ npm dependencies installed successfully (via npm ci)${OFF}"
+    else
+      npm install
+      echo -e "${GREEN}✅ npm dependencies installed successfully${OFF}"
+    fi
   else
     echo -e "${YELLOW}⚠️  npm not found, skipping web app dependency installation${OFF}"
   fi
