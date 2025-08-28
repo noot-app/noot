@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"net/url"
 	"runtime"
 	"strings"
 	"time"
@@ -41,7 +42,7 @@ func LoggingMiddleware() gin.HandlerFunc {
 
 		duration := time.Since(start)
 
-		LogInfo("Request completed",
+		LogDebug("Request completed",
 			"method", c.Request.Method,
 			"path", c.Request.URL.Path,
 			"status", c.Writer.Status(),
@@ -128,6 +129,20 @@ func CORSMiddleware() gin.HandlerFunc {
 		requestOrigin := c.Request.Header.Get("Origin")
 		originAllowed := false
 
+		// Prepare allowed headers (needed for both regular and OPTIONS requests)
+		allowedHeaders := "Authorization, Content-Type, Accept"
+		extraHeaders := getEnv("EXTRA_ACCESS_CONTROL_ALLOW_HEADERS", "")
+		if extraHeaders != "" {
+			// Split by comma and add each header
+			for _, header := range strings.Split(extraHeaders, ",") {
+				header = strings.TrimSpace(header)
+				if header != "" {
+					allowedHeaders += ", " + header
+				}
+			}
+			LogDebug("Added extra CORS headers", "extra_headers", extraHeaders)
+		}
+
 		// Check if the origin is in the allowed list
 		for _, allowedOrigin := range validOrigins {
 			if allowedOrigin == requestOrigin {
@@ -140,32 +155,26 @@ func CORSMiddleware() gin.HandlerFunc {
 		// Only set CORS headers if origin is allowed
 		if originAllowed {
 			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
-
-			// Build allowed headers list - base headers always included
-			baseHeaders := "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With"
-			allowedHeaders := baseHeaders
-
-			// Add extra headers from environment variable (useful for testing production mode locally)
-			extraHeaders := getEnv("EXTRA_ACCESS_CONTROL_ALLOW_HEADERS", "")
-			if extraHeaders != "" {
-				// Split by comma and add each header
-				for _, header := range strings.Split(extraHeaders, ",") {
-					header = strings.TrimSpace(header)
-					if header != "" {
-						allowedHeaders += ", " + header
-					}
-				}
-				LogDebug("Added extra CORS headers", "extra_headers", extraHeaders)
-			}
-
 			c.Header("Access-Control-Allow-Headers", allowedHeaders)
-			c.Header("Access-Control-Allow-Credentials", "true")
+			// Note: Access-Control-Allow-Credentials removed - not needed for bearer token auth
 			c.Header("Access-Control-Max-Age", "86400") // 24 hours
 		} else if requestOrigin != "" {
-			LogWarn("CORS request from unauthorized origin", "origin", requestOrigin)
+			// Log unauthorized origins at different levels based on environment
+			if IsProduction() {
+				// could be noisy from bot traffic so moved to debug
+				LogDebug("CORS request from unauthorized origin", "origin", requestOrigin)
+			} else {
+				LogWarn("CORS request from unauthorized origin", "origin", requestOrigin)
+			}
 		}
 
 		if c.Request.Method == "OPTIONS" {
+			// Set CORS headers for preflight requests before aborting
+			if originAllowed {
+				c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+				c.Header("Access-Control-Allow-Headers", allowedHeaders)
+				c.Header("Access-Control-Max-Age", "86400")
+			}
 			c.AbortWithStatus(204)
 			return
 		}
@@ -174,34 +183,39 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
-// isValidOrigin validates that a CORS origin is properly formatted
+// isValidOrigin validates that a CORS origin is properly formatted and secure
 func isValidOrigin(origin string) bool {
-	// Basic validation - must start with http:// or https://
-	if !strings.HasPrefix(origin, "http://") && !strings.HasPrefix(origin, "https://") {
+	// Parse the origin URL to validate structure and extract components
+	u, err := url.Parse(origin)
+	if err != nil {
 		return false
 	}
 
-	// In production, require HTTPS. In development, allow HTTP for localhost
-	if IsProduction() {
-		if strings.HasPrefix(origin, "http://") {
-			return false
-		}
-	} else {
-		// In development, allow HTTP only for localhost/127.0.0.1
-		if strings.HasPrefix(origin, "http://") {
-			if !strings.Contains(origin, "localhost") && !strings.Contains(origin, "127.0.0.1") {
-				return false
-			}
-		}
+	// Must be http or https scheme only
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return false
 	}
 
+	// In production, require HTTPS only
+	if IsProduction() {
+		return u.Scheme == "https"
+	}
+
+	// In development, allow HTTP only for localhost/loopback addresses
+	if u.Scheme == "http" {
+		hostname := strings.ToLower(u.Hostname()) // Case-insensitive hostname check
+		// Allow localhost, 127.0.0.1, and IPv6 loopback
+		return hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1"
+	}
+
+	// HTTPS is always allowed in development
 	return true
 }
 
 // captureStackGin captures stack trace for Gin context
 func captureStackGin(skip int) []string {
 	var stack []string
-	for i := skip; i < skip+10; i++ {
+	for i := skip; i < skip+20; i++ { // Increased from 10 to 20 for better debugging
 		pc, file, line, ok := runtime.Caller(i)
 		if !ok {
 			break
@@ -216,49 +230,32 @@ func captureStackGin(skip int) []string {
 	return stack
 }
 
-// generateRequestID generates a random request ID
+// generateRequestID generates a random request ID with proper error handling
 func generateRequestID() string {
-	bytes := make([]byte, 6)
-	rand.Read(bytes)
+	bytes := make([]byte, 16) // Increased from 6 to 16 bytes for stronger randomness
+	if _, err := rand.Read(bytes); err != nil {
+		// Fallback to timestamp-based ID if crypto/rand fails
+		LogWarn("Failed to generate cryptographic request ID, using timestamp fallback", "error", err.Error())
+		return fmt.Sprintf("ts_%d", time.Now().UnixNano())
+	}
 	return hex.EncodeToString(bytes)
 }
 
 // SecurityHeadersMiddleware adds security headers to responses
 func SecurityHeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Prevent MIME type sniffing
+		// Prevent MIME type sniffing attacks
 		c.Header("X-Content-Type-Options", "nosniff")
 
-		// Prevent clickjacking
+		// Prevent clickjacking/UI redressing attacks
 		c.Header("X-Frame-Options", "DENY")
 
-		// Enable XSS protection
-		c.Header("X-XSS-Protection", "1; mode=block")
-
-		// Prevent information disclosure
-		c.Header("X-Powered-By", "") // Remove default server headers
-
-		// Referrer policy
+		// Referrer policy - good balance between privacy and debugging
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
 
-		// Content Security Policy (enhanced security)
-		if IsProduction() {
-			// More secure CSP - removed unsafe-inline and unsafe-eval
-			csp := "default-src 'self'; " +
-				"script-src 'self' https:; " +
-				"style-src 'self' https: 'unsafe-inline'; " + // Keep unsafe-inline for styles temporarily for compatibility
-				"img-src 'self' data: https:; " +
-				"font-src 'self' https:; " +
-				"connect-src 'self' https:; " +
-				"frame-ancestors 'none'; " +
-				"object-src 'none'; " +
-				"base-uri 'self';"
-			c.Header("Content-Security-Policy", csp)
-
-			// HSTS for HTTPS
-			if c.Request.TLS != nil {
-				c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
-			}
+		// HSTS for HTTPS in production
+		if IsProduction() && c.Request.TLS != nil {
+			c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 		}
 
 		c.Next()
