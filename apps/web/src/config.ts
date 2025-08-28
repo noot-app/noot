@@ -1,5 +1,4 @@
-export const WebsiteName: string = "SaaS Starter"
-export const WebsiteBaseUrl: string = "https://saasstarter.work"
+export const WebsiteName: string = "Noot"
+export const WebsiteBaseUrl: string = "https://nootapp.io"
 export const WebsiteDescription: string =
-  "Open source, fast, and free to host SaaS template. Built with SvelteKit, Supabase, Stripe, Tailwind, DaisyUI, and Postgres"
-export const CreateProfileStep: boolean = true
+  "The easiest nutrition tracker ever. Press record, speak naturally, get instant nutrition insights with AI-powered voice recognition."
