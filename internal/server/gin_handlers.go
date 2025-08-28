@@ -79,6 +79,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	// Save to temp file
 	tmpPath, mimeType, err := saveTempFile(file, header)
 	if err != nil {
+		LogError("Failed to save upload - detailed error", err, "request_id", requestID, "filename", header.Filename, "size", header.Size)
 		appErr := NewAppError("Failed to save upload", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
 		return

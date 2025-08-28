@@ -112,6 +112,7 @@ This project aims to track 48 total nutrients:
 
     # Upload Configuration
     MAX_UPLOAD_BYTES=104857600  # Maximum upload size in bytes (default: 100MB)
+    TEMP_DIR=/tmp               # Temporary directory for file uploads (default: system temp dir)
 
     # Database Configuration - Use Supabase for local and production
     # Follow Supabase local development setup: https://supabase.com/docs/guides/local-development

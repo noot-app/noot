@@ -181,6 +181,101 @@ func TestSaveTempFile_DefaultMaxBytes(t *testing.T) {
 	assert.NotEmpty(t, mimeType)
 }
 
+func TestSaveTempFile_CustomTempDir(t *testing.T) {
+	// Create a custom temp directory for testing
+	customTempDir := t.TempDir()
+	
+	// Set TEMP_DIR environment variable
+	originalEnv := os.Getenv("TEMP_DIR")
+	os.Setenv("TEMP_DIR", customTempDir)
+	defer func() {
+		if originalEnv == "" {
+			os.Unsetenv("TEMP_DIR")
+		} else {
+			os.Setenv("TEMP_DIR", originalEnv)
+		}
+	}()
+
+	// Create test data
+	testData := []byte("test audio data")
+
+	mockFile := &mockMultipartFile{
+		Reader: bytes.NewReader(testData),
+	}
+
+	header := &multipart.FileHeader{
+		Filename: "test.webm",
+		Size:     int64(len(testData)),
+	}
+
+	// Call saveTempFile
+	tmpPath, mimeType, err := saveTempFile(mockFile, header)
+
+	// Verify no error
+	require.NoError(t, err)
+
+	// Clean up
+	defer os.Remove(tmpPath)
+
+	// Verify file was created in custom temp directory
+	assert.Contains(t, tmpPath, customTempDir)
+	assert.FileExists(t, tmpPath)
+	assert.NotEmpty(t, mimeType)
+
+	// Verify file content
+	fileContent, err := os.ReadFile(tmpPath)
+	require.NoError(t, err)
+	assert.Equal(t, testData, fileContent)
+}
+
+func TestSaveTempFile_TempDirCreation(t *testing.T) {
+	// Create a non-existent directory path
+	baseTempDir := t.TempDir()
+	customTempDir := filepath.Join(baseTempDir, "non-existent", "temp")
+	
+	// Set TEMP_DIR environment variable to non-existent path
+	originalEnv := os.Getenv("TEMP_DIR")
+	os.Setenv("TEMP_DIR", customTempDir)
+	defer func() {
+		if originalEnv == "" {
+			os.Unsetenv("TEMP_DIR")
+		} else {
+			os.Setenv("TEMP_DIR", originalEnv)
+		}
+	}()
+
+	// Verify the directory doesn't exist initially
+	_, err := os.Stat(customTempDir)
+	assert.True(t, os.IsNotExist(err))
+
+	// Create test data
+	testData := []byte("test audio data")
+
+	mockFile := &mockMultipartFile{
+		Reader: bytes.NewReader(testData),
+	}
+
+	header := &multipart.FileHeader{
+		Filename: "test.webm",
+		Size:     int64(len(testData)),
+	}
+
+	// Call saveTempFile - should create the directory and succeed
+	tmpPath, mimeType, err := saveTempFile(mockFile, header)
+
+	// Verify no error
+	require.NoError(t, err)
+
+	// Clean up
+	defer os.Remove(tmpPath)
+
+	// Verify directory was created and file exists
+	assert.DirExists(t, customTempDir)
+	assert.Contains(t, tmpPath, customTempDir)
+	assert.FileExists(t, tmpPath)
+	assert.NotEmpty(t, mimeType)
+}
+
 func TestGuessExtension(t *testing.T) {
 	tests := []struct {
 		mime     string

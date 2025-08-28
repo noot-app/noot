@@ -79,6 +79,21 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 		}
 	}
 
+	// Check and create temp directory if needed
+	tempDir := os.Getenv("TEMP_DIR")
+	if tempDir == "" {
+		tempDir = os.TempDir() // This will be "/tmp" on Unix systems
+	}
+	
+	// Log temp directory information for debugging
+	LogDebug("Using temp directory", "temp_dir", tempDir)
+	
+	// Ensure temp directory exists
+	if err := os.MkdirAll(tempDir, 0755); err != nil {
+		LogError("Failed to create temp directory", err, "temp_dir", tempDir)
+		return "", "", fmt.Errorf("failed to create temp directory %s: %w", tempDir, err)
+	}
+
 	// Create a buffered reader to peek at the first 512 bytes for MIME detection
 	reader := bufio.NewReader(src)
 
@@ -94,8 +109,9 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 	ext := guessExtension(mime)
 
 	// Create temp file with appropriate extension
-	tmpFile, err := os.CreateTemp("", "audio-*"+ext)
+	tmpFile, err := os.CreateTemp(tempDir, "audio-*"+ext)
 	if err != nil {
+		LogError("Failed to create temp file", err, "temp_dir", tempDir, "pattern", "audio-*"+ext)
 		return "", "", fmt.Errorf("failed to create temp file: %w", err)
 	}
 

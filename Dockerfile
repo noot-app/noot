@@ -31,11 +31,14 @@ RUN COMMIT_SHA="$(git rev-parse HEAD 2>/dev/null || echo 'unknown')" && \
         -o /build/${PROJECT_NAME} \
         ./cmd/${PROJECT_NAME}
 
-# Runtime stage - minimal from-scratch image
-FROM scratch
+# Runtime stage - minimal alpine image for filesystem structure
+FROM alpine:latest
 
-# Add ca-certificates
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# Create required directories
+RUN mkdir -p /tmp && chmod 1777 /tmp
+
+# Add ca-certificates (alpine has them)
+# COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy the binary from the builder stage
 COPY --from=builder /build/noot /noot
