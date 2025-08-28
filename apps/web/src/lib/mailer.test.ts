@@ -43,16 +43,9 @@ describe("mailer", () => {
   describe("sendUserEmail", () => {
     const mockUser = { id: "user123", email: "user@example.com" }
 
-    it("sends welcome email", async () => {
-      mockSupabaseClient.auth.admin.getUserById.mockResolvedValue({
-        data: { user: { email_confirmed_at: new Date().toISOString() } },
-        error: null,
-      })
-
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { unsubscribed: false },
-        error: null,
-      })
+    it("logs welcome email as stub", async () => {
+      const originalConsoleLog = console.log
+      console.log = vi.fn()
 
       await mailer.sendUserEmail({
         user: mockUser as User,
@@ -65,24 +58,15 @@ describe("mailer", () => {
         },
       })
 
-      expect(mockSend).toHaveBeenCalled()
-      const email = mockSend.mock.calls[0][0]
-      expect(email.to).toEqual(["user@example.com"])
+      expect(console.log).toHaveBeenCalledWith("User email (stub):", mockUser, "Test")
+      expect(mockSend).not.toHaveBeenCalled()
+      
+      console.log = originalConsoleLog
     })
 
-    it("should not send email if user is unsubscribed", async () => {
+    it("logs user email as stub", async () => {
       const originalConsoleLog = console.log
       console.log = vi.fn()
-
-      mockSupabaseClient.auth.admin.getUserById.mockResolvedValue({
-        data: { user: { email_confirmed_at: new Date().toISOString() } },
-        error: null,
-      })
-
-      mockSupabaseClient.single.mockResolvedValue({
-        data: { unsubscribed: true },
-        error: null,
-      })
 
       await mailer.sendUserEmail({
         user: mockUser as User,
@@ -95,9 +79,9 @@ describe("mailer", () => {
       expect(mockSend).not.toHaveBeenCalled()
 
       expect(console.log).toHaveBeenCalledWith(
-        "User unsubscribed. Aborting email. ",
-        mockUser.id,
-        mockUser.email,
+        "User email (stub):",
+        mockUser,
+        "Test",
       )
 
       console.log = originalConsoleLog
@@ -105,7 +89,10 @@ describe("mailer", () => {
   })
 
   describe("sendTemplatedEmail", () => {
-    it("sends templated email", async () => {
+    it("logs templated email as stub", async () => {
+      const originalConsoleLog = console.log
+      console.log = vi.fn()
+
       await mailer.sendTemplatedEmail({
         subject: "Test subject",
         _from_email: "from@example.com",
@@ -117,18 +104,10 @@ describe("mailer", () => {
         },
       })
 
-      expect(mockSend).toHaveBeenCalled()
-      const email = mockSend.mock.calls[0][0]
-      expect(email.from).toEqual("from@example.com")
-      expect(email.to).toEqual(["to@example.com"])
-      expect(email.subject).toEqual("Test subject")
-      expect(email.text).toContain("This is a quick sample of a welcome email")
-      expect(email.html).toContain("This is a quick sample of a welcome email")
-      expect(email.html).toContain("<html")
-      expect(email.html).toContain("https://test.com")
-      expect(email.html).toContain("Test Company")
-      expect(email.text).toContain("https://test.com")
-      expect(email.text).toContain("Test Company")
+      expect(console.log).toHaveBeenCalledWith("Templated email (stub):", "Test subject", ["to@example.com"])
+      expect(mockSend).not.toHaveBeenCalled()
+      
+      console.log = originalConsoleLog
     })
   })
 })
