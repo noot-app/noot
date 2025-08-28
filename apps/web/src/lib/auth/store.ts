@@ -2,6 +2,7 @@ import { writable, derived } from 'svelte/store';
 import type { AuthProvider, User } from './provider';
 import { SupabaseAuthProvider } from './supabase-auth';
 import { isSupabaseEnabled } from '$lib/supabase';
+import type { Session } from '@supabase/supabase-js';
 
 /**
  * Current auth provider instance - uses Supabase authentication
@@ -41,18 +42,34 @@ export const isPro = derived(currentUser, ($user) =>
  * Initialize auth and load current user
  * Call this in your root layout or app initialization
  * Sets up auth state change listener for Supabase if using SupabaseAuthProvider
+ * @param serverSession - Optional server session to initialize with (prevents hydration mismatch)
  */
-export async function initAuth(): Promise<void> {
+export async function initAuth(serverSession?: unknown): Promise<void> {
 	if (!authProvider) {
 		console.warn('No auth provider available');
 		return;
 	}
 
 	try {
-		const user = await authProvider.getCurrentUser();
-		currentUser.set(user);
+		// If we have a server session, try to map it to our User interface first
+		if (serverSession && 'mapSupabaseUserToUser' in authProvider) {
+			try {
+				// If the auth provider can map the server session, use it
+				const user = await (authProvider as SupabaseAuthProvider).mapSupabaseUserToUser(serverSession as Session);
+				currentUser.set(user);
+			} catch (error) {
+				console.warn('Failed to map server session, falling back to getCurrentUser:', error);
+				// Fallback to normal flow
+				const user = await authProvider.getCurrentUser();
+				currentUser.set(user);
+			}
+		} else {
+			// Normal flow - get current user from provider
+			const user = await authProvider.getCurrentUser();
+			currentUser.set(user);
+		}
 
-		// If using SupabaseAuthProvider, set up auth state change listener
+		// Set up auth state change listener (only once)
 		if ('onAuthStateChange' in authProvider && typeof authProvider.onAuthStateChange === 'function') {
 			authProvider.onAuthStateChange((user: User | null) => {
 				currentUser.set(user);

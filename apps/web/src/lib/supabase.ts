@@ -19,7 +19,12 @@ export const supabase = (() => {
 		auth: {
 			autoRefreshToken: true,
 			persistSession: true,
-			detectSessionInUrl: true
+			detectSessionInUrl: true,
+			// Optimize for longer session persistence
+			storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+			storageKey: 'noot-supabase-auth-token',
+			// Ensure sessions refresh properly for 30-day persistence
+			debug: false
 		}
 	});
 })();

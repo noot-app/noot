@@ -12,13 +12,33 @@
 
   interface Props {
     children?: import("svelte").Snippet
+    data: {
+      session: unknown | null
+      supabaseEnabled: boolean
+      isDevMode: boolean
+    }
   }
 
-  let { children }: Props = $props()
+  let { children, data }: Props = $props()
+
+  // Initialize auth immediately with server session to prevent hydration mismatch
+  if (data.session && data.supabaseEnabled) {
+    // If we have a server session, initialize the auth store immediately
+    // This prevents the flash of login screen on protected routes
+    initAuth(data.session)
+  } else {
+    // No server session, but still initialize auth to check client-side storage
+    initAuth()
+  }
 
   onMount(() => {
     units.init();
-    initAuth(); // Initialize auth system
+    
+    // Re-initialize auth on mount to ensure client-side state is synchronized
+    // This handles cases where client storage might have newer tokens
+    if (data.supabaseEnabled && !data.session) {
+      initAuth()
+    }
   });
 </script>
 

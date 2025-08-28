@@ -18,16 +18,21 @@
   let loading = $state(true);
   let redirecting = $state(false);
   let authenticated = $state(false);
+  let initialCheckDone = $state(false);
 
   onMount(() => {
     const unsubscribe = currentUser.subscribe((user) => {
+      // Mark that we've done the initial check to prevent unnecessary loading states
+      if (!initialCheckDone) {
+        initialCheckDone = true;
+      }
       
       // If we have a user, stop loading and mark as authenticated
       if (user) {
         loading = false;
         redirecting = false;
         authenticated = true;
-        
+
         // Check if user meets pro requirement
         if (requirePro && user.subscriptionTier !== 'pro') {
           authenticated = false;
@@ -40,16 +45,31 @@
       }
       
       // No user - handle redirect if not already redirecting
-      loading = false;
-      authenticated = false;
-      if (!redirecting) {
-        redirecting = true;
-        const returnUrl = encodeURIComponent($page.url.pathname + $page.url.search);
-        goto(`/login?returnUrl=${returnUrl}`);
+      // Only set loading to false after we've given auth system time to initialize
+      if (initialCheckDone) {
+        loading = false;
+        authenticated = false;
+        if (!redirecting) {
+          redirecting = true;
+          const returnUrl = encodeURIComponent($page.url.pathname + $page.url.search);
+          goto(`/login?returnUrl=${returnUrl}`);
+        }
       }
     });
 
-    return unsubscribe;
+    // Set a timeout to ensure we don't stay in loading state indefinitely
+    // This handles edge cases where auth never initializes properly
+    const timeoutId = setTimeout(() => {
+      if (loading && !authenticated) {
+        loading = false;
+        initialCheckDone = true;
+      }
+    }, 2000); // 2 second timeout
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+    };
   });
 </script>
 

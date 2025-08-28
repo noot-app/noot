@@ -151,8 +151,9 @@ export class SupabaseAuthProvider implements AuthProvider {
 
 	/**
 	 * Map Supabase session to our User interface with real database data
+	 * Made public so it can be used by auth store for server session hydration
 	 */
-	private async mapSupabaseUserToUser(session: Session): Promise<User> {
+	async mapSupabaseUserToUser(session: Session): Promise<User> {
 		const supabaseUser = session.user;
 		
 		try {
