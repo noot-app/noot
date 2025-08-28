@@ -9,7 +9,7 @@
   import FormField from '$lib/components/FormField.svelte';
   import FormSelect from '$lib/components/FormSelect.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-  import { getSecureJSON, setSecureJSON } from '$lib/utils/secure-storage';
+  import { getStorageJSON, setStorageJSON } from '$lib/utils/secure-storage';
   import { parseErrorMessage, formatErrorForUser } from '$lib/utils/error-handling';
   import type { paths } from "$lib/api/schema";
 
@@ -42,14 +42,14 @@
 
   // Load age visibility preference from secure localStorage
   if (typeof window !== 'undefined') {
-    showAge = getSecureJSON('noot-show-age', true);
+    showAge = getStorageJSON('noot-show-age', true);
   }
 
   // Function to toggle age visibility and save preference securely
   function toggleAgeVisibility() {
     showAge = !showAge;
     if (typeof window !== 'undefined') {
-      setSecureJSON('noot-show-age', showAge);
+      setStorageJSON('noot-show-age', showAge);
     }
   }
 

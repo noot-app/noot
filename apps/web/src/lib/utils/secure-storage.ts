@@ -1,31 +1,15 @@
 /**
- * Secure localStorage utilities with validation and sanitization
+ * Simple localStorage utilities for SvelteKit
  */
-
-import { browser } from '$app/environment';
-
-// Allowed keys for localStorage - whitelist approach
-const ALLOWED_KEYS = [
-  'noot-units',
-  'noot-show-age',
-] as const;
-
-type AllowedKey = typeof ALLOWED_KEYS[number];
 
 /**
- * Safely get a value from localStorage with validation
+ * Safely get a value from localStorage
  */
-export function getSecureItem(key: AllowedKey): string | null {
-  if (!browser) return null;
-  
-  if (!ALLOWED_KEYS.includes(key)) {
-    console.warn(`Attempted to access unauthorized localStorage key: ${key}`);
-    return null;
-  }
+export function getStorageItem(key: string): string | null {
+  if (typeof window === 'undefined') return null;
   
   try {
-    const value = localStorage.getItem(key);
-    return value;
+    return localStorage.getItem(key);
   } catch (error) {
     console.warn(`Failed to get localStorage item ${key}:`, error);
     return null;
@@ -33,21 +17,13 @@ export function getSecureItem(key: AllowedKey): string | null {
 }
 
 /**
- * Safely set a value in localStorage with validation
+ * Safely set a value in localStorage
  */
-export function setSecureItem(key: AllowedKey, value: string): boolean {
-  if (!browser) return false;
-  
-  if (!ALLOWED_KEYS.includes(key)) {
-    console.warn(`Attempted to set unauthorized localStorage key: ${key}`);
-    return false;
-  }
-  
-  // Basic sanitization - prevent XSS in stored values
-  const sanitizedValue = sanitizeStorageValue(value);
+export function setStorageItem(key: string, value: string): boolean {
+  if (typeof window === 'undefined') return false;
   
   try {
-    localStorage.setItem(key, sanitizedValue);
+    localStorage.setItem(key, value);
     return true;
   } catch (error) {
     console.warn(`Failed to set localStorage item ${key}:`, error);
@@ -58,13 +34,8 @@ export function setSecureItem(key: AllowedKey, value: string): boolean {
 /**
  * Safely remove a value from localStorage
  */
-export function removeSecureItem(key: AllowedKey): boolean {
-  if (!browser) return false;
-  
-  if (!ALLOWED_KEYS.includes(key)) {
-    console.warn(`Attempted to remove unauthorized localStorage key: ${key}`);
-    return false;
-  }
+export function removeStorageItem(key: string): boolean {
+  if (typeof window === 'undefined') return false;
   
   try {
     localStorage.removeItem(key);
@@ -78,8 +49,8 @@ export function removeSecureItem(key: AllowedKey): boolean {
 /**
  * Get and parse a JSON value from localStorage safely
  */
-export function getSecureJSON<T>(key: AllowedKey, defaultValue: T): T {
-  const value = getSecureItem(key);
+export function getStorageJSON<T>(key: string, defaultValue: T): T {
+  const value = getStorageItem(key);
   if (!value) return defaultValue;
   
   try {
@@ -93,24 +64,12 @@ export function getSecureJSON<T>(key: AllowedKey, defaultValue: T): T {
 /**
  * Set a JSON value to localStorage safely
  */
-export function setSecureJSON<T>(key: AllowedKey, value: T): boolean {
+export function setStorageJSON<T>(key: string, value: T): boolean {
   try {
     const jsonValue = JSON.stringify(value);
-    return setSecureItem(key, jsonValue);
+    return setStorageItem(key, jsonValue);
   } catch (error) {
     console.warn(`Failed to stringify value for localStorage ${key}:`, error);
     return false;
   }
-}
-
-/**
- * Basic sanitization for localStorage values
- * Prevents basic XSS attempts in stored data
- */
-function sanitizeStorageValue(value: string): string {
-  // Remove any script tags or javascript: URLs
-  return value
-    .replace(/<script[^>]*>.*?<\/script>/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+\s*=/gi, ''); // Remove event handlers like onclick=
 }
