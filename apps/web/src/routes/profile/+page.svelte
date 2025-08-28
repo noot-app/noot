@@ -1,6 +1,6 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client";
-  import { PUBLIC_APP_NAME } from "$env/static/public";
+  import { env } from "$env/dynamic/public";
   import { onMount } from "svelte";
   import { dev } from '$app/environment';
   import { toast } from '$lib/stores/toast';
@@ -12,6 +12,9 @@
   import { getStorageJSON, setStorageJSON } from '$lib/utils/secure-storage';
   import { parseErrorMessage, formatErrorForUser } from '$lib/utils/error-handling';
   import type { paths } from "$lib/api/schema";
+
+  // Get app name from runtime environment
+  $: appName = env.PUBLIC_APP_NAME || 'Noot';
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
   type Goals = GoalsResponse["goals"];
@@ -529,7 +532,7 @@
 </script>
 
 <svelte:head>
-  <title>Profile - {PUBLIC_APP_NAME}</title>
+  <title>Profile - {appName}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-base-100">

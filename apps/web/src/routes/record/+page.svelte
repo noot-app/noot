@@ -1,10 +1,13 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client";
-  import { PUBLIC_APP_NAME } from "$env/static/public";
+  import { env } from "$env/dynamic/public";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
   import Goals from "$lib/components/Goals.svelte";
   import NutrientComposition from "$lib/components/NutrientComposition.svelte";
   import Card from "$lib/components/Card.svelte";
+
+  // Get app name from runtime environment
+  $: appName = env.PUBLIC_APP_NAME || 'Noot';
 
   let isRecording = false;
   let mediaRecorder: MediaRecorder | null = null;
@@ -293,7 +296,7 @@
 </script>
 
 <svelte:head>
-  <title>Record - {PUBLIC_APP_NAME}</title>
+  <title>Record - {appName}</title>
 </svelte:head>
 
 <style>
