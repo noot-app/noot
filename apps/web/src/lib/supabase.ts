@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import { env } from '$env/dynamic/public';
 
 // Supabase client configuration
@@ -6,8 +6,9 @@ const supabaseUrl = env.PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY;
 
 /**
- * Supabase client instance
+ * Supabase client instance for browser (SSR-compatible)
  * Returns null if credentials are not configured
+ * Uses @supabase/ssr for proper cookie handling between client/server
  */
 export const supabase = (() => {
 	if (!supabaseUrl || !supabaseAnonKey) {
@@ -15,13 +16,12 @@ export const supabase = (() => {
 		return null;
 	}
 
-	return createClient(supabaseUrl, supabaseAnonKey, {
-		auth: {
-			autoRefreshToken: true,
-			persistSession: true,
-			detectSessionInUrl: true
-		}
-	});
+	// Only create browser client on client-side
+	if (typeof window !== 'undefined') {
+		return createBrowserClient(supabaseUrl, supabaseAnonKey);
+	}
+	
+	return null;
 })();
 
 /**
