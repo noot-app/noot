@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import { env } from '$env/dynamic/public';
 
 // Supabase client configuration
@@ -15,15 +15,16 @@ export const supabase = (() => {
 		return null;
 	}
 
-	return createClient(supabaseUrl, supabaseAnonKey, {
+	// Use createBrowserClient for better SSR support and session synchronization
+	return createBrowserClient(supabaseUrl, supabaseAnonKey, {
 		auth: {
+			// Optimize for longer session persistence
 			autoRefreshToken: true,
 			persistSession: true,
 			detectSessionInUrl: true,
-			// Optimize for longer session persistence
+			// Use localStorage for better persistence (30 days by default)
 			storage: typeof window !== 'undefined' ? window.localStorage : undefined,
 			storageKey: 'noot-supabase-auth-token',
-			// Ensure sessions refresh properly for 30-day persistence
 			debug: false
 		}
 	});
