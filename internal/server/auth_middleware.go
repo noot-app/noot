@@ -302,9 +302,17 @@ func recordUserCreationAttempt(email string) {
 // - Creates secure user context for all downstream handlers
 // - Implements rate limiting for user creation attempts
 // - Defaults to production security mode for unknown environments
+// - Skips authentication for public endpoints like health checks
 func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		LogDebug("JWT auth middleware started")
+
+		// Skip authentication for public endpoints
+		if isPublicEndpoint(c.Request.URL.Path) {
+			LogDebug("Skipping JWT auth for public endpoint", "path", c.Request.URL.Path)
+			c.Next()
+			return
+		}
 
 		// Production environment validation with multiple safeguards
 		env := strings.ToLower(getEnv("ENV", "production"))
@@ -389,6 +397,22 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// isPublicEndpoint checks if the given path is a public endpoint that doesn't require authentication
+func isPublicEndpoint(path string) bool {
+	publicEndpoints := []string{
+		"/api/v1/health",
+		"/api/v1/docs",
+		"/api/v1/openapi.yaml",
+	}
+
+	for _, endpoint := range publicEndpoints {
+		if path == endpoint {
+			return true
+		}
+	}
+	return false
 }
 
 // validateJWTAndGetUser validates a Supabase JWT and returns the corresponding user
