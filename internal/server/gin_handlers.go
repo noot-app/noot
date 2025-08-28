@@ -43,6 +43,12 @@ func (s *APIServer) GetHealth(c *gin.Context) {
 }
 
 // CreateConsumption implements ServerInterface.CreateConsumption
+//
+// Security Notes:
+// - Requires authentication via JWT middleware
+// - AI inputs/outputs are validated and sanitized
+// - File uploads limited to prevent abuse
+// - User context enforced for data storage
 func (s *APIServer) CreateConsumption(c *gin.Context) {
 	requestID := c.GetString("request_id")
 

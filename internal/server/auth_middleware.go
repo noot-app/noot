@@ -295,6 +295,13 @@ func recordUserCreationAttempt(email string) {
 
 // JWTAuthMiddleware validates Supabase JWT tokens and creates/loads user context
 // This middleware is used in production to authenticate API requests
+//
+// Security Features:
+// - Validates JWT signature using JWKS from Supabase
+// - Enforces token expiration and claim validation
+// - Creates secure user context for all downstream handlers
+// - Implements rate limiting for user creation attempts
+// - Defaults to production security mode for unknown environments
 func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		LogDebug("JWT auth middleware started")

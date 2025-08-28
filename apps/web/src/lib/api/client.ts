@@ -43,6 +43,10 @@ export const apiClient = new Proxy(baseClient, {
           typedInit.headers['Authorization'] = `Bearer ${accessToken}`;
         }
         
+        // Note: CSRF protection not needed for Bearer token auth
+        // Bearer tokens are not sent automatically by browsers, so CSRF attacks
+        // cannot make the victim's browser include the Authorization header
+        
         // Call the original method
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (originalMethod as (...args: any[]) => any).call(target, url, typedInit);

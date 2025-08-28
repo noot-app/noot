@@ -18,7 +18,7 @@
       <a href="/" class="flex items-center">
         <span class="text-2xl noot-logo">NOOT</span>
       </a>
-      <div class="badge badge-outline text-xs" style="border-color: #bb704f; color: #bb704f;">
+      <div class="badge badge-outline text-xs beta-badge">
         Beta
       </div>
     </div>
@@ -86,5 +86,10 @@
   /* Ensure mobile menu doesn't get cut off */
   .dropdown:focus-within .dropdown-content {
     display: block;
+  }
+  
+  .beta-badge {
+    border-color: #bb704f;
+    color: #bb704f;
   }
 </style>

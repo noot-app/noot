@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { browser } from '$app/environment';
+import { getStorageItem, setStorageItem } from '$lib/utils/secure-storage';
 
 export type Units = 'grams' | 'ounces';
 
@@ -10,15 +10,21 @@ function createUnitsStore() {
   return {
     subscribe,
     set: (value: Units) => {
-      if (browser) {
-        localStorage.setItem('noot-units', value);
+      // Validate the value before storing
+      if (value !== 'grams' && value !== 'ounces') {
+        console.warn('Invalid units value:', value);
+        return;
+      }
+      
+      if (typeof window !== 'undefined') {
+        setStorageItem('noot-units', value);
       }
       set(value);
     },
     // Initialize from localStorage on client side
     init: () => {
-      if (browser) {
-        const stored = localStorage.getItem('noot-units') as Units | null;
+      if (typeof window !== 'undefined') {
+        const stored = getStorageItem('noot-units') as Units | null;
         if (stored && (stored === 'grams' || stored === 'ounces')) {
           set(stored);
         }

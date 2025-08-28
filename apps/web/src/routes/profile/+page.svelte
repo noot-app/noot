@@ -9,6 +9,7 @@
   import FormField from '$lib/components/FormField.svelte';
   import FormSelect from '$lib/components/FormSelect.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+  import { getStorageJSON, setStorageJSON } from '$lib/utils/secure-storage';
   import { parseErrorMessage, formatErrorForUser } from '$lib/utils/error-handling';
   import type { paths } from "$lib/api/schema";
 
@@ -36,22 +37,19 @@
   let saving = false;
   let savingBiometrics = false;
 
-  // Age visibility state with client-side storage
+  // Age visibility state with secure client-side storage
   let showAge = true;
 
-  // Load age visibility preference from localStorage
+  // Load age visibility preference from secure localStorage
   if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('noot-show-age');
-    if (stored !== null) {
-      showAge = JSON.parse(stored);
-    }
+    showAge = getStorageJSON('noot-show-age', true);
   }
 
-  // Function to toggle age visibility and save preference
+  // Function to toggle age visibility and save preference securely
   function toggleAgeVisibility() {
     showAge = !showAge;
     if (typeof window !== 'undefined') {
-      localStorage.setItem('noot-show-age', JSON.stringify(showAge));
+      setStorageJSON('noot-show-age', showAge);
     }
   }
 

@@ -95,7 +95,7 @@
 
 <div class="card bg-base-200 shadow-lg">
   <div class="card-body">
-    <h2 class="card-title text-lg flex items-center gap-2" style="color: var(--color-base-content);">
+    <h2 class="card-title text-lg flex items-center gap-2 goals-header">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
@@ -197,7 +197,7 @@
             <div class="card bg-base-100 shadow-sm mt-6">
               <div class="card-body p-4">
                 <div class="flex items-center justify-between mb-3">
-                  <h4 class="font-semibold text-base flex items-center" style="color: var(--color-base-content);">
+                  <h4 class="font-semibold text-base flex items-center goals-subheader">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
@@ -252,12 +252,12 @@
                     </div>
                     <div class="flex h-2 bg-base-200 rounded-full overflow-hidden">
                       <div 
-                        class="bg-success transition-all duration-300" 
-                        style="width: {(naturalSugars / totalSugars * 100)}%"
+                        class="bg-success transition-all duration-300 sugar-bar-natural" 
+                        style:width="{(naturalSugars / totalSugars * 100)}%"
                       ></div>
                       <div 
-                        class="bg-warning transition-all duration-300" 
-                        style="width: {(addedSugars / totalSugars * 100)}%"
+                        class="bg-warning transition-all duration-300 sugar-bar-added" 
+                        style:width="{(addedSugars / totalSugars * 100)}%"
                       ></div>
                     </div>
                   </div>
@@ -413,5 +413,15 @@
   </div>
   <label class="modal-backdrop" for="custom-goals-info">Close</label>
 </div>
+
+<style>
+  .goals-header {
+    color: var(--color-base-content);
+  }
+  
+  .goals-subheader {
+    color: var(--color-base-content);
+  }
+</style>
 
 
