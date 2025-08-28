@@ -1,0 +1,14 @@
+dist/
+.github/
+apps/
+docs/
+supabase/
+tmp/
+README.md
+vendor_bin/
+.env
+.env.*
+.vscode/
+.DS_Store
+*.log
+coverage.out
