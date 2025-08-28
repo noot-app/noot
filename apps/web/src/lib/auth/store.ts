@@ -30,6 +30,13 @@ export const authProvider = createAuthProvider();
  */
 export const currentUser = writable<User | null>(null);
 
+// Add debugging subscription to currentUser store (only in development)
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+	currentUser.subscribe((user) => {
+		console.log('📋 debug mode only - currentUser store updated to:', user ? `${user.email} (${user.id})` : null);
+	});
+}
+
 /**
  * Derived store to check if user has pro subscription
  */
@@ -44,7 +51,7 @@ export const isPro = derived(currentUser, ($user) =>
  */
 export async function initAuth(): Promise<void> {
 	if (!authProvider) {
-		console.warn('No auth provider available');
+		console.warn('❌ No auth provider available in initAuth');
 		return;
 	}
 
@@ -59,7 +66,7 @@ export async function initAuth(): Promise<void> {
 			});
 		}
 	} catch (error) {
-		console.error('Failed to initialize auth:', error);
+		console.error('❌ Failed to initialize auth:', error);
 		currentUser.set(null);
 	}
 }
@@ -69,18 +76,26 @@ export async function initAuth(): Promise<void> {
  */
 export async function signIn(email: string, password: string): Promise<{ user: User | null; error: Error | null }> {
 	if (!authProvider) {
+		console.error('❌ No auth provider available in signIn');
 		return { user: null, error: new Error('No auth provider available') };
 	}
 
 	// Check if the provider supports sign in (Supabase auth)
 	if ('signIn' in authProvider && typeof authProvider.signIn === 'function') {
 		const result = await authProvider.signIn(email, password);
+		
+		// Update the current user store on successful login
+		if (result.user && !result.error) {
+			currentUser.set(result.user);
+		}
+		
 		return {
 			user: result.user,
 			error: result.error ? new Error(result.error) : null
 		};
 	}
 
+	console.error('❌ Auth provider does not support signIn');
 	return { user: null, error: new Error('Sign in not supported by current auth provider') };
 }
 
@@ -95,6 +110,12 @@ export async function signUp(email: string, password: string, metadata?: { fullN
 	// Check if the provider supports sign up (Supabase auth)
 	if ('signUp' in authProvider && typeof authProvider.signUp === 'function') {
 		const result = await authProvider.signUp(email, password, metadata);
+		
+		// Update the current user store on successful signup
+		if (result.user && !result.error) {
+			currentUser.set(result.user);
+		}
+		
 		return {
 			user: result.user,
 			error: result.error ? new Error(result.error) : null

@@ -10,6 +10,7 @@
   let password = '';
   let loading = false;
   let error: string | null = null;
+  let redirecting = false; // Prevent multiple simultaneous redirects
 
   // Get return URL from query params
   const returnUrl = $page.url.searchParams.get('returnUrl') || '/';
@@ -17,8 +18,12 @@
   // Redirect if already authenticated
   onMount(() => {
     const unsubscribe = currentUser.subscribe((user) => {
-      if (user) {
-        goto(returnUrl);
+      if (user && !redirecting) {
+        redirecting = true;
+        goto(returnUrl).catch((err) => {
+          console.error('❌ Navigation failed:', err);
+          redirecting = false; // Reset on failure
+        });
       }
     });
     return unsubscribe;
@@ -41,7 +46,7 @@
         const errorMessage = typeof result.error === 'string' ? result.error : result.error.message;
 
         // log the error
-        console.warn('Login failure:', errorMessage);
+        console.warn('❌ Login failure:', errorMessage);
         
         // Try to parse error as JSON to get error code, otherwise use message
         let errorCode = null;
@@ -55,10 +60,19 @@
         // Get user-friendly error message
         error = getAuthErrorMessage(errorCode, errorMessage);
       } else if (result.user) {
-        // Successful login - redirect to return URL
-        goto(returnUrl);
+        // Successful login - redirect to return URL (only if not already redirecting)
+        if (!redirecting) {
+          redirecting = true;
+          goto(returnUrl).catch((err) => {
+            console.error('❌ Navigation failed:', err);
+            redirecting = false; // Reset on failure
+          });
+        }
+      } else {
+        console.error('⚠️ signIn returned no user and no error - unexpected state');
       }
     } catch (err) {
+      console.error('❌ Exception in handleLogin:', err);
       error = err instanceof Error ? err.message : 'An unexpected error occurred';
     } finally {
       loading = false;

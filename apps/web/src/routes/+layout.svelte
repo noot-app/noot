@@ -5,20 +5,28 @@
   import { slide } from "svelte/transition"
   import { onMount } from "svelte"
   import { units } from "$lib/stores/units"
-  import { initAuth } from "$lib/auth/store"
+  import { initAuth, currentUser } from "$lib/auth/store"
   import Navbar from "$lib/components/Navbar.svelte"
   import DevBanner from "$lib/components/DevBanner.svelte"
   import AdaptiveFavicon from "$lib/components/AdaptiveFavicon.svelte"
 
   interface Props {
     children?: import("svelte").Snippet
+    data?: any
   }
 
-  let { children }: Props = $props()
+  let { children, data }: Props = $props()
 
   onMount(() => {
     units.init();
-    initAuth(); // Initialize auth system
+    
+    // If we have SSR user data, set it immediately to prevent flicker
+    if (data?.user) {
+      currentUser.set(data.user);
+    }
+    
+    // Still initialize client auth for state change listeners and auth actions
+    initAuth();
   });
 </script>
 

@@ -23,7 +23,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 			const { data: { session }, error } = await supabase.auth.getSession();
 			
 			if (error) {
-				console.error('Failed to get Supabase session:', error);
+				console.error('❌ Failed to get Supabase session:', error);
 				return null;
 			}
 
@@ -33,7 +33,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 
 			return await this.mapSupabaseUserToUser(session);
 		} catch (error) {
-			console.error('Error getting current user:', error);
+			console.error('❌ Error getting current user:', error);
 			return null;
 		}
 	}
@@ -43,6 +43,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 	 */
 	async signIn(email: string, password: string): Promise<{ user: User | null; error: string | null }> {
 		if (!supabase) {
+			console.error('❌ Supabase client not available in signIn');
 			return { user: null, error: 'Supabase not configured' };
 		}
 
@@ -53,18 +54,19 @@ export class SupabaseAuthProvider implements AuthProvider {
 			});
 
 			if (error) {
-				// Log the full error object to see what properties are available
-				console.warn('Supabase auth error:', error);
+				console.warn('❌ Supabase auth error:', error);
 				return { user: null, error: JSON.stringify({ code: error.code || error.name || 'unknown_error', message: error.message }) };
 			}
 
 			if (!data.session) {
+				console.error('❌ No session created after successful auth');
 				return { user: null, error: 'No session created' };
 			}
 
 			const user = await this.mapSupabaseUserToUser(data.session);
 			return { user, error: null };
 		} catch (error) {
+			console.error('❌ Exception in SupabaseAuthProvider.signIn:', error);
 			return { user: null, error: String(error) };
 		}
 	}
@@ -168,7 +170,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 				.single();
 			
 			if (error) {
-				console.warn('Failed to fetch user data from Supabase:', error);
+				console.warn('⚠️ Failed to fetch user data from Supabase:', error);
 			} else if (data) {
 				// Use data directly from database with RLS protection
 				return {
@@ -180,14 +182,14 @@ export class SupabaseAuthProvider implements AuthProvider {
 				};
 			}
 		} catch (error) {
-			console.warn('Failed to fetch user data from database, falling back to session data:', error);
+			console.warn('⚠️ Failed to fetch user data from database, falling back to session data:', error);
 		}
 
 		// Fallback to session data if database query fails
 		return {
 			id: supabaseUser.id,
 			email: supabaseUser.email || '',
-			subscriptionTier: 'free', // Default fallback
+			subscriptionTier: 'free' as const, // Default fallback
 			provider: 'supabase',
 			subject: supabaseUser.id
 		};
