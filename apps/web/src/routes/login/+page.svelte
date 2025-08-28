@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { dev } from '$app/environment';
   import { signIn, currentUser } from '$lib/auth/store';
+  import { getAuthErrorMessage } from '$lib/auth/error-messages';
   import { onMount } from 'svelte';
   
   let email = '';
@@ -51,15 +52,8 @@
           // If not JSON, we'll handle it in the default case
         }
         
-        // Handle specific error codes with custom messages
-        switch (errorCode) {
-          case 'email_not_confirmed':
-            error = 'Email not confirmed. Please check your email for the confirmation link.';
-            break;
-          default:
-            // For non-JSON errors or unhandled codes, use the original message
-            error = errorMessage;
-        }
+        // Get user-friendly error message
+        error = getAuthErrorMessage(errorCode, errorMessage);
       } else if (result.user) {
         // Successful login - redirect to return URL
         goto(returnUrl);
@@ -129,8 +123,10 @@
             required
             bind:value={email}
             class="input input-bordered w-full rounded-t-md rounded-b-none"
+            class:input-error={error}
             placeholder="Email address"
             disabled={loading}
+            aria-describedby={error ? "error-message" : undefined}
           />
         </div>
         <div>
@@ -143,26 +139,37 @@
             required
             bind:value={password}
             class="input input-bordered w-full rounded-t-none rounded-b-md"
+            class:input-error={error}
             placeholder="Password"
             disabled={loading}
+            aria-describedby={error ? "error-message" : undefined}
           />
         </div>
       </div>
 
-      {#if error}
-        <div class="alert alert-error">
-          <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span>{error}</span>
-        </div>
-      {/if}
+      <!-- Fixed height error container to prevent layout shift -->
+      <div class="min-h-[4rem] flex items-start">
+        {#if error}
+          <div 
+            id="error-message"
+            class="alert alert-error w-full"
+            role="alert"
+            aria-live="polite"
+          >
+            <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>{error}</span>
+          </div>
+        {/if}
+      </div>
 
       <div class="flex items-center justify-between">
         <button
           type="button"
           class="link link-primary text-sm"
           on:click={handleResetPassword}
+          disabled={loading}
         >
           Forgot your password?
         </button>
@@ -172,10 +179,14 @@
         <button
           type="submit"
           disabled={loading}
-          class="btn btn-primary w-full"
-          class:loading
+          class="btn btn-primary w-full relative"
+          aria-describedby="button-status"
         >
-          {loading ? 'Signing in...' : 'Sign in'}
+          <span class:opacity-0={loading}>Sign in</span>
+          {#if loading}
+            <span class="loading loading-spinner loading-sm absolute" aria-hidden="true"></span>
+            <span class="sr-only" id="button-status">Signing in, please wait</span>
+          {/if}
         </button>
       </div>
     </form>
