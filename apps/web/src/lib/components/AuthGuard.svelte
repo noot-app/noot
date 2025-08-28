@@ -1,8 +1,8 @@
-<!-- AuthGuard.svelte - Protects routes that require authentication -->
+<!-- AuthGuard.svelte - DEPRECATED: No longer used with SSR auth -->
 <script lang="ts">
-  // AuthGuard.svelte - Client-side guard for authenticated/pro users.
-  // NOTE: This is a UX convenience only (redirects, hides UI).
-  // Real access control must be enforced on the server/API with JWT/RLS checks.
+  // AuthGuard.svelte - DEPRECATED: Client-side guard replaced by SSR auth in hooks.server.ts
+  // This component is kept for potential future client-only auth scenarios but is not used
+  // in the current SSR auth implementation. Protected routes are now server-side protected.
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { currentUser } from '$lib/auth/store';
