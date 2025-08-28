@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,13 @@ import (
 
 // Run configures routes and starts the HTTP server using Gin
 func Run(ctx context.Context, port string) error {
+	// At application startup, ensure that the "/tmp" directory exists inside the container.
+	// If it doesn't, automatically create it with strict permissions (0700) so it's safe
+	// for writing temporary files (like uploaded recordings).
+	if err := os.MkdirAll("/tmp", 0o700); err != nil {
+		return fmt.Errorf("failed to create temp directory: %w", err)
+	}
+
 	// Validate environment and security configuration on startup
 	if err := validateSecurityConfiguration(); err != nil {
 		return fmt.Errorf("security configuration validation failed: %w", err)
