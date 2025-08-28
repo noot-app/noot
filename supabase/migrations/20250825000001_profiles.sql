@@ -21,12 +21,16 @@ create index if not exists idx_profiles_active_goal on profiles(active_goal_name
 
 -- 2. Keep updated_at current
 create or replace function public.update_updated_at_column()
-returns trigger as $$
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
 begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 create trigger set_profiles_updated_at
 before update on public.profiles
@@ -37,7 +41,8 @@ execute function public.update_updated_at_column();
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
-security definer set search_path = ''
+security definer
+set search_path = public
 as $$
 begin
   insert into public.profiles (id, handle, full_name, email, subscription_tier, avatar_url)
