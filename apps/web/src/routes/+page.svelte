@@ -13,7 +13,7 @@
     // Trigger phone animation after a brief delay
     setTimeout(() => {
       phoneAnimated = true;
-    }, 500);
+    }, 25); // ms delay from dom rendering
   });
 </script>
 
