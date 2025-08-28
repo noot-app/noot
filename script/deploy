@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+# Load deploy environment variables if they exist
+if [[ -f ".deploy.env" ]]; then
+  set -a
+  source .deploy.env
+  set +a
+fi
+
+case "${1:-}" in
+  "frontend")
+    echo "Deploying frontend..."
+    
+    # Check required environment variables
+    if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]] || [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+      echo "Error: CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN must be set"
+      exit 1
+    fi
+    
+    # Use subshell to ensure we return to original directory even on failure
+    (cd apps/web && npm run deploy)
+    ;;
+    
+  "backend")
+    echo "Deploying backend..."
+    
+    # Check required environment variable
+    if [[ -z "${RAILWAY_TOKEN:-}" ]]; then
+      echo "Error: RAILWAY_TOKEN must be set"
+      exit 1
+    fi
+    
+    # Build railway command with optional --ci flag
+    railway_cmd="railway up --service noot-api"
+    if [[ "${2:-}" == "--ci" ]]; then
+      railway_cmd="$railway_cmd --ci"
+    fi
+    
+    eval "$railway_cmd"
+    ;;
+    
+  "")
+    echo "Deploying both backend and frontend..."
+    
+    # Check all required environment variables upfront
+    if [[ -z "${RAILWAY_TOKEN:-}" ]]; then
+      echo "Error: RAILWAY_TOKEN must be set"
+      exit 1
+    fi
+    if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]] || [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+      echo "Error: CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN must be set"
+      exit 1
+    fi
+    
+    # Deploy backend first
+    echo "Step 1/2: Deploying backend..."
+    railway up --service noot-api
+    
+    # Then deploy frontend
+    echo "Step 2/2: Deploying frontend..."
+    (cd apps/web && npm run deploy)
+    
+    echo "✅ Both deployments completed successfully!"
+    ;;
+    
+  *)
+    echo "Usage: script/deploy [frontend|backend]"
+    echo "  (no args): Deploy both backend and frontend"
+    echo "  frontend:  Deploy to Cloudflare Workers"
+    echo "  backend:   Deploy to Railway (use --ci for CI mode)"
+    exit 1
+    ;;
+esac
