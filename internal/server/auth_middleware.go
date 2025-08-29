@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"net/mail"
 	"slices"
 	"strings"
 	"sync"
@@ -597,53 +598,10 @@ func validateJWTClaims(claims *SupabaseJWTClaims) error {
 	return nil
 }
 
-// isValidEmail performs robust email format validation
+// isValidEmail performs RFC-compliant email format validation using Go's built-in parser
 func isValidEmail(email string) bool {
-	// Check basic length requirements
-	if len(email) < 5 || len(email) > 254 {
-		return false
-	}
-
-	// Must contain exactly one @ symbol
-	atIndex := strings.Index(email, "@")
-	if atIndex == -1 || atIndex != strings.LastIndex(email, "@") {
-		return false
-	}
-
-	// Split into local and domain parts
-	localPart := email[:atIndex]
-	domainPart := email[atIndex+1:]
-
-	// Validate local part
-	if len(localPart) < 1 || len(localPart) > 64 {
-		return false
-	}
-
-	// Validate domain part
-	if len(domainPart) < 1 || len(domainPart) > 253 {
-		return false
-	}
-
-	// Domain must contain at least one dot and end with a valid TLD
-	dotIndex := strings.LastIndex(domainPart, ".")
-	if dotIndex == -1 || dotIndex == 0 || dotIndex == len(domainPart)-1 {
-		return false
-	}
-
-	// TLD must be at least 2 characters
-	tld := domainPart[dotIndex+1:]
-	if len(tld) < 2 {
-		return false
-	}
-
-	// Basic character validation - no spaces, must be printable ASCII, no dangerous chars
-	for _, r := range email {
-		if r == ' ' || r < 32 || r > 126 || r == '<' || r == '>' {
-			return false
-		}
-	}
-
-	return true
+	_, err := mail.ParseAddress(email)
+	return err == nil
 }
 
 // GetAuthenticatedUser extracts the authenticated user from Gin context
