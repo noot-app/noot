@@ -38,6 +38,23 @@ func handleAppErrorGin(c *gin.Context, appErr *AppError, requestID string) {
 	c.JSON(appErr.StatusCode, errorResp)
 }
 
+// handleInternalServerError is a convenience wrapper for common internal server errors
+func handleInternalServerError(c *gin.Context, message string, err error) {
+	requestID := getRequestID(c)
+	appErr := NewAppError(message, http.StatusInternalServerError, err)
+	handleAppErrorGin(c, appErr, requestID)
+}
+
+// handleStorageUnavailableError handles the common "Storage not available" error case
+func handleStorageUnavailableError(c *gin.Context) {
+	handleInternalServerError(c, "Storage not available", nil)
+}
+
+// getRequestID retrieves the request ID from the Gin context
+func getRequestID(c *gin.Context) string {
+	return c.GetString("request_id")
+}
+
 // parseDateRangeParamsFromAPI converts generated API params to our internal DateRangeParams
 func parseDateRangeParamsFromAPI(params api.GetNutritionSummaryParams) (*DateRangeParams, error) {
 	// Convert the generated API params to our internal structure

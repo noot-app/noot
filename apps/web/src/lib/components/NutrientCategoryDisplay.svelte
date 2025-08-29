@@ -397,7 +397,7 @@
           </div>
         {:else}
           <!-- Categorized view for regular nutrients -->
-          {#each Object.entries(nutrientCategories) as [_categoryKey, category]}
+          {#each Object.entries(nutrientCategories) as [, category]}
             {#if hasNutrientData(category.nutrients)}
               <div>
                 <h4 class="font-semibold text-base mb-3 pb-2 border-b border-base-300 flex items-center nutrient-header">

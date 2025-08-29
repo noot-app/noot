@@ -1,6 +1,5 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client";
-  import { env } from "$env/dynamic/public";
   import { onMount } from "svelte";
   import { dev } from '$app/environment';
   import { toast } from '$lib/stores/toast';
@@ -11,10 +10,11 @@
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import { getStorageJSON, setStorageJSON } from '$lib/utils/secure-storage';
   import { parseErrorMessage, formatErrorForUser } from '$lib/utils/error-handling';
+  import { getAppName } from "$lib/utils/app-info";
   import type { paths } from "$lib/api/schema";
 
   // Get app name from runtime environment
-  $: appName = env.PUBLIC_APP_NAME || 'Noot';
+  $: appName = getAppName();
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
   type Goals = GoalsResponse["goals"];
