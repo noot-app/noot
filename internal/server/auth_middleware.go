@@ -57,35 +57,6 @@ var (
 	jwksCacheTTL   = 1 * time.Hour // Cache for 1 hour
 )
 
-// Rate limiter for user creation to prevent abuse
-var (
-	userCreationLimiter = make(map[string][]time.Time) // Track multiple attempts per email
-	userCreationMutex   sync.RWMutex
-)
-
-// cleanupUserCreationLimiter removes old entries from the rate limiter
-func cleanupUserCreationLimiter() {
-	userCreationMutex.Lock()
-	defer userCreationMutex.Unlock()
-
-	cutoff := time.Now().Add(-time.Hour) // Keep entries for 1 hour
-	for email, attempts := range userCreationLimiter {
-		// Filter out old attempts
-		var validAttempts []time.Time
-		for _, attempt := range attempts {
-			if attempt.After(cutoff) {
-				validAttempts = append(validAttempts, attempt)
-			}
-		}
-
-		if len(validAttempts) == 0 {
-			delete(userCreationLimiter, email)
-		} else {
-			userCreationLimiter[email] = validAttempts
-		}
-	}
-}
-
 // fetchJWKS fetches the JWKS from Supabase
 func fetchJWKS(supabaseURL string) (*JWKS, error) {
 	jwksCacheMutex.RLock()
@@ -240,50 +211,6 @@ func getAsymmetricPublicKey(token *jwt.Token, supabaseURL, jwtSecret string) (in
 	LogWarn("No Supabase URL - falling back to jwtSecret")
 	// If no Supabase URL, fall back to secret
 	return []byte(jwtSecret), nil
-}
-
-// isUserCreationRateLimited checks if user creation is rate limited
-func isUserCreationRateLimited(email string) bool {
-	userCreationMutex.RLock()
-	defer userCreationMutex.RUnlock()
-
-	attempts, exists := userCreationLimiter[email]
-	if !exists {
-		return false
-	}
-
-	// Count valid attempts within the last 10 minutes
-	cutoff := time.Now().Add(-10 * time.Minute)
-	validAttempts := 0
-	for _, attempt := range attempts {
-		if attempt.After(cutoff) {
-			validAttempts++
-		}
-	}
-
-	// Allow up to 2 user creation attempts per email per 10 minutes
-	return validAttempts >= 2
-}
-
-// recordUserCreationAttempt records a user creation attempt
-func recordUserCreationAttempt(email string) {
-	userCreationMutex.Lock()
-	defer userCreationMutex.Unlock()
-
-	now := time.Now()
-	attempts, exists := userCreationLimiter[email]
-	if !exists {
-		attempts = make([]time.Time, 0, 2)
-	}
-
-	// Add current attempt
-	attempts = append(attempts, now)
-	userCreationLimiter[email] = attempts
-
-	// Periodically cleanup old entries
-	if len(userCreationLimiter) > 100 {
-		go cleanupUserCreationLimiter()
-	}
 }
 
 // JWTAuthMiddleware validates Supabase JWT tokens and creates/loads user context
