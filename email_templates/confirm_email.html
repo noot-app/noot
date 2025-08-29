@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Confirm Your Email - Noot</title>
     <style>
+        /* Import MuseoModerno for brand consistency */
+        @import url('https://fonts.googleapis.com/css2?family=MuseoModerno:wght@400;600;700;800&display=swap');
+        
         /* Respect user's motion preferences */
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
@@ -14,13 +17,10 @@
             }
         }
         
-        /* Import accessible font */
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&display=swap');
-        
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: #fdf8ee;
             color: #3c3d42;
             line-height: 1.6;
@@ -29,27 +29,57 @@
         .email-container {
             max-width: 600px;
             margin: 0 auto;
-            background: #fdf8ee;
+            background: #ffffff;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #e89852 0%, #cc902f 20%, #d38c46 40%, #cf6c26 60%, #c57553 80%, #b16645 100%);
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-family: 'MuseoModerno', sans-serif;
+            font-size: 3rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin: 0;
+            letter-spacing: -1px;
+        }
+        
+        .tagline {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            margin-top: 8px;
+            font-weight: 500;
         }
         
         .content {
             padding: 50px 30px;
-            background: #fdf8ee;
+            background: #ffffff;
         }
         
         .welcome-title {
-            font-size: 2rem;
+            font-size: 1.75rem;
             font-weight: 600;
             color: #3c3d42;
-            margin: 0 0 20px 0;
+            margin: 0 0 12px 0;
             text-align: center;
         }
         
+        .mic-icon {
+            display: block;
+            margin: 0 auto 20px;
+            width: 48px;
+            height: 48px;
+        }
+        
         .welcome-text {
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: #81828a;
             text-align: center;
-            margin: 0 0 30px 0;
+            margin: 0 0 35px 0;
+            line-height: 1.6;
         }
         
         .confirm-section {
@@ -62,107 +92,163 @@
             background-color: #be7454;
             color: #ffffff;
             text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 4px;
+            padding: 14px 40px;
+            border-radius: 8px;
             font-weight: 600;
-            font-size: 1.1rem;
-            border: 2px solid #be7454;
-            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s ease;
         }
         
-        .confirm-button:hover,
-        .confirm-button:focus {
+        .confirm-button:hover {
             background-color: #a66446;
-            border-color: #a66446;
-            outline: 2px solid #3c3d42;
-            outline-offset: 2px;
+        }
+        
+        .features-grid {
+            margin: 40px 0;
+            padding: 25px;
+            background: #fdf8ee;
+            border-radius: 8px;
+        }
+        
+        .features-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #3c3d42;
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .checkmark {
+            color: #74b986;
+            margin-right: 12px;
+            font-size: 1.2rem;
+            line-height: 1.2;
+        }
+        
+        .feature-text {
+            color: #657280;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            margin: 0;
         }
         
         .security-note {
             background: #f2ede3;
-            border-left: 4px solid #be7454;
-            padding: 20px;
+            border-left: 3px solid #bb704f;
+            padding: 16px 20px;
             margin: 30px 0;
             border-radius: 4px;
         }
         
         .security-note p {
             margin: 0;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             color: #657280;
+            line-height: 1.5;
         }
         
-        .social-links a {
+        .footer {
+            padding: 30px;
+            background: #f2ede3;
+            text-align: center;
+        }
+        
+        .footer-text {
+            color: #81828a;
+            font-size: 0.85rem;
+            margin: 0 0 8px 0;
+        }
+        
+        .footer-link {
             color: #be7454;
-            text-decoration: underline;
-            margin: 0 10px;
+            text-decoration: none;
             font-weight: 500;
         }
         
-        .social-links a:hover,
-        .social-links a:focus {
-            color: #a66446;
-            outline: 2px solid #3c3d42;
-            outline-offset: 2px;
+        .footer-link:hover {
+            text-decoration: underline;
         }
         
         /* Mobile responsiveness */
         @media (max-width: 600px) {
-            .content {
+            .logo {
+                font-size: 2.5rem;
+            }
+            
+            .header {
                 padding: 30px 20px;
             }
             
+            .content {
+                padding: 40px 20px;
+            }
+            
             .welcome-title {
-                font-size: 1.6rem;
+                font-size: 1.5rem;
             }
             
             .confirm-button {
-                padding: 14px 28px;
-                font-size: 1rem;
-            }
-        }
-        
-        /* Dark mode support for email clients that support it */
-        @media (prefers-color-scheme: dark) {
-            .security-note {
-                background: rgba(242, 237, 227, 0.1);
-                border-left-color: #be7454;
+                padding: 12px 32px;
+                font-size: 0.95rem;
             }
         }
     </style>
 </head>
 <body>
-    <div class="email-container">        
+    <div class="email-container">
+        <!-- Header with gradient background -->
+        <div class="header">
+            <h1 class="logo">NOOT</h1>
+            <p class="tagline">The easiest nutrition tracker ever</p>
+        </div>
+        
         <!-- Main content -->
         <div class="content">
-            <h1 class="welcome-title">Welcome to Noot! 🌅</h1>
+            <!-- Microphone SVG Icon -->
+            <svg class="mic-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" 
+                      stroke="#be7454" 
+                      stroke-width="2" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"/>
+            </svg>
+            
+            <h2 class="welcome-title">Welcome to Noot!</h2>
             <p class="welcome-text">
-                We're excited to have you join our community of mindful meal loggers. 
-                Let's get you started on your nutrition journey.
+                You're one click away from the simplest way to track your nutrition. 
+                Just speak naturally about what you eat, and Noot takes care of the rest.
             </p>
             
             <div class="confirm-section">
-                <p style="margin-bottom: 25px; font-size: 1.05rem; color: #3c3d42;">
-                    Please confirm your email address to activate your account:
+                <p style="margin-bottom: 20px; font-size: 1rem; color: #3c3d42;">
+                    Confirm your email to get started:
                 </p>
                 <a href="{{ .ConfirmationURL }}" 
                    class="confirm-button"
                    role="button"
-                   aria-label="Confirm your email address to activate your Noot account">
-                    Confirm Your Email
+                   aria-label="Confirm your email address">
+                    Activate My Account
                 </a>
             </div>
             
             <div class="security-note" role="note" aria-label="Security information">
                 <p>
-                    <strong>Security tip:</strong> This confirmation link will expire in 24 hours. 
-                    If you didn't create a Noot account, you can safely ignore this email.
+                    <strong>🔒 Security note:</strong> This link expires in 24 hours for your protection. 
+                    If you didn't sign up for Noot, you can safely ignore this email.
                 </p>
             </div>
-            
-            <p style="text-align: center; margin-top: 30px; color: #81828a;">
-                Once confirmed, you'll be able to start logging your meals with voice commands 
-                and track your nutrition goals effortlessly.
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p class="footer-text" style="margin-top: 16px; color: #a0a0a0; font-size: 0.8rem;">
+                © Noot · Made with ❤️ in San Francisco
             </p>
         </div>
     </div>
