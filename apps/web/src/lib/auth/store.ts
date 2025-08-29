@@ -5,27 +5,37 @@ import { isSupabaseEnabled } from '$lib/supabase';
 
 // Track if auth has been initialized to prevent duplicate calls
 let authInitialized = false;
+let authProviderInstance: AuthProvider | null = null;
 
 /**
- * Current auth provider instance - uses Supabase authentication
+ * Get auth provider instance - lazy-loaded to avoid SSR issues
  */
-function createAuthProvider(): AuthProvider | null {
-	// Check if Supabase is enabled and properly configured
+export function getAuthProvider(): AuthProvider | null {
+	// During SSR, always return null since auth happens client-side
+	if (typeof window === 'undefined') {
+		return null;
+	}
+	
+	// Return existing instance if available
+	if (authProviderInstance) {
+		return authProviderInstance;
+	}
+	
+	// Create and cache the auth provider (client-side only)
 	if (isSupabaseEnabled()) {
 		try {
 			console.debug('🔐 Using SupabaseAuthProvider');
-			return new SupabaseAuthProvider();
+			authProviderInstance = new SupabaseAuthProvider();
+			return authProviderInstance;
 		} catch (error) {
 			console.warn('Failed to initialize SupabaseAuthProvider:', error);
 			return null;
 		}
 	}
 	
-	console.warn('createAuthProvider() No auth provider available - Supabase is not properly configured');
+	console.warn('getAuthProvider() No auth provider available - Supabase is not properly configured');
 	return null;
 }
-
-export const authProvider = createAuthProvider();
 
 /**
  * Reactive store for current user state
@@ -61,22 +71,26 @@ export async function initAuth(skipIfInitialized: boolean = true): Promise<void>
 
 	console.debug('🚀 Initializing auth system...');
 
+	const authProvider = getAuthProvider();
 	if (!authProvider) {
+		// During SSR, authProvider will be null, which is expected
+		if (typeof window === 'undefined') {
+			console.debug('⏭️ Skipping auth initialization during SSR');
+			return;
+		}
 		console.warn('❌ No auth provider available in initAuth');
 		return;
 	}
 
 	try {
 		// Only fetch current user if we don't already have one (to prevent duplicate calls)
-		const currentUserValue = await new Promise<User | null>((resolve) => {
-			const unsubscribe = currentUser.subscribe((user) => {
-				resolve(user);
-			});
-			// Call unsubscribe after the subscription is fully established
-			unsubscribe();
+		let currentUserValue: User | null = null;
+		const unsubscribe = currentUser.subscribe((user: User | null) => {
+			currentUserValue = user;
 		});
+		unsubscribe();
 
-		console.debug('📋 Current user in store:', currentUserValue ? `${currentUserValue.email}` : 'none');
+		console.debug('📋 Current user in store:', currentUserValue ? 'user found' : 'none');
 
 		// If we don't have a user yet, get the current user
 		if (!currentUserValue) {
@@ -110,40 +124,35 @@ export async function initAuth(skipIfInitialized: boolean = true): Promise<void>
  * Sign in with email and password (Supabase only)
  */
 export async function signIn(email: string, password: string): Promise<{ user: User | null; error: Error | null }> {
-	console.debug('🔐 Attempting sign in for:', email);
-	
+	console.debug('� signIn called for email:', email);
+
+	const authProvider = getAuthProvider();
 	if (!authProvider) {
-		console.error('❌ No auth provider available in signIn');
+		console.warn('❌ No auth provider available');
 		return { user: null, error: new Error('No auth provider available') };
 	}
 
-	// Check if the provider supports sign in (Supabase auth)
 	if ('signIn' in authProvider && typeof authProvider.signIn === 'function') {
 		const result = await authProvider.signIn(email, password);
-		
-		if (result.error) {
+		if (result.user && !result.error) {
+			console.debug('✅ Sign in successful, user:', result.user.id);
+			// currentUser store will be updated via auth state change listener
+			return { user: result.user, error: null };
+		} else {
 			console.debug('❌ Sign in failed:', result.error);
-		} else if (result.user) {
-			console.debug('✅ Sign in successful:', result.user.email);
+			return { user: null, error: result.error ? new Error(result.error) : new Error('Sign in failed') };
 		}
-		
-		// Note: Don't manually update currentUser store here since onAuthStateChange will handle it
-		// This prevents duplicate user store updates during sign-in
-		
-		return {
-			user: result.user,
-			error: result.error ? new Error(result.error) : null
-		};
+	} else {
+		console.warn('❌ signIn method not available on auth provider');
+		return { user: null, error: new Error('Sign in method not available') };
 	}
-
-	console.error('❌ Auth provider does not support signIn');
-	return { user: null, error: new Error('Sign in not supported by current auth provider') };
 }
 
 /**
  * Sign up with email and password (Supabase only)
  */
 export async function signUp(email: string, password: string, metadata?: { fullName?: string; handle?: string }): Promise<{ user: User | null; error: Error | null }> {
+	const authProvider = getAuthProvider();
 	if (!authProvider) {
 		return { user: null, error: new Error('No auth provider available') };
 	}
@@ -170,6 +179,7 @@ export async function signUp(email: string, password: string, metadata?: { fullN
 export async function signOut(): Promise<{ error: Error | null }> {
 	console.debug('🚪 Attempting sign out');
 	
+	const authProvider = getAuthProvider();
 	if (!authProvider) {
 		return { error: new Error('No auth provider available') };
 	}
@@ -195,6 +205,7 @@ export async function signOut(): Promise<{ error: Error | null }> {
  * Reset password (Supabase only)
  */
 export async function resetPassword(email: string): Promise<{ error: Error | null }> {
+	const authProvider = getAuthProvider();
 	if (!authProvider) {
 		return { error: new Error('No auth provider available') };
 	}

@@ -22,7 +22,13 @@ const supabase: Handle = async ({ event, resolve }) => {
         getAll: () => event.cookies.getAll(),
         setAll: (cookiesToSet: Array<{ name: string; value: string; options: Record<string, unknown> }>) => {
           cookiesToSet.forEach(({ name, value, options }) => {
-            event.cookies.set(name, value, { ...options, path: '/', secure: true });
+            event.cookies.set(name, value, { 
+              ...options, 
+              path: '/', 
+              secure: true,
+              httpOnly: true,
+              sameSite: 'lax'
+            });
           });
         },
       },
@@ -37,9 +43,17 @@ const supabase: Handle = async ({ event, resolve }) => {
       return { session: null, user: null, amr: null };
     }
     
-    // Only get session if we have a verified user (for token access)
-    const { data: { session } } = await event.locals.supabase.auth.getSession();
-    return { session, user: session?.user ?? null, amr: null };
+    // Return a session-like object with verified user data (no actual session needed)
+    const verifiedSession = {
+      access_token: '', // We'll get this separately when needed
+      refresh_token: '',
+      expires_in: 0,
+      expires_at: 0,
+      token_type: 'bearer',
+      user: user
+    };
+    
+    return { session: verifiedSession, user: user, amr: null };
   };
 
   return resolve(event);

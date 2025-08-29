@@ -18,9 +18,15 @@ export const load_helper = async (
       }
     }
     
-    // Only get session if user is verified (for token access if needed)
-    const getSessionResponse = await supabase.auth.getSession()
-    session = getSessionResponse.data.session
+    // Create a minimal session-like object with verified user (no getSession() call)
+    session = {
+      access_token: '',
+      refresh_token: '',
+      expires_in: 0,
+      expires_at: 0,
+      token_type: 'bearer',
+      user: user
+    } as Session;
   }
   if (!session) {
     return {
