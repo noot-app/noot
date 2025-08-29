@@ -324,7 +324,6 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		// Get JWT from Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			LogWarn("No Authorization header found in production mode")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
 			c.Abort()
 			return
@@ -333,7 +332,6 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		// Extract token from "Bearer <token>" format (case-insensitive)
 		tokenParts := strings.Split(authHeader, " ")
 		if len(tokenParts) != 2 || strings.ToLower(tokenParts[0]) != "bearer" {
-			LogWarn("Invalid Authorization header format")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
 			c.Abort()
 			return
@@ -406,7 +404,6 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		}
 
 		if user == nil {
-			LogWarn("JWT validated but user not found")
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			c.Abort()
 			return
@@ -550,8 +547,6 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 			"user_id", claims.Subject, "email", claims.Email)
 		return nil, fmt.Errorf("user profile not found")
 	}
-
-	LogDebug("Found existing user", "user_id", user.ID, "email", user.Email)
 
 	// Update user email if it changed in Supabase
 	if user.Email != claims.Email {
