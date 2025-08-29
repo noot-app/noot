@@ -264,6 +264,15 @@ func getAsymmetricPublicKey(ctx context.Context, token *jwt.Token, supabaseURL s
 // - Loads secure user context for all downstream handlers
 // - Defaults to production security mode for unknown environments
 // - Skips authentication for public endpoints like health checks
+//
+// Error Responses:
+// - 401 "Authorization header required" - Missing Authorization header
+// - 401 "Invalid authorization header format" - Malformed Authorization header
+// - 401 "Invalid token" - Invalid JWT signature or malformed token
+// - 401 "Token expired" - Valid token but expired
+// - 404 "User not found" - Valid token but user doesn't exist in database
+// - 500 "Authentication configuration error" - Missing required environment variables
+// - 503 "Authentication service temporarily unavailable" - JWKS fetch failed
 func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -336,14 +345,68 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 
 		if err != nil {
 			LogWarn("JWT validation failed", "error", err.Error())
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+
+			// Provide more specific error responses based on the error type
+			errorMsg := err.Error()
+
+			// Token expired
+			if strings.Contains(errorMsg, "token expired") || strings.Contains(errorMsg, "expired") {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
+				c.Abort()
+				return
+			}
+
+			// Invalid signature or malformed token
+			if strings.Contains(errorMsg, "signature is invalid") ||
+				strings.Contains(errorMsg, "failed to parse JWT") ||
+				strings.Contains(errorMsg, "invalid JWT token") ||
+				strings.Contains(errorMsg, "'none' signing method") {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+				c.Abort()
+				return
+			}
+
+			// User not found in database (valid token but no user record)
+			if strings.Contains(errorMsg, "user profile not found") {
+				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+				c.Abort()
+				return
+			}
+
+			// Database connection/query errors
+			if strings.Contains(errorMsg, "database error") {
+				LogError("Database error during authentication", err)
+				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Authentication service temporarily unavailable"})
+				c.Abort()
+				return
+			}
+
+			// JWKS/key resolution issues (likely temporary)
+			if strings.Contains(errorMsg, "unable to resolve public key") ||
+				strings.Contains(errorMsg, "failed to fetch JWKS") {
+				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Authentication service temporarily unavailable"})
+				c.Abort()
+				return
+			}
+
+			// Configuration issues
+			if strings.Contains(errorMsg, "PUBLIC_SUPABASE_URL") ||
+				strings.Contains(errorMsg, "SUPABASE_JWT_SECRET") {
+				LogError("Authentication configuration error", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Authentication configuration error"})
+				c.Abort()
+				return
+			}
+
+			// Generic invalid token for other JWT-related errors
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
 		}
 
 		if user == nil {
 			LogWarn("JWT validated but user not found")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			c.Abort()
 			return
 		}
@@ -601,7 +664,12 @@ func RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user := GetAuthenticatedUser(c)
 		if user == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			// More specific error if no Authorization header was provided
+			if c.GetHeader("Authorization") == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+			} else {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			}
 			c.Abort()
 			return
 		}
