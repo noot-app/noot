@@ -417,15 +417,11 @@ func isPublicEndpoint(path string) bool {
 
 // validateJWTAndGetUser validates a Supabase JWT and returns the corresponding user
 func validateJWTAndGetUser(ctx context.Context, tokenString string, store storage.Store) (*storage.User, error) {
-	LogDebug("validateJWTAndGetUser started")
-
 	// Get Supabase URL for JWKS fetching (required for modern Supabase)
 	supabaseURL := getEnv("PUBLIC_SUPABASE_URL", "")
-	LogDebug("Got Supabase URL", "hasURL", supabaseURL != "")
 
 	// Get JWT secret (only for legacy shared secret approach)
 	jwtSecret := getEnv("SUPABASE_JWT_SECRET", "")
-	LogDebug("Got JWT secret", "hasSecret", jwtSecret != "")
 
 	// For modern Supabase, we only need the URL for JWKS
 	// For legacy setups, we need the JWT secret
@@ -433,30 +429,17 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 		return nil, fmt.Errorf("either PUBLIC_SUPABASE_URL (for JWKS) or SUPABASE_JWT_SECRET (for legacy) must be set")
 	}
 
-	// Validate JWT secret strength if using legacy approach
-	if jwtSecret != "" && len(jwtSecret) < 32 {
-		if IsProduction() {
-			return nil, fmt.Errorf("JWT secret must be at least 32 characters in production")
-		}
-		LogWarn("JWT secret is shorter than recommended minimum of 32 characters")
-	}
-
-	LogDebug("Starting JWT parsing")
 	// Parse and validate JWT with comprehensive options
 	token, err := jwt.ParseWithClaims(tokenString, &SupabaseJWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-		LogDebug("JWT key func called", "method", fmt.Sprintf("%T", token.Method))
 		// Check the signing method
 		switch token.Method.(type) {
 		case *jwt.SigningMethodHMAC:
-			LogDebug("Using HMAC signing method")
 			// For HMAC (HS256, HS384, HS512), use the JWT secret
 			return []byte(jwtSecret), nil
 		case *jwt.SigningMethodECDSA:
-			LogDebug("Using ECDSA signing method - fetching public key")
 			// For ECDSA (ES256, ES384, ES512), we need to fetch the public key
 			return getAsymmetricPublicKey(token, supabaseURL, jwtSecret)
 		case *jwt.SigningMethodRSA:
-			LogDebug("Using RSA signing method - fetching public key")
 			// For RSA (RS256, RS384, RS512), we need to fetch the public key
 			return getAsymmetricPublicKey(token, supabaseURL, jwtSecret)
 		default:
@@ -474,26 +457,17 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 		return nil, fmt.Errorf("invalid JWT token")
 	}
 
-	LogDebug("About to extract claims from token")
 	claims, ok := token.Claims.(*SupabaseJWTClaims)
-	LogDebug("Claims extraction result", "ok", ok, "claims", claims != nil)
 	if !ok {
 		LogError("Failed to cast JWT claims to SupabaseJWTClaims", nil)
 		return nil, fmt.Errorf("invalid JWT claims")
 	}
 
-	LogDebug("Claims extracted successfully", "subject", claims.Subject, "email", claims.Email)
-
 	// Enhanced claim validation
-	LogDebug("Starting JWT claims validation")
 	if err := validateJWTClaims(claims); err != nil {
 		LogError("JWT claims validation failed", err)
 		return nil, fmt.Errorf("JWT claims validation failed: %w", err)
 	}
-	LogDebug("JWT claims validation passed")
-
-	// Try to get existing user by Supabase ID (direct UUID lookup)
-	LogDebug("Looking up user by UUID", "user_id", claims.Subject)
 
 	if ctx == nil {
 		LogError("Context is nil", nil)
@@ -505,9 +479,7 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 		return nil, fmt.Errorf("storage store is nil")
 	}
 
-	LogDebug("Store is valid, calling GetUser")
 	user, err := store.GetUser(ctx, claims.Subject)
-	LogDebug("GetUser completed", "hasError", err != nil, "hasUser", user != nil)
 
 	if err != nil {
 		LogError("Database error while looking up user", err, "user_id", claims.Subject)

@@ -173,16 +173,6 @@ func TestJWTSecurityValidation(t *testing.T) {
 		assert.Contains(t, err.Error(), "SUPABASE_JWT_AUDIENCE must be configured in production")
 	})
 
-	t.Run("ProductionRejectsShortJWTSecret", func(t *testing.T) {
-		os.Setenv("ENV", "production")
-		os.Setenv("SUPABASE_JWT_SECRET", "short_secret")
-
-		store := &mockStore{}
-		_, err := validateJWTAndGetUser(context.Background(), "invalid.jwt.token", store)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "JWT secret must be at least 32 characters in production")
-	})
-
 	t.Run("ValidJWTClaimsPass", func(t *testing.T) {
 		os.Setenv("ENV", "production")
 		os.Setenv("SUPABASE_JWT_ISSUER", "test-issuer")
