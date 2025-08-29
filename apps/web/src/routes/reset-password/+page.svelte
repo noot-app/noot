@@ -22,7 +22,7 @@
       const result = await resetPassword(email);
       
       if (result.error) {
-        error = result.error.message;
+        error = result.error;
       } else {
         success = true;
       }

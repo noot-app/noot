@@ -65,7 +65,7 @@
       });
       
       if (result.error) {
-        error = result.error.message;
+        error = result.error;
       } else {
         success = true;
         // Note: With Supabase, user may need to verify email before login

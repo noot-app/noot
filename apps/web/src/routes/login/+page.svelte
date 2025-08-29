@@ -42,8 +42,8 @@
       const result = await signIn(email, password);
       
       if (result.error) {
-        // Get the error message, handling both string and Error object types
-        const errorMessage = typeof result.error === 'string' ? result.error : result.error.message;
+        // Get the error message - now always a string
+        const errorMessage = result.error;
 
         // log the error
         console.warn('❌ Login failure:', errorMessage);

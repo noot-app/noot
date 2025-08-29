@@ -187,7 +187,7 @@ describe('Auth Store', () => {
       const result = await signIn('test@example.com', 'wrong-password');
       
       expect(result.user).toBe(null);
-      expect(result.error).toEqual(new Error(mockError));
+      expect(result.error).toBe(mockError);
     });
 
     it('should handle missing auth provider', async () => {
@@ -197,7 +197,7 @@ describe('Auth Store', () => {
       const result = await signIn('test@example.com', 'password');
       
       expect(result.user).toBe(null);
-      expect(result.error).toEqual(new Error('No auth provider available'));
+      expect(result.error).toBe('No auth provider available');
     });
 
   });

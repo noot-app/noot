@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store';
-import type { AuthProvider, User } from './provider';
+import type { AuthProvider, User, AuthResult, ErrorResult } from './provider';
 import { SupabaseAuthProvider } from './supabase-auth';
 import { isSupabaseEnabled } from '$lib/supabase';
 import { authLogger } from '$lib/utils/logger';
@@ -122,15 +122,15 @@ export async function initAuth(skipIfInitialized: boolean = true): Promise<void>
 }
 
 /**
- * Sign in with email and password (Supabase only)
+ * Sign in with email and password
  */
-export async function signIn(email: string, password: string): Promise<{ user: User | null; error: Error | null }> {
+export async function signIn(email: string, password: string): Promise<AuthResult> {
 	authLogger.debug('signIn called for email:', email);
 
 	const authProvider = getAuthProvider();
 	if (!authProvider) {
 		authLogger.warn('No auth provider available');
-		return { user: null, error: new Error('No auth provider available') };
+		return { user: null, error: 'No auth provider available' };
 	}
 
 	if ('signIn' in authProvider && typeof authProvider.signIn === 'function') {
@@ -141,21 +141,21 @@ export async function signIn(email: string, password: string): Promise<{ user: U
 			return { user: result.user, error: null };
 		} else {
 			authLogger.debug('Sign in failed:', result.error);
-			return { user: null, error: result.error ? new Error(result.error) : new Error('Sign in failed') };
+			return { user: null, error: result.error || 'Sign in failed' };
 		}
 	} else {
 		authLogger.warn('signIn method not available on auth provider');
-		return { user: null, error: new Error('Sign in method not available') };
+		return { user: null, error: 'Sign in method not available' };
 	}
 }
 
 /**
- * Sign up with email and password (Supabase only)
+ * Sign up with email and password
  */
-export async function signUp(email: string, password: string, metadata?: { fullName?: string; handle?: string }): Promise<{ user: User | null; error: Error | null }> {
+export async function signUp(email: string, password: string, metadata?: { fullName?: string; handle?: string }): Promise<AuthResult> {
 	const authProvider = getAuthProvider();
 	if (!authProvider) {
-		return { user: null, error: new Error('No auth provider available') };
+		return { user: null, error: 'No auth provider available' };
 	}
 
 	// Check if the provider supports sign up (Supabase auth)
@@ -167,22 +167,22 @@ export async function signUp(email: string, password: string, metadata?: { fullN
 		
 		return {
 			user: result.user,
-			error: result.error ? new Error(result.error) : null
+			error: result.error
 		};
 	}
 
-	return { user: null, error: new Error('Sign up not supported by current auth provider') };
+	return { user: null, error: 'Sign up not supported by current auth provider' };
 }
 
 /**
- * Sign out (Supabase only)
+ * Sign out
  */
-export async function signOut(): Promise<{ error: Error | null }> {
+export async function signOut(): Promise<ErrorResult> {
 	authLogger.debug('Attempting sign out');
 	
 	const authProvider = getAuthProvider();
 	if (!authProvider) {
-		return { error: new Error('No auth provider available') };
+		return { error: 'No auth provider available' };
 	}
 
 	// Check if the provider supports sign out (Supabase auth)
@@ -195,31 +195,31 @@ export async function signOut(): Promise<{ error: Error | null }> {
 			authLogger.debug('Sign out failed:', result.error);
 		}
 		return {
-			error: result.error ? new Error(result.error) : null
+			error: result.error
 		};
 	}
 
-	return { error: new Error('Sign out not supported by current auth provider') };
+	return { error: 'Sign out not supported by current auth provider' };
 }
 
 /**
- * Reset password (Supabase only)
+ * Reset password
  */
-export async function resetPassword(email: string): Promise<{ error: Error | null }> {
+export async function resetPassword(email: string): Promise<ErrorResult> {
 	const authProvider = getAuthProvider();
 	if (!authProvider) {
-		return { error: new Error('No auth provider available') };
+		return { error: 'No auth provider available' };
 	}
 
 	// Check if the provider supports password reset (Supabase auth)
 	if ('resetPassword' in authProvider && typeof authProvider.resetPassword === 'function') {
 		const result = await authProvider.resetPassword(email);
 		return {
-			error: result.error ? new Error(result.error) : null
+			error: result.error
 		};
 	}
 
-	return { error: new Error('Password reset not supported by current auth provider') };
+	return { error: 'Password reset not supported by current auth provider' };
 }
 
 /**

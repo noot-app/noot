@@ -1,4 +1,4 @@
-import type { AuthProvider, User } from './provider';
+import type { AuthProvider, User, AuthResult, ErrorResult, UserMetadata } from './provider';
 import { supabase, isSupabaseEnabled } from '$lib/supabase';
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { authLogger } from '$lib/utils/logger';
@@ -82,7 +82,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 	/**
 	 * Sign in with email and password
 	 */
-	async signIn(email: string, password: string): Promise<{ user: User | null; error: string | null }> {
+	async signIn(email: string, password: string): Promise<AuthResult> {
 		if (!supabase) {
 			authLogger.error('Supabase client not available in signIn');
 			return { user: null, error: 'Supabase not configured' };
@@ -133,7 +133,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 	/**
 	 * Sign up with email and password
 	 */
-	async signUp(email: string, password: string, metadata?: { fullName?: string; handle?: string }): Promise<{ user: User | null; error: string | null }> {
+	async signUp(email: string, password: string, metadata?: UserMetadata): Promise<AuthResult> {
 		if (!supabase) return { user: null, error: JSON.stringify({ code: 'no_supabase', message: 'Supabase not configured' }) };
 
 		try {
@@ -180,7 +180,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 	/**
 	 * Sign out
 	 */
-	async signOut(): Promise<{ error: string | null }> {
+	async signOut(): Promise<ErrorResult> {
 		if (!supabase) return { error: JSON.stringify({ code: 'no_supabase', message: 'Supabase not configured' }) };
 
 		try {
@@ -205,7 +205,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 	/**
 	 * Reset password
 	 */
-	async resetPassword(email: string): Promise<{ error: string | null }> {
+	async resetPassword(email: string): Promise<ErrorResult> {
 		if (!supabase) return { error: JSON.stringify({ code: 'no_supabase', message: 'Supabase not configured' }) };
 
 		try {
@@ -414,7 +414,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 				const refreshResult = await withRateLimit(
 					tokenRefreshLimiter,
 					'token_refresh',
-					() => supabase.auth.refreshSession()
+					() => supabase!.auth.refreshSession() // Use non-null assertion since we checked above
 				);
 				
 				if (refreshResult.error || !refreshResult.data.session) {
