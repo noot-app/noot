@@ -11,7 +11,7 @@ echo "🧬 Generating nutrient definitions..."
 # Build the generator
 cd "$REPO_ROOT"
 echo "📦 Building nutrient generator..."
-go build -o /tmp/nutrient-generator ./internal/nutrients/generator.go
+go build -o /tmp/nutrient-generator ./cmd/nutrient-generator
 
 # Run the generator
 echo "⚡ Running code generation..."

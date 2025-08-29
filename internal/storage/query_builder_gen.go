@@ -55,6 +55,7 @@ func GetNutrientFields() []NutrientField {
 		{"alcohol_g_per_100g", "AlcoholPer100g"},
 		{"caffeine_mg_per_100g", "CaffeinePer100g"},
 		{"creatine_mg_per_100g", "CreatinePer100g"},
+		{"taurine_mg_per_100g", "TaurinePer100g"},
 	}
 
 	originalFields := []NutrientField{
@@ -107,6 +108,7 @@ func GetNutrientFields() []NutrientField {
 		{"original_alcohol_g", "OriginalAlcohol"},
 		{"original_caffeine_mg", "OriginalCaffeine"},
 		{"original_creatine_mg", "OriginalCreatine"},
+		{"original_taurine_mg", "OriginalTaurine"},
 	}
 
 	// Combine both sets

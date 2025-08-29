@@ -52,4 +52,5 @@ type CompleteNutrient struct {
 	Alcohol float64 `json:"alcohol_g"` // Alcohol (g)
 	Caffeine float64 `json:"caffeine_mg"` // Caffeine (mg)
 	Creatine float64 `json:"creatine_mg"` // Creatine (mg)
+	Taurine float64 `json:"taurine_mg"` // Taurine (mg)
 }
