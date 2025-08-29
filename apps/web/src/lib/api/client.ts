@@ -16,8 +16,9 @@ async function getAccessToken(): Promise<string | null> {
   
   try {
     // Dynamic import to avoid SSR issues
-    const { authProvider } = await import('$lib/auth/store');
+    const { getAuthProvider } = await import('$lib/auth/store');
     
+    const authProvider = getAuthProvider();
     if (authProvider && 'getAccessToken' in authProvider && typeof authProvider.getAccessToken === 'function') {
       return await authProvider.getAccessToken();
     }
