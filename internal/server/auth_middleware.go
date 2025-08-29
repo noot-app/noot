@@ -11,6 +11,7 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -204,8 +205,6 @@ func getPublicKeyFromJWKS(jwks *JWKS, kid string) (interface{}, error) {
 
 // getAsymmetricPublicKey handles fetching public keys for asymmetric JWT verification
 func getAsymmetricPublicKey(token *jwt.Token, supabaseURL, jwtSecret string) (interface{}, error) {
-	LogDebug("getAsymmetricPublicKey started", "hasSupabaseURL", supabaseURL != "")
-
 	// First, try to get the kid from the token header
 	kidInterface, ok := token.Header["kid"]
 	if !ok {
@@ -219,19 +218,14 @@ func getAsymmetricPublicKey(token *jwt.Token, supabaseURL, jwtSecret string) (in
 		return nil, fmt.Errorf("invalid kid in token header")
 	}
 
-	LogDebug("Found kid in token", "kid", kid)
-
 	// For Supabase, try to fetch JWKS
 	if supabaseURL != "" {
-		LogDebug("Fetching JWKS from Supabase URL")
 		jwks, err := fetchJWKS(supabaseURL)
 		if err != nil {
 			LogWarn("Failed to fetch JWKS, falling back to secret: " + err.Error())
 			// Fall back to trying the secret as a key (this usually won't work for asymmetric)
 			return []byte(jwtSecret), nil
 		}
-
-		LogDebug("JWKS fetched successfully", "keyCount", len(jwks.Keys))
 
 		publicKey, err := getPublicKeyFromJWKS(jwks, kid)
 		if err != nil {
@@ -240,11 +234,10 @@ func getAsymmetricPublicKey(token *jwt.Token, supabaseURL, jwtSecret string) (in
 			return []byte(jwtSecret), nil
 		}
 
-		LogDebug("Public key extracted from JWKS successfully")
 		return publicKey, nil
 	}
 
-	LogDebug("No Supabase URL - falling back to secret")
+	LogWarn("No Supabase URL - falling back to jwtSecret")
 	// If no Supabase URL, fall back to secret
 	return []byte(jwtSecret), nil
 }
@@ -305,7 +298,6 @@ func recordUserCreationAttempt(email string) {
 // - Skips authentication for public endpoints like health checks
 func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		LogDebug("JWT auth middleware started")
 
 		// Skip authentication for public endpoints
 		if isPublicEndpoint(c.Request.URL.Path) {
@@ -317,8 +309,6 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		// Production environment validation with multiple safeguards
 		env := strings.ToLower(getEnv("ENV", "production"))
 		isProduction := env == "production"
-
-		LogDebug("JWT middleware environment check", "env", env, "isProduction", isProduction)
 
 		// Additional production validation checks
 		if !isProduction {
@@ -347,12 +337,8 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 			return
 		}
 
-		LogDebug("Production mode detected - enforcing JWT auth")
-
 		// Get JWT from Authorization header
 		authHeader := c.GetHeader("Authorization")
-		LogDebug("Authorization header check", "hasHeader", authHeader != "")
-
 		if authHeader == "" {
 			LogWarn("No Authorization header found in production mode")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
@@ -370,12 +356,9 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		}
 
 		tokenString := tokenParts[1]
-		LogDebug("JWT token extracted", "tokenLength", len(tokenString), "tokenPrefix", tokenString[:min(20, len(tokenString))]+"...")
 
 		// Validate JWT
-		LogDebug("Starting JWT validation")
 		user, err := validateJWTAndGetUser(c.Request.Context(), tokenString, store)
-		LogDebug("JWT validation completed", "hasError", err != nil, "hasUser", user != nil)
 
 		if err != nil {
 			LogWarn("JWT validation failed", "error", err.Error())
@@ -393,8 +376,6 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 
 		// Set the authenticated user in context for handlers to use
 		c.Set("auth_user", user)
-		LogDebug("JWT auth successful", "user_id", user.ID, "email", user.Email)
-
 		c.Next()
 	}
 }
@@ -407,12 +388,7 @@ func isPublicEndpoint(path string) bool {
 		"/api/v1/openapi.yaml",
 	}
 
-	for _, endpoint := range publicEndpoints {
-		if path == endpoint {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(publicEndpoints, path)
 }
 
 // validateJWTAndGetUser validates a Supabase JWT and returns the corresponding user
@@ -446,8 +422,6 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 	})
-
-	LogDebug("JWT parsing completed", "hasError", err != nil, "isValid", token != nil && token.Valid)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse JWT: %w", err)
@@ -539,42 +513,34 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 
 // validateJWTClaims performs comprehensive validation of JWT claims
 func validateJWTClaims(claims *SupabaseJWTClaims) error {
-	LogDebug("validateJWTClaims started", "claims", claims != nil)
-
 	if claims == nil {
 		LogError("Claims is nil", nil)
 		return fmt.Errorf("claims cannot be nil")
 	}
 
 	now := time.Now()
-	LogDebug("Validating claims", "subject", claims.Subject, "email", claims.Email)
 
 	// Validate expiration time
-	LogDebug("Checking expiration time", "expiresAt", claims.ExpiresAt != nil)
 	if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(now) {
 		return fmt.Errorf("token expired")
 	}
 
 	// Validate not before time
-	LogDebug("Checking not before time", "notBefore", claims.NotBefore != nil)
 	if claims.NotBefore != nil && claims.NotBefore.Time.After(now) {
 		return fmt.Errorf("token not valid yet")
 	}
 
 	// Validate issued at time (not too far in the future)
-	LogDebug("Checking issued at time", "issuedAt", claims.IssuedAt != nil)
 	if claims.IssuedAt != nil && claims.IssuedAt.Time.After(now.Add(5*time.Minute)) {
 		return fmt.Errorf("token issued too far in the future")
 	}
 
 	// Validate subject exists
-	LogDebug("Checking subject", "subject", claims.Subject)
 	if claims.Subject == "" {
 		return fmt.Errorf("subject claim is required")
 	}
 
 	// Validate email exists and is reasonable
-	LogDebug("Checking email", "email", claims.Email)
 	if claims.Email == "" {
 		return fmt.Errorf("email claim is required")
 	}
