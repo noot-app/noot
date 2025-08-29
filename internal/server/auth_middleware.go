@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"slices"
@@ -67,10 +66,16 @@ func fetchJWKS(supabaseURL string) (*JWKS, error) {
 	}
 	jwksCacheMutex.RUnlock()
 
-	// Supabase JWKS endpoint is at /auth/v1/.well-known/jwks.json
 	jwksURL := strings.TrimSuffix(supabaseURL, "/") + "/auth/v1/.well-known/jwks.json"
 
-	resp, err := http.Get(jwksURL)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "GET", jwksURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create JWKS request: %w", err)
+	}
+
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
 	}
@@ -80,13 +85,8 @@ func fetchJWKS(supabaseURL string) (*JWKS, error) {
 		return nil, fmt.Errorf("JWKS endpoint returned status %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read JWKS response: %w", err)
-	}
-
 	var jwks JWKS
-	if err := json.Unmarshal(body, &jwks); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
 		return nil, fmt.Errorf("failed to parse JWKS: %w", err)
 	}
 
@@ -137,9 +137,14 @@ func fetchJWKSNoCache(supabaseURL string) (*JWKS, error) {
 }
 
 // getPublicKeyFromJWKS extracts the public key for the given kid
-func getPublicKeyFromJWKS(jwks *JWKS, kid string) (interface{}, error) {
+func getPublicKeyFromJWKS(jwks *JWKS, kid string, tokenAlg string) (interface{}, error) {
 	for _, key := range jwks.Keys {
 		if key.Kid == kid {
+			// Ensure JWK algorithm matches token algorithm for defense in depth
+			if key.Alg != "" && key.Alg != tokenAlg {
+				continue // Skip keys with mismatched algorithms
+			}
+
 			switch key.Kty {
 			case "EC":
 				// Handle Elliptic Curve keys (ES256, ES384, ES512)
@@ -214,7 +219,7 @@ func getPublicKeyFromJWKS(jwks *JWKS, kid string) (interface{}, error) {
 }
 
 // getAsymmetricPublicKey handles fetching public keys for asymmetric JWT verification
-func getAsymmetricPublicKey(token *jwt.Token, supabaseURL, jwtSecret string) (interface{}, error) {
+func getAsymmetricPublicKey(token *jwt.Token, supabaseURL string) (interface{}, error) {
 	kidVal, ok := token.Header["kid"].(string)
 	if !ok || kidVal == "" {
 		return nil, fmt.Errorf("missing or invalid kid in token header")
@@ -225,17 +230,23 @@ func getAsymmetricPublicKey(token *jwt.Token, supabaseURL, jwtSecret string) (in
 		return nil, fmt.Errorf("PUBLIC_SUPABASE_URL required for asymmetric verification")
 	}
 
+	// Get the token algorithm for matching
+	tokenAlg, ok := token.Header["alg"].(string)
+	if !ok {
+		tokenAlg = "" // Allow empty alg for fallback
+	}
+
 	// Try cached JWKS first
 	jwks, err := fetchJWKS(supabaseURL)
 	if err == nil {
-		if publicKey, err := getPublicKeyFromJWKS(jwks, kidVal); err == nil {
+		if publicKey, err := getPublicKeyFromJWKS(jwks, kidVal, tokenAlg); err == nil {
 			return publicKey, nil
 		}
 	}
 
 	// Force refresh JWKS once if kid not found or fetch failed (handles key rotation)
 	if jwks, err = fetchJWKSNoCache(supabaseURL); err == nil {
-		if publicKey, err := getPublicKeyFromJWKS(jwks, kidVal); err == nil {
+		if publicKey, err := getPublicKeyFromJWKS(jwks, kidVal, tokenAlg); err == nil {
 			return publicKey, nil
 		}
 	}
@@ -346,11 +357,20 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 func isPublicEndpoint(path string) bool {
 	publicEndpoints := []string{
 		"/api/v1/health",
-		"/api/v1/docs",
 		"/api/v1/openapi.yaml",
 	}
 
-	return slices.Contains(publicEndpoints, path)
+	// Exact match for specific endpoints
+	if slices.Contains(publicEndpoints, path) {
+		return true
+	}
+
+	// Prefix match for docs endpoints to handle subpaths
+	if strings.HasPrefix(path, "/api/v1/docs") {
+		return true
+	}
+
+	return false
 }
 
 // validateJWTAndGetUser validates a Supabase JWT and returns the corresponding user
@@ -376,15 +396,20 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 	expectedAudience := getEnv("SUPABASE_JWT_AUDIENCE", "")
 
 	// Create parser with validation options and leeway
-	var parserOptions []jwt.ParserOption
+	parserOptions := []jwt.ParserOption{
+		jwt.WithLeeway(60 * time.Second),
+		jwt.WithValidMethods([]string{
+			"HS256", "HS384", "HS512",
+			"RS256", "RS384", "RS512",
+			"ES256", "ES384", "ES512",
+		}),
+	}
 	if expectedIssuer != "" {
 		parserOptions = append(parserOptions, jwt.WithIssuer(expectedIssuer))
 	}
 	if expectedAudience != "" {
 		parserOptions = append(parserOptions, jwt.WithAudience(expectedAudience))
 	}
-	// Add leeway for clock skew tolerance
-	parserOptions = append(parserOptions, jwt.WithLeeway(60*time.Second))
 
 	parser := jwt.NewParser(parserOptions...)
 
@@ -405,10 +430,10 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 			return []byte(jwtSecret), nil
 		case *jwt.SigningMethodECDSA:
 			// For ECDSA (ES256, ES384, ES512), we need to fetch the public key
-			return getAsymmetricPublicKey(token, supabaseURL, jwtSecret)
+			return getAsymmetricPublicKey(token, supabaseURL)
 		case *jwt.SigningMethodRSA:
 			// For RSA (RS256, RS384, RS512), we need to fetch the public key
-			return getAsymmetricPublicKey(token, supabaseURL, jwtSecret)
+			return getAsymmetricPublicKey(token, supabaseURL)
 		default:
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
