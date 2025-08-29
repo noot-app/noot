@@ -69,6 +69,8 @@ if [ -d "apps/web" ]; then
         echo "Warning: Could not change to apps/web directory"
         exit 1
     fi
+
+    supabase gen types typescript --local --schema public > apps/web/src/DatabaseDefinitions.ts
     
     echo "==> Frontend API type generation completed"
 else
