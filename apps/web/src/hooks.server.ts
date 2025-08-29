@@ -30,6 +30,14 @@ const supabase: Handle = async ({ event, resolve }) => {
   ) as unknown as App.Locals['supabase'];
 
   event.locals.safeGetSession = async () => {
+    // Use getUser() for secure authentication verification
+    const { data: { user }, error } = await event.locals.supabase.auth.getUser();
+    
+    if (error || !user) {
+      return { session: null, user: null, amr: null };
+    }
+    
+    // Only get session if we have a verified user (for token access)
     const { data: { session } } = await event.locals.supabase.auth.getSession();
     return { session, user: session?.user ?? null, amr: null };
   };

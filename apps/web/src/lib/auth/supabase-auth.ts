@@ -153,7 +153,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 		if (!supabase) return () => {};
 
 		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-			if (session?.user) {
+			if (session?.user && supabase) {
 				// Verify the user is authentic using getUser() instead of trusting session directly
 				try {
 					const { data: { user }, error } = await supabase.auth.getUser();
