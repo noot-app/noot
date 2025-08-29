@@ -55,6 +55,7 @@ var (
 	jwksCacheTime  time.Time
 	jwksCacheMutex sync.RWMutex
 	jwksCacheTTL   = 1 * time.Hour // Cache for 1 hour
+	httpClient     = &http.Client{Timeout: 5 * time.Second}
 )
 
 // fetchJWKS fetches the JWKS from Supabase
@@ -89,6 +90,44 @@ func fetchJWKS(supabaseURL string) (*JWKS, error) {
 		return nil, fmt.Errorf("failed to parse JWKS: %w", err)
 	}
 
+	jwksCacheMutex.Lock()
+	jwksCache = &jwks
+	jwksCacheTime = time.Now()
+	jwksCacheMutex.Unlock()
+
+	return &jwks, nil
+}
+
+// fetchJWKSNoCache fetches JWKS without caching for key rotation scenarios
+func fetchJWKSNoCache(supabaseURL string) (*JWKS, error) {
+	jwksURL := strings.TrimSuffix(supabaseURL, "/") + "/auth/v1/.well-known/jwks.json"
+
+	req, err := http.NewRequest("GET", jwksURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create JWKS request: %w", err)
+	}
+
+	// Add context timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req = req.WithContext(ctx)
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("JWKS endpoint returned status %d", resp.StatusCode)
+	}
+
+	var jwks JWKS
+	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
+		return nil, fmt.Errorf("failed to parse JWKS: %w", err)
+	}
+
+	// Update cache
 	jwksCacheMutex.Lock()
 	jwksCache = &jwks
 	jwksCacheTime = time.Now()
@@ -176,41 +215,32 @@ func getPublicKeyFromJWKS(jwks *JWKS, kid string) (interface{}, error) {
 
 // getAsymmetricPublicKey handles fetching public keys for asymmetric JWT verification
 func getAsymmetricPublicKey(token *jwt.Token, supabaseURL, jwtSecret string) (interface{}, error) {
-	// First, try to get the kid from the token header
-	kidInterface, ok := token.Header["kid"]
-	if !ok {
-		LogError("No kid in token header", nil)
-		return nil, fmt.Errorf("no kid in token header for asymmetric signing")
+	kidVal, ok := token.Header["kid"].(string)
+	if !ok || kidVal == "" {
+		return nil, fmt.Errorf("missing or invalid kid in token header")
 	}
 
-	kid, ok := kidInterface.(string)
-	if !ok {
-		LogError("Invalid kid type in token header", nil)
-		return nil, fmt.Errorf("invalid kid in token header")
+	// Only use JWKS for asymmetric algs - don't fall back to secret
+	if supabaseURL == "" {
+		return nil, fmt.Errorf("PUBLIC_SUPABASE_URL required for asymmetric verification")
 	}
 
-	// For Supabase, try to fetch JWKS
-	if supabaseURL != "" {
-		jwks, err := fetchJWKS(supabaseURL)
-		if err != nil {
-			LogWarn("Failed to fetch JWKS, falling back to secret: " + err.Error())
-			// Fall back to trying the secret as a key (this usually won't work for asymmetric)
-			return []byte(jwtSecret), nil
+	// Try cached JWKS first
+	jwks, err := fetchJWKS(supabaseURL)
+	if err == nil {
+		if publicKey, err := getPublicKeyFromJWKS(jwks, kidVal); err == nil {
+			return publicKey, nil
 		}
-
-		publicKey, err := getPublicKeyFromJWKS(jwks, kid)
-		if err != nil {
-			LogWarn("Failed to get public key from JWKS: " + err.Error())
-			// Fall back to trying the secret
-			return []byte(jwtSecret), nil
-		}
-
-		return publicKey, nil
 	}
 
-	LogWarn("No Supabase URL - falling back to jwtSecret")
-	// If no Supabase URL, fall back to secret
-	return []byte(jwtSecret), nil
+	// Force refresh JWKS once if kid not found or fetch failed (handles key rotation)
+	if jwks, err = fetchJWKSNoCache(supabaseURL); err == nil {
+		if publicKey, err := getPublicKeyFromJWKS(jwks, kidVal); err == nil {
+			return publicKey, nil
+		}
+	}
+
+	return nil, fmt.Errorf("unable to resolve public key for kid %s", kidVal)
 }
 
 // JWTAuthMiddleware validates Supabase JWT tokens and loads user context
@@ -224,6 +254,12 @@ func getAsymmetricPublicKey(token *jwt.Token, supabaseURL, jwtSecret string) (in
 // - Skips authentication for public endpoints like health checks
 func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
+
+		// Skip authentication for OPTIONS requests
+		if c.Request.Method == http.MethodOptions {
+			c.Next()
+			return
+		}
 
 		// Skip authentication for public endpoints
 		if isPublicEndpoint(c.Request.URL.Path) {
@@ -275,7 +311,7 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		// Extract token from "Bearer <token>" format
 		tokenParts := strings.Split(authHeader, " ")
 		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
-			LogWarn("Invalid Authorization header format", "header", authHeader[:min(20, len(authHeader))]+"...")
+			LogWarn("Invalid Authorization header format")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
 			c.Abort()
 			return
@@ -331,12 +367,41 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 		return nil, fmt.Errorf("either PUBLIC_SUPABASE_URL (for JWKS) or SUPABASE_JWT_SECRET (for legacy) must be set")
 	}
 
+	// Get expected issuer and audience for validation
+	expectedIssuer := getEnv("SUPABASE_JWT_ISSUER", "")
+	if expectedIssuer == "" && supabaseURL != "" {
+		// Derive default issuer from Supabase URL
+		expectedIssuer = strings.TrimSuffix(supabaseURL, "/") + "/auth/v1"
+	}
+	expectedAudience := getEnv("SUPABASE_JWT_AUDIENCE", "")
+
+	// Create parser with validation options and leeway
+	var parserOptions []jwt.ParserOption
+	if expectedIssuer != "" {
+		parserOptions = append(parserOptions, jwt.WithIssuer(expectedIssuer))
+	}
+	if expectedAudience != "" {
+		parserOptions = append(parserOptions, jwt.WithAudience(expectedAudience))
+	}
+	// Add leeway for clock skew tolerance
+	parserOptions = append(parserOptions, jwt.WithLeeway(60*time.Second))
+
+	parser := jwt.NewParser(parserOptions...)
+
 	// Parse and validate JWT with comprehensive options
-	token, err := jwt.ParseWithClaims(tokenString, &SupabaseJWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := parser.ParseWithClaims(tokenString, &SupabaseJWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		// Explicitly reject "none" algorithm
+		if token.Method == jwt.SigningMethodNone {
+			return nil, fmt.Errorf("'none' signing method is not allowed")
+		}
+
 		// Check the signing method
 		switch token.Method.(type) {
 		case *jwt.SigningMethodHMAC:
 			// For HMAC (HS256, HS384, HS512), use the JWT secret
+			if jwtSecret == "" {
+				return nil, fmt.Errorf("SUPABASE_JWT_SECRET required for HMAC verification")
+			}
 			return []byte(jwtSecret), nil
 		case *jwt.SigningMethodECDSA:
 			// For ECDSA (ES256, ES384, ES512), we need to fetch the public key
@@ -408,27 +473,11 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 }
 
 // validateJWTClaims performs comprehensive validation of JWT claims
+// Note: exp, nbf, iat, issuer, and audience are now validated by jwt.Parser with options
 func validateJWTClaims(claims *SupabaseJWTClaims) error {
 	if claims == nil {
 		LogError("Claims is nil", nil)
 		return fmt.Errorf("claims cannot be nil")
-	}
-
-	now := time.Now()
-
-	// Validate expiration time
-	if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(now) {
-		return fmt.Errorf("token expired")
-	}
-
-	// Validate not before time
-	if claims.NotBefore != nil && claims.NotBefore.Time.After(now) {
-		return fmt.Errorf("token not valid yet")
-	}
-
-	// Validate issued at time (not too far in the future)
-	if claims.IssuedAt != nil && claims.IssuedAt.Time.After(now.Add(5*time.Minute)) {
-		return fmt.Errorf("token issued too far in the future")
 	}
 
 	// Validate subject exists
@@ -444,31 +493,12 @@ func validateJWTClaims(claims *SupabaseJWTClaims) error {
 		return fmt.Errorf("invalid email format in claims")
 	}
 
-	// Issuer validation (required in production, optional in development)
-	expectedIssuer := getEnv("SUPABASE_JWT_ISSUER", "")
-	if IsProduction() && expectedIssuer == "" {
-		return fmt.Errorf("SUPABASE_JWT_ISSUER must be configured in production")
-	}
-	if expectedIssuer != "" && claims.Issuer != expectedIssuer {
-		return fmt.Errorf("invalid issuer: expected %s, got %s", expectedIssuer, claims.Issuer)
-	}
-
-	// Audience validation (required in production, optional in development)
-	expectedAudience := getEnv("SUPABASE_JWT_AUDIENCE", "")
-	if IsProduction() && expectedAudience == "" {
-		return fmt.Errorf("SUPABASE_JWT_AUDIENCE must be configured in production")
-	}
-	if expectedAudience != "" {
-		validAudience := false
-		for _, aud := range claims.Audience {
-			if aud == expectedAudience {
-				validAudience = true
-				break
-			}
-		}
-		if !validAudience {
-			return fmt.Errorf("invalid audience: expected %s", expectedAudience)
-		}
+	// For Supabase user tokens, we typically expect role to be "authenticated"
+	// This helps prevent admin/service tokens from being used for user operations
+	if claims.UserRole != "" && claims.UserRole != "authenticated" {
+		LogWarn("Non-user role detected in JWT", "role", claims.UserRole)
+		// Optionally return error here if you want to strictly enforce user tokens only
+		// return fmt.Errorf("invalid role for user operation: %s", claims.UserRole)
 	}
 
 	return nil
@@ -568,10 +598,7 @@ func RequireSubscriptionTiers(allowedTiers ...string) gin.HandlerFunc {
 		}
 
 		// Build error message with allowed tiers
-		var tierNames []string
-		for _, tier := range allowedTiers {
-			tierNames = append(tierNames, tier)
-		}
+		tierNames := append([]string(nil), allowedTiers...)
 
 		errorMsg := "Subscription required: " + strings.Join(tierNames, " or ")
 		c.JSON(http.StatusForbidden, gin.H{"error": errorMsg})

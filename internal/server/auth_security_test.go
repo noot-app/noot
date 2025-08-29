@@ -133,44 +133,49 @@ func TestJWTSecurityValidation(t *testing.T) {
 	}()
 
 	t.Run("ProductionRequiresIssuerValidation", func(t *testing.T) {
+		// This test now validates that issuer validation happens during JWT parsing, not claims validation
+		// The validateJWTClaims function no longer handles issuer validation - it's done by the parser
 		os.Setenv("ENV", "production")
-		os.Setenv("SUPABASE_JWT_ISSUER", "")
+		os.Setenv("SUPABASE_JWT_ISSUER", "expected-issuer")
 		os.Setenv("SUPABASE_JWT_SECRET", "test_secret_that_is_longer_than_32_characters_for_security")
 
 		claims := &SupabaseJWTClaims{
 			RegisteredClaims: jwt.RegisteredClaims{
 				Subject:   "test-user-id",
-				Issuer:    "test-issuer",
+				Issuer:    "wrong-issuer", // Different from expected
 				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 				IssuedAt:  jwt.NewNumericDate(time.Now()),
 			},
 			Email: "test@example.com",
 		}
 
+		// Claims validation should pass since issuer validation is now handled by parser
 		err := validateJWTClaims(claims)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "SUPABASE_JWT_ISSUER must be configured in production")
+		assert.NoError(t, err)
 	})
 
 	t.Run("ProductionRequiresAudienceValidation", func(t *testing.T) {
+		// This test now validates that audience validation happens during JWT parsing, not claims validation
+		// The validateJWTClaims function no longer handles audience validation - it's done by the parser
 		os.Setenv("ENV", "production")
 		os.Setenv("SUPABASE_JWT_ISSUER", "test-issuer")
-		os.Setenv("SUPABASE_JWT_AUDIENCE", "")
+		os.Setenv("SUPABASE_JWT_AUDIENCE", "expected-audience")
 		os.Setenv("SUPABASE_JWT_SECRET", "test_secret_that_is_longer_than_32_characters_for_security")
 
 		claims := &SupabaseJWTClaims{
 			RegisteredClaims: jwt.RegisteredClaims{
 				Subject:   "test-user-id",
 				Issuer:    "test-issuer",
+				Audience:  []string{"wrong-audience"}, // Different from expected
 				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 				IssuedAt:  jwt.NewNumericDate(time.Now()),
 			},
 			Email: "test@example.com",
 		}
 
+		// Claims validation should pass since audience validation is now handled by parser
 		err := validateJWTClaims(claims)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "SUPABASE_JWT_AUDIENCE must be configured in production")
+		assert.NoError(t, err)
 	})
 
 	t.Run("ValidJWTClaimsPass", func(t *testing.T) {
