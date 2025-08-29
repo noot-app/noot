@@ -11,6 +11,8 @@ This is a Go based repository that is a minimal web app to log meals by voice. T
 - Test: `script/test`
 - Lint: `script/lint`
 - Build: `script/build`
+- Frontend tests: `cd apps/web && npm run test_run && cd -`
+- Testing database schema: `script/db reset && script/db test`
 
 > Note: `script/build --single-target` can be used when iterating on changes rapidly as it will only build the current target which is faster than building all targets.
 
