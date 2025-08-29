@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/goccy/go-yaml"
@@ -238,7 +239,7 @@ func GetNutrientFields() []NutrientField {
 	per100gFields := []NutrientField{
 {{- range .Nutrients}}
 {{- if and .Per100g (not (eq .Key "serving_grams"))}}
-		{"{{.JSONTag}}_per_100g", "{{.GoFieldName}}Per100g"},
+		{"{{.JSONTag}}_per_100g", "{{getItemFieldName . false}}Per100g"},
 {{- end}}
 {{- end}}
 	}
@@ -246,7 +247,7 @@ func GetNutrientFields() []NutrientField {
 	originalFields := []NutrientField{
 {{- range .Nutrients}}
 {{- if .Original}}
-		{"original_{{.JSONTag}}", "Original{{.GoFieldName}}"},
+		{"original_{{.JSONTag}}", "Original{{getItemFieldName . true}}"},
 {{- end}}
 {{- end}}
 	}
@@ -256,7 +257,28 @@ func GetNutrientFields() []NutrientField {
 }
 `
 
-	t, err := template.New("queryBuilder").Parse(tmpl)
+	// Helper function to get the correct field name for Item struct
+	funcMap := template.FuncMap{
+		"getItemFieldName": func(nutrient Nutrient, isOriginal bool) string {
+			fieldName := nutrient.GoFieldName
+
+			// Add unit suffix for both original and per-100g fields (except calories)
+			switch {
+			case contains(nutrient.JSONTag, "_g") && !strings.Contains(fieldName, "G"):
+				if fieldName == "Calories" {
+					return fieldName // Calories doesn't get G suffix
+				}
+				return fieldName + "G"
+			case contains(nutrient.JSONTag, "_mg") && !strings.Contains(fieldName, "Mg"):
+				return fieldName + "Mg"
+			case contains(nutrient.JSONTag, "_mcg") && !strings.Contains(fieldName, "Mcg"):
+				return fieldName + "Mcg"
+			}
+			return fieldName
+		},
+	}
+
+	t, err := template.New("queryBuilder").Funcs(funcMap).Parse(tmpl)
 	if err != nil {
 		return err
 	}
@@ -274,4 +296,9 @@ func GetNutrientFields() []NutrientField {
 	defer f.Close()
 
 	return t.Execute(f, config)
+}
+
+// Helper function to check if a string contains a substring
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
 }
