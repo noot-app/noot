@@ -653,16 +653,7 @@ func isValidEmail(email string) bool {
 
 	// Basic character validation - no spaces, must be printable ASCII, no dangerous chars
 	for _, r := range email {
-		if r == ' ' || r < 32 || r > 126 || r == '<' || r == '>' || r == '"' || r == '\'' {
-			return false
-		}
-	}
-
-	// Additional security checks to prevent common attack patterns
-	emailLower := strings.ToLower(email)
-	dangerousPatterns := []string{"script", "javascript", "vbscript", "onload", "onerror", "drop", "select", "union", "insert", "delete", "update", "create", "alter"}
-	for _, pattern := range dangerousPatterns {
-		if strings.Contains(emailLower, pattern) {
+		if r == ' ' || r < 32 || r > 126 || r == '<' || r == '>' {
 			return false
 		}
 	}
