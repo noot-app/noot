@@ -11,7 +11,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/mail"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -387,7 +386,7 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		}
 
 		// Skip authentication for public endpoints
-		if isPublicEndpoint(c.Request.URL.Path) {
+		if IsPublicEndpoint(c.Request.URL.Path) {
 			LogDebug("Skipping JWT auth for public endpoint", "path", c.Request.URL.Path)
 			c.Next()
 			return
@@ -517,26 +516,6 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		c.Set("auth_user", user)
 		c.Next()
 	}
-}
-
-// isPublicEndpoint checks if the given path is a public endpoint that doesn't require authentication
-func isPublicEndpoint(path string) bool {
-	publicEndpoints := []string{
-		"/api/v1/health",
-		"/api/v1/openapi.yaml",
-	}
-
-	// Exact match for specific endpoints
-	if slices.Contains(publicEndpoints, path) {
-		return true
-	}
-
-	// Prefix match for docs endpoints to handle subpaths
-	if strings.HasPrefix(path, "/api/v1/docs") {
-		return true
-	}
-
-	return false
 }
 
 // validateJWTAndGetUser validates a Supabase JWT and returns the corresponding user
@@ -699,67 +678,4 @@ func validateJWTClaims(claims *SupabaseJWTClaims) error {
 func isValidEmail(email string) bool {
 	_, err := mail.ParseAddress(email)
 	return err == nil
-}
-
-// GetAuthenticatedUser extracts the authenticated user from Gin context
-func GetAuthenticatedUser(c *gin.Context) *storage.User {
-	// Check for JWT auth user
-	if user, exists := c.Get("auth_user"); exists {
-		if authUser, ok := user.(*storage.User); ok {
-			return authUser
-		}
-	}
-
-	return nil
-}
-
-// RequireAuth middleware ensures a user is authenticated
-// Can be used on individual routes that need authentication
-func RequireAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		user := GetAuthenticatedUser(c)
-		if user == nil {
-			// More specific error if no Authorization header was provided
-			if c.GetHeader("Authorization") == "" {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			} else {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-			}
-			c.Abort()
-			return
-		}
-		c.Next()
-	}
-}
-
-// RequireSubscriptionTiers middleware ensures user has one of the specified subscription tiers
-func RequireSubscriptionTiers(allowedTiers ...string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		user := GetAuthenticatedUser(c)
-		if user == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-			c.Abort()
-			return
-		}
-
-		// Check if user's tier is in the allowed list
-		for _, tier := range allowedTiers {
-			if user.SubscriptionTier == tier {
-				c.Next()
-				return
-			}
-		}
-
-		// Build error message with allowed tiers
-		tierNames := append([]string(nil), allowedTiers...)
-
-		errorMsg := "Subscription required: " + strings.Join(tierNames, " or ")
-		c.JSON(http.StatusForbidden, gin.H{"error": errorMsg})
-		c.Abort()
-	}
-}
-
-// RequireProSubscription middleware ensures user has pro subscription (backward compatibility)
-func RequireProSubscription() gin.HandlerFunc {
-	return RequireSubscriptionTiers(storage.SubscriptionTierPro)
 }
