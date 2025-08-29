@@ -622,6 +622,10 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 	if item.CreatedAt.IsZero() {
 		item.CreatedAt = time.Now().UTC()
 	}
+	if item.UpdatedAt == nil {
+		now := item.CreatedAt
+		item.UpdatedAt = &now
+	}
 
 	query := `
 		INSERT INTO consumption_items (
@@ -635,12 +639,12 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 			copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg, 
 			chromium_mcg, fluoride_mg, chloride_mg, omega3_ala_g, omega3_epa_g, 
 			omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, alcohol_g, 
-			polyunsaturated_fat_g, monounsaturated_fat_g, created_at
+			polyunsaturated_fat_g, monounsaturated_fat_g, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 
 			$18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, 
 			$33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, 
-			$48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58
+			$48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60
 		)`
 
 	_, err := s.db.ExecContext(ctx, query,
@@ -655,7 +659,7 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 		item.CopperMg, item.ManganeseMg, item.SeleniumMcg, item.IodineMcg, item.MolybdenumMcg,
 		item.ChromiumMcg, item.FluorideMg, item.ChlorideMg, item.Omega3AlaG, item.Omega3EpaG,
 		item.Omega3DhaG, item.Omega6G, item.CreatineMg, item.CaffeineMg, item.AlcoholG,
-		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, item.CreatedAt)
+		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, item.CreatedAt, item.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create consumption item: %w", err)
 	}
