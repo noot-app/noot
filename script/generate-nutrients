@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+# Generate nutrition-related code from nutrients.yml
+
+echo "🧬 Generating nutrient definitions..."
+
+# Run the generator directly
+cd "$DIR"
+echo "⚡ Running code generation..."
+go run ./cmd/nutrient-generator "$DIR/config/nutrients.yml" "$DIR"
+
+echo "✅ Nutrient code generation complete!"

@@ -78,6 +78,8 @@ if [ -d "apps/web" ]; then
     else
         echo "Skipping Supabase type generation in CI environment"
     fi
+
+    script/generate-nutrients
     
     echo "==> Frontend API type generation completed"
 else

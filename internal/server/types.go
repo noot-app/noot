@@ -16,62 +16,6 @@ type Item struct {
 	Nutrients    *CompleteNutrient `json:"nutrients,omitempty"`
 }
 
-type CompleteNutrient struct {
-	// Basic macronutrients (per serving)
-	Calories     float64 `json:"calories"`
-	Protein      float64 `json:"protein_g"`
-	TotalFat     float64 `json:"total_fat_g"`
-	SaturatedFat float64 `json:"saturated_fat_g"`
-	TransFat     float64 `json:"trans_fat_g"`
-	Cholesterol  float64 `json:"cholesterol_mg"`
-	Sodium       float64 `json:"sodium_mg"`
-	TotalCarbs   float64 `json:"total_carbs_g"`
-	DietaryFiber float64 `json:"dietary_fiber_g"`
-	TotalSugars  float64 `json:"total_sugars_g"`
-	AddedSugars  float64 `json:"added_sugars_g"`
-
-	// Key vitamins
-	VitaminA        float64 `json:"vitamin_a_mcg"`
-	VitaminC        float64 `json:"vitamin_c_mg"`
-	VitaminD        float64 `json:"vitamin_d_mcg"`
-	VitaminE        float64 `json:"vitamin_e_mg"`
-	VitaminK        float64 `json:"vitamin_k_mcg"`
-	Thiamine        float64 `json:"thiamine_mg"`   // B1
-	Riboflavin      float64 `json:"riboflavin_mg"` // B2
-	Niacin          float64 `json:"niacin_mg"`     // B3
-	VitaminB6       float64 `json:"vitamin_b6_mg"`
-	Folate          float64 `json:"folate_mcg"`
-	VitaminB12      float64 `json:"vitamin_b12_mcg"`
-	Biotin          float64 `json:"biotin_mcg"`
-	PantothenicAcid float64 `json:"pantothenic_acid_mg"`
-	Choline         float64 `json:"choline_mg"`
-
-	// Key minerals
-	Calcium            float64 `json:"calcium_mg"`
-	Iron               float64 `json:"iron_mg"`
-	Magnesium          float64 `json:"magnesium_mg"`
-	Phosphorus         float64 `json:"phosphorus_mg"`
-	Potassium          float64 `json:"potassium_mg"`
-	Zinc               float64 `json:"zinc_mg"`
-	Copper             float64 `json:"copper_mg"`
-	Manganese          float64 `json:"manganese_mg"`
-	Selenium           float64 `json:"selenium_mcg"`
-	Iodine             float64 `json:"iodine_mcg"`
-	Molybdenum         float64 `json:"molybdenum_mcg"`
-	Chromium           float64 `json:"chromium_mcg"`
-	Fluoride           float64 `json:"fluoride_mg"`
-	Chloride           float64 `json:"chloride_mg"`
-	Omega3Ala          float64 `json:"omega3_ala_g"`
-	Omega3Epa          float64 `json:"omega3_epa_g"`
-	Omega3Dha          float64 `json:"omega3_dha_g"`
-	Omega6             float64 `json:"omega6_g"`
-	Creatine           float64 `json:"creatine_mg"`
-	Caffeine           float64 `json:"caffeine_mg"`
-	Alcohol            float64 `json:"alcohol_g"`
-	PolyunsaturatedFat float64 `json:"polyunsaturated_fat_g"`
-	MonounsaturatedFat float64 `json:"monounsaturated_fat_g"`
-}
-
 type ItemWithNutrition struct {
 	Item Item   `json:"item"`
 	Note string `json:"note,omitempty"`
