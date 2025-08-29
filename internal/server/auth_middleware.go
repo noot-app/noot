@@ -213,14 +213,13 @@ func getAsymmetricPublicKey(token *jwt.Token, supabaseURL, jwtSecret string) (in
 	return []byte(jwtSecret), nil
 }
 
-// JWTAuthMiddleware validates Supabase JWT tokens and creates/loads user context
+// JWTAuthMiddleware validates Supabase JWT tokens and loads user context
 // This middleware is used in production to authenticate API requests
 //
 // Security Features:
 // - Validates JWT signature using JWKS from Supabase
 // - Enforces token expiration and claim validation
-// - Creates secure user context for all downstream handlers
-// - Implements rate limiting for user creation attempts
+// - Loads secure user context for all downstream handlers
 // - Defaults to production security mode for unknown environments
 // - Skips authentication for public endpoints like health checks
 func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
@@ -388,39 +387,9 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 	}
 
 	if user == nil {
-		// User doesn't exist, create them
-		LogDebug("User not found, creating new user", "user_id", claims.Subject, "email", claims.Email)
-		LogInfo("Creating new user from Supabase JWT", "user_id", claims.Subject, "email", claims.Email)
-
-		// Create new user with Supabase auth.users.id directly as the ID
-		user = &storage.User{
-			ID:               claims.Subject, // Use auth.users.id directly
-			Email:            claims.Email,
-			SubscriptionTier: storage.SubscriptionTierFree, // Default to free tier
-		}
-
-		// Extract handle and full_name from user_metadata
-		if handle, ok := claims.UserData["handle"].(string); ok && handle != "" {
-			user.Handle = handle
-		} else {
-			// Handle is required - this should not happen with proper signup flow
-			LogError("User creation failed: handle is required", nil, "user_id", claims.Subject, "email", claims.Email)
-			return nil, fmt.Errorf("user handle is required but not provided in user metadata")
-		}
-
-		if fullName, ok := claims.UserData["full_name"].(string); ok && fullName != "" {
-			user.FullName = &fullName
-		}
-
-		// Save to database
-		LogDebug("About to call CreateUser", "user", user != nil)
-		if err := store.CreateUser(ctx, user); err != nil {
-			LogError("Failed to create user", err, "supabase_id", claims.Subject, "email", claims.Email)
-			return nil, fmt.Errorf("failed to create user: %w", err)
-		}
-
-		LogInfo("Successfully created new user", "user_id", user.ID, "email", user.Email)
-		return user, nil
+		LogError("User profile not found despite valid JWT - data inconsistency detected", nil,
+			"user_id", claims.Subject, "email", claims.Email)
+		return nil, fmt.Errorf("user profile not found")
 	}
 
 	LogDebug("Found existing user", "user_id", user.ID, "email", user.Email)
