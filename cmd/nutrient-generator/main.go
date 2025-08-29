@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 // Nutrient represents a single nutrient definition
