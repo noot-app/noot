@@ -582,12 +582,11 @@ func validateJWTClaims(claims *SupabaseJWTClaims) error {
 		return fmt.Errorf("invalid email format in claims")
 	}
 
-	// For Supabase user tokens, we typically expect role to be "authenticated"
-	// This helps prevent admin/service tokens from being used for user operations
+	// For Supabase user tokens, we strictly enforce role to be "authenticated"
+	// This prevents admin/service tokens from being used for user operations
 	if claims.UserRole != "" && claims.UserRole != "authenticated" {
-		LogWarn("Non-user role detected in JWT", "role", claims.UserRole)
-		// Optionally return error here if you want to strictly enforce user tokens only
-		// return fmt.Errorf("invalid role for user operation: %s", claims.UserRole)
+		LogWarn("Non-user role rejected in JWT", "role", claims.UserRole)
+		return fmt.Errorf("invalid role for user operation: %s", claims.UserRole)
 	}
 
 	return nil
