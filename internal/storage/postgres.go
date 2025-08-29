@@ -624,11 +624,38 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 	}
 
 	query := `
-		INSERT INTO consumption_items (id, consumption_id, item_id, grams, user_quantity, user_unit, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+		INSERT INTO consumption_items (
+			id, consumption_id, item_id, name, brand, grams, user_quantity, user_unit, 
+			label, note, calories, protein_g, total_fat_g, saturated_fat_g, trans_fat_g, 
+			cholesterol_mg, sodium_mg, total_carbs_g, dietary_fiber_g, total_sugars_g, 
+			added_sugars_g, vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, 
+			vitamin_k_mcg, thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, 
+			folate_mcg, vitamin_b12_mcg, biotin_mcg, pantothenic_acid_mg, choline_mg, 
+			calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg, zinc_mg, 
+			copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg, 
+			chromium_mcg, fluoride_mg, chloride_mg, omega3_ala_g, omega3_epa_g, 
+			omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, alcohol_g, 
+			polyunsaturated_fat_g, monounsaturated_fat_g, created_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 
+			$18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, 
+			$33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, 
+			$48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58
+		)`
 
-	_, err := s.db.ExecContext(ctx, query, item.ID, item.ConsumptionID, item.ItemID,
-		item.Grams, item.UserQuantity, item.UserUnit, item.CreatedAt)
+	_, err := s.db.ExecContext(ctx, query,
+		item.ID, item.ConsumptionID, item.ItemID, item.Name, item.Brand,
+		item.Grams, item.UserQuantity, item.UserUnit, item.Label, item.Note,
+		item.Calories, item.ProteinG, item.TotalFatG, item.SaturatedFatG, item.TransFatG,
+		item.CholesterolMg, item.SodiumMg, item.TotalCarbsG, item.DietaryFiberG, item.TotalSugarsG,
+		item.AddedSugarsG, item.VitaminAMcg, item.VitaminCMg, item.VitaminDMcg, item.VitaminEMg,
+		item.VitaminKMcg, item.ThiamineMg, item.RiboflavinMg, item.NiacinMg, item.VitaminB6Mg,
+		item.FolateMcg, item.VitaminB12Mcg, item.BiotinMcg, item.PantothenicAcidMg, item.CholineMg,
+		item.CalciumMg, item.IronMg, item.MagnesiumMg, item.PhosphorusMg, item.PotassiumMg, item.ZincMg,
+		item.CopperMg, item.ManganeseMg, item.SeleniumMcg, item.IodineMcg, item.MolybdenumMcg,
+		item.ChromiumMcg, item.FluorideMg, item.ChlorideMg, item.Omega3AlaG, item.Omega3EpaG,
+		item.Omega3DhaG, item.Omega6G, item.CreatineMg, item.CaffeineMg, item.AlcoholG,
+		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, item.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create consumption item: %w", err)
 	}
@@ -639,7 +666,17 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 // GetConsumptionItems retrieves all items for a consumption
 func (s *PostgreSQLStore) GetConsumptionItems(ctx context.Context, consumptionID string) ([]*ConsumptionItem, error) {
 	query := `
-		SELECT id, consumption_id, item_id, grams, user_quantity, user_unit, created_at
+		SELECT id, consumption_id, item_id, name, brand, grams, user_quantity, user_unit, 
+			label, note, calories, protein_g, total_fat_g, saturated_fat_g, trans_fat_g, 
+			cholesterol_mg, sodium_mg, total_carbs_g, dietary_fiber_g, total_sugars_g, 
+			added_sugars_g, vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, 
+			vitamin_k_mcg, thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, 
+			folate_mcg, vitamin_b12_mcg, biotin_mcg, pantothenic_acid_mg, choline_mg, 
+			calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg, zinc_mg, 
+			copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg, 
+			chromium_mcg, fluoride_mg, chloride_mg, omega3_ala_g, omega3_epa_g, 
+			omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, alcohol_g, 
+			polyunsaturated_fat_g, monounsaturated_fat_g, created_at, updated_at
 		FROM consumption_items 
 		WHERE consumption_id = $1 
 		ORDER BY created_at ASC`
@@ -653,8 +690,18 @@ func (s *PostgreSQLStore) GetConsumptionItems(ctx context.Context, consumptionID
 	var items []*ConsumptionItem
 	for rows.Next() {
 		item := &ConsumptionItem{}
-		err := rows.Scan(&item.ID, &item.ConsumptionID, &item.ItemID, &item.Grams,
-			&item.UserQuantity, &item.UserUnit, &item.CreatedAt)
+		err := rows.Scan(&item.ID, &item.ConsumptionID, &item.ItemID, &item.Name, &item.Brand,
+			&item.Grams, &item.UserQuantity, &item.UserUnit, &item.Label, &item.Note,
+			&item.Calories, &item.ProteinG, &item.TotalFatG, &item.SaturatedFatG, &item.TransFatG,
+			&item.CholesterolMg, &item.SodiumMg, &item.TotalCarbsG, &item.DietaryFiberG, &item.TotalSugarsG,
+			&item.AddedSugarsG, &item.VitaminAMcg, &item.VitaminCMg, &item.VitaminDMcg, &item.VitaminEMg,
+			&item.VitaminKMcg, &item.ThiamineMg, &item.RiboflavinMg, &item.NiacinMg, &item.VitaminB6Mg,
+			&item.FolateMcg, &item.VitaminB12Mcg, &item.BiotinMcg, &item.PantothenicAcidMg, &item.CholineMg,
+			&item.CalciumMg, &item.IronMg, &item.MagnesiumMg, &item.PhosphorusMg, &item.PotassiumMg, &item.ZincMg,
+			&item.CopperMg, &item.ManganeseMg, &item.SeleniumMcg, &item.IodineMcg, &item.MolybdenumMcg,
+			&item.ChromiumMcg, &item.FluorideMg, &item.ChlorideMg, &item.Omega3AlaG, &item.Omega3EpaG,
+			&item.Omega3DhaG, &item.Omega6G, &item.CreatineMg, &item.CaffeineMg, &item.AlcoholG,
+			&item.PolyunsaturatedFatG, &item.MonounsaturatedFatG, &item.CreatedAt, &item.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption item: %w", err)
 		}
@@ -670,13 +717,39 @@ func (s *PostgreSQLStore) GetConsumptionItems(ctx context.Context, consumptionID
 
 // UpdateConsumptionItem updates an existing consumption item
 func (s *PostgreSQLStore) UpdateConsumptionItem(ctx context.Context, item *ConsumptionItem) error {
+	now := time.Now().UTC()
+	item.UpdatedAt = &now
+
 	query := `
 		UPDATE consumption_items SET 
-			item_id = $2, grams = $3, user_quantity = $4, user_unit = $5
+			item_id = $2, name = $3, brand = $4, grams = $5, user_quantity = $6, 
+			user_unit = $7, label = $8, note = $9, calories = $10, protein_g = $11, 
+			total_fat_g = $12, saturated_fat_g = $13, trans_fat_g = $14, cholesterol_mg = $15, 
+			sodium_mg = $16, total_carbs_g = $17, dietary_fiber_g = $18, total_sugars_g = $19, 
+			added_sugars_g = $20, vitamin_a_mcg = $21, vitamin_c_mg = $22, vitamin_d_mcg = $23, 
+			vitamin_e_mg = $24, vitamin_k_mcg = $25, thiamine_mg = $26, riboflavin_mg = $27, 
+			niacin_mg = $28, vitamin_b6_mg = $29, folate_mcg = $30, vitamin_b12_mcg = $31, 
+			biotin_mcg = $32, pantothenic_acid_mg = $33, choline_mg = $34, calcium_mg = $35, 
+			iron_mg = $36, magnesium_mg = $37, phosphorus_mg = $38, potassium_mg = $39, 
+			zinc_mg = $40, copper_mg = $41, manganese_mg = $42, selenium_mcg = $43, 
+			iodine_mcg = $44, molybdenum_mcg = $45, chromium_mcg = $46, fluoride_mg = $47, 
+			chloride_mg = $48, omega3_ala_g = $49, omega3_epa_g = $50, omega3_dha_g = $51, 
+			omega6_g = $52, creatine_mg = $53, caffeine_mg = $54, alcohol_g = $55, 
+			polyunsaturated_fat_g = $56, monounsaturated_fat_g = $57, updated_at = $58
 		WHERE id = $1`
 
-	result, err := s.db.ExecContext(ctx, query, item.ID, item.ItemID, item.Grams,
-		item.UserQuantity, item.UserUnit)
+	result, err := s.db.ExecContext(ctx, query, item.ID, item.ItemID, item.Name, item.Brand,
+		item.Grams, item.UserQuantity, item.UserUnit, item.Label, item.Note,
+		item.Calories, item.ProteinG, item.TotalFatG, item.SaturatedFatG, item.TransFatG,
+		item.CholesterolMg, item.SodiumMg, item.TotalCarbsG, item.DietaryFiberG, item.TotalSugarsG,
+		item.AddedSugarsG, item.VitaminAMcg, item.VitaminCMg, item.VitaminDMcg, item.VitaminEMg,
+		item.VitaminKMcg, item.ThiamineMg, item.RiboflavinMg, item.NiacinMg, item.VitaminB6Mg,
+		item.FolateMcg, item.VitaminB12Mcg, item.BiotinMcg, item.PantothenicAcidMg, item.CholineMg,
+		item.CalciumMg, item.IronMg, item.MagnesiumMg, item.PhosphorusMg, item.PotassiumMg, item.ZincMg,
+		item.CopperMg, item.ManganeseMg, item.SeleniumMcg, item.IodineMcg, item.MolybdenumMcg,
+		item.ChromiumMcg, item.FluorideMg, item.ChlorideMg, item.Omega3AlaG, item.Omega3EpaG,
+		item.Omega3DhaG, item.Omega6G, item.CreatineMg, item.CaffeineMg, item.AlcoholG,
+		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, item.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update consumption item: %w", err)
 	}

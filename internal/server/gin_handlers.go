@@ -175,6 +175,25 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 			} else {
 				consumptionID = consumption.ID
 				LogInfo("Consumption saved to database", "consumption_id", consumption.ID, "user_id", user.ID, "request_id", requestID)
+				
+				// Save individual consumption items for historic breakdown
+				for _, itemWithNutrition := range itemsWithNutrition {
+					// Try to find existing item in global cache for linking (optional)
+					var itemID *string
+					if s.store != nil && itemWithNutrition.Item.Brand != nil {
+						normalizedName := normalizeItemName(itemWithNutrition.Item.Name)
+						normalizedBrand := normalizeItemName(*itemWithNutrition.Item.Brand)
+						if existingItem, err := s.store.GetItemByName(ctx, normalizedName, normalizedBrand); err == nil && existingItem != nil {
+							itemID = &existingItem.ID
+						}
+					}
+					
+					consumptionItem := apiItemWithNutritionToConsumptionItem(consumption.ID, itemWithNutrition, itemID)
+					if err := s.store.CreateConsumptionItem(ctx, consumptionItem); err != nil {
+						LogError("Failed to save consumption item", err, "item_name", itemWithNutrition.Item.Name, "consumption_id", consumption.ID)
+						// Continue with other items even if one fails
+					}
+				}
 			}
 		}
 	}
@@ -248,6 +267,32 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 		appErr := NewAppError("Failed to update consumption", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
 		return
+	}
+
+	// Update consumption items - replace existing with new ones
+	// First, delete all existing consumption items
+	if err := s.store.DeleteConsumptionItemsByConsumption(ctx, updatedConsumption.ID); err != nil {
+		LogError("Failed to delete existing consumption items", err, "consumption_id", updatedConsumption.ID)
+		// Continue - this is not critical to fail the request
+	}
+
+	// Then, create new consumption items
+	for _, itemWithNutrition := range updateReq.Items {
+		// Try to find existing item in global cache for linking (optional)
+		var itemID *string
+		if s.store != nil && itemWithNutrition.Item.Brand != nil {
+			normalizedName := normalizeItemName(itemWithNutrition.Item.Name)
+			normalizedBrand := normalizeItemName(*itemWithNutrition.Item.Brand)
+			if existingItem, err := s.store.GetItemByName(ctx, normalizedName, normalizedBrand); err == nil && existingItem != nil {
+				itemID = &existingItem.ID
+			}
+		}
+		
+		consumptionItem := apiItemWithNutritionToConsumptionItem(updatedConsumption.ID, itemWithNutrition, itemID)
+		if err := s.store.CreateConsumptionItem(ctx, consumptionItem); err != nil {
+			LogError("Failed to create consumption item during update", err, "item_name", itemWithNutrition.Item.Name, "consumption_id", updatedConsumption.ID)
+			// Continue with other items even if one fails
+		}
 	}
 
 	// Convert updated consumption back to API format for response
@@ -358,10 +403,22 @@ func (s *APIServer) GetConsumptions(c *gin.Context) {
 		return
 	}
 
+	// Convert storage consumptions to API format with consumption items
+	apiConsumptions := make([]api.Consumption, len(consumptions))
+	for i, consumption := range consumptions {
+		apiConsumption, err := storageConsumptionToAPI(c.Request.Context(), s.store, consumption)
+		if err != nil {
+			LogError("Failed to convert consumption to API format", err, "consumption_id", consumption.ID)
+			// Continue with other consumptions if one fails to convert
+			continue
+		}
+		apiConsumptions[i] = *apiConsumption
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"consumptions": consumptions,
+		"consumptions": apiConsumptions,
 		"user":         user,
-		"count":        len(consumptions),
+		"count":        len(apiConsumptions),
 	})
 }
 
