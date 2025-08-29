@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+# Generate nutrition-related code from nutrients.yaml
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+echo "🧬 Generating nutrient definitions..."
+
+# Build the generator
+cd "$REPO_ROOT"
+echo "📦 Building nutrient generator..."
+go build -o /tmp/nutrient-generator ./internal/nutrients/generator.go
+
+# Run the generator
+echo "⚡ Running code generation..."
+/tmp/nutrient-generator "$REPO_ROOT/nutrients.yaml" "$REPO_ROOT"
+
+# Clean up
+rm -f /tmp/nutrient-generator
+
+echo "✅ Nutrient code generation complete!"

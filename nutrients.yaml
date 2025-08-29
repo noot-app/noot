@@ -1,0 +1,499 @@
+# Nutrient Definitions - Single Source of Truth
+# This file defines all nutrients supported by the system
+# Changes here will automatically propagate to Go structs, TypeScript types, and database mappings
+
+nutrients:
+  # Basic serving metadata
+  - key: serving_grams
+    type: float64
+    unit: grams
+    category: meta
+    per_100g: false
+    original: true
+    go_field_name: ServingGrams
+    json_tag: serving_grams
+    display_name: Serving Size
+    
+  # Macronutrients  
+  - key: calories
+    type: float64
+    unit: kcal
+    category: macro
+    per_100g: true
+    original: true
+    go_field_name: Calories
+    json_tag: calories
+    display_name: Calories
+    
+  - key: protein_g
+    type: float64
+    unit: g
+    category: macro
+    per_100g: true
+    original: true
+    go_field_name: Protein
+    json_tag: protein_g
+    display_name: Protein
+    
+  - key: total_fat_g
+    type: float64
+    unit: g
+    category: macro
+    per_100g: true
+    original: true
+    go_field_name: TotalFat
+    json_tag: total_fat_g
+    display_name: Total Fat
+    
+  - key: saturated_fat_g
+    type: float64
+    unit: g
+    category: fat
+    per_100g: true
+    original: true
+    go_field_name: SaturatedFat
+    json_tag: saturated_fat_g
+    display_name: Saturated Fat
+    
+  - key: trans_fat_g
+    type: float64
+    unit: g
+    category: fat
+    per_100g: true
+    original: true
+    go_field_name: TransFat
+    json_tag: trans_fat_g
+    display_name: Trans Fat
+    
+  - key: monounsaturated_fat_g
+    type: float64
+    unit: g
+    category: fat
+    per_100g: true
+    original: true
+    go_field_name: MonounsaturatedFat
+    json_tag: monounsaturated_fat_g
+    display_name: Monounsaturated Fat
+    
+  - key: polyunsaturated_fat_g
+    type: float64
+    unit: g
+    category: fat
+    per_100g: true
+    original: true
+    go_field_name: PolyunsaturatedFat
+    json_tag: polyunsaturated_fat_g
+    display_name: Polyunsaturated Fat
+    
+  - key: cholesterol_mg
+    type: float64
+    unit: mg
+    category: fat
+    per_100g: true
+    original: true
+    go_field_name: Cholesterol
+    json_tag: cholesterol_mg
+    display_name: Cholesterol
+    
+  - key: sodium_mg
+    type: float64
+    unit: mg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Sodium
+    json_tag: sodium_mg
+    display_name: Sodium
+    
+  - key: total_carbs_g
+    type: float64
+    unit: g
+    category: carb
+    per_100g: true
+    original: true
+    go_field_name: TotalCarbs
+    json_tag: total_carbs_g
+    display_name: Total Carbohydrates
+    
+  - key: dietary_fiber_g
+    type: float64
+    unit: g
+    category: carb
+    per_100g: true
+    original: true
+    go_field_name: DietaryFiber
+    json_tag: dietary_fiber_g
+    display_name: Dietary Fiber
+    
+  - key: total_sugars_g
+    type: float64
+    unit: g
+    category: carb
+    per_100g: true
+    original: true
+    go_field_name: TotalSugars
+    json_tag: total_sugars_g
+    display_name: Total Sugars
+    
+  - key: added_sugars_g
+    type: float64
+    unit: g
+    category: carb
+    per_100g: true
+    original: true
+    go_field_name: AddedSugars
+    json_tag: added_sugars_g
+    display_name: Added Sugars
+    
+  # Vitamins
+  - key: vitamin_a_mcg
+    type: float64
+    unit: mcg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: VitaminA
+    json_tag: vitamin_a_mcg
+    display_name: Vitamin A
+    
+  - key: vitamin_c_mg
+    type: float64
+    unit: mg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: VitaminC
+    json_tag: vitamin_c_mg
+    display_name: Vitamin C
+    
+  - key: vitamin_d_mcg
+    type: float64
+    unit: mcg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: VitaminD
+    json_tag: vitamin_d_mcg
+    display_name: Vitamin D
+    
+  - key: vitamin_e_mg
+    type: float64
+    unit: mg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: VitaminE
+    json_tag: vitamin_e_mg
+    display_name: Vitamin E
+    
+  - key: vitamin_k_mcg
+    type: float64
+    unit: mcg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: VitaminK
+    json_tag: vitamin_k_mcg
+    display_name: Vitamin K
+    
+  - key: thiamine_mg
+    type: float64
+    unit: mg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: Thiamine
+    json_tag: thiamine_mg
+    display_name: Thiamine (B1)
+    
+  - key: riboflavin_mg
+    type: float64
+    unit: mg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: Riboflavin
+    json_tag: riboflavin_mg
+    display_name: Riboflavin (B2)
+    
+  - key: niacin_mg
+    type: float64
+    unit: mg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: Niacin
+    json_tag: niacin_mg
+    display_name: Niacin (B3)
+    
+  - key: vitamin_b6_mg
+    type: float64
+    unit: mg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: VitaminB6
+    json_tag: vitamin_b6_mg
+    display_name: Vitamin B6
+    
+  - key: folate_mcg
+    type: float64
+    unit: mcg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: Folate
+    json_tag: folate_mcg
+    display_name: Folate
+    
+  - key: vitamin_b12_mcg
+    type: float64
+    unit: mcg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: VitaminB12
+    json_tag: vitamin_b12_mcg
+    display_name: Vitamin B12
+    
+  - key: biotin_mcg
+    type: float64
+    unit: mcg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: Biotin
+    json_tag: biotin_mcg
+    display_name: Biotin
+    
+  - key: pantothenic_acid_mg
+    type: float64
+    unit: mg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: PantothenicAcid
+    json_tag: pantothenic_acid_mg
+    display_name: Pantothenic Acid
+    
+  - key: choline_mg
+    type: float64
+    unit: mg
+    category: vitamin
+    per_100g: true
+    original: true
+    go_field_name: Choline
+    json_tag: choline_mg
+    display_name: Choline
+    
+  # Minerals
+  - key: calcium_mg
+    type: float64
+    unit: mg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Calcium
+    json_tag: calcium_mg
+    display_name: Calcium
+    
+  - key: iron_mg
+    type: float64
+    unit: mg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Iron
+    json_tag: iron_mg
+    display_name: Iron
+    
+  - key: magnesium_mg
+    type: float64
+    unit: mg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Magnesium
+    json_tag: magnesium_mg
+    display_name: Magnesium
+    
+  - key: phosphorus_mg
+    type: float64
+    unit: mg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Phosphorus
+    json_tag: phosphorus_mg
+    display_name: Phosphorus
+    
+  - key: potassium_mg
+    type: float64
+    unit: mg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Potassium
+    json_tag: potassium_mg
+    display_name: Potassium
+    
+  - key: zinc_mg
+    type: float64
+    unit: mg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Zinc
+    json_tag: zinc_mg
+    display_name: Zinc
+    
+  - key: copper_mg
+    type: float64
+    unit: mg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Copper
+    json_tag: copper_mg
+    display_name: Copper
+    
+  - key: manganese_mg
+    type: float64
+    unit: mg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Manganese
+    json_tag: manganese_mg
+    display_name: Manganese
+    
+  - key: selenium_mcg
+    type: float64
+    unit: mcg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Selenium
+    json_tag: selenium_mcg
+    display_name: Selenium
+    
+  - key: iodine_mcg
+    type: float64
+    unit: mcg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Iodine
+    json_tag: iodine_mcg
+    display_name: Iodine
+    
+  - key: molybdenum_mcg
+    type: float64
+    unit: mcg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Molybdenum
+    json_tag: molybdenum_mcg
+    display_name: Molybdenum
+    
+  - key: chromium_mcg
+    type: float64
+    unit: mcg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Chromium
+    json_tag: chromium_mcg
+    display_name: Chromium
+    
+  - key: fluoride_mg
+    type: float64
+    unit: mg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Fluoride
+    json_tag: fluoride_mg
+    display_name: Fluoride
+    
+  - key: chloride_mg
+    type: float64
+    unit: mg
+    category: mineral
+    per_100g: true
+    original: true
+    go_field_name: Chloride
+    json_tag: chloride_mg
+    display_name: Chloride
+    
+  # Fatty Acids & Special Compounds
+  - key: omega3_ala_g
+    type: float64
+    unit: g
+    category: fatty_acid
+    per_100g: true
+    original: true
+    go_field_name: Omega3Ala
+    json_tag: omega3_ala_g
+    display_name: Omega-3 ALA
+    
+  - key: omega3_epa_g
+    type: float64
+    unit: g
+    category: fatty_acid
+    per_100g: true
+    original: true
+    go_field_name: Omega3Epa
+    json_tag: omega3_epa_g
+    display_name: Omega-3 EPA
+    
+  - key: omega3_dha_g
+    type: float64
+    unit: g
+    category: fatty_acid
+    per_100g: true
+    original: true
+    go_field_name: Omega3Dha
+    json_tag: omega3_dha_g
+    display_name: Omega-3 DHA
+    
+  - key: omega6_g
+    type: float64
+    unit: g
+    category: fatty_acid
+    per_100g: true
+    original: true
+    go_field_name: Omega6
+    json_tag: omega6_g
+    display_name: Omega-6
+    
+  - key: alcohol_g
+    type: float64
+    unit: g
+    category: compound
+    per_100g: true
+    original: true
+    go_field_name: Alcohol
+    json_tag: alcohol_g
+    display_name: Alcohol
+    
+  - key: caffeine_mg
+    type: float64
+    unit: mg
+    category: compound
+    per_100g: true
+    original: true
+    go_field_name: Caffeine
+    json_tag: caffeine_mg
+    display_name: Caffeine
+    
+  - key: creatine_mg
+    type: float64
+    unit: mg
+    category: compound
+    per_100g: true
+    original: true
+    go_field_name: Creatine
+    json_tag: creatine_mg
+    display_name: Creatine
