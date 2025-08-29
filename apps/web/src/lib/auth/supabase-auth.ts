@@ -19,19 +19,27 @@ export class SupabaseAuthProvider implements AuthProvider {
 	async getCurrentUser(): Promise<User | null> {
 		if (!supabase) return null;
 
+		console.debug('🔍 Getting current user from Supabase...');
 		try {
 			// Use getUser() instead of getSession() for security - validates token with server
 			const { data: { user }, error } = await supabase.auth.getUser();
 			
 			if (error) {
-				console.error('❌ Failed to get Supabase user:', error);
+				// Don't log session missing errors as errors since they're expected when not logged in
+				if (error.message?.includes('Auth session missing')) {
+					console.debug('🔓 No active auth session (user not logged in)');
+				} else {
+					console.error('❌ Failed to get Supabase user:', error);
+				}
 				return null;
 			}
 
 			if (!user) {
+				console.debug('👤 No user found in Supabase session');
 				return null;
 			}
 
+			console.debug('🔍 Supabase user found, getting session for mapping...');
 			// We still need the session for mapping, but get it separately
 			const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 			
@@ -40,7 +48,9 @@ export class SupabaseAuthProvider implements AuthProvider {
 				return null;
 			}
 
-			return await this.mapSupabaseUserToUser(session);
+			const mappedUser = await this.mapSupabaseUserToUser(session);
+			console.debug('✅ Successfully mapped Supabase user:', mappedUser.email);
+			return mappedUser;
 		} catch (error) {
 			console.error('❌ Error getting current user:', error);
 			return null;
@@ -72,8 +82,18 @@ export class SupabaseAuthProvider implements AuthProvider {
 				return { user: null, error: 'No session created' };
 			}
 
-			const user = await this.mapSupabaseUserToUser(data.session);
-			return { user, error: null };
+			// Note: Don't call mapSupabaseUserToUser here to avoid duplicate mapping
+			// The onAuthStateChange listener will handle user mapping automatically
+			// Return a basic user object for the function response
+			const basicUser: User = {
+				id: data.session.user.id,
+				email: data.session.user.email || '',
+				subscriptionTier: 'free', // Will be updated by onAuthStateChange with real data
+				provider: 'supabase',
+				subject: data.session.user.id
+			};
+			
+			return { user: basicUser, error: null };
 		} catch (error) {
 			console.error('❌ Exception in SupabaseAuthProvider.signIn:', error);
 			return { user: null, error: String(error) };
@@ -103,8 +123,17 @@ export class SupabaseAuthProvider implements AuthProvider {
 				return { user: null, error: JSON.stringify({ code: error.code || error.name || 'unknown_error', message: error.message }) };
 			}
 
-			const user = data.session ? await this.mapSupabaseUserToUser(data.session) : null;
-			return { user, error: null };
+			// Note: Don't call mapSupabaseUserToUser here to avoid duplicate mapping
+			// The onAuthStateChange listener will handle user mapping automatically  
+			const basicUser = data.session ? {
+				id: data.session.user.id,
+				email: data.session.user.email || '',
+				subscriptionTier: 'free' as const, // Will be updated by onAuthStateChange with real data
+				provider: 'supabase',
+				subject: data.session.user.id
+			} : null;
+			
+			return { user: basicUser, error: null };
 		} catch (error) {
 			return { user: null, error: JSON.stringify({ code: 'signup_error', message: String(error) }) };
 		}
@@ -152,28 +181,38 @@ export class SupabaseAuthProvider implements AuthProvider {
 	onAuthStateChange(callback: (user: User | null) => void) {
 		if (!supabase) return () => {};
 
+		console.debug('👂 Setting up Supabase auth state change listener');
 		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+			console.debug('🔄 Supabase auth event:', event);
+			
 			if (session?.user && supabase) {
 				// Verify the user is authentic using getUser() instead of trusting session directly
 				try {
+					console.debug('🔍 Verifying user authenticity after auth state change...');
 					const { data: { user }, error } = await supabase.auth.getUser();
 					if (error || !user) {
+						console.debug('❌ User verification failed, setting to null');
 						callback(null);
 						return;
 					}
 					// User is verified, now we can safely use the session for mapping
 					const mappedUser = await this.mapSupabaseUserToUser(session);
+					console.debug('✅ Auth state change verified, user:', mappedUser.email);
 					callback(mappedUser);
 				} catch (error) {
 					console.error('❌ Error verifying user in auth state change:', error);
 					callback(null);
 				}
 			} else {
+				console.debug('🔓 Auth state change: no session or user, setting to null');
 				callback(null);
 			}
 		});
 
-		return () => subscription.unsubscribe();
+		return () => {
+			console.debug('🔌 Unsubscribing from Supabase auth state changes');
+			subscription.unsubscribe();
+		};
 	}
 
 	/**
@@ -181,6 +220,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 	 */
 	private async mapSupabaseUserToUser(session: Session): Promise<User> {
 		const supabaseUser = session.user;
+		console.debug('🗂️ Mapping Supabase user to app user:', supabaseUser.email);
 		
 		try {
 			// Fetch real user data directly from Supabase database using RLS
@@ -188,6 +228,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 				throw new Error('Supabase client not available');
 			}
 
+			console.debug('🔍 Fetching user profile from database...');
 			const { data, error } = await supabase
 				.from('profiles')
 				.select('id, email, subscription_tier')
@@ -198,6 +239,10 @@ export class SupabaseAuthProvider implements AuthProvider {
 				console.warn('⚠️ Failed to fetch user data from Supabase:', error);
 			} else if (data) {
 				// Use data directly from database with RLS protection
+				console.debug('✅ User profile loaded from database:', {
+					email: data.email,
+					tier: data.subscription_tier
+				});
 				return {
 					id: data.id,
 					email: data.email,
@@ -211,6 +256,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 		}
 
 		// Fallback to session data if database query fails
+		console.debug('📋 Using session data fallback for user mapping');
 		return {
 			id: supabaseUser.id,
 			email: supabaseUser.email || '',
