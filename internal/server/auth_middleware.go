@@ -56,9 +56,142 @@ var (
 	jwksCacheMutex sync.RWMutex
 	jwksCacheTTL   = 1 * time.Hour // Cache for 1 hour
 	httpClient     = &http.Client{Timeout: 5 * time.Second}
+
+	// Cache for parsed public keys to avoid repeated conversion
+	publicKeyCache      = make(map[string]interface{})
+	publicKeyCacheMutex sync.RWMutex
 )
 
-// fetchJWKS fetches the JWKS from Supabase
+// bytesToInt converts a byte slice to an int for RSA exponent parsing
+// This handles variable-length exponent encoding more robustly than big.Int conversions
+func bytesToInt(b []byte) (int, error) {
+	if len(b) == 0 {
+		return 0, fmt.Errorf("empty exponent")
+	}
+	var val int
+	for _, x := range b {
+		// Shift left 8 bits and add the next byte
+		val = (val << 8) + int(x)
+		// Guard against overflow (defensive; RSA exponents are typically small in practice)
+		if val < 0 {
+			return 0, fmt.Errorf("exponent overflow")
+		}
+	}
+	return val, nil
+}
+
+// cachePublicKeysFromJWKS converts JWKS keys to public keys and caches them for faster lookup
+func cachePublicKeysFromJWKS(jwks *JWKS) {
+	keyMap := make(map[string]interface{})
+
+	for _, key := range jwks.Keys {
+		// Skip non-signing keys if use is specified
+		if key.Use != "" && key.Use != "sig" {
+			continue
+		}
+
+		var publicKey interface{}
+		var err error
+
+		switch key.Kty {
+		case "EC":
+			if key.Alg == "ES256" || key.Alg == "ES384" || key.Alg == "ES512" {
+				publicKey, err = convertECJWKToPublicKey(&key)
+			}
+		case "RSA":
+			if key.Alg == "RS256" || key.Alg == "RS384" || key.Alg == "RS512" {
+				publicKey, err = convertRSAJWKToPublicKey(&key)
+			}
+		}
+
+		if err == nil && publicKey != nil {
+			keyMap[key.Kid] = publicKey
+		}
+	}
+
+	publicKeyCacheMutex.Lock()
+	publicKeyCache = keyMap
+	publicKeyCacheMutex.Unlock()
+}
+
+// convertECJWKToPublicKey converts an EC JWK to an ECDSA public key
+func convertECJWKToPublicKey(key *JWK) (*ecdsa.PublicKey, error) {
+	// Decode the X and Y coordinates from base64url
+	xBytes, err := base64.RawURLEncoding.DecodeString(key.X)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode X coordinate: %w", err)
+	}
+
+	yBytes, err := base64.RawURLEncoding.DecodeString(key.Y)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode Y coordinate: %w", err)
+	}
+
+	// Convert to big integers
+	x := big.NewInt(0).SetBytes(xBytes)
+	y := big.NewInt(0).SetBytes(yBytes)
+
+	// Determine the curve based on crv field first, then algorithm fallback
+	var curve elliptic.Curve
+	switch key.Crv {
+	case "P-256", "P256":
+		curve = elliptic.P256()
+	case "P-384", "P384":
+		curve = elliptic.P384()
+	case "P-521", "P521":
+		curve = elliptic.P521()
+	default:
+		// Fallback to algorithm mapping if crv field is absent or unrecognized
+		switch key.Alg {
+		case "ES256":
+			curve = elliptic.P256()
+		case "ES384":
+			curve = elliptic.P384()
+		case "ES512":
+			curve = elliptic.P521()
+		default:
+			return nil, fmt.Errorf("unsupported ECDSA algorithm/curve: alg=%s crv=%s", key.Alg, key.Crv)
+		}
+	}
+
+	// Create the ECDSA public key
+	return &ecdsa.PublicKey{
+		Curve: curve,
+		X:     x,
+		Y:     y,
+	}, nil
+}
+
+// convertRSAJWKToPublicKey converts an RSA JWK to an RSA public key
+func convertRSAJWKToPublicKey(key *JWK) (*rsa.PublicKey, error) {
+	// Decode the modulus (n) and exponent (e) from base64url
+	nBytes, err := base64.RawURLEncoding.DecodeString(key.N)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode RSA modulus: %w", err)
+	}
+
+	eBytes, err := base64.RawURLEncoding.DecodeString(key.E)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode RSA exponent: %w", err)
+	}
+
+	// Convert modulus to big integer
+	n := big.NewInt(0).SetBytes(nBytes)
+
+	// Convert exponent bytes to int using robust parsing
+	eInt, err := bytesToInt(eBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse RSA exponent: %w", err)
+	}
+
+	// Create the RSA public key
+	return &rsa.PublicKey{
+		N: n,
+		E: eInt,
+	}, nil
+}
+
+// fetchJWKS fetches the JWKS from Supabase with double-check locking to prevent race conditions
 func fetchJWKS(ctx context.Context, supabaseURL string) (*JWKS, error) {
 	jwksCacheMutex.RLock()
 	if jwksCache != nil && time.Since(jwksCacheTime) < jwksCacheTTL {
@@ -66,6 +199,17 @@ func fetchJWKS(ctx context.Context, supabaseURL string) (*JWKS, error) {
 		return jwksCache, nil
 	}
 	jwksCacheMutex.RUnlock()
+
+	// Acquire write lock and double-check (prevents duplicate network fetches under load)
+	jwksCacheMutex.Lock()
+	if jwksCache != nil && time.Since(jwksCacheTime) < jwksCacheTTL {
+		// Someone else beat us to it while we were waiting for the write lock
+		jwks := jwksCache
+		jwksCacheMutex.Unlock()
+		return jwks, nil
+	}
+	// Cache is still expired or empty - we need to fetch
+	jwksCacheMutex.Unlock()
 
 	jwksURL := strings.TrimSuffix(supabaseURL, "/") + "/auth/v1/.well-known/jwks.json"
 
@@ -96,6 +240,9 @@ func fetchJWKS(ctx context.Context, supabaseURL string) (*JWKS, error) {
 	jwksCache = &jwks
 	jwksCacheTime = time.Now()
 	jwksCacheMutex.Unlock()
+
+	// Cache the public keys for faster lookup
+	cachePublicKeysFromJWKS(&jwks)
 
 	return &jwks, nil
 }
@@ -133,11 +280,23 @@ func fetchJWKSNoCache(ctx context.Context, supabaseURL string) (*JWKS, error) {
 	jwksCacheTime = time.Now()
 	jwksCacheMutex.Unlock()
 
+	// Cache the public keys for faster lookup
+	cachePublicKeysFromJWKS(&jwks)
+
 	return &jwks, nil
 }
 
 // getPublicKeyFromJWKS extracts the public key for the given kid
 func getPublicKeyFromJWKS(jwks *JWKS, kid string, tokenAlg string) (interface{}, error) {
+	// First, try the public key cache for faster lookup
+	publicKeyCacheMutex.RLock()
+	if cachedKey, exists := publicKeyCache[kid]; exists {
+		publicKeyCacheMutex.RUnlock()
+		return cachedKey, nil
+	}
+	publicKeyCacheMutex.RUnlock()
+
+	// Fallback to parsing from JWKS (handles case where cache wasn't populated)
 	for _, key := range jwks.Keys {
 		if key.Kid == kid {
 			// Skip non-signing keys if use is specified
@@ -154,68 +313,12 @@ func getPublicKeyFromJWKS(jwks *JWKS, kid string, tokenAlg string) (interface{},
 			case "EC":
 				// Handle Elliptic Curve keys (ES256, ES384, ES512)
 				if key.Alg == "ES256" || key.Alg == "ES384" || key.Alg == "ES512" {
-					// Decode the X and Y coordinates from base64url
-					xBytes, err := base64.RawURLEncoding.DecodeString(key.X)
-					if err != nil {
-						return nil, fmt.Errorf("failed to decode X coordinate: %w", err)
-					}
-
-					yBytes, err := base64.RawURLEncoding.DecodeString(key.Y)
-					if err != nil {
-						return nil, fmt.Errorf("failed to decode Y coordinate: %w", err)
-					}
-
-					// Convert to big integers
-					x := big.NewInt(0).SetBytes(xBytes)
-					y := big.NewInt(0).SetBytes(yBytes)
-
-					// Determine the curve based on the algorithm
-					var curve elliptic.Curve
-					switch key.Alg {
-					case "ES256":
-						curve = elliptic.P256()
-					case "ES384":
-						curve = elliptic.P384()
-					case "ES512":
-						curve = elliptic.P521()
-					default:
-						return nil, fmt.Errorf("unsupported ECDSA algorithm: %s", key.Alg)
-					}
-
-					// Create the ECDSA public key
-					publicKey := &ecdsa.PublicKey{
-						Curve: curve,
-						X:     x,
-						Y:     y,
-					}
-
-					return publicKey, nil
+					return convertECJWKToPublicKey(&key)
 				}
 			case "RSA":
 				// Handle RSA keys (RS256, RS384, RS512)
 				if key.Alg == "RS256" || key.Alg == "RS384" || key.Alg == "RS512" {
-					// Decode the modulus (n) and exponent (e) from base64url
-					nBytes, err := base64.RawURLEncoding.DecodeString(key.N)
-					if err != nil {
-						return nil, fmt.Errorf("failed to decode RSA modulus: %w", err)
-					}
-
-					eBytes, err := base64.RawURLEncoding.DecodeString(key.E)
-					if err != nil {
-						return nil, fmt.Errorf("failed to decode RSA exponent: %w", err)
-					}
-
-					// Convert to big integers
-					n := big.NewInt(0).SetBytes(nBytes)
-					e := big.NewInt(0).SetBytes(eBytes)
-
-					// Create the RSA public key
-					publicKey := &rsa.PublicKey{
-						N: n,
-						E: int(e.Int64()),
-					}
-
-					return publicKey, nil
+					return convertRSAJWKToPublicKey(&key)
 				}
 			}
 		}
