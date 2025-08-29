@@ -6,100 +6,656 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
-      contact_requests: {
+      consumptions: {
         Row: {
-          company_name: string | null
-          email: string | null
-          first_name: string | null
+          added_sugars_g: number
+          alcohol_g: number
+          biotin_mcg: number
+          caffeine_mg: number
+          calcium_mg: number
+          chloride_mg: number
+          cholesterol_mg: number
+          choline_mg: number
+          chromium_mcg: number
+          copper_mg: number
+          created_at: string
+          creatine_mg: number
+          dietary_fiber_g: number
+          fluoride_mg: number
+          folate_mcg: number
           id: string
-          last_name: string | null
-          message_body: string | null
-          phone: string | null
-          updated_at: Date | null
+          iodine_mcg: number
+          iron_mg: number
+          label: string | null
+          magnesium_mg: number
+          manganese_mg: number
+          molybdenum_mcg: number
+          monounsaturated_fat_g: number
+          niacin_mg: number
+          note: string | null
+          omega3_ala_g: number
+          omega3_dha_g: number
+          omega3_epa_g: number
+          omega6_g: number
+          pantothenic_acid_mg: number
+          phosphorus_mg: number
+          polyunsaturated_fat_g: number
+          potassium_mg: number
+          riboflavin_mg: number
+          saturated_fat_g: number
+          selenium_mcg: number
+          thiamine_mg: number
+          total_calories: number
+          total_carbs_g: number
+          total_fat_g: number
+          total_protein_g: number
+          total_sodium_mg: number
+          total_sugars_g: number
+          trans_fat_g: number
+          transcript: string
+          updated_at: string | null
+          user_id: string
+          vitamin_a_mcg: number
+          vitamin_b12_mcg: number
+          vitamin_b6_mg: number
+          vitamin_c_mg: number
+          vitamin_d_mcg: number
+          vitamin_e_mg: number
+          vitamin_k_mcg: number
+          zinc_mg: number
         }
         Insert: {
-          company_name?: string | null
-          email?: string | null
-          first_name?: string | null
+          added_sugars_g?: number
+          alcohol_g?: number
+          biotin_mcg?: number
+          caffeine_mg?: number
+          calcium_mg?: number
+          chloride_mg?: number
+          cholesterol_mg?: number
+          choline_mg?: number
+          chromium_mcg?: number
+          copper_mg?: number
+          created_at?: string
+          creatine_mg?: number
+          dietary_fiber_g?: number
+          fluoride_mg?: number
+          folate_mcg?: number
           id?: string
-          last_name?: string | null
-          message_body?: string | null
-          phone?: string | null
-          updated_at?: Date | null
+          iodine_mcg?: number
+          iron_mg?: number
+          label?: string | null
+          magnesium_mg?: number
+          manganese_mg?: number
+          molybdenum_mcg?: number
+          monounsaturated_fat_g?: number
+          niacin_mg?: number
+          note?: string | null
+          omega3_ala_g?: number
+          omega3_dha_g?: number
+          omega3_epa_g?: number
+          omega6_g?: number
+          pantothenic_acid_mg?: number
+          phosphorus_mg?: number
+          polyunsaturated_fat_g?: number
+          potassium_mg?: number
+          riboflavin_mg?: number
+          saturated_fat_g?: number
+          selenium_mcg?: number
+          thiamine_mg?: number
+          total_calories?: number
+          total_carbs_g?: number
+          total_fat_g?: number
+          total_protein_g?: number
+          total_sodium_mg?: number
+          total_sugars_g?: number
+          trans_fat_g?: number
+          transcript: string
+          updated_at?: string | null
+          user_id: string
+          vitamin_a_mcg?: number
+          vitamin_b12_mcg?: number
+          vitamin_b6_mg?: number
+          vitamin_c_mg?: number
+          vitamin_d_mcg?: number
+          vitamin_e_mg?: number
+          vitamin_k_mcg?: number
+          zinc_mg?: number
         }
         Update: {
-          company_name?: string | null
-          email?: string | null
-          first_name?: string | null
+          added_sugars_g?: number
+          alcohol_g?: number
+          biotin_mcg?: number
+          caffeine_mg?: number
+          calcium_mg?: number
+          chloride_mg?: number
+          cholesterol_mg?: number
+          choline_mg?: number
+          chromium_mcg?: number
+          copper_mg?: number
+          created_at?: string
+          creatine_mg?: number
+          dietary_fiber_g?: number
+          fluoride_mg?: number
+          folate_mcg?: number
           id?: string
-          last_name?: string | null
-          message_body?: string | null
-          phone?: string | null
-          updated_at?: Date | null
+          iodine_mcg?: number
+          iron_mg?: number
+          label?: string | null
+          magnesium_mg?: number
+          manganese_mg?: number
+          molybdenum_mcg?: number
+          monounsaturated_fat_g?: number
+          niacin_mg?: number
+          note?: string | null
+          omega3_ala_g?: number
+          omega3_dha_g?: number
+          omega3_epa_g?: number
+          omega6_g?: number
+          pantothenic_acid_mg?: number
+          phosphorus_mg?: number
+          polyunsaturated_fat_g?: number
+          potassium_mg?: number
+          riboflavin_mg?: number
+          saturated_fat_g?: number
+          selenium_mcg?: number
+          thiamine_mg?: number
+          total_calories?: number
+          total_carbs_g?: number
+          total_fat_g?: number
+          total_protein_g?: number
+          total_sodium_mg?: number
+          total_sugars_g?: number
+          trans_fat_g?: number
+          transcript?: string
+          updated_at?: string | null
+          user_id?: string
+          vitamin_a_mcg?: number
+          vitamin_b12_mcg?: number
+          vitamin_b6_mg?: number
+          vitamin_c_mg?: number
+          vitamin_d_mcg?: number
+          vitamin_e_mg?: number
+          vitamin_k_mcg?: number
+          zinc_mg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_aliases: {
+        Row: {
+          alias_brand: string
+          alias_name: string
+          canonical_brand: string
+          canonical_name: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          alias_brand?: string
+          alias_name: string
+          canonical_brand?: string
+          canonical_name: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          alias_brand?: string
+          alias_name?: string
+          canonical_brand?: string
+          canonical_name?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      items: {
+        Row: {
+          added_sugars_g_per_100g: number
+          alcohol_g_per_100g: number
+          biotin_mcg_per_100g: number
+          caffeine_mg_per_100g: number
+          calcium_mg_per_100g: number
+          calories_per_100g: number
+          chloride_mg_per_100g: number
+          cholesterol_mg_per_100g: number
+          choline_mg_per_100g: number
+          chromium_mcg_per_100g: number
+          copper_mg_per_100g: number
+          created_at: string
+          creatine_mg_per_100g: number
+          dietary_fiber_g_per_100g: number
+          display_brand: string | null
+          display_name: string
+          fluoride_mg_per_100g: number
+          folate_mcg_per_100g: number
+          id: string
+          iodine_mcg_per_100g: number
+          iron_mg_per_100g: number
+          label: string | null
+          magnesium_mg_per_100g: number
+          manganese_mg_per_100g: number
+          molybdenum_mcg_per_100g: number
+          monounsaturated_fat_g_per_100g: number
+          niacin_mg_per_100g: number
+          normalized_brand: string
+          normalized_name: string
+          note: string | null
+          omega3_ala_g_per_100g: number
+          omega3_dha_g_per_100g: number
+          omega3_epa_g_per_100g: number
+          omega6_g_per_100g: number
+          original_added_sugars_g: number | null
+          original_alcohol_g: number | null
+          original_biotin_mcg: number | null
+          original_caffeine_mg: number | null
+          original_calcium_mg: number | null
+          original_calories: number | null
+          original_chloride_mg: number | null
+          original_cholesterol_mg: number | null
+          original_choline_mg: number | null
+          original_chromium_mcg: number | null
+          original_copper_mg: number | null
+          original_creatine_mg: number | null
+          original_dietary_fiber_g: number | null
+          original_fluoride_mg: number | null
+          original_folate_mcg: number | null
+          original_iodine_mcg: number | null
+          original_iron_mg: number | null
+          original_magnesium_mg: number | null
+          original_manganese_mg: number | null
+          original_molybdenum_mcg: number | null
+          original_monounsaturated_fat_g: number | null
+          original_niacin_mg: number | null
+          original_omega3_ala_g: number | null
+          original_omega3_dha_g: number | null
+          original_omega3_epa_g: number | null
+          original_omega6_g: number | null
+          original_pantothenic_acid_mg: number | null
+          original_phosphorus_mg: number | null
+          original_polyunsaturated_fat_g: number | null
+          original_potassium_mg: number | null
+          original_protein_g: number | null
+          original_riboflavin_mg: number | null
+          original_saturated_fat_g: number | null
+          original_selenium_mcg: number | null
+          original_serving_grams: number | null
+          original_sodium_mg: number | null
+          original_thiamine_mg: number | null
+          original_total_carbs_g: number | null
+          original_total_fat_g: number | null
+          original_total_sugars_g: number | null
+          original_trans_fat_g: number | null
+          original_vitamin_a_mcg: number | null
+          original_vitamin_b12_mcg: number | null
+          original_vitamin_b6_mg: number | null
+          original_vitamin_c_mg: number | null
+          original_vitamin_d_mcg: number | null
+          original_vitamin_e_mg: number | null
+          original_vitamin_k_mcg: number | null
+          original_zinc_mg: number | null
+          pantothenic_acid_mg_per_100g: number
+          phosphorus_mg_per_100g: number
+          polyunsaturated_fat_g_per_100g: number
+          potassium_mg_per_100g: number
+          protein_g_per_100g: number
+          riboflavin_mg_per_100g: number
+          saturated_fat_g_per_100g: number
+          selenium_mcg_per_100g: number
+          sodium_mg_per_100g: number
+          thiamine_mg_per_100g: number
+          total_carbs_g_per_100g: number
+          total_fat_g_per_100g: number
+          total_sugars_g_per_100g: number
+          trans_fat_g_per_100g: number
+          updated_at: string
+          vitamin_a_mcg_per_100g: number
+          vitamin_b12_mcg_per_100g: number
+          vitamin_b6_mg_per_100g: number
+          vitamin_c_mg_per_100g: number
+          vitamin_d_mcg_per_100g: number
+          vitamin_e_mg_per_100g: number
+          vitamin_k_mcg_per_100g: number
+          zinc_mg_per_100g: number
+        }
+        Insert: {
+          added_sugars_g_per_100g?: number
+          alcohol_g_per_100g?: number
+          biotin_mcg_per_100g?: number
+          caffeine_mg_per_100g?: number
+          calcium_mg_per_100g?: number
+          calories_per_100g?: number
+          chloride_mg_per_100g?: number
+          cholesterol_mg_per_100g?: number
+          choline_mg_per_100g?: number
+          chromium_mcg_per_100g?: number
+          copper_mg_per_100g?: number
+          created_at?: string
+          creatine_mg_per_100g?: number
+          dietary_fiber_g_per_100g?: number
+          display_brand?: string | null
+          display_name: string
+          fluoride_mg_per_100g?: number
+          folate_mcg_per_100g?: number
+          id?: string
+          iodine_mcg_per_100g?: number
+          iron_mg_per_100g?: number
+          label?: string | null
+          magnesium_mg_per_100g?: number
+          manganese_mg_per_100g?: number
+          molybdenum_mcg_per_100g?: number
+          monounsaturated_fat_g_per_100g?: number
+          niacin_mg_per_100g?: number
+          normalized_brand?: string
+          normalized_name: string
+          note?: string | null
+          omega3_ala_g_per_100g?: number
+          omega3_dha_g_per_100g?: number
+          omega3_epa_g_per_100g?: number
+          omega6_g_per_100g?: number
+          original_added_sugars_g?: number | null
+          original_alcohol_g?: number | null
+          original_biotin_mcg?: number | null
+          original_caffeine_mg?: number | null
+          original_calcium_mg?: number | null
+          original_calories?: number | null
+          original_chloride_mg?: number | null
+          original_cholesterol_mg?: number | null
+          original_choline_mg?: number | null
+          original_chromium_mcg?: number | null
+          original_copper_mg?: number | null
+          original_creatine_mg?: number | null
+          original_dietary_fiber_g?: number | null
+          original_fluoride_mg?: number | null
+          original_folate_mcg?: number | null
+          original_iodine_mcg?: number | null
+          original_iron_mg?: number | null
+          original_magnesium_mg?: number | null
+          original_manganese_mg?: number | null
+          original_molybdenum_mcg?: number | null
+          original_monounsaturated_fat_g?: number | null
+          original_niacin_mg?: number | null
+          original_omega3_ala_g?: number | null
+          original_omega3_dha_g?: number | null
+          original_omega3_epa_g?: number | null
+          original_omega6_g?: number | null
+          original_pantothenic_acid_mg?: number | null
+          original_phosphorus_mg?: number | null
+          original_polyunsaturated_fat_g?: number | null
+          original_potassium_mg?: number | null
+          original_protein_g?: number | null
+          original_riboflavin_mg?: number | null
+          original_saturated_fat_g?: number | null
+          original_selenium_mcg?: number | null
+          original_serving_grams?: number | null
+          original_sodium_mg?: number | null
+          original_thiamine_mg?: number | null
+          original_total_carbs_g?: number | null
+          original_total_fat_g?: number | null
+          original_total_sugars_g?: number | null
+          original_trans_fat_g?: number | null
+          original_vitamin_a_mcg?: number | null
+          original_vitamin_b12_mcg?: number | null
+          original_vitamin_b6_mg?: number | null
+          original_vitamin_c_mg?: number | null
+          original_vitamin_d_mcg?: number | null
+          original_vitamin_e_mg?: number | null
+          original_vitamin_k_mcg?: number | null
+          original_zinc_mg?: number | null
+          pantothenic_acid_mg_per_100g?: number
+          phosphorus_mg_per_100g?: number
+          polyunsaturated_fat_g_per_100g?: number
+          potassium_mg_per_100g?: number
+          protein_g_per_100g?: number
+          riboflavin_mg_per_100g?: number
+          saturated_fat_g_per_100g?: number
+          selenium_mcg_per_100g?: number
+          sodium_mg_per_100g?: number
+          thiamine_mg_per_100g?: number
+          total_carbs_g_per_100g?: number
+          total_fat_g_per_100g?: number
+          total_sugars_g_per_100g?: number
+          trans_fat_g_per_100g?: number
+          updated_at?: string
+          vitamin_a_mcg_per_100g?: number
+          vitamin_b12_mcg_per_100g?: number
+          vitamin_b6_mg_per_100g?: number
+          vitamin_c_mg_per_100g?: number
+          vitamin_d_mcg_per_100g?: number
+          vitamin_e_mg_per_100g?: number
+          vitamin_k_mcg_per_100g?: number
+          zinc_mg_per_100g?: number
+        }
+        Update: {
+          added_sugars_g_per_100g?: number
+          alcohol_g_per_100g?: number
+          biotin_mcg_per_100g?: number
+          caffeine_mg_per_100g?: number
+          calcium_mg_per_100g?: number
+          calories_per_100g?: number
+          chloride_mg_per_100g?: number
+          cholesterol_mg_per_100g?: number
+          choline_mg_per_100g?: number
+          chromium_mcg_per_100g?: number
+          copper_mg_per_100g?: number
+          created_at?: string
+          creatine_mg_per_100g?: number
+          dietary_fiber_g_per_100g?: number
+          display_brand?: string | null
+          display_name?: string
+          fluoride_mg_per_100g?: number
+          folate_mcg_per_100g?: number
+          id?: string
+          iodine_mcg_per_100g?: number
+          iron_mg_per_100g?: number
+          label?: string | null
+          magnesium_mg_per_100g?: number
+          manganese_mg_per_100g?: number
+          molybdenum_mcg_per_100g?: number
+          monounsaturated_fat_g_per_100g?: number
+          niacin_mg_per_100g?: number
+          normalized_brand?: string
+          normalized_name?: string
+          note?: string | null
+          omega3_ala_g_per_100g?: number
+          omega3_dha_g_per_100g?: number
+          omega3_epa_g_per_100g?: number
+          omega6_g_per_100g?: number
+          original_added_sugars_g?: number | null
+          original_alcohol_g?: number | null
+          original_biotin_mcg?: number | null
+          original_caffeine_mg?: number | null
+          original_calcium_mg?: number | null
+          original_calories?: number | null
+          original_chloride_mg?: number | null
+          original_cholesterol_mg?: number | null
+          original_choline_mg?: number | null
+          original_chromium_mcg?: number | null
+          original_copper_mg?: number | null
+          original_creatine_mg?: number | null
+          original_dietary_fiber_g?: number | null
+          original_fluoride_mg?: number | null
+          original_folate_mcg?: number | null
+          original_iodine_mcg?: number | null
+          original_iron_mg?: number | null
+          original_magnesium_mg?: number | null
+          original_manganese_mg?: number | null
+          original_molybdenum_mcg?: number | null
+          original_monounsaturated_fat_g?: number | null
+          original_niacin_mg?: number | null
+          original_omega3_ala_g?: number | null
+          original_omega3_dha_g?: number | null
+          original_omega3_epa_g?: number | null
+          original_omega6_g?: number | null
+          original_pantothenic_acid_mg?: number | null
+          original_phosphorus_mg?: number | null
+          original_polyunsaturated_fat_g?: number | null
+          original_potassium_mg?: number | null
+          original_protein_g?: number | null
+          original_riboflavin_mg?: number | null
+          original_saturated_fat_g?: number | null
+          original_selenium_mcg?: number | null
+          original_serving_grams?: number | null
+          original_sodium_mg?: number | null
+          original_thiamine_mg?: number | null
+          original_total_carbs_g?: number | null
+          original_total_fat_g?: number | null
+          original_total_sugars_g?: number | null
+          original_trans_fat_g?: number | null
+          original_vitamin_a_mcg?: number | null
+          original_vitamin_b12_mcg?: number | null
+          original_vitamin_b6_mg?: number | null
+          original_vitamin_c_mg?: number | null
+          original_vitamin_d_mcg?: number | null
+          original_vitamin_e_mg?: number | null
+          original_vitamin_k_mcg?: number | null
+          original_zinc_mg?: number | null
+          pantothenic_acid_mg_per_100g?: number
+          phosphorus_mg_per_100g?: number
+          polyunsaturated_fat_g_per_100g?: number
+          potassium_mg_per_100g?: number
+          protein_g_per_100g?: number
+          riboflavin_mg_per_100g?: number
+          saturated_fat_g_per_100g?: number
+          selenium_mcg_per_100g?: number
+          sodium_mg_per_100g?: number
+          thiamine_mg_per_100g?: number
+          total_carbs_g_per_100g?: number
+          total_fat_g_per_100g?: number
+          total_sugars_g_per_100g?: number
+          trans_fat_g_per_100g?: number
+          updated_at?: string
+          vitamin_a_mcg_per_100g?: number
+          vitamin_b12_mcg_per_100g?: number
+          vitamin_b6_mg_per_100g?: number
+          vitamin_c_mg_per_100g?: number
+          vitamin_d_mcg_per_100g?: number
+          vitamin_e_mg_per_100g?: number
+          vitamin_k_mcg_per_100g?: number
+          zinc_mg_per_100g?: number
         }
         Relationships: []
       }
       profiles: {
         Row: {
+          active_goal_name: string | null
           avatar_url: string | null
+          created_at: string | null
+          email: string
           full_name: string | null
+          handle: string | null
           id: string
+          subscription_tier: string
           updated_at: string | null
-          company_name: string | null
-          website: string | null
-          unsubscribed: boolean
         }
         Insert: {
+          active_goal_name?: string | null
           avatar_url?: string | null
+          created_at?: string | null
+          email: string
           full_name?: string | null
+          handle?: string | null
           id: string
-          updated_at?: Date | null
-          company_name?: string | null
-          website?: string | null
-          unsubscribed: boolean
+          subscription_tier?: string
+          updated_at?: string | null
         }
         Update: {
+          active_goal_name?: string | null
           avatar_url?: string | null
+          created_at?: string | null
+          email?: string
           full_name?: string | null
+          handle?: string | null
           id?: string
+          subscription_tier?: string
           updated_at?: string | null
-          company_name?: string | null
-          website?: string | null
-          unsubscribed: boolean
+        }
+        Relationships: []
+      }
+      user_biometrics: {
+        Row: {
+          activity_level: string | null
+          birth_date: string | null
+          created_at: string
+          height_cm: number | null
+          id: string
+          sex: string | null
+          updated_at: string
+          user_id: string
+          weight_kg: number | null
+        }
+        Insert: {
+          activity_level?: string | null
+          birth_date?: string | null
+          created_at?: string
+          height_cm?: number | null
+          id?: string
+          sex?: string | null
+          updated_at?: string
+          user_id: string
+          weight_kg?: number | null
+        }
+        Update: {
+          activity_level?: string | null
+          birth_date?: string | null
+          created_at?: string
+          height_cm?: number | null
+          id?: string
+          sex?: string | null
+          updated_at?: string
+          user_id?: string
+          weight_kg?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            referencedRelation: "users"
+            foreignKeyName: "user_biometrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
       }
-      stripe_customers: {
+      user_goals: {
         Row: {
-          stripe_customer_id: string
-          updated_at: Date | null
+          created_at: string
+          id: string
+          name: string
+          overrides_json: string
+          updated_at: string
           user_id: string
         }
         Insert: {
-          stripe_customer_id: string
-          updated_at?: Date | null
+          created_at?: string
+          id?: string
+          name?: string
+          overrides_json: string
+          updated_at?: string
           user_id: string
         }
         Update: {
-          stripe_customer_id?: string
-          updated_at?: Date | null
+          created_at?: string
+          id?: string
+          name?: string
+          overrides_json?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "stripe_customers_user_id_fkey"
+            foreignKeyName: "user_goals_user_id_fkey"
             columns: ["user_id"]
-            referencedRelation: "users"
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -119,3 +675,127 @@ export interface Database {
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
+

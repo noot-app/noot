@@ -19,6 +19,15 @@ create index if not exists idx_profiles_email on profiles(email);
 create index if not exists idx_profiles_handle on profiles(handle);
 create index if not exists idx_profiles_active_goal on profiles(active_goal_name);
 
+-- Add constraint to validate handle format (GitHub-style rules)
+alter table public.profiles add constraint valid_handle_format 
+check (
+  handle is null or (
+    length(handle) <= 39 and
+    handle ~ '^[a-zA-Z0-9]([a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$'
+  )
+);
+
 -- 2. Keep updated_at current
 create or replace function public.update_updated_at_column()
 returns trigger
@@ -44,11 +53,16 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  default_handle text;
 begin
+  -- Generate a valid GitHub-style handle from user ID
+  default_handle := 'user' || replace(substring(new.id::text, 1, 8), '-', '');
+  
   insert into public.profiles (id, handle, full_name, email, subscription_tier, avatar_url)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'handle', 'user_' || substring(new.id::text, 1, 8)),
+    coalesce(new.raw_user_meta_data->>'handle', default_handle),
     new.raw_user_meta_data->>'full_name',
     new.email,
     'free', -- Default tier

@@ -69,6 +69,15 @@ if [ -d "apps/web" ]; then
         echo "Warning: Could not change to apps/web directory"
         exit 1
     fi
+
+    # Generate Supabase types only if not in CI (requires local Supabase instance)
+    if [ "${CI:-}" != "true" ]; then
+        echo "Generating Supabase database types..."
+        supabase gen types typescript --local --schema public > apps/web/src/DatabaseDefinitions.ts
+        echo "Supabase database types generated successfully"
+    else
+        echo "Skipping Supabase type generation in CI environment"
+    fi
     
     echo "==> Frontend API type generation completed"
 else

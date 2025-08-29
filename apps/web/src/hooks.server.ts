@@ -3,8 +3,6 @@ import { redirect, type Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { env } from '$env/dynamic/public';
 import type { User } from '$lib/auth/provider';
-import type { Session } from '@supabase/supabase-js';
-import type { Database } from './DatabaseDefinitions';
 
 const supabase: Handle = async ({ event, resolve }) => {
   // Ensure environment variables are available
@@ -22,23 +20,18 @@ const supabase: Handle = async ({ event, resolve }) => {
     {
       cookies: {
         getAll: () => event.cookies.getAll(),
-        setAll: (cookiesToSet: Array<{ name: string; value: string; options: any }>) => {
+        setAll: (cookiesToSet: Array<{ name: string; value: string; options: Record<string, unknown> }>) => {
           cookiesToSet.forEach(({ name, value, options }) => {
-            event.cookies.set(name, value, { ...options, path: '/' });
+            event.cookies.set(name, value, { ...options, path: '/', secure: true });
           });
         },
       },
     }
-  ) as any;
+  ) as unknown as App.Locals['supabase'];
 
   event.locals.safeGetSession = async () => {
     const { data: { session } } = await event.locals.supabase.auth.getSession();
-    if (!session) return { session: null, user: null, amr: null };
-    
-    const { data: { user }, error } = await event.locals.supabase.auth.getUser();
-    if (error) return { session: null, user: null, amr: null };
-    
-    return { session, user: null, amr: null };
+    return { session, user: session?.user ?? null, amr: null };
   };
 
   return resolve(event);
@@ -55,7 +48,7 @@ const authGuard: Handle = async ({ event, resolve }) => {
     try {
       const { data, error } = await event.locals.supabase
         .from('profiles')
-        .select('id')
+        .select('id, subscription_tier')
         .eq('id', session.user.id)
         .single();
       
@@ -64,7 +57,7 @@ const authGuard: Handle = async ({ event, resolve }) => {
         appUser = {
           id: session.user.id,
           email: session.user.email || '',
-          subscriptionTier: 'free',
+          subscriptionTier: 'free', // Default fallback
           provider: 'supabase',
           subject: session.user.id
         };
@@ -72,13 +65,18 @@ const authGuard: Handle = async ({ event, resolve }) => {
         appUser = {
           id: data.id,
           email: session.user.email || '',
-          subscriptionTier: 'free', // Default to free since column doesn't exist
+          subscriptionTier: (data.subscription_tier as 'free' | 'pro') || 'free',
           provider: 'supabase',
           subject: session.user.id
         };
       }
-    } catch (error) {
-      console.warn('Failed to fetch user profile data:', error);
+    } catch (error: unknown) {
+      const supabaseError = error as { message?: string; code?: string; details?: string };
+      console.warn('Failed to fetch user profile data:', {
+        message: supabaseError.message,
+        code: supabaseError.code,
+        details: supabaseError.details
+      });
       // Fallback to basic user data
       appUser = {
         id: session.user.id,
@@ -95,7 +93,7 @@ const authGuard: Handle = async ({ event, resolve }) => {
   }
 
   // Protect routes - redirect to login if not authenticated
-  if (!session && event.url.pathname.match(/^\/(summary|profile|record)/)) {
+  if (!session && /^(\/summary|\/profile|\/record)(\/|$)/.test(event.url.pathname)) {
     throw redirect(303, '/login?returnUrl=' + encodeURIComponent(event.url.pathname + event.url.search));
   }
 
