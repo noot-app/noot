@@ -51,7 +51,6 @@ export interface CompleteNutrient {
   alcohol_g: number; // Alcohol (g)
   caffeine_mg: number; // Caffeine (mg)
   creatine_mg: number; // Creatine (mg)
-  taurine_mg: number; // Taurine (mg)
 }
 
 export interface ItemNutrients {
@@ -105,7 +104,6 @@ export interface ItemNutrients {
   original_alcohol_g?: number | null; // Alcohol
   original_caffeine_mg?: number | null; // Caffeine
   original_creatine_mg?: number | null; // Creatine
-  original_taurine_mg?: number | null; // Taurine
 
   // Per 100g normalized data
   calories_per_100g: number; // Calories per 100g
@@ -156,5 +154,4 @@ export interface ItemNutrients {
   alcohol_g_per_100g: number; // Alcohol per 100g
   caffeine_mg_per_100g: number; // Caffeine per 100g
   creatine_mg_per_100g: number; // Creatine per 100g
-  taurine_mg_per_100g: number; // Taurine per 100g
 }

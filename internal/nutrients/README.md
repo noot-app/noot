@@ -21,7 +21,7 @@ This was error-prone, time-consuming, and difficult to maintain.
 
 Now we have a **single source of truth** system with automatic code generation:
 
-1. **One Configuration File**: `nutrients.yaml` defines all nutrients
+1. **One Configuration File**: `config/nutrients.yml` defines all nutrients
 2. **Automatic Code Generation**: `script/generate-nutrients` generates all required code
 3. **Type Safety Maintained**: Full type safety in both Go and TypeScript
 4. **Backward Compatibility**: Generated code is identical to the original manual code
@@ -30,7 +30,8 @@ Now we have a **single source of truth** system with automatic code generation:
 
 Adding a new nutrient now takes just 3 steps:
 
-### 1. Add to nutrients.yaml
+### 1. Add to config/nutrients.yml
+
 ```yaml
 - key: your_nutrient_mg
   type: float64
@@ -44,11 +45,13 @@ Adding a new nutrient now takes just 3 steps:
 ```
 
 ### 2. Generate Code
+
 ```bash
 script/generate-nutrients
 ```
 
 ### 3. Run Database Migrations
+
 ```bash
 # Database migrations need to be created separately
 # but the field mappings are now generated automatically
@@ -66,8 +69,8 @@ The system automatically generates:
 
 ## Architecture
 
-```
-nutrients.yaml (Source of Truth)
+```text
+config/nutrients.yml (Source of Truth)
        ↓
 cmd/nutrient-generator/main.go (Code Generator)
        ↓ 
@@ -79,7 +82,7 @@ Generated Files:
 
 ## Nutrient Definition Schema
 
-Each nutrient in `nutrients.yaml` has these properties:
+Each nutrient in `config/nutrients.yml` has these properties:
 
 - `key`: Database column name (without prefix/suffix)
 - `type`: Go type (usually `float64`)
@@ -102,6 +105,7 @@ go test ./internal/nutrients
 ## Example: Adding Taurine
 
 Before this system (requires editing 20+ files):
+
 ```diff
 + // Edit internal/server/types.go
 + Taurine float64 `json:"taurine_mg"`
@@ -122,8 +126,9 @@ Before this system (requires editing 20+ files):
 ```
 
 With this system (1 file change):
+
 ```yaml
-# Add to nutrients.yaml
+# Add to config/nutrients.yml
 - key: taurine_mg
   type: float64
   unit: mg

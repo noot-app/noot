@@ -1,23 +1,16 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
 
-# Generate nutrition-related code from nutrients.yaml
+set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source script/env "$@"
+
+# Generate nutrition-related code from nutrients.yml
 
 echo "🧬 Generating nutrient definitions..."
 
-# Build the generator
-cd "$REPO_ROOT"
-echo "📦 Building nutrient generator..."
-go build -o /tmp/nutrient-generator ./cmd/nutrient-generator
-
-# Run the generator
+# Run the generator directly
+cd "$DIR"
 echo "⚡ Running code generation..."
-/tmp/nutrient-generator "$REPO_ROOT/nutrients.yaml" "$REPO_ROOT"
-
-# Clean up
-rm -f /tmp/nutrient-generator
+go run ./cmd/nutrient-generator "$DIR/config/nutrients.yml" "$DIR"
 
 echo "✅ Nutrient code generation complete!"

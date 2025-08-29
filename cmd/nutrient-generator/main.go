@@ -2,23 +2,24 @@ package main
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"text/template"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Nutrient represents a single nutrient definition
 type Nutrient struct {
-	Key           string `yaml:"key"`
-	Type          string `yaml:"type"`
-	Unit          string `yaml:"unit"`
-	Category      string `yaml:"category"`
-	Per100g       bool   `yaml:"per_100g"`
-	Original      bool   `yaml:"original"`
-	GoFieldName   string `yaml:"go_field_name"`
-	JSONTag       string `yaml:"json_tag"`
-	DisplayName   string `yaml:"display_name"`
+	Key         string `yaml:"key"`
+	Type        string `yaml:"type"`
+	Unit        string `yaml:"unit"`
+	Category    string `yaml:"category"`
+	Per100g     bool   `yaml:"per_100g"`
+	Original    bool   `yaml:"original"`
+	GoFieldName string `yaml:"go_field_name"`
+	JSONTag     string `yaml:"json_tag"`
+	DisplayName string `yaml:"display_name"`
 }
 
 // NutrientConfig represents the entire nutrients configuration
@@ -86,7 +87,7 @@ func generateGoTypes(config *NutrientConfig, outputDir string) error {
 		return fmt.Errorf("generating CompleteNutrient: %w", err)
 	}
 
-	// Generate Item struct fields for internal/storage/store.go  
+	// Generate Item struct fields for internal/storage/store.go
 	if err := generateItemStructFields(config, filepath.Join(outputDir, "internal/storage")); err != nil {
 		return fmt.Errorf("generating Item fields: %w", err)
 	}
@@ -97,7 +98,7 @@ func generateGoTypes(config *NutrientConfig, outputDir string) error {
 func generateCompleteNutrientStruct(config *NutrientConfig, outputDir string) error {
 	tmpl := `// CompleteNutrient represents all nutrition data for a food item (per serving)
 // THIS FILE IS GENERATED - DO NOT EDIT MANUALLY
-// Generated from nutrients.yaml - see internal/nutrients/generator.go
+// Generated from config/nutrients.yml - see internal/nutrients/generator.go
 type CompleteNutrient struct {
 {{- range .Nutrients}}
 {{- if and .Per100g (not (eq .Key "serving_grams"))}}
@@ -132,7 +133,7 @@ type CompleteNutrient struct {
 func generateItemStructFields(config *NutrientConfig, outputDir string) error {
 	tmpl := `// Generated Item struct nutrition fields
 // THIS FILE IS GENERATED - DO NOT EDIT MANUALLY
-// Generated from nutrients.yaml - see internal/nutrients/generator.go
+// Generated from config/nutrients.yml - see internal/nutrients/generator.go
 
 package storage
 

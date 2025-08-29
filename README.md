@@ -12,11 +12,12 @@ An AI-powered nutrition logging web app. Just say what you ate!
 
 This project aims to track 48+ total nutrients using a **centralized definition system**:
 
-> 🎯 **NEW**: Adding nutrients is now super easy! See [Nutrient System Documentation](internal/nutrients/README.md)
+Adding nutrients is now super easy! See [Nutrient System Documentation](internal/nutrients/README.md)
 
 **Quick Add Example:**
+
 ```yaml
-# Add to nutrients.yaml
+# Add to config/nutrients.yml
 - key: taurine_mg
   type: float64
   unit: mg

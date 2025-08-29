@@ -1,6 +1,6 @@
 // Generated Item struct nutrition fields
 // THIS FILE IS GENERATED - DO NOT EDIT MANUALLY
-// Generated from nutrients.yaml - see internal/nutrients/generator.go
+// Generated from config/nutrients.yml - see internal/nutrients/generator.go
 
 package storage
 
@@ -58,7 +58,6 @@ package storage
 	OriginalAlcohol *float64 `json:"original_alcohol_g,omitempty"` // Alcohol
 	OriginalCaffeine *float64 `json:"original_caffeine_mg,omitempty"` // Caffeine
 	OriginalCreatine *float64 `json:"original_creatine_mg,omitempty"` // Creatine
-	OriginalTaurine *float64 `json:"original_taurine_mg,omitempty"` // Taurine
 
 // Normalized nutrition data per 100g fields  
 
@@ -110,5 +109,4 @@ package storage
 	AlcoholPer100g float64 `json:"alcohol_g_per_100g"` // Alcohol per 100g
 	CaffeinePer100g float64 `json:"caffeine_mg_per_100g"` // Caffeine per 100g
 	CreatinePer100g float64 `json:"creatine_mg_per_100g"` // Creatine per 100g
-	TaurinePer100g float64 `json:"taurine_mg_per_100g"` // Taurine per 100g
 */

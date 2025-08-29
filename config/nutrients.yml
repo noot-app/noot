@@ -497,14 +497,3 @@ nutrients:
     go_field_name: Creatine
     json_tag: creatine_mg
     display_name: Creatine
-
-  # Example of how easy it is to add new nutrients  
-  - key: taurine_mg
-    type: float64
-    unit: mg
-    category: amino_acid
-    per_100g: true
-    original: true
-    go_field_name: Taurine
-    json_tag: taurine_mg
-    display_name: Taurine
