@@ -69,10 +69,19 @@ create index if not exists idx_consumption_items_consumption_id on public.consum
 create index if not exists idx_consumption_items_item_id on public.consumption_items(item_id);
 create index if not exists idx_consumption_items_created on public.consumption_items(consumption_id, created_at);
 
-drop trigger if exists set_consumption_items_updated_at on public.consumption_items;
-create trigger set_consumption_items_updated_at
-before update on public.consumption_items
-for each row execute function public.update_updated_at_column();
+-- Create trigger for updated_at column (no notice if trigger doesn't exist)
+do $$ 
+begin
+  -- Drop trigger if it exists
+  if exists (select 1 from pg_trigger where tgname = 'set_consumption_items_updated_at') then
+    drop trigger set_consumption_items_updated_at on public.consumption_items;
+  end if;
+  
+  -- Create the trigger
+  create trigger set_consumption_items_updated_at
+    before update on public.consumption_items
+    for each row execute function public.update_updated_at_column();
+end $$;
 
 alter table public.consumption_items enable row level security;
 create policy "Users can view own consumption_items"
