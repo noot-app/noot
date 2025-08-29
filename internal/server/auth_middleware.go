@@ -435,6 +435,9 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 
 	// Validate JWT secret strength if using legacy approach
 	if jwtSecret != "" && len(jwtSecret) < 32 {
+		if IsProduction() {
+			return nil, fmt.Errorf("JWT secret must be at least 32 characters in production")
+		}
 		LogWarn("JWT secret is shorter than recommended minimum of 32 characters")
 	}
 
@@ -607,14 +610,20 @@ func validateJWTClaims(claims *SupabaseJWTClaims) error {
 		return fmt.Errorf("invalid email format in claims")
 	}
 
-	// Optional issuer validation (if configured)
+	// Issuer validation (required in production, optional in development)
 	expectedIssuer := getEnv("SUPABASE_JWT_ISSUER", "")
+	if IsProduction() && expectedIssuer == "" {
+		return fmt.Errorf("SUPABASE_JWT_ISSUER must be configured in production")
+	}
 	if expectedIssuer != "" && claims.Issuer != expectedIssuer {
 		return fmt.Errorf("invalid issuer: expected %s, got %s", expectedIssuer, claims.Issuer)
 	}
 
-	// Optional audience validation (if configured)
+	// Audience validation (required in production, optional in development)
 	expectedAudience := getEnv("SUPABASE_JWT_AUDIENCE", "")
+	if IsProduction() && expectedAudience == "" {
+		return fmt.Errorf("SUPABASE_JWT_AUDIENCE must be configured in production")
+	}
 	if expectedAudience != "" {
 		validAudience := false
 		for _, aud := range claims.Audience {
@@ -670,9 +679,18 @@ func isValidEmail(email string) bool {
 		return false
 	}
 
-	// Basic character validation - no spaces, must be printable ASCII
+	// Basic character validation - no spaces, must be printable ASCII, no dangerous chars
 	for _, r := range email {
-		if r == ' ' || r < 32 || r > 126 {
+		if r == ' ' || r < 32 || r > 126 || r == '<' || r == '>' || r == '"' || r == '\'' {
+			return false
+		}
+	}
+
+	// Additional security checks to prevent common attack patterns
+	emailLower := strings.ToLower(email)
+	dangerousPatterns := []string{"script", "javascript", "vbscript", "onload", "onerror", "drop", "select", "union", "insert", "delete", "update", "create", "alter"}
+	for _, pattern := range dangerousPatterns {
+		if strings.Contains(emailLower, pattern) {
 			return false
 		}
 	}
