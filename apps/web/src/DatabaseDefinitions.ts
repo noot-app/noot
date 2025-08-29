@@ -9,6 +9,210 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      consumption_items: {
+        Row: {
+          added_sugars_g: number
+          alcohol_g: number
+          biotin_mcg: number
+          brand: string
+          caffeine_mg: number
+          calcium_mg: number
+          calories: number
+          chloride_mg: number
+          cholesterol_mg: number
+          choline_mg: number
+          chromium_mcg: number
+          consumption_id: string
+          copper_mg: number
+          created_at: string
+          creatine_mg: number
+          dietary_fiber_g: number
+          fluoride_mg: number
+          folate_mcg: number
+          grams: number
+          id: string
+          iodine_mcg: number
+          iron_mg: number
+          item_id: string | null
+          label: string | null
+          magnesium_mg: number
+          manganese_mg: number
+          molybdenum_mcg: number
+          monounsaturated_fat_g: number
+          name: string
+          niacin_mg: number
+          note: string | null
+          omega3_ala_g: number
+          omega3_dha_g: number
+          omega3_epa_g: number
+          omega6_g: number
+          pantothenic_acid_mg: number
+          phosphorus_mg: number
+          polyunsaturated_fat_g: number
+          potassium_mg: number
+          protein_g: number
+          riboflavin_mg: number
+          saturated_fat_g: number
+          selenium_mcg: number
+          sodium_mg: number
+          thiamine_mg: number
+          total_carbs_g: number
+          total_fat_g: number
+          total_sugars_g: number
+          trans_fat_g: number
+          updated_at: string
+          user_quantity: number | null
+          user_unit: string | null
+          vitamin_a_mcg: number
+          vitamin_b12_mcg: number
+          vitamin_b6_mg: number
+          vitamin_c_mg: number
+          vitamin_d_mcg: number
+          vitamin_e_mg: number
+          vitamin_k_mcg: number
+          zinc_mg: number
+        }
+        Insert: {
+          added_sugars_g?: number
+          alcohol_g?: number
+          biotin_mcg?: number
+          brand?: string
+          caffeine_mg?: number
+          calcium_mg?: number
+          calories?: number
+          chloride_mg?: number
+          cholesterol_mg?: number
+          choline_mg?: number
+          chromium_mcg?: number
+          consumption_id: string
+          copper_mg?: number
+          created_at?: string
+          creatine_mg?: number
+          dietary_fiber_g?: number
+          fluoride_mg?: number
+          folate_mcg?: number
+          grams?: number
+          id?: string
+          iodine_mcg?: number
+          iron_mg?: number
+          item_id?: string | null
+          label?: string | null
+          magnesium_mg?: number
+          manganese_mg?: number
+          molybdenum_mcg?: number
+          monounsaturated_fat_g?: number
+          name: string
+          niacin_mg?: number
+          note?: string | null
+          omega3_ala_g?: number
+          omega3_dha_g?: number
+          omega3_epa_g?: number
+          omega6_g?: number
+          pantothenic_acid_mg?: number
+          phosphorus_mg?: number
+          polyunsaturated_fat_g?: number
+          potassium_mg?: number
+          protein_g?: number
+          riboflavin_mg?: number
+          saturated_fat_g?: number
+          selenium_mcg?: number
+          sodium_mg?: number
+          thiamine_mg?: number
+          total_carbs_g?: number
+          total_fat_g?: number
+          total_sugars_g?: number
+          trans_fat_g?: number
+          updated_at?: string
+          user_quantity?: number | null
+          user_unit?: string | null
+          vitamin_a_mcg?: number
+          vitamin_b12_mcg?: number
+          vitamin_b6_mg?: number
+          vitamin_c_mg?: number
+          vitamin_d_mcg?: number
+          vitamin_e_mg?: number
+          vitamin_k_mcg?: number
+          zinc_mg?: number
+        }
+        Update: {
+          added_sugars_g?: number
+          alcohol_g?: number
+          biotin_mcg?: number
+          brand?: string
+          caffeine_mg?: number
+          calcium_mg?: number
+          calories?: number
+          chloride_mg?: number
+          cholesterol_mg?: number
+          choline_mg?: number
+          chromium_mcg?: number
+          consumption_id?: string
+          copper_mg?: number
+          created_at?: string
+          creatine_mg?: number
+          dietary_fiber_g?: number
+          fluoride_mg?: number
+          folate_mcg?: number
+          grams?: number
+          id?: string
+          iodine_mcg?: number
+          iron_mg?: number
+          item_id?: string | null
+          label?: string | null
+          magnesium_mg?: number
+          manganese_mg?: number
+          molybdenum_mcg?: number
+          monounsaturated_fat_g?: number
+          name?: string
+          niacin_mg?: number
+          note?: string | null
+          omega3_ala_g?: number
+          omega3_dha_g?: number
+          omega3_epa_g?: number
+          omega6_g?: number
+          pantothenic_acid_mg?: number
+          phosphorus_mg?: number
+          polyunsaturated_fat_g?: number
+          potassium_mg?: number
+          protein_g?: number
+          riboflavin_mg?: number
+          saturated_fat_g?: number
+          selenium_mcg?: number
+          sodium_mg?: number
+          thiamine_mg?: number
+          total_carbs_g?: number
+          total_fat_g?: number
+          total_sugars_g?: number
+          trans_fat_g?: number
+          updated_at?: string
+          user_quantity?: number | null
+          user_unit?: string | null
+          vitamin_a_mcg?: number
+          vitamin_b12_mcg?: number
+          vitamin_b6_mg?: number
+          vitamin_c_mg?: number
+          vitamin_d_mcg?: number
+          vitamin_e_mg?: number
+          vitamin_k_mcg?: number
+          zinc_mg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumption_items_consumption_id_fkey"
+            columns: ["consumption_id"]
+            isOneToOne: false
+            referencedRelation: "consumptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumption_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumptions: {
         Row: {
           added_sugars_g: number

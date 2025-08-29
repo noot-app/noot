@@ -270,9 +270,6 @@ type ConsumptionResponse struct {
 	// Items Items with complete nutrition information
 	Items []ItemWithNutrition `json:"items"`
 
-	// ParsedItems Items parsed from transcript (without nutrition data)
-	ParsedItems []Item `json:"parsedItems"`
-
 	// RequestId Request identifier for tracking
 	RequestId string  `json:"request_id"`
 	Summary   Summary `json:"summary"`

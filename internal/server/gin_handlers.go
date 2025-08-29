@@ -134,13 +134,11 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	LogDebug("Nutrition hydration completed", "hydrated_count", len(hydratedItems), "request_id", requestID)
 
 	// 4) Convert to API types
-	var apiItems []api.Item
 	var itemsWithNutrition []api.ItemWithNutrition
 
 	for _, it := range hydratedItems {
 		// Convert internal Item to API Item
 		apiItem := convertInternalItemToAPI(it)
-		apiItems = append(apiItems, apiItem)
 
 		// Create ItemWithNutrition
 		iw := api.ItemWithNutrition{
@@ -175,18 +173,39 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 			} else {
 				consumptionID = consumption.ID
 				LogInfo("Consumption saved to database", "consumption_id", consumption.ID, "user_id", user.ID, "request_id", requestID)
+
+				// Save individual consumption items for historic breakdown
+				for _, itemWithNutrition := range itemsWithNutrition {
+					// Try to find existing item in global cache for linking (optional)
+					var itemID *string
+					if s.store != nil {
+						normalizedName := normalizeItemName(itemWithNutrition.Item.Name)
+						normalizedBrand := normalizeItemName(getBrandOrEmpty(itemWithNutrition.Item.Brand))
+
+						// Create exact serving key to match how items are stored
+						exactKey := fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, itemWithNutrition.Item.Grams)
+						if existingItem, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && existingItem != nil {
+							itemID = &existingItem.ID
+						}
+					}
+
+					consumptionItem := apiItemWithNutritionToConsumptionItem(consumption.ID, itemWithNutrition, itemID)
+					if err := s.store.CreateConsumptionItem(ctx, consumptionItem); err != nil {
+						LogError("Failed to save consumption item", err, "item_name", itemWithNutrition.Item.Name, "consumption_id", consumption.ID)
+						// Continue with other items even if one fails
+					}
+				}
 			}
 		}
 	}
 
 	// Create the API response
 	resp := api.ConsumptionResponse{
-		Id:          consumptionID, // Include consumption ID for editing
-		Transcript:  transcript,
-		ParsedItems: apiItems,
-		Items:       itemsWithNutrition,
-		Summary:     apiSummary,
-		RequestId:   requestID,
+		Id:         consumptionID, // Include consumption ID for editing
+		Transcript: transcript,
+		Items:      itemsWithNutrition,
+		Summary:    apiSummary,
+		RequestId:  requestID,
 	}
 
 	LogInfo("Consumption request completed successfully",
@@ -250,22 +269,45 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 		return
 	}
 
-	// Convert updated consumption back to API format for response
-	apiItems := make([]api.Item, len(internalItems))
-	for i, item := range internalItems {
-		apiItems[i] = convertInternalItemToAPI(item.Item)
+	// Update consumption items - replace existing with new ones
+	// First, delete all existing consumption items
+	if err := s.store.DeleteConsumptionItemsByConsumption(ctx, updatedConsumption.ID); err != nil {
+		LogError("Failed to delete existing consumption items", err, "consumption_id", updatedConsumption.ID)
+		// Continue - this is not critical to fail the request
 	}
 
+	// Then, create new consumption items
+	for _, itemWithNutrition := range updateReq.Items {
+		// Try to find existing item in global cache for linking (optional)
+		var itemID *string
+		if s.store != nil {
+			normalizedName := normalizeItemName(itemWithNutrition.Item.Name)
+			normalizedBrand := normalizeItemName(getBrandOrEmpty(itemWithNutrition.Item.Brand))
+
+			// Create exact serving key to match how items are stored
+			exactKey := fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, itemWithNutrition.Item.Grams)
+			if existingItem, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && existingItem != nil {
+				itemID = &existingItem.ID
+			}
+		}
+
+		consumptionItem := apiItemWithNutritionToConsumptionItem(updatedConsumption.ID, itemWithNutrition, itemID)
+		if err := s.store.CreateConsumptionItem(ctx, consumptionItem); err != nil {
+			LogError("Failed to create consumption item during update", err, "item_name", itemWithNutrition.Item.Name, "consumption_id", updatedConsumption.ID)
+			// Continue with other items even if one fails
+		}
+	}
+
+	// Convert updated consumption back to API format for response
 	apiSummary := convertInternalSummaryToAPI(summary)
 
 	// Create the API response
 	resp := api.ConsumptionResponse{
-		Id:          updatedConsumption.ID,
-		Transcript:  updatedConsumption.Transcript,
-		ParsedItems: apiItems,
-		Items:       updateReq.Items,
-		Summary:     apiSummary,
-		RequestId:   requestID,
+		Id:         updatedConsumption.ID,
+		Transcript: updatedConsumption.Transcript,
+		Items:      updateReq.Items,
+		Summary:    apiSummary,
+		RequestId:  requestID,
 	}
 
 	LogInfo("Consumption updated successfully", "consumption_id", id, "request_id", requestID)
@@ -358,10 +400,22 @@ func (s *APIServer) GetConsumptions(c *gin.Context) {
 		return
 	}
 
+	// Convert storage consumptions to API format with consumption items
+	apiConsumptions := make([]api.Consumption, len(consumptions))
+	for i, consumption := range consumptions {
+		apiConsumption, err := storageConsumptionToAPI(c.Request.Context(), s.store, consumption)
+		if err != nil {
+			LogError("Failed to convert consumption to API format", err, "consumption_id", consumption.ID)
+			// Continue with other consumptions if one fails to convert
+			continue
+		}
+		apiConsumptions[i] = *apiConsumption
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"consumptions": consumptions,
+		"consumptions": apiConsumptions,
 		"user":         user,
-		"count":        len(consumptions),
+		"count":        len(apiConsumptions),
 	})
 }
 
