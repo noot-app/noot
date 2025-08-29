@@ -33,6 +33,12 @@ jobs:
       - name: bootstrap
         run: script/bootstrap --ci
 
+      - name: validate API types
+        run: script/generate-types
+
+      - name: lint
+        run: script/lint
+
       - name: test
         run: script/test
 
