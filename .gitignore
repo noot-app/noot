@@ -27,6 +27,7 @@ coverage.html
 tmp/
 
 .env
+.deploy.env
 *.secret
 
 /noot

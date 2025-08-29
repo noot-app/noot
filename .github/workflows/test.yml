@@ -1,30 +1,47 @@
-# name: test
+name: test
 
-# on:
-#   push:
-#     branches: [ main ]
-#   pull_request:
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
-# permissions:
-#   contents: read
+permissions:
+  contents: read
 
-# jobs:
-#   test:
-#     runs-on: ubuntu-latest
+jobs:
+  test:
+    runs-on: ubuntu-latest
 
-#     steps:
-#       - uses: actions/checkout@v5
-#         with:
-#           persist-credentials: false
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
-#       - name: setup go
-#         uses: actions/setup-go@v5
-#         with:
-#           go-version-file: 'go.mod'
-#           cache: true
+      - name: setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
 
-#       - name: bootstrap
-#         run: script/bootstrap
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version-file: apps/web/.node-version
+          cache: 'npm'
+          cache-dependency-path: 'apps/web/package-lock.json'
 
-#       - name: test
-#         run: script/test
+      - name: bootstrap
+        run: script/bootstrap --ci
+
+      - name: validate API types
+        run: script/generate-types
+
+      - name: lint
+        run: script/lint
+
+      - name: test
+        run: script/test
+
+      - name: test frontend
+        working-directory: apps/web
+        run: npm run test_run

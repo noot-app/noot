@@ -1,9 +1,6 @@
 # noot 🍎
 
-[![build](https://github.com/GrantBirki/noot/actions/workflows/build.yml/badge.svg)](https://github.com/GrantBirki/noot/actions/workflows/build.yml)
-[![lint](https://github.com/GrantBirki/noot/actions/workflows/lint.yml/badge.svg)](https://github.com/GrantBirki/noot/actions/workflows/lint.yml)
 [![test](https://github.com/GrantBirki/noot/actions/workflows/test.yml/badge.svg)](https://github.com/GrantBirki/noot/actions/workflows/test.yml)
-[![types](https://github.com/GrantBirki/noot/actions/workflows/types.yml/badge.svg)](https://github.com/GrantBirki/noot/actions/workflows/types.yml)
 
 An AI-powered nutrition logging web app. Just say what you ate!
 
