@@ -320,9 +320,9 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 			return
 		}
 
-		// Extract token from "Bearer <token>" format
+		// Extract token from "Bearer <token>" format (case-insensitive)
 		tokenParts := strings.Split(authHeader, " ")
-		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+		if len(tokenParts) != 2 || strings.ToLower(tokenParts[0]) != "bearer" {
 			LogWarn("Invalid Authorization header format")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
 			c.Abort()
