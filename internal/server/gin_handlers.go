@@ -259,6 +259,21 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 		return
 	}
 
+	// Update consumption items - delete existing and create new ones
+	if err := s.store.DeleteConsumptionItemsByConsumption(ctx, updatedConsumption.ID); err != nil {
+		LogError("Failed to delete existing consumption items", err, "consumption_id", updatedConsumption.ID)
+		// Don't fail the request if item cleanup fails
+	}
+
+	// Create new consumption items from updated items
+	for _, item := range updateReq.Items {
+		consumptionItem := itemWithNutritionToConsumptionItem(updatedConsumption.ID, item)
+		if err := s.store.CreateConsumptionItem(ctx, consumptionItem); err != nil {
+			LogError("Failed to create updated consumption item", err, "item_name", item.Item.Name)
+			// Don't fail the request if individual item creation fails
+		}
+	}
+
 	// Convert updated consumption back to API format for response
 	apiItems := make([]api.Item, len(internalItems))
 	for i, item := range internalItems {
@@ -367,11 +382,32 @@ func (s *APIServer) GetConsumptions(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"consumptions": consumptions,
-		"user":         user,
-		"count":        len(consumptions),
-	})
+	// Convert to API format with item breakdown
+	apiConsumptions := make([]api.Consumption, len(consumptions))
+	for i, consumption := range consumptions {
+		// Fetch consumption items for historic breakdown
+		items, err := s.store.GetConsumptionItems(c.Request.Context(), consumption.ID)
+		if err != nil {
+			// Log error but don't fail - just return consumption without items
+			LogError("Failed to get consumption items", err, "consumption_id", consumption.ID)
+			items = []*storage.ConsumptionItem{}
+		}
+		apiConsumptions[i] = convertStorageConsumptionToAPI(consumption, items)
+	}
+
+	response := api.ConsumptionsResponse{
+		Consumptions: apiConsumptions,
+		User: api.User{
+			Handle:    user.Handle,
+			Email:     user.Email,
+			FullName:  user.FullName,
+			CreatedAt: user.CreatedAt,
+			AvatarUrl: user.AvatarURL,
+		},
+		Count: len(apiConsumptions),
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // GetNutritionSummary implements ServerInterface.GetNutritionSummary
