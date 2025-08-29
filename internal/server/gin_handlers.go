@@ -134,13 +134,11 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	LogDebug("Nutrition hydration completed", "hydrated_count", len(hydratedItems), "request_id", requestID)
 
 	// 4) Convert to API types
-	var apiItems []api.Item
 	var itemsWithNutrition []api.ItemWithNutrition
 
 	for _, it := range hydratedItems {
 		// Convert internal Item to API Item
 		apiItem := convertInternalItemToAPI(it)
-		apiItems = append(apiItems, apiItem)
 
 		// Create ItemWithNutrition
 		iw := api.ItemWithNutrition{
@@ -180,10 +178,13 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 				for _, itemWithNutrition := range itemsWithNutrition {
 					// Try to find existing item in global cache for linking (optional)
 					var itemID *string
-					if s.store != nil && itemWithNutrition.Item.Brand != nil {
+					if s.store != nil {
 						normalizedName := normalizeItemName(itemWithNutrition.Item.Name)
-						normalizedBrand := normalizeItemName(*itemWithNutrition.Item.Brand)
-						if existingItem, err := s.store.GetItemByName(ctx, normalizedName, normalizedBrand); err == nil && existingItem != nil {
+						normalizedBrand := normalizeItemName(getBrandOrEmpty(itemWithNutrition.Item.Brand))
+
+						// Create exact serving key to match how items are stored
+						exactKey := fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, itemWithNutrition.Item.Grams)
+						if existingItem, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && existingItem != nil {
 							itemID = &existingItem.ID
 						}
 					}
@@ -200,12 +201,11 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 
 	// Create the API response
 	resp := api.ConsumptionResponse{
-		Id:          consumptionID, // Include consumption ID for editing
-		Transcript:  transcript,
-		ParsedItems: apiItems,
-		Items:       itemsWithNutrition,
-		Summary:     apiSummary,
-		RequestId:   requestID,
+		Id:         consumptionID, // Include consumption ID for editing
+		Transcript: transcript,
+		Items:      itemsWithNutrition,
+		Summary:    apiSummary,
+		RequestId:  requestID,
 	}
 
 	LogInfo("Consumption request completed successfully",
@@ -280,10 +280,13 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 	for _, itemWithNutrition := range updateReq.Items {
 		// Try to find existing item in global cache for linking (optional)
 		var itemID *string
-		if s.store != nil && itemWithNutrition.Item.Brand != nil {
+		if s.store != nil {
 			normalizedName := normalizeItemName(itemWithNutrition.Item.Name)
-			normalizedBrand := normalizeItemName(*itemWithNutrition.Item.Brand)
-			if existingItem, err := s.store.GetItemByName(ctx, normalizedName, normalizedBrand); err == nil && existingItem != nil {
+			normalizedBrand := normalizeItemName(getBrandOrEmpty(itemWithNutrition.Item.Brand))
+
+			// Create exact serving key to match how items are stored
+			exactKey := fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, itemWithNutrition.Item.Grams)
+			if existingItem, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && existingItem != nil {
 				itemID = &existingItem.ID
 			}
 		}
@@ -296,21 +299,15 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 	}
 
 	// Convert updated consumption back to API format for response
-	apiItems := make([]api.Item, len(internalItems))
-	for i, item := range internalItems {
-		apiItems[i] = convertInternalItemToAPI(item.Item)
-	}
-
 	apiSummary := convertInternalSummaryToAPI(summary)
 
 	// Create the API response
 	resp := api.ConsumptionResponse{
-		Id:          updatedConsumption.ID,
-		Transcript:  updatedConsumption.Transcript,
-		ParsedItems: apiItems,
-		Items:       updateReq.Items,
-		Summary:     apiSummary,
-		RequestId:   requestID,
+		Id:         updatedConsumption.ID,
+		Transcript: updatedConsumption.Transcript,
+		Items:      updateReq.Items,
+		Summary:    apiSummary,
+		RequestId:  requestID,
 	}
 
 	LogInfo("Consumption updated successfully", "consumption_id", id, "request_id", requestID)

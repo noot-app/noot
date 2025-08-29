@@ -292,8 +292,6 @@ export interface components {
             id: string;
             /** @description Transcribed text from audio */
             transcript: string;
-            /** @description Items parsed from transcript (without nutrition data) */
-            parsedItems: components["schemas"]["Item"][];
             /** @description Items with complete nutrition information */
             items: components["schemas"]["ItemWithNutrition"][];
             summary: components["schemas"]["Summary"];
