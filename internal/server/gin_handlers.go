@@ -175,6 +175,15 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 			} else {
 				consumptionID = consumption.ID
 				LogInfo("Consumption saved to database", "consumption_id", consumption.ID, "user_id", user.ID, "request_id", requestID)
+
+				// Also persist individual consumption items for historic breakdown
+				for _, item := range itemsWithNutrition {
+					consumptionItem := itemWithNutritionToConsumptionItem(consumption.ID, item)
+					if err := s.store.CreateConsumptionItem(ctx, consumptionItem); err != nil {
+						LogError("Failed to save consumption item to database", err, "item_name", item.Item.Name)
+						// Don't fail the request if individual item storage fails
+					}
+				}
 			}
 		}
 	}
