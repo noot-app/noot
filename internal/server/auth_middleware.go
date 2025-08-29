@@ -343,7 +343,8 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		user, err := validateJWTAndGetUser(c.Request.Context(), tokenString, store)
 
 		if err != nil {
-			LogWarn("JWT validation failed", "error", err.Error())
+			// Log validation failure without exposing sensitive error details
+			LogWarn("JWT validation failed - authentication rejected")
 
 			// Provide more specific error responses based on the error type
 			errorMsg := err.Error()
@@ -374,7 +375,7 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 
 			// Database connection/query errors
 			if strings.Contains(errorMsg, "database error") {
-				LogError("Database error during authentication", err)
+				LogError("Database error during authentication - connection or query failed", nil)
 				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Authentication service temporarily unavailable"})
 				c.Abort()
 				return
@@ -391,7 +392,7 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 			// Configuration issues
 			if strings.Contains(errorMsg, "PUBLIC_SUPABASE_URL") ||
 				strings.Contains(errorMsg, "SUPABASE_JWT_SECRET") {
-				LogError("Authentication configuration error", err)
+				LogError("Authentication configuration error - missing required environment variables", nil)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Authentication configuration error"})
 				c.Abort()
 				return
@@ -521,7 +522,7 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 
 	// Enhanced claim validation
 	if err := validateJWTClaims(claims); err != nil {
-		LogError("JWT claims validation failed", err)
+		LogError("JWT claims validation failed - invalid or missing required claims", nil)
 		return nil, fmt.Errorf("JWT claims validation failed: %w", err)
 	}
 
@@ -544,14 +545,13 @@ func validateJWTAndGetUser(ctx context.Context, tokenString string, store storag
 
 	if user == nil {
 		LogError("User profile not found despite valid JWT - data inconsistency detected", nil,
-			"user_id", claims.Subject, "email", claims.Email)
+			"user_id", claims.Subject)
 		return nil, fmt.Errorf("user profile not found")
 	}
 
 	// Update user email if it changed in Supabase
 	if user.Email != claims.Email {
-		LogInfo("User email changed in Supabase, updating local record",
-			"user_id", user.ID, "old_email", user.Email, "new_email", claims.Email)
+		LogInfo("User email changed in Supabase, updating local record", "user_id", user.ID)
 		user.Email = claims.Email
 		if err := store.UpdateUser(ctx, user); err != nil {
 			LogWarn("Failed to update user email", "user_id", user.ID, "error", err.Error())
