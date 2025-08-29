@@ -261,16 +261,16 @@ type Item struct {
 // ConsumptionItem represents the relationship between a consumption and an item
 // with nutrition snapshots preserved at time of logging
 type ConsumptionItem struct {
-	ID            string    `json:"id"`
-	ConsumptionID string    `json:"consumption_id"`
-	ItemID        *string   `json:"item_id"`         // Optional reference to global items cache
-	Name          string    `json:"name"`            // Display name snapshot
-	Brand         string    `json:"brand"`           // Brand snapshot
-	Grams         float64   `json:"grams"`           // Actual grams consumed (normalized internally)
-	UserQuantity  *float64  `json:"user_quantity"`   // Original user input quantity for display
-	UserUnit      *string   `json:"user_unit"`       // Original user input unit for display
-	Label         *string   `json:"label,omitempty"` // Custom label for the item
-	Note          *string   `json:"note,omitempty"`  // Additional note about the item
+	ID            string   `json:"id"`
+	ConsumptionID string   `json:"consumption_id"`
+	ItemID        *string  `json:"item_id"`         // Optional reference to global items cache
+	Name          string   `json:"name"`            // Display name snapshot
+	Brand         string   `json:"brand"`           // Brand snapshot
+	Grams         float64  `json:"grams"`           // Actual grams consumed (normalized internally)
+	UserQuantity  *float64 `json:"user_quantity"`   // Original user input quantity for display
+	UserUnit      *string  `json:"user_unit"`       // Original user input unit for display
+	Label         *string  `json:"label,omitempty"` // Custom label for the item
+	Note          *string  `json:"note,omitempty"`  // Additional note about the item
 
 	// Nutrition snapshot for THIS SERVING (not per-100g)
 	Calories            float64 `json:"calories"`

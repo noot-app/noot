@@ -175,7 +175,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 			} else {
 				consumptionID = consumption.ID
 				LogInfo("Consumption saved to database", "consumption_id", consumption.ID, "user_id", user.ID, "request_id", requestID)
-				
+
 				// Save individual consumption items for historic breakdown
 				for _, itemWithNutrition := range itemsWithNutrition {
 					// Try to find existing item in global cache for linking (optional)
@@ -187,7 +187,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 							itemID = &existingItem.ID
 						}
 					}
-					
+
 					consumptionItem := apiItemWithNutritionToConsumptionItem(consumption.ID, itemWithNutrition, itemID)
 					if err := s.store.CreateConsumptionItem(ctx, consumptionItem); err != nil {
 						LogError("Failed to save consumption item", err, "item_name", itemWithNutrition.Item.Name, "consumption_id", consumption.ID)
@@ -287,7 +287,7 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 				itemID = &existingItem.ID
 			}
 		}
-		
+
 		consumptionItem := apiItemWithNutritionToConsumptionItem(updatedConsumption.ID, itemWithNutrition, itemID)
 		if err := s.store.CreateConsumptionItem(ctx, consumptionItem); err != nil {
 			LogError("Failed to create consumption item during update", err, "item_name", itemWithNutrition.Item.Name, "consumption_id", updatedConsumption.ID)
