@@ -12,7 +12,10 @@ const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY;
  */
 export const supabase = (() => {
 	if (!supabaseUrl || !supabaseAnonKey) {
-		console.warn('supabase public variables not configured');
+		// Only warn in development
+		if (import.meta.env.DEV) {
+			console.warn('supabase public variables not configured');
+		}
 		return null;
 	}
 

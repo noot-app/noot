@@ -10,7 +10,10 @@ const supabase: Handle = async ({ event, resolve }) => {
   const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY;
   
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables not configured');
+    // Only warn in development, silently fail in production
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Supabase environment variables not configured');
+    }
     return resolve(event);
   }
 
@@ -94,11 +97,14 @@ const authGuard: Handle = async ({ event, resolve }) => {
       }
     } catch (error: unknown) {
       const supabaseError = error as { message?: string; code?: string; details?: string };
-      console.warn('Failed to fetch user profile data:', {
-        message: supabaseError.message,
-        code: supabaseError.code,
-        details: supabaseError.details
-      });
+      // Only log in development to avoid information leakage
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to fetch user profile data:', {
+          message: supabaseError.message,
+          code: supabaseError.code,
+          details: supabaseError.details
+        });
+      }
       // Fallback to basic user data
       appUser = {
         id: session.user.id,

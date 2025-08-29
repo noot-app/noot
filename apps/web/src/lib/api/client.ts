@@ -1,9 +1,10 @@
 import createClient from 'openapi-fetch';
 import { env } from '$env/dynamic/public';
 import type { paths } from './schema';
+import { apiLogger } from '$lib/utils/logger';
 
-// Debug logging for API base URL (can remove after confirming it works)
-console.log('API Base URL (runtime):', env.PUBLIC_API_BASE_URL);
+// Log API base URL in development only
+apiLogger.debug('API Base URL:', env.PUBLIC_API_BASE_URL);
 
 // Create base client with runtime environment variable
 const baseClient = createClient<paths>({ 
@@ -23,7 +24,7 @@ async function getAccessToken(): Promise<string | null> {
       return await authProvider.getAccessToken();
     }
   } catch (error) {
-    console.warn('Failed to get access token:', error);
+    apiLogger.warn('Failed to get access token:', error);
   }
   
   return null;

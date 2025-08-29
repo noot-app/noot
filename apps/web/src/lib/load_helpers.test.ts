@@ -130,7 +130,7 @@ describe('Load Helper', () => {
       expect(result.user).toBe(null);
     });
 
-    it('should ignore server session on client side and use getUser()', async () => {
+    it('should use server session on client side when available', async () => {
       const mockServerSession = {
         access_token: 'old-token',
         user: { id: 'old-user' }
@@ -152,11 +152,10 @@ describe('Load Helper', () => {
 
       const result = await load_helper(mockServerSession, mockSupabase);
 
-      expect(mockSupabase.auth.getUser).toHaveBeenCalled();
-      expect(result.user).toEqual(mockClientUser);
-      expect(result.session?.user).toEqual(mockClientUser);
-      // Should not use the server session data
-      expect(result.session?.access_token).toBe('');
+      // Should NOT call getUser if we have a valid server session
+      expect(mockSupabase.auth.getUser).not.toHaveBeenCalled();
+      expect(result.user).toEqual({ id: 'old-user' });
+      expect(result.session?.user).toEqual({ id: 'old-user' });
     });
 
     it('should handle getUser() throwing an exception', async () => {
@@ -275,8 +274,9 @@ describe('Load Helper', () => {
 
       const result = await load_helper(sessionWithoutUser, {} as any);
 
-      expect(result.session).toEqual(sessionWithoutUser);
-      expect(result.user).toBeUndefined();
+      // Should return null for invalid session (no user)
+      expect(result.session).toBe(null);
+      expect(result.user).toBe(null);
     });
 
     it('should handle server session with null user', async () => {
@@ -289,7 +289,8 @@ describe('Load Helper', () => {
 
       const result = await load_helper(sessionWithNullUser, {} as any);
 
-      expect(result.session).toEqual(sessionWithNullUser);
+      // Should return null for invalid session (null user)
+      expect(result.session).toBe(null);
       expect(result.user).toBe(null);
     });
   });

@@ -1,6 +1,10 @@
 import type { AuthProvider, User } from './provider';
 import { supabase, isSupabaseEnabled } from '$lib/supabase';
 import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { authLogger } from '$lib/utils/logger';
+import { userProfileCache } from '$lib/utils/user-cache';
+import { AuthError, sanitizeError } from '$lib/utils/errors';
+import { tokenRefreshLimiter, withRateLimit } from '$lib/utils/rate-limit';
 
 // Type for minimal session-like object we create from verified user
 type VerifiedSession = {
@@ -35,7 +39,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 	async getCurrentUser(): Promise<User | null> {
 		if (!supabase) return null;
 
-		console.debug('🔍 Getting current user from Supabase...');
+		authLogger.debug('Getting current user from Supabase...');
 		try {
 			// Use getUser() instead of getSession() for security - validates token with server
 			const { data: { user }, error } = await supabase.auth.getUser();
@@ -43,19 +47,19 @@ export class SupabaseAuthProvider implements AuthProvider {
 			if (error) {
 				// Don't log session missing errors as errors since they're expected when not logged in
 				if (error.message?.includes('Auth session missing')) {
-					console.debug('🔓 No active auth session (user not logged in)');
+					authLogger.debug('No active auth session (user not logged in)');
 				} else {
-					console.error('❌ Failed to get Supabase user:', error);
+					authLogger.error('Failed to get Supabase user:', error);
 				}
 				return null;
 			}
 
 			if (!user) {
-				console.debug('👤 No user found in Supabase session');
+				authLogger.debug('No user found in Supabase session');
 				return null;
 			}
 
-			console.debug('🔍 Supabase user found, mapping to app user...');
+			authLogger.debug('Supabase user found, mapping to app user...');
 			// We have a verified user, create a minimal session-like object for mapping
 			const verifiedSession = {
 				user: user,
@@ -67,10 +71,10 @@ export class SupabaseAuthProvider implements AuthProvider {
 			};
 
 			const mappedUser = await this.mapSupabaseUserToUser(verifiedSession);
-			console.debug('✅ Successfully mapped Supabase user:', mappedUser.email);
+			authLogger.debug('Successfully mapped Supabase user:', mappedUser.email);
 			return mappedUser;
 		} catch (error) {
-			console.error('❌ Error getting current user:', error);
+			authLogger.error('Error getting current user:', error);
 			return null;
 		}
 	}
@@ -80,7 +84,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 	 */
 	async signIn(email: string, password: string): Promise<{ user: User | null; error: string | null }> {
 		if (!supabase) {
-			console.error('❌ Supabase client not available in signIn');
+			authLogger.error('Supabase client not available in signIn');
 			return { user: null, error: 'Supabase not configured' };
 		}
 
@@ -91,12 +95,19 @@ export class SupabaseAuthProvider implements AuthProvider {
 			});
 
 			if (error) {
-				console.warn('❌ Supabase auth error:', error);
-				return { user: null, error: JSON.stringify({ code: error.code || error.name || 'unknown_error', message: error.message }) };
+				authLogger.warn('Supabase auth error:', error);
+				const sanitized = sanitizeError(error);
+				return { 
+					user: null, 
+					error: JSON.stringify({ 
+						code: error.code || error.name || 'unknown_error', 
+						message: sanitized.message 
+					}) 
+				};
 			}
 
 			if (!data.session) {
-				console.error('❌ No session created after successful auth');
+				authLogger.error('No session created after successful auth');
 				return { user: null, error: 'No session created' };
 			}
 
@@ -113,8 +124,9 @@ export class SupabaseAuthProvider implements AuthProvider {
 			
 			return { user: basicUser, error: null };
 		} catch (error) {
-			console.error('❌ Exception in SupabaseAuthProvider.signIn:', error);
-			return { user: null, error: String(error) };
+			const sanitized = sanitizeError(error);
+			authLogger.error('Exception in SupabaseAuthProvider.signIn:', sanitized.message);
+			return { user: null, error: sanitized.message };
 		}
 	}
 
@@ -137,8 +149,15 @@ export class SupabaseAuthProvider implements AuthProvider {
 			});
 			
 			if (error) {
-				console.warn('Supabase signup error:', error);
-				return { user: null, error: JSON.stringify({ code: error.code || error.name || 'unknown_error', message: error.message }) };
+				authLogger.warn('Supabase signup error:', error);
+				const sanitized = sanitizeError(error);
+				return { 
+					user: null, 
+					error: JSON.stringify({ 
+						code: error.code || error.name || 'unknown_error', 
+						message: sanitized.message 
+					}) 
+				};
 			}
 
 			// Note: Don't call mapSupabaseUserToUser here to avoid duplicate mapping
@@ -153,7 +172,8 @@ export class SupabaseAuthProvider implements AuthProvider {
 			
 			return { user: basicUser, error: null };
 		} catch (error) {
-			return { user: null, error: JSON.stringify({ code: 'signup_error', message: String(error) }) };
+			const sanitized = sanitizeError(error);
+			return { user: null, error: JSON.stringify({ code: 'signup_error', message: sanitized.message }) };
 		}
 	}
 
@@ -166,12 +186,19 @@ export class SupabaseAuthProvider implements AuthProvider {
 		try {
 			const { error } = await supabase.auth.signOut();
 			if (error) {
-				console.warn('Supabase signout error:', error);
-				return { error: JSON.stringify({ code: error.code || error.name || 'unknown_error', message: error.message }) };
+				authLogger.warn('Supabase signout error:', error);
+				const sanitized = sanitizeError(error);
+				return { 
+					error: JSON.stringify({ 
+						code: error.code || error.name || 'unknown_error', 
+						message: sanitized.message 
+					}) 
+				};
 			}
 			return { error: null };
 		} catch (error) {
-			return { error: JSON.stringify({ code: 'signout_error', message: String(error) }) };
+			const sanitized = sanitizeError(error);
+			return { error: JSON.stringify({ code: 'signout_error', message: sanitized.message }) };
 		}
 	}
 
@@ -184,12 +211,19 @@ export class SupabaseAuthProvider implements AuthProvider {
 		try {
 			const { error } = await supabase.auth.resetPasswordForEmail(email);
 			if (error) {
-				console.warn('Supabase reset password error:', error);
-				return { error: JSON.stringify({ code: error.code || error.name || 'unknown_error', message: error.message }) };
+				authLogger.warn('Supabase reset password error:', error);
+				const sanitized = sanitizeError(error);
+				return { 
+					error: JSON.stringify({ 
+						code: error.code || error.name || 'unknown_error', 
+						message: sanitized.message 
+					}) 
+				};
 			}
 			return { error: null };
 		} catch (error) {
-			return { error: JSON.stringify({ code: 'reset_password_error', message: String(error) }) };
+			const sanitized = sanitizeError(error);
+			return { error: JSON.stringify({ code: 'reset_password_error', message: sanitized.message }) };
 		}
 	}
 
@@ -199,9 +233,9 @@ export class SupabaseAuthProvider implements AuthProvider {
 	onAuthStateChange(callback: (user: User | null) => void) {
 		if (!supabase) return () => {};
 
-		console.debug('👂 Setting up Supabase auth state change listener');
+		authLogger.debug('Setting up Supabase auth state change listener');
 		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-			console.debug('🔄 Supabase auth event:', event);
+			authLogger.debug('Supabase auth event:', event);
 			
 			// Deduplication: Skip processing if this is the same event for the same user within a short time window
 			const currentTime = Date.now();
@@ -212,7 +246,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 				this.lastProcessedUserId === currentUserId &&
 				currentTime - this.lastProcessedTime < 1000 // 1 second window
 			) {
-				console.debug('⏭️ Skipping duplicate auth event processing');
+				authLogger.debug('Skipping duplicate auth event processing');
 				return;
 			}
 			
@@ -225,16 +259,16 @@ export class SupabaseAuthProvider implements AuthProvider {
 			if (session?.access_token && event !== 'TOKEN_REFRESHED') {
 				this.cachedAccessToken = session.access_token;
 				this.tokenExpiryTime = session.expires_at ? session.expires_at * 1000 : 0;
-				console.debug('🔑 Cached access token from auth event');
+				authLogger.debug('Cached access token from auth event');
 			}
 			
 			if (session?.user && supabase) {
 				// Verify the user is authentic using getUser() instead of trusting session directly
 				try {
-					console.debug('🔍 Verifying user authenticity after auth state change...');
+					authLogger.debug('Verifying user authenticity after auth state change...');
 					const { data: { user }, error } = await supabase.auth.getUser();
 					if (error || !user) {
-						console.debug('❌ User verification failed, setting to null');
+						authLogger.debug('User verification failed, setting to null');
 						this.cachedAccessToken = null;
 						this.tokenExpiryTime = 0;
 						callback(null);
@@ -250,38 +284,48 @@ export class SupabaseAuthProvider implements AuthProvider {
 						token_type: session.token_type || 'bearer'
 					};
 					const mappedUser = await this.mapSupabaseUserToUser(verifiedSessionObj);
-					console.debug('✅ Auth state change verified, user:', mappedUser.email);
+					authLogger.debug('Auth state change verified, user:', mappedUser.email);
 					callback(mappedUser);
 				} catch (error) {
-					console.error('❌ Error verifying user in auth state change:', error);
+					authLogger.error('Error verifying user in auth state change:', error);
 					this.cachedAccessToken = null;
 					this.tokenExpiryTime = 0;
 					callback(null);
 				}
 			} else {
-				console.debug('🔓 Auth state change: no session or user, setting to null');
+				authLogger.debug('Auth state change: no session or user, setting to null');
 				this.cachedAccessToken = null;
 				this.tokenExpiryTime = 0;
 				// Reset deduplication state on sign out
 				this.lastProcessedUserId = null;
 				this.lastProcessedEvent = null;
 				this.lastProcessedTime = 0;
+				// Clear user profile cache on sign out
+				userProfileCache.clear();
 				callback(null);
 			}
 		});
 
 		return () => {
-			console.debug('🔌 Unsubscribing from Supabase auth state changes');
+			authLogger.debug('Unsubscribing from Supabase auth state changes');
 			subscription.unsubscribe();
 		};
 	}
 
 	/**
 	 * Map Supabase session to our User interface with real database data
+	 * Uses caching to avoid redundant database queries
 	 */
 	private async mapSupabaseUserToUser(session: Session | VerifiedSession): Promise<User> {
 		const supabaseUser = session.user;
-		console.debug('🗂️ Mapping Supabase user to app user:', supabaseUser.email);
+		authLogger.debug('Mapping Supabase user to app user:', supabaseUser.email);
+		
+		// Check cache first
+		const cachedUser = userProfileCache.get(supabaseUser.id);
+		if (cachedUser) {
+			authLogger.debug('Using cached user profile for:', supabaseUser.email);
+			return cachedUser;
+		}
 		
 		try {
 			// Fetch real user data directly from Supabase database using RLS
@@ -289,7 +333,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 				throw new Error('Supabase client not available');
 			}
 
-			console.debug('🔍 Fetching user profile from database...');
+			authLogger.debug('Fetching user profile from database...');
 			const { data, error } = await supabase
 				.from('profiles')
 				.select('id, email, subscription_tier')
@@ -297,34 +341,42 @@ export class SupabaseAuthProvider implements AuthProvider {
 				.single();
 			
 			if (error) {
-				console.warn('⚠️ Failed to fetch user data from Supabase:', error);
+				authLogger.warn('Failed to fetch user data from Supabase:', error);
 			} else if (data) {
 				// Use data directly from database with RLS protection
-				console.debug('✅ User profile loaded from database:', {
+				authLogger.debug('User profile loaded from database:', {
 					email: data.email,
 					tier: data.subscription_tier
 				});
-				return {
+				const user: User = {
 					id: data.id,
 					email: data.email,
 					subscriptionTier: data.subscription_tier as 'free' | 'pro',
 					provider: 'supabase',
 					subject: supabaseUser.id
 				};
+				
+				// Cache the user profile
+				userProfileCache.set(supabaseUser.id, user);
+				return user;
 			}
 		} catch (error) {
-			console.warn('⚠️ Failed to fetch user data from database, falling back to session data:', error);
+			authLogger.warn('Failed to fetch user data from database, falling back to session data:', error);
 		}
 
 		// Fallback to session data if database query fails
-		console.debug('📋 Using session data fallback for user mapping');
-		return {
+		authLogger.debug('Using session data fallback for user mapping');
+		const fallbackUser: User = {
 			id: supabaseUser.id,
 			email: supabaseUser.email || '',
 			subscriptionTier: 'free' as const, // Default fallback
 			provider: 'supabase',
 			subject: supabaseUser.id
 		};
+		
+		// Cache the fallback user for a shorter duration to retry database query later
+		userProfileCache.set(supabaseUser.id, fallbackUser);
+		return fallbackUser;
 	}
 
 	/**
@@ -339,7 +391,7 @@ export class SupabaseAuthProvider implements AuthProvider {
 			const { data: { user }, error: userError } = await supabase.auth.getUser();
 			
 			if (userError || !user) {
-				console.debug('🔐 No verified user for access token');
+				authLogger.debug('No verified user for access token');
 				this.cachedAccessToken = null;
 				this.tokenExpiryTime = 0;
 				return null;
@@ -350,31 +402,43 @@ export class SupabaseAuthProvider implements AuthProvider {
 			const bufferTime = 60000; // 1 minute buffer before expiry
 			
 			if (this.cachedAccessToken && this.tokenExpiryTime > (now + bufferTime)) {
-				console.debug('🔑 Using cached access token');
+				authLogger.debug('Using cached access token');
 				return this.cachedAccessToken;
 			}
 
 			// Token is expired or missing, we need to refresh
-			console.debug('🔄 Access token expired/missing, refreshing...');
+			authLogger.debug('Access token expired/missing, refreshing...');
 			
-			// Use refreshSession() to get a new token
-			const { data, error } = await supabase.auth.refreshSession();
-			
-			if (error || !data.session) {
-				console.debug('❌ Failed to refresh session for access token');
-				this.cachedAccessToken = null;
-				this.tokenExpiryTime = 0;
-				return null;
-			}
+			try {
+				// Use rate-limited token refresh
+				const refreshResult = await withRateLimit(
+					tokenRefreshLimiter,
+					'token_refresh',
+					() => supabase.auth.refreshSession()
+				);
+				
+				if (refreshResult.error || !refreshResult.data.session) {
+					authLogger.debug('Failed to refresh session for access token');
+					this.cachedAccessToken = null;
+					this.tokenExpiryTime = 0;
+					return null;
+				}
 
-			// Cache the new token
-			this.cachedAccessToken = data.session.access_token;
-			this.tokenExpiryTime = data.session.expires_at ? data.session.expires_at * 1000 : 0;
-			
-			console.debug('✅ Access token refreshed and cached');
-			return this.cachedAccessToken;
+				// Cache the new token
+				this.cachedAccessToken = refreshResult.data.session.access_token;
+				this.tokenExpiryTime = refreshResult.data.session.expires_at 
+					? refreshResult.data.session.expires_at * 1000 
+					: 0;
+				
+				authLogger.debug('Access token refreshed and cached');
+				return this.cachedAccessToken;
+			} catch (rateLimitError) {
+				authLogger.warn('Token refresh rate limited:', rateLimitError);
+				// Return cached token even if expired rather than failing completely
+				return this.cachedAccessToken;
+			}
 		} catch (error) {
-			console.error('Failed to get access token:', error);
+			authLogger.error('Failed to get access token:', error);
 			this.cachedAccessToken = null;
 			this.tokenExpiryTime = 0;
 			return null;
