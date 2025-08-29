@@ -1,12 +1,12 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client";
-  import { env } from "$env/dynamic/public";
   import { onMount } from "svelte";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
   import Goals from "$lib/components/Goals.svelte";
+  import { getAppName } from "$lib/utils/app-info";
 
   // Get app name from runtime environment
-  $: appName = env.PUBLIC_APP_NAME || 'Noot';
+  $: appName = getAppName();
 
   let currentView: 'today' | 'week' = 'today';
   let isLoading = false;

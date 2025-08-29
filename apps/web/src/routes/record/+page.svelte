@@ -1,13 +1,13 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client";
-  import { env } from "$env/dynamic/public";
   import NutritionStats from "$lib/components/NutritionStats.svelte";
   import Goals from "$lib/components/Goals.svelte";
   import NutrientComposition from "$lib/components/NutrientComposition.svelte";
   import Card from "$lib/components/Card.svelte";
+  import { getAppName } from "$lib/utils/app-info";
 
   // Get app name from runtime environment
-  $: appName = env.PUBLIC_APP_NAME || 'Noot';
+  $: appName = getAppName();
 
   let isRecording = false;
   let mediaRecorder: MediaRecorder | null = null;

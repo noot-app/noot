@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { env } from "$env/dynamic/public";
   import { onMount } from "svelte";
+  import { getAppName } from "$lib/utils/app-info";
   
   // Get app name from runtime environment
-  $: appName = env.PUBLIC_APP_NAME || 'Noot';
+  $: appName = getAppName();
   
   // Import component styles
   import "$lib/styles/gradient-hero.css";
