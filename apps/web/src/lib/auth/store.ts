@@ -18,7 +18,7 @@ function createAuthProvider(): AuthProvider | null {
 		}
 	}
 	
-	console.warn('No auth provider available - Supabase is not properly configured');
+	console.warn('createAuthProvider() No auth provider available - Supabase is not properly configured');
 	return null;
 }
 
