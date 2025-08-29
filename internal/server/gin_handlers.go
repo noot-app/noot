@@ -360,24 +360,14 @@ func (s *APIServer) DeleteConsumption(c *gin.Context, id string) {
 // GetConsumptions implements ServerInterface.GetConsumptions
 func (s *APIServer) GetConsumptions(c *gin.Context) {
 	if s.store == nil {
-		errorResp := api.ErrorResponse{
-			Error:     "Storage not available",
-			Code:      http.StatusInternalServerError,
-			Timestamp: time.Now().UTC(),
-		}
-		c.JSON(http.StatusInternalServerError, errorResp)
+		handleStorageUnavailableError(c)
 		return
 	}
 
 	// For now, get consumptions for the default user
 	user, err := getCurrentUser(c, s.store)
 	if err != nil {
-		errorResp := api.ErrorResponse{
-			Error:     "Failed to get user",
-			Code:      http.StatusInternalServerError,
-			Timestamp: time.Now().UTC(),
-		}
-		c.JSON(http.StatusInternalServerError, errorResp)
+		handleInternalServerError(c, "Failed to get user", err)
 		return
 	}
 	if user == nil {
@@ -391,12 +381,7 @@ func (s *APIServer) GetConsumptions(c *gin.Context) {
 	// Get recent consumptions
 	consumptions, err := s.store.GetConsumptionsByUser(c.Request.Context(), user.ID, MaxConsumptions, 0)
 	if err != nil {
-		errorResp := api.ErrorResponse{
-			Error:     "Failed to get consumptions",
-			Code:      http.StatusInternalServerError,
-			Timestamp: time.Now().UTC(),
-		}
-		c.JSON(http.StatusInternalServerError, errorResp)
+		handleInternalServerError(c, "Failed to get consumptions", err)
 		return
 	}
 
@@ -422,12 +407,7 @@ func (s *APIServer) GetConsumptions(c *gin.Context) {
 // GetNutritionSummary implements ServerInterface.GetNutritionSummary
 func (s *APIServer) GetNutritionSummary(c *gin.Context, params api.GetNutritionSummaryParams) {
 	if s.store == nil {
-		errorResp := api.ErrorResponse{
-			Error:     "Storage not available",
-			Code:      http.StatusInternalServerError,
-			Timestamp: time.Now().UTC(),
-		}
-		c.JSON(http.StatusInternalServerError, errorResp)
+		handleStorageUnavailableError(c)
 		return
 	}
 
@@ -436,12 +416,7 @@ func (s *APIServer) GetNutritionSummary(c *gin.Context, params api.GetNutritionS
 	// Get the default user
 	user, err := getCurrentUser(c, s.store)
 	if err != nil {
-		errorResp := api.ErrorResponse{
-			Error:     "Failed to get user",
-			Code:      http.StatusInternalServerError,
-			Timestamp: time.Now().UTC(),
-		}
-		c.JSON(http.StatusInternalServerError, errorResp)
+		handleInternalServerError(c, "Failed to get user", err)
 		return
 	}
 	if user == nil {

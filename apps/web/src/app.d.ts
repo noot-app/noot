@@ -1,4 +1,4 @@
-import { Session, SupabaseClient, type AMREntry, type User as SupabaseUser } from "@supabase/supabase-js"
+import { Session, SupabaseClient, type AMREntry } from "@supabase/supabase-js"
 import { Database } from "./DatabaseDefinitions"
 import type { User } from "./lib/auth/provider"
 
