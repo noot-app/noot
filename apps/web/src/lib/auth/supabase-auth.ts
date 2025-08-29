@@ -14,20 +14,29 @@ export class SupabaseAuthProvider implements AuthProvider {
 	}
 
 	/**
-	 * Get the currently authenticated user from Supabase session
+	 * Get the currently authenticated user from Supabase (securely using getUser)
 	 */
 	async getCurrentUser(): Promise<User | null> {
 		if (!supabase) return null;
 
 		try {
-			const { data: { session }, error } = await supabase.auth.getSession();
+			// Use getUser() instead of getSession() for security - validates token with server
+			const { data: { user }, error } = await supabase.auth.getUser();
 			
 			if (error) {
-				console.error('❌ Failed to get Supabase session:', error);
+				console.error('❌ Failed to get Supabase user:', error);
 				return null;
 			}
 
-			if (!session?.user) {
+			if (!user) {
+				return null;
+			}
+
+			// We still need the session for mapping, but get it separately
+			const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+			
+			if (sessionError || !session) {
+				console.error('❌ Failed to get session for user mapping:', sessionError);
 				return null;
 			}
 
@@ -144,8 +153,24 @@ export class SupabaseAuthProvider implements AuthProvider {
 		if (!supabase) return () => {};
 
 		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-			const user = session ? await this.mapSupabaseUserToUser(session) : null;
-			callback(user);
+			if (session?.user) {
+				// Verify the user is authentic using getUser() instead of trusting session directly
+				try {
+					const { data: { user }, error } = await supabase.auth.getUser();
+					if (error || !user) {
+						callback(null);
+						return;
+					}
+					// User is verified, now we can safely use the session for mapping
+					const mappedUser = await this.mapSupabaseUserToUser(session);
+					callback(mappedUser);
+				} catch (error) {
+					console.error('❌ Error verifying user in auth state change:', error);
+					callback(null);
+				}
+			} else {
+				callback(null);
+			}
 		});
 
 		return () => subscription.unsubscribe();
@@ -202,9 +227,17 @@ export class SupabaseAuthProvider implements AuthProvider {
 		if (!supabase) return null;
 
 		try {
-			const { data: { session }, error } = await supabase.auth.getSession();
+			// First verify the user is authentic
+			const { data: { user }, error: userError } = await supabase.auth.getUser();
 			
-			if (error || !session) {
+			if (userError || !user) {
+				return null;
+			}
+
+			// Now get the session for the access token
+			const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+			
+			if (sessionError || !session) {
 				return null;
 			}
 

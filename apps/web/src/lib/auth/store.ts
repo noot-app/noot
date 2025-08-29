@@ -3,6 +3,9 @@ import type { AuthProvider, User } from './provider';
 import { SupabaseAuthProvider } from './supabase-auth';
 import { isSupabaseEnabled } from '$lib/supabase';
 
+// Track if auth has been initialized to prevent duplicate calls
+let authInitialized = false;
+
 /**
  * Current auth provider instance - uses Supabase authentication
  */
@@ -49,25 +52,44 @@ export const isPro = derived(currentUser, ($user) =>
  * Call this in your root layout or app initialization
  * Sets up auth state change listener for Supabase if using SupabaseAuthProvider
  */
-export async function initAuth(): Promise<void> {
+export async function initAuth(skipIfInitialized: boolean = true): Promise<void> {
+	// Prevent duplicate initialization unless explicitly requested
+	if (skipIfInitialized && authInitialized) {
+		return;
+	}
+
 	if (!authProvider) {
 		console.warn('❌ No auth provider available in initAuth');
 		return;
 	}
 
 	try {
-		const user = await authProvider.getCurrentUser();
-		currentUser.set(user);
+		// Only fetch current user if we don't already have one (to prevent duplicate calls)
+		const currentUserValue = await new Promise<User | null>((resolve) => {
+			const unsubscribe = currentUser.subscribe((user) => {
+				unsubscribe();
+				resolve(user);
+			});
+		});
 
-		// If using SupabaseAuthProvider, set up auth state change listener
-		if ('onAuthStateChange' in authProvider && typeof authProvider.onAuthStateChange === 'function') {
+		// If we don't have a user yet, get the current user
+		if (!currentUserValue) {
+			const user = await authProvider.getCurrentUser();
+			currentUser.set(user);
+		}
+
+		// Set up auth state change listener only if not already done
+		if (!authInitialized && 'onAuthStateChange' in authProvider && typeof authProvider.onAuthStateChange === 'function') {
 			authProvider.onAuthStateChange((user: User | null) => {
 				currentUser.set(user);
 			});
 		}
+
+		authInitialized = true;
 	} catch (error) {
 		console.error('❌ Failed to initialize auth:', error);
 		currentUser.set(null);
+		authInitialized = true; // Mark as initialized even on error to prevent infinite retries
 	}
 }
 
@@ -164,4 +186,11 @@ export async function resetPassword(email: string): Promise<{ error: Error | nul
 	}
 
 	return { error: new Error('Password reset not supported by current auth provider') };
+}
+
+/**
+ * Reset auth initialization state (useful for testing or manual reinitialize)
+ */
+export function resetAuthInitialization(): void {
+	authInitialized = false;
 }
