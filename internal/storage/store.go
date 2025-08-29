@@ -259,16 +259,71 @@ type Item struct {
 }
 
 // ConsumptionItem represents the relationship between a consumption and an item
+// with nutrition snapshots preserved at time of logging
 type ConsumptionItem struct {
-	ID            string    `json:"id"`
-	ConsumptionID string    `json:"consumption_id"`
-	ItemID        string    `json:"item_id"`
-	Grams         float64   `json:"grams"`           // Actual grams consumed (normalized internally)
-	UserQuantity  *float64  `json:"user_quantity"`   // Original user input quantity for display
-	UserUnit      *string   `json:"user_unit"`       // Original user input unit for display
-	Note          *string   `json:"note,omitempty"`  // Additional note about the item
-	Label         *string   `json:"label,omitempty"` // Custom label for the item
-	CreatedAt     time.Time `json:"created_at"`
+	ID            string   `json:"id"`
+	ConsumptionID string   `json:"consumption_id"`
+	ItemID        *string  `json:"item_id"`         // Optional reference to global items cache
+	Name          string   `json:"name"`            // Display name snapshot
+	Brand         string   `json:"brand"`           // Brand snapshot
+	Grams         float64  `json:"grams"`           // Actual grams consumed (normalized internally)
+	UserQuantity  *float64 `json:"user_quantity"`   // Original user input quantity for display
+	UserUnit      *string  `json:"user_unit"`       // Original user input unit for display
+	Label         *string  `json:"label,omitempty"` // Custom label for the item
+	Note          *string  `json:"note,omitempty"`  // Additional note about the item
+
+	// Nutrition snapshot for THIS SERVING (not per-100g)
+	Calories            float64 `json:"calories"`
+	ProteinG            float64 `json:"protein_g"`
+	TotalFatG           float64 `json:"total_fat_g"`
+	SaturatedFatG       float64 `json:"saturated_fat_g"`
+	TransFatG           float64 `json:"trans_fat_g"`
+	CholesterolMg       float64 `json:"cholesterol_mg"`
+	SodiumMg            float64 `json:"sodium_mg"`
+	TotalCarbsG         float64 `json:"total_carbs_g"`
+	DietaryFiberG       float64 `json:"dietary_fiber_g"`
+	TotalSugarsG        float64 `json:"total_sugars_g"`
+	AddedSugarsG        float64 `json:"added_sugars_g"`
+	VitaminAMcg         float64 `json:"vitamin_a_mcg"`
+	VitaminCMg          float64 `json:"vitamin_c_mg"`
+	VitaminDMcg         float64 `json:"vitamin_d_mcg"`
+	VitaminEMg          float64 `json:"vitamin_e_mg"`
+	VitaminKMcg         float64 `json:"vitamin_k_mcg"`
+	ThiamineMg          float64 `json:"thiamine_mg"`
+	RiboflavinMg        float64 `json:"riboflavin_mg"`
+	NiacinMg            float64 `json:"niacin_mg"`
+	VitaminB6Mg         float64 `json:"vitamin_b6_mg"`
+	FolateMcg           float64 `json:"folate_mcg"`
+	VitaminB12Mcg       float64 `json:"vitamin_b12_mcg"`
+	BiotinMcg           float64 `json:"biotin_mcg"`
+	PantothenicAcidMg   float64 `json:"pantothenic_acid_mg"`
+	CholineMg           float64 `json:"choline_mg"`
+	CalciumMg           float64 `json:"calcium_mg"`
+	IronMg              float64 `json:"iron_mg"`
+	MagnesiumMg         float64 `json:"magnesium_mg"`
+	PhosphorusMg        float64 `json:"phosphorus_mg"`
+	PotassiumMg         float64 `json:"potassium_mg"`
+	ZincMg              float64 `json:"zinc_mg"`
+	CopperMg            float64 `json:"copper_mg"`
+	ManganeseMg         float64 `json:"manganese_mg"`
+	SeleniumMcg         float64 `json:"selenium_mcg"`
+	IodineMcg           float64 `json:"iodine_mcg"`
+	MolybdenumMcg       float64 `json:"molybdenum_mcg"`
+	ChromiumMcg         float64 `json:"chromium_mcg"`
+	FluorideMg          float64 `json:"fluoride_mg"`
+	ChlorideMg          float64 `json:"chloride_mg"`
+	Omega3AlaG          float64 `json:"omega3_ala_g"`
+	Omega3EpaG          float64 `json:"omega3_epa_g"`
+	Omega3DhaG          float64 `json:"omega3_dha_g"`
+	Omega6G             float64 `json:"omega6_g"`
+	CreatineMg          float64 `json:"creatine_mg"`
+	CaffeineMg          float64 `json:"caffeine_mg"`
+	AlcoholG            float64 `json:"alcohol_g"`
+	PolyunsaturatedFatG float64 `json:"polyunsaturated_fat_g"`
+	MonounsaturatedFatG float64 `json:"monounsaturated_fat_g"`
+
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 }
 
 // ItemAlias represents alternative names/spellings for food items

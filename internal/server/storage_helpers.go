@@ -1,6 +1,9 @@
 package server
 
 import (
+	"context"
+
+	"github.com/grantbirki/noot/internal/api"
 	"github.com/grantbirki/noot/internal/storage"
 )
 
@@ -85,4 +88,385 @@ func itemWithNutritionToConsumption(userID string, transcript string, items []It
 		Caffeine: summary.Totals.Caffeine,
 		Creatine: summary.Totals.Creatine,
 	}
+}
+
+// itemWithNutritionToConsumptionItem converts server response data to a consumption item record
+func itemWithNutritionToConsumptionItem(consumptionID string, item ItemWithNutrition, itemID *string) *storage.ConsumptionItem {
+	brandStr := ""
+	if item.Item.Brand != nil {
+		brandStr = *item.Item.Brand
+	}
+
+	var nutrients CompleteNutrient
+	if item.Item.Nutrients != nil {
+		nutrients = *item.Item.Nutrients
+	}
+
+	return &storage.ConsumptionItem{
+		ConsumptionID: consumptionID,
+		ItemID:        itemID,
+		Name:          item.Item.Name,
+		Brand:         brandStr,
+		Grams:         item.Item.Grams,
+		UserQuantity:  item.Item.UserQuantity,
+		UserUnit:      item.Item.UserUnit,
+		Label:         item.Item.Label,
+		Note:          item.Item.Note,
+		// Nutrition snapshot for this serving
+		Calories:            nutrients.Calories,
+		ProteinG:            nutrients.Protein,
+		TotalFatG:           nutrients.TotalFat,
+		SaturatedFatG:       nutrients.SaturatedFat,
+		TransFatG:           nutrients.TransFat,
+		CholesterolMg:       nutrients.Cholesterol,
+		SodiumMg:            nutrients.Sodium,
+		TotalCarbsG:         nutrients.TotalCarbs,
+		DietaryFiberG:       nutrients.DietaryFiber,
+		TotalSugarsG:        nutrients.TotalSugars,
+		AddedSugarsG:        nutrients.AddedSugars,
+		VitaminAMcg:         nutrients.VitaminA,
+		VitaminCMg:          nutrients.VitaminC,
+		VitaminDMcg:         nutrients.VitaminD,
+		VitaminEMg:          nutrients.VitaminE,
+		VitaminKMcg:         nutrients.VitaminK,
+		ThiamineMg:          nutrients.Thiamine,
+		RiboflavinMg:        nutrients.Riboflavin,
+		NiacinMg:            nutrients.Niacin,
+		VitaminB6Mg:         nutrients.VitaminB6,
+		FolateMcg:           nutrients.Folate,
+		VitaminB12Mcg:       nutrients.VitaminB12,
+		BiotinMcg:           nutrients.Biotin,
+		PantothenicAcidMg:   nutrients.PantothenicAcid,
+		CholineMg:           nutrients.Choline,
+		CalciumMg:           nutrients.Calcium,
+		IronMg:              nutrients.Iron,
+		MagnesiumMg:         nutrients.Magnesium,
+		PhosphorusMg:        nutrients.Phosphorus,
+		PotassiumMg:         nutrients.Potassium,
+		ZincMg:              nutrients.Zinc,
+		CopperMg:            nutrients.Copper,
+		ManganeseMg:         nutrients.Manganese,
+		SeleniumMcg:         nutrients.Selenium,
+		IodineMcg:           nutrients.Iodine,
+		MolybdenumMcg:       nutrients.Molybdenum,
+		ChromiumMcg:         nutrients.Chromium,
+		FluorideMg:          nutrients.Fluoride,
+		ChlorideMg:          nutrients.Chloride,
+		Omega3AlaG:          nutrients.Omega3Ala,
+		Omega3EpaG:          nutrients.Omega3Epa,
+		Omega3DhaG:          nutrients.Omega3Dha,
+		Omega6G:             nutrients.Omega6,
+		CreatineMg:          nutrients.Creatine,
+		CaffeineMg:          nutrients.Caffeine,
+		AlcoholG:            nutrients.Alcohol,
+		PolyunsaturatedFatG: nutrients.PolyunsaturatedFat,
+		MonounsaturatedFatG: nutrients.MonounsaturatedFat,
+	}
+}
+
+// apiItemWithNutritionToConsumptionItem converts API response data to a consumption item record
+func apiItemWithNutritionToConsumptionItem(consumptionID string, item api.ItemWithNutrition, itemID *string) *storage.ConsumptionItem {
+	brandStr := ""
+	if item.Item.Brand != nil {
+		brandStr = *item.Item.Brand
+	}
+
+	var nutrients api.CompleteNutrient
+	if item.Item.Nutrients != nil {
+		nutrients = *item.Item.Nutrients
+	}
+
+	var userQty *float64
+	if item.Item.UserQuantity != nil {
+		f64val := float64(*item.Item.UserQuantity)
+		userQty = &f64val
+	}
+
+	return &storage.ConsumptionItem{
+		ConsumptionID: consumptionID,
+		ItemID:        itemID,
+		Name:          item.Item.Name,
+		Brand:         brandStr,
+		Grams:         float64(item.Item.Grams),
+		UserQuantity:  userQty,
+		UserUnit:      item.Item.UserUnit,
+		Label:         item.Item.Label,
+		Note:          item.Item.Note,
+		// Nutrition snapshot for this serving
+		Calories:            float64(nutrients.Calories),
+		ProteinG:            float64(nutrients.ProteinG),
+		TotalFatG:           float64(nutrients.TotalFatG),
+		SaturatedFatG:       float64(nutrients.SaturatedFatG),
+		TransFatG:           float64(nutrients.TransFatG),
+		CholesterolMg:       float64(nutrients.CholesterolMg),
+		SodiumMg:            float64(nutrients.SodiumMg),
+		TotalCarbsG:         float64(nutrients.TotalCarbsG),
+		DietaryFiberG:       float64(nutrients.DietaryFiberG),
+		TotalSugarsG:        float64(nutrients.TotalSugarsG),
+		AddedSugarsG:        float64(nutrients.AddedSugarsG),
+		VitaminAMcg:         float64(nutrients.VitaminAMcg),
+		VitaminCMg:          float64(nutrients.VitaminCMg),
+		VitaminDMcg:         float64(nutrients.VitaminDMcg),
+		VitaminEMg:          float64(nutrients.VitaminEMg),
+		VitaminKMcg:         float64(nutrients.VitaminKMcg),
+		ThiamineMg:          float64(nutrients.ThiamineMg),
+		RiboflavinMg:        float64(nutrients.RiboflavinMg),
+		NiacinMg:            float64(nutrients.NiacinMg),
+		VitaminB6Mg:         float64(nutrients.VitaminB6Mg),
+		FolateMcg:           float64(nutrients.FolateMcg),
+		VitaminB12Mcg:       float64(nutrients.VitaminB12Mcg),
+		BiotinMcg:           float64(nutrients.BiotinMcg),
+		PantothenicAcidMg:   float64(nutrients.PantothenicAcidMg),
+		CholineMg:           float64(nutrients.CholineMg),
+		CalciumMg:           float64(nutrients.CalciumMg),
+		IronMg:              float64(nutrients.IronMg),
+		MagnesiumMg:         float64(nutrients.MagnesiumMg),
+		PhosphorusMg:        float64(nutrients.PhosphorusMg),
+		PotassiumMg:         float64(nutrients.PotassiumMg),
+		ZincMg:              float64(nutrients.ZincMg),
+		CopperMg:            float64(nutrients.CopperMg),
+		ManganeseMg:         float64(nutrients.ManganeseMg),
+		SeleniumMcg:         float64(nutrients.SeleniumMcg),
+		IodineMcg:           float64(nutrients.IodineMcg),
+		MolybdenumMcg:       float64(nutrients.MolybdenumMcg),
+		ChromiumMcg:         float64(nutrients.ChromiumMcg),
+		FluorideMg:          float64(nutrients.FluorideMg),
+		ChlorideMg:          float64(nutrients.ChlorideMg),
+		Omega3AlaG:          float64(nutrients.Omega3AlaG),
+		Omega3EpaG:          float64(nutrients.Omega3EpaG),
+		Omega3DhaG:          float64(nutrients.Omega3DhaG),
+		Omega6G:             float64(nutrients.Omega6G),
+		CreatineMg:          float64(nutrients.CreatineMg),
+		CaffeineMg:          float64(nutrients.CaffeineMg),
+		AlcoholG:            float64(nutrients.AlcoholG),
+		PolyunsaturatedFatG: float64(nutrients.PolyunsaturatedFatG),
+		MonounsaturatedFatG: float64(nutrients.MonounsaturatedFatG),
+	}
+}
+
+// consumptionItemToItemWithNutrition converts a consumption item back to server response format
+func consumptionItemToItemWithNutrition(ci *storage.ConsumptionItem) ItemWithNutrition {
+	var brand *string
+	if ci.Brand != "" {
+		brand = &ci.Brand
+	}
+
+	nutrients := &CompleteNutrient{
+		Calories:           ci.Calories,
+		Protein:            ci.ProteinG,
+		TotalFat:           ci.TotalFatG,
+		SaturatedFat:       ci.SaturatedFatG,
+		TransFat:           ci.TransFatG,
+		Cholesterol:        ci.CholesterolMg,
+		Sodium:             ci.SodiumMg,
+		TotalCarbs:         ci.TotalCarbsG,
+		DietaryFiber:       ci.DietaryFiberG,
+		TotalSugars:        ci.TotalSugarsG,
+		AddedSugars:        ci.AddedSugarsG,
+		VitaminA:           ci.VitaminAMcg,
+		VitaminC:           ci.VitaminCMg,
+		VitaminD:           ci.VitaminDMcg,
+		VitaminE:           ci.VitaminEMg,
+		VitaminK:           ci.VitaminKMcg,
+		Thiamine:           ci.ThiamineMg,
+		Riboflavin:         ci.RiboflavinMg,
+		Niacin:             ci.NiacinMg,
+		VitaminB6:          ci.VitaminB6Mg,
+		Folate:             ci.FolateMcg,
+		VitaminB12:         ci.VitaminB12Mcg,
+		Biotin:             ci.BiotinMcg,
+		PantothenicAcid:    ci.PantothenicAcidMg,
+		Choline:            ci.CholineMg,
+		Calcium:            ci.CalciumMg,
+		Iron:               ci.IronMg,
+		Magnesium:          ci.MagnesiumMg,
+		Phosphorus:         ci.PhosphorusMg,
+		Potassium:          ci.PotassiumMg,
+		Zinc:               ci.ZincMg,
+		Copper:             ci.CopperMg,
+		Manganese:          ci.ManganeseMg,
+		Selenium:           ci.SeleniumMcg,
+		Iodine:             ci.IodineMcg,
+		Molybdenum:         ci.MolybdenumMcg,
+		Chromium:           ci.ChromiumMcg,
+		Fluoride:           ci.FluorideMg,
+		Chloride:           ci.ChlorideMg,
+		Omega3Ala:          ci.Omega3AlaG,
+		Omega3Epa:          ci.Omega3EpaG,
+		Omega3Dha:          ci.Omega3DhaG,
+		Omega6:             ci.Omega6G,
+		Creatine:           ci.CreatineMg,
+		Caffeine:           ci.CaffeineMg,
+		Alcohol:            ci.AlcoholG,
+		PolyunsaturatedFat: ci.PolyunsaturatedFatG,
+		MonounsaturatedFat: ci.MonounsaturatedFatG,
+	}
+
+	return ItemWithNutrition{
+		Item: Item{
+			Name:         ci.Name,
+			Grams:        ci.Grams,
+			UserQuantity: ci.UserQuantity,
+			UserUnit:     ci.UserUnit,
+			Brand:        brand,
+			Note:         ci.Note,
+			Label:        ci.Label,
+			Nutrients:    nutrients,
+		},
+	}
+}
+
+// storageConsumptionToAPI converts storage.Consumption with its items to API format
+func storageConsumptionToAPI(ctx context.Context, store storage.Store, consumption *storage.Consumption) (*api.Consumption, error) {
+	// Get consumption items for historic breakdown
+	consumptionItems, err := store.GetConsumptionItems(ctx, consumption.ID)
+	if err != nil {
+		LogError("Failed to get consumption items", err, "consumption_id", consumption.ID)
+		// Continue without items if this fails - fallback to empty array
+		consumptionItems = []*storage.ConsumptionItem{}
+	}
+
+	// Convert consumption items to API format
+	apiItems := make([]api.ItemWithNutrition, len(consumptionItems))
+	for i, ci := range consumptionItems {
+		var brand *string
+		if ci.Brand != "" {
+			brand = &ci.Brand
+		}
+
+		nutrients := &api.CompleteNutrient{
+			Calories:            float32(ci.Calories),
+			ProteinG:            float32(ci.ProteinG),
+			TotalFatG:           float32(ci.TotalFatG),
+			SaturatedFatG:       float32(ci.SaturatedFatG),
+			TransFatG:           float32(ci.TransFatG),
+			CholesterolMg:       float32(ci.CholesterolMg),
+			SodiumMg:            float32(ci.SodiumMg),
+			TotalCarbsG:         float32(ci.TotalCarbsG),
+			DietaryFiberG:       float32(ci.DietaryFiberG),
+			TotalSugarsG:        float32(ci.TotalSugarsG),
+			AddedSugarsG:        float32(ci.AddedSugarsG),
+			VitaminAMcg:         float32(ci.VitaminAMcg),
+			VitaminCMg:          float32(ci.VitaminCMg),
+			VitaminDMcg:         float32(ci.VitaminDMcg),
+			VitaminEMg:          float32(ci.VitaminEMg),
+			VitaminKMcg:         float32(ci.VitaminKMcg),
+			ThiamineMg:          float32(ci.ThiamineMg),
+			RiboflavinMg:        float32(ci.RiboflavinMg),
+			NiacinMg:            float32(ci.NiacinMg),
+			VitaminB6Mg:         float32(ci.VitaminB6Mg),
+			FolateMcg:           float32(ci.FolateMcg),
+			VitaminB12Mcg:       float32(ci.VitaminB12Mcg),
+			BiotinMcg:           float32(ci.BiotinMcg),
+			PantothenicAcidMg:   float32(ci.PantothenicAcidMg),
+			CholineMg:           float32(ci.CholineMg),
+			CalciumMg:           float32(ci.CalciumMg),
+			IronMg:              float32(ci.IronMg),
+			MagnesiumMg:         float32(ci.MagnesiumMg),
+			PhosphorusMg:        float32(ci.PhosphorusMg),
+			PotassiumMg:         float32(ci.PotassiumMg),
+			ZincMg:              float32(ci.ZincMg),
+			CopperMg:            float32(ci.CopperMg),
+			ManganeseMg:         float32(ci.ManganeseMg),
+			SeleniumMcg:         float32(ci.SeleniumMcg),
+			IodineMcg:           float32(ci.IodineMcg),
+			MolybdenumMcg:       float32(ci.MolybdenumMcg),
+			ChromiumMcg:         float32(ci.ChromiumMcg),
+			FluorideMg:          float32(ci.FluorideMg),
+			ChlorideMg:          float32(ci.ChlorideMg),
+			Omega3AlaG:          float32(ci.Omega3AlaG),
+			Omega3EpaG:          float32(ci.Omega3EpaG),
+			Omega3DhaG:          float32(ci.Omega3DhaG),
+			Omega6G:             float32(ci.Omega6G),
+			CreatineMg:          float32(ci.CreatineMg),
+			CaffeineMg:          float32(ci.CaffeineMg),
+			AlcoholG:            float32(ci.AlcoholG),
+			PolyunsaturatedFatG: float32(ci.PolyunsaturatedFatG),
+			MonounsaturatedFatG: float32(ci.MonounsaturatedFatG),
+		}
+
+		var userQty *float32
+		if ci.UserQuantity != nil {
+			f32val := float32(*ci.UserQuantity)
+			userQty = &f32val
+		}
+
+		apiItems[i] = api.ItemWithNutrition{
+			Item: api.Item{
+				Name:         ci.Name,
+				Grams:        float32(ci.Grams),
+				UserQuantity: userQty,
+				UserUnit:     ci.UserUnit,
+				Brand:        brand,
+				Note:         ci.Note,
+				Label:        ci.Label,
+				Nutrients:    nutrients,
+			},
+		}
+	}
+
+	// Create summary from storage totals
+	summary := api.Summary{
+		Totals: api.CompleteNutrient{
+			Calories:            float32(consumption.TotalCalories),
+			ProteinG:            float32(consumption.TotalProtein),
+			TotalFatG:           float32(consumption.TotalFat),
+			SaturatedFatG:       float32(consumption.SaturatedFat),
+			TransFatG:           float32(consumption.TransFat),
+			CholesterolMg:       float32(consumption.Cholesterol),
+			SodiumMg:            float32(consumption.TotalSodium),
+			TotalCarbsG:         float32(consumption.TotalCarbs),
+			DietaryFiberG:       float32(consumption.DietaryFiber),
+			TotalSugarsG:        float32(consumption.TotalSugars),
+			AddedSugarsG:        float32(consumption.AddedSugars),
+			VitaminAMcg:         float32(consumption.VitaminA),
+			VitaminCMg:          float32(consumption.VitaminC),
+			VitaminDMcg:         float32(consumption.VitaminD),
+			VitaminEMg:          float32(consumption.VitaminE),
+			VitaminKMcg:         float32(consumption.VitaminK),
+			ThiamineMg:          float32(consumption.Thiamine),
+			RiboflavinMg:        float32(consumption.Riboflavin),
+			NiacinMg:            float32(consumption.Niacin),
+			VitaminB6Mg:         float32(consumption.VitaminB6),
+			FolateMcg:           float32(consumption.Folate),
+			VitaminB12Mcg:       float32(consumption.VitaminB12),
+			BiotinMcg:           float32(consumption.Biotin),
+			PantothenicAcidMg:   float32(consumption.PantothenicAcid),
+			CholineMg:           float32(consumption.Choline),
+			CalciumMg:           float32(consumption.Calcium),
+			IronMg:              float32(consumption.Iron),
+			MagnesiumMg:         float32(consumption.Magnesium),
+			PhosphorusMg:        float32(consumption.Phosphorus),
+			PotassiumMg:         float32(consumption.Potassium),
+			ZincMg:              float32(consumption.Zinc),
+			CopperMg:            float32(consumption.Copper),
+			ManganeseMg:         float32(consumption.Manganese),
+			SeleniumMcg:         float32(consumption.Selenium),
+			IodineMcg:           float32(consumption.Iodine),
+			MolybdenumMcg:       float32(consumption.Molybdenum),
+			ChromiumMcg:         float32(consumption.Chromium),
+			FluorideMg:          float32(consumption.Fluoride),
+			ChlorideMg:          float32(consumption.Chloride),
+			Omega3AlaG:          float32(consumption.Omega3Ala),
+			Omega3EpaG:          float32(consumption.Omega3Epa),
+			Omega3DhaG:          float32(consumption.Omega3Dha),
+			Omega6G:             float32(consumption.Omega6),
+			CreatineMg:          float32(consumption.Creatine),
+			CaffeineMg:          float32(consumption.Caffeine),
+			AlcoholG:            float32(consumption.Alcohol),
+			PolyunsaturatedFatG: float32(consumption.PolyunsaturatedFat),
+			MonounsaturatedFatG: float32(consumption.MonounsaturatedFat),
+		},
+	}
+
+	return &api.Consumption{
+		Id:         consumption.ID,
+		UserId:     consumption.UserID,
+		Transcript: consumption.Transcript,
+		Note:       consumption.Note,
+		Label:      consumption.Label,
+		Items:      apiItems,
+		Summary:    summary,
+		CreatedAt:  consumption.CreatedAt,
+	}, nil
 }

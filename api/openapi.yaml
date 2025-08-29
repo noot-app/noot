@@ -667,7 +667,6 @@ components:
       required:
         - id
         - transcript
-        - parsedItems
         - items
         - summary
         - request_id
@@ -678,11 +677,6 @@ components:
         transcript:
           type: string
           description: Transcribed text from audio
-        parsedItems:
-          type: array
-          items:
-            $ref: "#/components/schemas/Item"
-          description: Items parsed from transcript (without nutrition data)
         items:
           type: array
           items:

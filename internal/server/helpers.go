@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -95,9 +96,211 @@ func applyDaysLimit(days int) int {
 	return days
 }
 
+// QuantityInfo represents extracted quantity information from item names
+type QuantityInfo struct {
+	CleanName  string  // Name with quantity expressions removed
+	Multiplier float64 // Quantity multiplier (0.5 for "half", 2.0 for "2 cans", etc.)
+}
+
+// ExtractQuantityFromName extracts quantity expressions from item names (exported for testing)
+func ExtractQuantityFromName(name string) QuantityInfo {
+	return extractQuantityFromName(name)
+}
+
+// extractQuantityFromName extracts quantity expressions from item names
+func extractQuantityFromName(name string) QuantityInfo {
+	// Normalize spaces first
+	lowerName := strings.ToLower(strings.TrimSpace(name))
+	// Replace multiple spaces with single spaces
+	lowerName = strings.Join(strings.Fields(lowerName), " ")
+
+	// Define quantity patterns and their multipliers
+	patterns := []struct {
+		pattern    string
+		multiplier float64
+	}{
+		// Fractional quantities
+		{"half", 0.5},
+		{"1/2", 0.5},
+		{"quarter", 0.25},
+		{"1/4", 0.25},
+		{"third", 0.33},
+		{"1/3", 0.33},
+		{"two thirds", 0.67},
+		{"2/3", 0.67},
+
+		// Size descriptors (approximate multipliers based on common food sizes)
+		{"small", 0.75},
+		{"mini", 0.5},
+		{"tiny", 0.4},
+		{"medium", 1.0},
+		{"large", 1.3},
+		{"big", 1.4},
+		{"extra large", 1.6},
+		{"xl", 1.6},
+		{"jumbo", 1.8},
+
+		// Numeric quantities
+		{"two", 2.0},
+		{"three", 3.0},
+		{"four", 4.0},
+		{"five", 5.0},
+		{"six", 6.0},
+		{"seven", 7.0},
+		{"eight", 8.0},
+		{"nine", 9.0},
+		{"ten", 10.0},
+	}
+
+	cleanName := lowerName
+	multiplier := 1.0
+
+	// Check for numeric prefixes first (1 can, 2 cans, etc.)
+	for i := 2; i <= 10; i++ {
+		numPrefix := fmt.Sprintf("%d ", i)
+		if strings.HasPrefix(lowerName, numPrefix) {
+			multiplier = float64(i)
+			cleanName = strings.TrimPrefix(lowerName, numPrefix)
+			break
+		}
+	}
+
+	// If no numeric prefix found, check for word patterns
+	if multiplier == 1.0 {
+		for _, p := range patterns {
+			// Look for pattern at the beginning of the name
+			if strings.HasPrefix(lowerName, p.pattern+" ") {
+				multiplier = p.multiplier
+				cleanName = strings.TrimPrefix(lowerName, p.pattern+" ")
+				break
+			}
+		}
+	}
+
+	// Clean up container words and plural forms after quantity extraction
+	containerWords := []string{
+		"cans ", "can ", "bottles ", "bottle ", "cups ", "cup ",
+		"glasses ", "glass ", "bowls ", "bowl ", "servings ", "serving ",
+		"portions ", "portion ", "pieces ", "piece ", "pints ", "pint ",
+		"containers ", "container ",
+	}
+
+	// Remove container words at the beginning
+	for _, cw := range containerWords {
+		if strings.HasPrefix(cleanName, cw) {
+			cleanName = strings.TrimPrefix(cleanName, cw)
+			break
+		}
+	}
+
+	// Handle "of" patterns (e.g., "cans of soda", "bottle of water")
+	for _, cw := range containerWords {
+		ofPattern := cw + "of "
+		if strings.HasPrefix(cleanName, ofPattern) {
+			cleanName = strings.TrimPrefix(cleanName, ofPattern)
+			break
+		}
+	}
+
+	// Clean up remaining "of " at the start (in case container word was removed first)
+	cleanName = strings.TrimPrefix(cleanName, "of ")
+
+	// Remove trailing container words (e.g., "water bottle" -> "water")
+	trailingContainers := []string{
+		" cans", " can", " bottles", " bottle", " cups", " cup",
+		" glasses", " glass", " bowls", " bowl", " servings", " serving",
+		" portions", " portion", " pieces", " piece", " pints", " pint",
+		" containers", " container",
+	}
+	for _, tc := range trailingContainers {
+		if strings.HasSuffix(cleanName, tc) {
+			cleanName = strings.TrimSuffix(cleanName, tc)
+			break
+		}
+	}
+
+	return QuantityInfo{
+		CleanName:  strings.TrimSpace(cleanName),
+		Multiplier: multiplier,
+	}
+}
+
 // normalizeItemName normalizes item names for consistent matching
 func normalizeItemName(name string) string {
 	return strings.ToLower(strings.TrimSpace(name))
+}
+
+// normalizeItemNameForCache normalizes item names for caching by removing brand information
+// This prevents cache fragmentation due to brand names appearing in different positions
+func normalizeItemNameForCache(name string, brand *string) string {
+	normalized := normalizeItemName(name)
+
+	// If no brand provided, return as-is
+	if brand == nil || strings.TrimSpace(*brand) == "" {
+		return normalized
+	}
+
+	brandLower := strings.ToLower(strings.TrimSpace(*brand))
+
+	// First, try to remove the complete brand phrase
+	cleanName := normalized
+
+	// Remove complete brand phrase from beginning (e.g., "ben jerry vanilla ice cream" -> "vanilla ice cream")
+	if strings.HasPrefix(cleanName, brandLower+" ") {
+		cleanName = strings.TrimPrefix(cleanName, brandLower+" ")
+	} else if strings.HasSuffix(cleanName, " "+brandLower) {
+		// Remove complete brand phrase from end (e.g., "vanilla ice cream ben jerry" -> "vanilla ice cream")
+		cleanName = strings.TrimSuffix(cleanName, " "+brandLower)
+	} else if cleanName == brandLower {
+		// Remove standalone brand phrase (e.g., just "ben jerry" -> "")
+		cleanName = ""
+	} else {
+		// Fallback: try removing individual brand words for partial matches
+		brandWords := strings.Fields(brandLower)
+		for _, brandWord := range brandWords {
+			// Remove brand word from beginning (e.g., "ben vanilla ice cream" -> "vanilla ice cream")
+			if strings.HasPrefix(cleanName, brandWord+" ") {
+				cleanName = strings.TrimPrefix(cleanName, brandWord+" ")
+				break // Only remove first match to avoid over-processing
+			}
+			// Remove brand word from end (e.g., "vanilla ice cream jerry" -> "vanilla ice cream")
+			if strings.HasSuffix(cleanName, " "+brandWord) {
+				cleanName = strings.TrimSuffix(cleanName, " "+brandWord)
+				break // Only remove first match to avoid over-processing
+			}
+		}
+	}
+
+	// Handle case where brand appears multiple times - remove from end if still present
+	if strings.Contains(cleanName, " "+brandLower) {
+		cleanName = strings.TrimSuffix(cleanName, " "+brandLower)
+	}
+
+	// Fallback to original if we removed everything (shouldn't happen in practice)
+	if cleanName == "" {
+		return normalized
+	}
+
+	return cleanName
+}
+
+// normalizeItemNameWithQuantity normalizes item names and extracts quantity information
+func normalizeItemNameWithQuantity(name string) (normalizedName string, quantityInfo QuantityInfo) {
+	quantityInfo = extractQuantityFromName(name)
+	normalizedName = normalizeItemName(quantityInfo.CleanName)
+	return normalizedName, quantityInfo
+}
+
+// normalizeItemNameWithQuantityForCache normalizes item names, extracts quantity, and removes brand for cache keys
+func normalizeItemNameWithQuantityForCache(name string, brand *string) (normalizedName string, quantityInfo QuantityInfo) {
+	quantityInfo = extractQuantityFromName(name)
+	normalizedName = normalizeItemNameForCache(quantityInfo.CleanName, brand)
+	return normalizedName, quantityInfo
+}
+
+// NormalizeItemNameWithQuantity normalizes item names and extracts quantity information (exported for testing)
+func NormalizeItemNameWithQuantity(name string) (normalizedName string, quantityInfo QuantityInfo) {
+	return normalizeItemNameWithQuantity(name)
 }
 
 // getBrandOrEmpty returns the brand string or empty string if nil
@@ -106,4 +309,85 @@ func getBrandOrEmpty(brand *string) string {
 		return ""
 	}
 	return *brand
+}
+
+// generateBrandAwareVariations generates brand-aware name variations using the LLM-parsed brand
+// This leverages the fact that our LLM already extracts brand information during parsing
+func generateBrandAwareVariations(itemName string, brandFromLLM *string) []string {
+	lowerName := strings.ToLower(strings.TrimSpace(itemName))
+	variations := []string{lowerName} // Always include original
+
+	// If we don't have an LLM-extracted brand, only return the original
+	if brandFromLLM == nil || strings.TrimSpace(*brandFromLLM) == "" {
+		return variations
+	}
+
+	brand := strings.ToLower(strings.TrimSpace(*brandFromLLM))
+	brandWords := strings.Fields(brand)
+
+	// Generate brand + item variations
+	// Example: brand="noosa", itemName="vanilla yogurt" -> ["vanilla yogurt", "noosa vanilla yogurt", "vanilla yogurt noosa"]
+
+	// Variation 1: Brand + Item Name (if not already present)
+	brandPlusItem := brand + " " + lowerName
+	if brandPlusItem != lowerName && !contains(variations, brandPlusItem) {
+		variations = append(variations, brandPlusItem)
+	}
+
+	// Variation 2: Item Name + Brand (if not already present)
+	itemPlusBrand := lowerName + " " + brand
+	if itemPlusBrand != lowerName && !contains(variations, itemPlusBrand) {
+		variations = append(variations, itemPlusBrand)
+	}
+
+	// Variation 3: Handle cases where brand might already be in the item name
+	// Try removing the brand from the item name to get the base product name
+	for _, brandWord := range brandWords {
+		// Remove brand word from beginning
+		if strings.HasPrefix(lowerName, brandWord+" ") {
+			baseProduct := strings.TrimPrefix(lowerName, brandWord+" ")
+			if baseProduct != lowerName && !contains(variations, baseProduct) {
+				variations = append(variations, baseProduct)
+			}
+		}
+
+		// Remove brand word from end
+		if strings.HasSuffix(lowerName, " "+brandWord) {
+			baseProduct := strings.TrimSuffix(lowerName, " "+brandWord)
+			if baseProduct != lowerName && !contains(variations, baseProduct) {
+				variations = append(variations, baseProduct)
+			}
+		}
+	}
+
+	// Variation 4: For multi-word brands, try different orderings
+	if len(brandWords) > 1 {
+		// Reverse brand word order + item
+		reversedBrand := strings.Join(reverseStringSlice(brandWords), " ")
+		reversedBrandPlusItem := reversedBrand + " " + lowerName
+		if !contains(variations, reversedBrandPlusItem) {
+			variations = append(variations, reversedBrandPlusItem)
+		}
+	}
+
+	return variations
+}
+
+// Helper function to check if a slice contains a string
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
+// Helper function to reverse a string slice
+func reverseStringSlice(slice []string) []string {
+	reversed := make([]string, len(slice))
+	for i, s := range slice {
+		reversed[len(slice)-1-i] = s
+	}
+	return reversed
 }
