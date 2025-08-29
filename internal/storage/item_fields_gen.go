@@ -59,7 +59,7 @@ package storage
 	OriginalCaffeine *float64 `json:"original_caffeine_mg,omitempty"` // Caffeine
 	OriginalCreatine *float64 `json:"original_creatine_mg,omitempty"` // Creatine
 
-// Normalized nutrition data per 100g fields  
+// Normalized nutrition data per 100g fields
 
 	CaloriesPer100g float64 `json:"calories_per_100g"` // Calories per 100g
 	ProteinPer100g float64 `json:"protein_g_per_100g"` // Protein per 100g
