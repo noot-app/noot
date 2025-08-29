@@ -512,6 +512,9 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 			return
 		}
 
+		// User is successfully authenticated at this point
+		LogDebug("User authenticated successfully", "user_id", user.ID)
+
 		// Set the authenticated user in context for handlers to use
 		c.Set("auth_user", user)
 		c.Next()
