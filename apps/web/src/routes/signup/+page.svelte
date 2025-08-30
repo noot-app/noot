@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { dev } from '$app/environment';
-  import { signUp, currentUser } from '$lib/auth/store';
+  import { signUp, user } from '$lib/auth/store';
   import { onMount } from 'svelte';
   
   let email = '';
@@ -19,8 +19,8 @@
 
   // Redirect if already authenticated
   onMount(() => {
-    const unsubscribe = currentUser.subscribe((user) => {
-      if (user) {
+    const unsubscribe = user.subscribe((currentUser) => {
+      if (currentUser) {
         goto(returnUrl);
       }
     });
@@ -60,8 +60,7 @@
 
     try {
       const result = await signUp(email, password, { 
-        fullName: fullName || undefined, // Optional: only include if provided
-        handle: username // Required
+        fullName: fullName || undefined // Optional: only include if provided
       });
       
       if (result.error) {

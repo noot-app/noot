@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { dev } from '$app/environment';
-  import { signIn, currentUser } from '$lib/auth/store';
+  import { signIn, user } from '$lib/auth/store';
   import { getAuthErrorMessage } from '$lib/auth/error-messages';
   import { onMount } from 'svelte';
   
@@ -17,12 +17,14 @@
 
   // Redirect if already authenticated
   onMount(() => {
-    const unsubscribe = currentUser.subscribe((user) => {
-      if (user && !redirecting) {
+    const unsubscribe = user.subscribe((currentUser) => {
+      if (currentUser && !redirecting) {
         redirecting = true;
+        loading = false; // Reset loading state on successful auth
         goto(returnUrl).catch((err) => {
           console.error('❌ Navigation failed:', err);
           redirecting = false; // Reset on failure
+          loading = false;
         });
       }
     });
@@ -43,7 +45,7 @@
       
       if (result.error) {
         // Get the error message, handling both string and Error object types
-        const errorMessage = typeof result.error === 'string' ? result.error : result.error.message;
+        const errorMessage = result.error.message;
 
         // log the error
         console.warn('❌ Login failure:', errorMessage);
@@ -59,22 +61,13 @@
         
         // Get user-friendly error message
         error = getAuthErrorMessage(errorCode, errorMessage);
-      } else if (result.user) {
-        // Successful login - redirect to return URL (only if not already redirecting)
-        if (!redirecting) {
-          redirecting = true;
-          goto(returnUrl).catch((err) => {
-            console.error('❌ Navigation failed:', err);
-            redirecting = false; // Reset on failure
-          });
-        }
-      } else {
-        console.error('⚠️ signIn returned no user and no error - unexpected state');
+        loading = false;
       }
+      // If no error, sign-in was successful - auth state change listener will handle redirect
+      // Don't set loading = false here, let the redirect happen
     } catch (err) {
       console.error('❌ Exception in handleLogin:', err);
       error = err instanceof Error ? err.message : 'An unexpected error occurred';
-    } finally {
       loading = false;
     }
   }
