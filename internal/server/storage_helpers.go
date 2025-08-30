@@ -110,7 +110,6 @@ func itemWithNutritionToConsumptionItem(consumptionID string, item ItemWithNutri
 		Grams:         item.Item.Grams,
 		UserQuantity:  item.Item.UserQuantity,
 		UserUnit:      item.Item.UserUnit,
-		Label:         item.Item.Label,
 		Note:          item.Item.Note,
 		// Nutrition snapshot for this serving
 		Calories:            nutrients.Calories,
@@ -190,7 +189,6 @@ func apiItemWithNutritionToConsumptionItem(consumptionID string, item api.ItemWi
 		Grams:         float64(item.Item.Grams),
 		UserQuantity:  userQty,
 		UserUnit:      item.Item.UserUnit,
-		Label:         item.Item.Label,
 		Note:          item.Item.Note,
 		// Nutrition snapshot for this serving
 		Calories:            float64(nutrients.Calories),
@@ -310,7 +308,6 @@ func consumptionItemToItemWithNutrition(ci *storage.ConsumptionItem) ItemWithNut
 			UserUnit:     ci.UserUnit,
 			Brand:        brand,
 			Note:         ci.Note,
-			Label:        ci.Label,
 			Nutrients:    nutrients,
 		},
 	}
@@ -399,7 +396,7 @@ func storageConsumptionToAPI(ctx context.Context, store storage.Store, consumpti
 				UserUnit:     ci.UserUnit,
 				Brand:        brand,
 				Note:         ci.Note,
-				Label:        ci.Label,
+				Labels:       convertStorageLabelsToAPI(ci.Labels),
 				Nutrients:    nutrients,
 			},
 		}
@@ -464,7 +461,7 @@ func storageConsumptionToAPI(ctx context.Context, store storage.Store, consumpti
 		UserId:     consumption.UserID,
 		Transcript: consumption.Transcript,
 		Note:       consumption.Note,
-		Label:      consumption.Label,
+		Labels:     convertStorageLabelsToAPI(consumption.Labels),
 		Items:      apiItems,
 		Summary:    summary,
 		CreatedAt:  consumption.CreatedAt,

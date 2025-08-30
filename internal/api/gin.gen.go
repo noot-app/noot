@@ -25,15 +25,33 @@ type ServerInterface interface {
 	// Log a consumption via audio
 	// (POST /consumption)
 	CreateConsumption(c *gin.Context)
+	// Get labels assigned to a consumption item
+	// (GET /consumption-items/{id}/labels)
+	GetConsumptionItemLabels(c *gin.Context, id string)
+	// Assign labels to a consumption item
+	// (POST /consumption-items/{id}/labels)
+	AssignConsumptionItemLabels(c *gin.Context, id string)
+	// Unassign a label from a consumption item
+	// (DELETE /consumption-items/{id}/labels/{labelId})
+	UnassignConsumptionItemLabel(c *gin.Context, id string, labelId string)
 	// Delete a consumption record
 	// (DELETE /consumption/{id})
 	DeleteConsumption(c *gin.Context, id string)
 	// Update a consumption record
 	// (PUT /consumption/{id})
 	UpdateConsumption(c *gin.Context, id string)
+	// Get labels assigned to a consumption
+	// (GET /consumption/{id}/labels)
+	GetConsumptionLabels(c *gin.Context, id string)
+	// Assign labels to a consumption
+	// (POST /consumption/{id}/labels)
+	AssignConsumptionLabels(c *gin.Context, id string)
+	// Unassign a label from a consumption
+	// (DELETE /consumption/{id}/labels/{labelId})
+	UnassignConsumptionLabel(c *gin.Context, id string, labelId string)
 	// List consumptions
 	// (GET /consumptions)
-	GetConsumptions(c *gin.Context)
+	GetConsumptions(c *gin.Context, params GetConsumptionsParams)
 	// Export nutrition data (Pro only)
 	// (GET /export)
 	ExportData(c *gin.Context, params ExportDataParams)
@@ -55,6 +73,18 @@ type ServerInterface interface {
 	// Health check
 	// (GET /health)
 	GetHealth(c *gin.Context)
+	// List labels
+	// (GET /labels)
+	GetLabels(c *gin.Context)
+	// Create a new label
+	// (POST /labels)
+	CreateLabel(c *gin.Context)
+	// Delete a label
+	// (DELETE /labels/{id})
+	DeleteLabel(c *gin.Context, id string)
+	// Update a label
+	// (PUT /labels/{id})
+	UpdateLabel(c *gin.Context, id string)
 	// Get nutrition summary
 	// (GET /nutrition-summary)
 	GetNutritionSummary(c *gin.Context, params GetNutritionSummaryParams)
@@ -124,6 +154,87 @@ func (siw *ServerInterfaceWrapper) CreateConsumption(c *gin.Context) {
 	siw.Handler.CreateConsumption(c)
 }
 
+// GetConsumptionItemLabels operation middleware
+func (siw *ServerInterfaceWrapper) GetConsumptionItemLabels(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetConsumptionItemLabels(c, id)
+}
+
+// AssignConsumptionItemLabels operation middleware
+func (siw *ServerInterfaceWrapper) AssignConsumptionItemLabels(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AssignConsumptionItemLabels(c, id)
+}
+
+// UnassignConsumptionItemLabel operation middleware
+func (siw *ServerInterfaceWrapper) UnassignConsumptionItemLabel(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "labelId" -------------
+	var labelId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "labelId", c.Param("labelId"), &labelId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter labelId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.UnassignConsumptionItemLabel(c, id, labelId)
+}
+
 // DeleteConsumption operation middleware
 func (siw *ServerInterfaceWrapper) DeleteConsumption(c *gin.Context) {
 
@@ -172,8 +283,19 @@ func (siw *ServerInterfaceWrapper) UpdateConsumption(c *gin.Context) {
 	siw.Handler.UpdateConsumption(c, id)
 }
 
-// GetConsumptions operation middleware
-func (siw *ServerInterfaceWrapper) GetConsumptions(c *gin.Context) {
+// GetConsumptionLabels operation middleware
+func (siw *ServerInterfaceWrapper) GetConsumptionLabels(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -182,7 +304,98 @@ func (siw *ServerInterfaceWrapper) GetConsumptions(c *gin.Context) {
 		}
 	}
 
-	siw.Handler.GetConsumptions(c)
+	siw.Handler.GetConsumptionLabels(c, id)
+}
+
+// AssignConsumptionLabels operation middleware
+func (siw *ServerInterfaceWrapper) AssignConsumptionLabels(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AssignConsumptionLabels(c, id)
+}
+
+// UnassignConsumptionLabel operation middleware
+func (siw *ServerInterfaceWrapper) UnassignConsumptionLabel(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "labelId" -------------
+	var labelId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "labelId", c.Param("labelId"), &labelId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter labelId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.UnassignConsumptionLabel(c, id, labelId)
+}
+
+// GetConsumptions operation middleware
+func (siw *ServerInterfaceWrapper) GetConsumptions(c *gin.Context) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetConsumptionsParams
+
+	// ------------- Optional query parameter "labels" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "labels", c.Request.URL.Query(), &params.Labels)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter labels: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "match" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "match", c.Request.URL.Query(), &params.Match)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter match: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetConsumptions(c, params)
 }
 
 // ExportData operation middleware
@@ -344,6 +557,80 @@ func (siw *ServerInterfaceWrapper) GetHealth(c *gin.Context) {
 	siw.Handler.GetHealth(c)
 }
 
+// GetLabels operation middleware
+func (siw *ServerInterfaceWrapper) GetLabels(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetLabels(c)
+}
+
+// CreateLabel operation middleware
+func (siw *ServerInterfaceWrapper) CreateLabel(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CreateLabel(c)
+}
+
+// DeleteLabel operation middleware
+func (siw *ServerInterfaceWrapper) DeleteLabel(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteLabel(c, id)
+}
+
+// UpdateLabel operation middleware
+func (siw *ServerInterfaceWrapper) UpdateLabel(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.UpdateLabel(c, id)
+}
+
 // GetNutritionSummary operation middleware
 func (siw *ServerInterfaceWrapper) GetNutritionSummary(c *gin.Context) {
 
@@ -467,8 +754,14 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/biometrics", wrapper.GetUserBiometrics)
 	router.PUT(options.BaseURL+"/biometrics", wrapper.UpdateUserBiometrics)
 	router.POST(options.BaseURL+"/consumption", wrapper.CreateConsumption)
+	router.GET(options.BaseURL+"/consumption-items/:id/labels", wrapper.GetConsumptionItemLabels)
+	router.POST(options.BaseURL+"/consumption-items/:id/labels", wrapper.AssignConsumptionItemLabels)
+	router.DELETE(options.BaseURL+"/consumption-items/:id/labels/:labelId", wrapper.UnassignConsumptionItemLabel)
 	router.DELETE(options.BaseURL+"/consumption/:id", wrapper.DeleteConsumption)
 	router.PUT(options.BaseURL+"/consumption/:id", wrapper.UpdateConsumption)
+	router.GET(options.BaseURL+"/consumption/:id/labels", wrapper.GetConsumptionLabels)
+	router.POST(options.BaseURL+"/consumption/:id/labels", wrapper.AssignConsumptionLabels)
+	router.DELETE(options.BaseURL+"/consumption/:id/labels/:labelId", wrapper.UnassignConsumptionLabel)
 	router.GET(options.BaseURL+"/consumptions", wrapper.GetConsumptions)
 	router.GET(options.BaseURL+"/export", wrapper.ExportData)
 	router.GET(options.BaseURL+"/goals", wrapper.GetGoals)
@@ -477,6 +770,10 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/goals/sets", wrapper.GetGoalSets)
 	router.DELETE(options.BaseURL+"/goals/sets/:name", wrapper.DeleteGoalSet)
 	router.GET(options.BaseURL+"/health", wrapper.GetHealth)
+	router.GET(options.BaseURL+"/labels", wrapper.GetLabels)
+	router.POST(options.BaseURL+"/labels", wrapper.CreateLabel)
+	router.DELETE(options.BaseURL+"/labels/:id", wrapper.DeleteLabel)
+	router.PUT(options.BaseURL+"/labels/:id", wrapper.UpdateLabel)
 	router.GET(options.BaseURL+"/nutrition-summary", wrapper.GetNutritionSummary)
 	router.GET(options.BaseURL+"/trends", wrapper.GetTrends)
 }

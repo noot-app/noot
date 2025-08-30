@@ -12,7 +12,6 @@ type Item struct {
 	Brand        *string           `json:"brand"`
 	BaseQuantity *float64          `json:"base_quantity,omitempty"` // base quantity to normalize to (e.g., for "2 cans", this would be 2)
 	Note         *string           `json:"note,omitempty"`
-	Label        *string           `json:"label,omitempty"`
 	Nutrients    *CompleteNutrient `json:"nutrients,omitempty"`
 }
 

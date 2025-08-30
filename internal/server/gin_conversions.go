@@ -279,6 +279,26 @@ func convertInternalUserToAPI(internal *storage.User) api.User {
 	}
 }
 
+// convertStorageLabelsToAPI converts storage label array to API label array
+func convertStorageLabelsToAPI(storageLabels []*storage.Label) *[]api.Label {
+	if storageLabels == nil {
+		return nil
+	}
+
+	apiLabels := make([]api.Label, len(storageLabels))
+	for i, label := range storageLabels {
+		apiLabels[i] = api.Label{
+			Id:          label.ID,
+			Name:        label.Name,
+			Description: label.Description,
+			Color:       label.Color,
+			CreatedAt:   label.CreatedAt,
+			UpdatedAt:   label.UpdatedAt,
+		}
+	}
+	return &apiLabels
+}
+
 // convertMapFloat64ToFloat32 converts map[string]float64 to map[string]float32
 func convertMapFloat64ToFloat32(input map[string]float64) map[string]float32 {
 	result := make(map[string]float32)

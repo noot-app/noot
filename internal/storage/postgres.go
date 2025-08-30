@@ -222,7 +222,7 @@ func (s *PostgreSQLStore) GetConsumption(ctx context.Context, id string) (*Consu
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 			   creatine_mg, caffeine_mg, alcohol_g,
 			   polyunsaturated_fat_g, monounsaturated_fat_g,
-			   created_at, updated_at
+			   note, created_at, updated_at
 		FROM consumptions WHERE id = $1`
 
 	var consumption Consumption
@@ -244,13 +244,20 @@ func (s *PostgreSQLStore) GetConsumption(ctx context.Context, id string) (*Consu
 		&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 		&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 		&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-		&consumption.CreatedAt, &consumption.UpdatedAt)
+		&consumption.Note, &consumption.CreatedAt, &consumption.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to get consumption: %w", err)
 	}
+
+	// Load labels for the consumption
+	labels, err := s.ListConsumptionLabels(ctx, consumption.UserID, consumption.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load consumption labels: %w", err)
+	}
+	consumption.Labels = labels
 
 	return &consumption, nil
 }
@@ -324,10 +331,10 @@ func (s *PostgreSQLStore) GetConsumptionsByUser(ctx context.Context, userID stri
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 			   creatine_mg, caffeine_mg, alcohol_g,
 			   polyunsaturated_fat_g, monounsaturated_fat_g,
-			   created_at, updated_at
-		FROM consumptions 
-		WHERE user_id = $1 
-		ORDER BY created_at DESC 
+			   note, created_at, updated_at
+		FROM consumptions
+		WHERE user_id = $1
+		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3`
 
 	rows, err := s.db.QueryContext(ctx, query, userID, limit, offset)
@@ -357,7 +364,7 @@ func (s *PostgreSQLStore) GetConsumptionsByUser(ctx context.Context, userID stri
 			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 			&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-			&consumption.CreatedAt, &consumption.UpdatedAt)
+			&consumption.Note, &consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
@@ -366,6 +373,15 @@ func (s *PostgreSQLStore) GetConsumptionsByUser(ctx context.Context, userID stri
 
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	// Load labels for each consumption
+	for _, consumption := range consumptions {
+		labels, err := s.ListConsumptionLabels(ctx, userID, consumption.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load consumption labels: %w", err)
+		}
+		consumption.Labels = labels
 	}
 
 	return consumptions, nil
@@ -630,7 +646,7 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 	query := `
 		INSERT INTO consumption_items (
 			id, consumption_id, item_id, name, brand, grams, user_quantity, user_unit, 
-			label, note, calories, protein_g, total_fat_g, saturated_fat_g, trans_fat_g, 
+			note, calories, protein_g, total_fat_g, saturated_fat_g, trans_fat_g, 
 			cholesterol_mg, sodium_mg, total_carbs_g, dietary_fiber_g, total_sugars_g, 
 			added_sugars_g, vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, 
 			vitamin_k_mcg, thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, 
@@ -641,15 +657,16 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 			omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, alcohol_g, 
 			polyunsaturated_fat_g, monounsaturated_fat_g, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 
-			$18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, 
-			$33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, 
-			$48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
+			$16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, 
+			$30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, 
+			$44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, 
+			$58, $59
 		)`
 
 	_, err := s.db.ExecContext(ctx, query,
 		item.ID, item.ConsumptionID, item.ItemID, item.Name, item.Brand,
-		item.Grams, item.UserQuantity, item.UserUnit, item.Label, item.Note,
+		item.Grams, item.UserQuantity, item.UserUnit, item.Note,
 		item.Calories, item.ProteinG, item.TotalFatG, item.SaturatedFatG, item.TransFatG,
 		item.CholesterolMg, item.SodiumMg, item.TotalCarbsG, item.DietaryFiberG, item.TotalSugarsG,
 		item.AddedSugarsG, item.VitaminAMcg, item.VitaminCMg, item.VitaminDMcg, item.VitaminEMg,
@@ -671,7 +688,7 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 func (s *PostgreSQLStore) GetConsumptionItems(ctx context.Context, consumptionID string) ([]*ConsumptionItem, error) {
 	query := `
 		SELECT id, consumption_id, item_id, name, brand, grams, user_quantity, user_unit, 
-			label, note, calories, protein_g, total_fat_g, saturated_fat_g, trans_fat_g, 
+			note, calories, protein_g, total_fat_g, saturated_fat_g, trans_fat_g, 
 			cholesterol_mg, sodium_mg, total_carbs_g, dietary_fiber_g, total_sugars_g, 
 			added_sugars_g, vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, 
 			vitamin_k_mcg, thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, 
@@ -695,7 +712,7 @@ func (s *PostgreSQLStore) GetConsumptionItems(ctx context.Context, consumptionID
 	for rows.Next() {
 		item := &ConsumptionItem{}
 		err := rows.Scan(&item.ID, &item.ConsumptionID, &item.ItemID, &item.Name, &item.Brand,
-			&item.Grams, &item.UserQuantity, &item.UserUnit, &item.Label, &item.Note,
+			&item.Grams, &item.UserQuantity, &item.UserUnit, &item.Note,
 			&item.Calories, &item.ProteinG, &item.TotalFatG, &item.SaturatedFatG, &item.TransFatG,
 			&item.CholesterolMg, &item.SodiumMg, &item.TotalCarbsG, &item.DietaryFiberG, &item.TotalSugarsG,
 			&item.AddedSugarsG, &item.VitaminAMcg, &item.VitaminCMg, &item.VitaminDMcg, &item.VitaminEMg,
@@ -716,6 +733,22 @@ func (s *PostgreSQLStore) GetConsumptionItems(ctx context.Context, consumptionID
 		return nil, fmt.Errorf("failed to iterate consumption items: %w", err)
 	}
 
+	// Load labels for each consumption item
+	for _, item := range items {
+		// We need the user ID to load labels, get it from the consumption
+		var userID string
+		err := s.db.QueryRowContext(ctx, "SELECT user_id FROM consumptions WHERE id = $1", item.ConsumptionID).Scan(&userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user ID for consumption: %w", err)
+		}
+
+		labels, err := s.ListConsumptionItemLabels(ctx, userID, item.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load consumption item labels: %w", err)
+		}
+		item.Labels = labels
+	}
+
 	return items, nil
 }
 
@@ -727,23 +760,23 @@ func (s *PostgreSQLStore) UpdateConsumptionItem(ctx context.Context, item *Consu
 	query := `
 		UPDATE consumption_items SET 
 			item_id = $2, name = $3, brand = $4, grams = $5, user_quantity = $6, 
-			user_unit = $7, label = $8, note = $9, calories = $10, protein_g = $11, 
-			total_fat_g = $12, saturated_fat_g = $13, trans_fat_g = $14, cholesterol_mg = $15, 
-			sodium_mg = $16, total_carbs_g = $17, dietary_fiber_g = $18, total_sugars_g = $19, 
-			added_sugars_g = $20, vitamin_a_mcg = $21, vitamin_c_mg = $22, vitamin_d_mcg = $23, 
-			vitamin_e_mg = $24, vitamin_k_mcg = $25, thiamine_mg = $26, riboflavin_mg = $27, 
-			niacin_mg = $28, vitamin_b6_mg = $29, folate_mcg = $30, vitamin_b12_mcg = $31, 
-			biotin_mcg = $32, pantothenic_acid_mg = $33, choline_mg = $34, calcium_mg = $35, 
-			iron_mg = $36, magnesium_mg = $37, phosphorus_mg = $38, potassium_mg = $39, 
-			zinc_mg = $40, copper_mg = $41, manganese_mg = $42, selenium_mcg = $43, 
-			iodine_mcg = $44, molybdenum_mcg = $45, chromium_mcg = $46, fluoride_mg = $47, 
-			chloride_mg = $48, omega3_ala_g = $49, omega3_epa_g = $50, omega3_dha_g = $51, 
-			omega6_g = $52, creatine_mg = $53, caffeine_mg = $54, alcohol_g = $55, 
-			polyunsaturated_fat_g = $56, monounsaturated_fat_g = $57, updated_at = $58
+			user_unit = $7, note = $8, calories = $9, protein_g = $10, 
+			total_fat_g = $11, saturated_fat_g = $12, trans_fat_g = $13, cholesterol_mg = $14, 
+			sodium_mg = $15, total_carbs_g = $16, dietary_fiber_g = $17, total_sugars_g = $18, 
+			added_sugars_g = $19, vitamin_a_mcg = $20, vitamin_c_mg = $21, vitamin_d_mcg = $22, 
+			vitamin_e_mg = $23, vitamin_k_mcg = $24, thiamine_mg = $25, riboflavin_mg = $26, 
+			niacin_mg = $27, vitamin_b6_mg = $28, folate_mcg = $29, vitamin_b12_mcg = $30, 
+			biotin_mcg = $31, pantothenic_acid_mg = $32, choline_mg = $33, calcium_mg = $34, 
+			iron_mg = $35, magnesium_mg = $36, phosphorus_mg = $37, potassium_mg = $38, 
+			zinc_mg = $39, copper_mg = $40, manganese_mg = $41, selenium_mcg = $42, 
+			iodine_mcg = $43, molybdenum_mcg = $44, chromium_mcg = $45, fluoride_mg = $46, 
+			chloride_mg = $47, omega3_ala_g = $48, omega3_epa_g = $49, omega3_dha_g = $50, 
+			omega6_g = $51, creatine_mg = $52, caffeine_mg = $53, alcohol_g = $54, 
+			polyunsaturated_fat_g = $55, monounsaturated_fat_g = $56, updated_at = $57
 		WHERE id = $1`
 
 	result, err := s.db.ExecContext(ctx, query, item.ID, item.ItemID, item.Name, item.Brand,
-		item.Grams, item.UserQuantity, item.UserUnit, item.Label, item.Note,
+		item.Grams, item.UserQuantity, item.UserUnit, item.Note,
 		item.Calories, item.ProteinG, item.TotalFatG, item.SaturatedFatG, item.TransFatG,
 		item.CholesterolMg, item.SodiumMg, item.TotalCarbsG, item.DietaryFiberG, item.TotalSugarsG,
 		item.AddedSugarsG, item.VitaminAMcg, item.VitaminCMg, item.VitaminDMcg, item.VitaminEMg,
@@ -1221,4 +1254,515 @@ func (s *PostgreSQLStore) GetCanonicalName(ctx context.Context, aliasName, alias
 	}
 
 	return canonicalName, canonicalBrand, nil
+}
+
+// Color normalization helper
+func normalizeColor(color string) string {
+	// Add # prefix if not present
+	if !strings.HasPrefix(color, "#") {
+		color = "#" + color
+	}
+	// Convert to uppercase for consistency
+	return strings.ToUpper(color)
+}
+
+// CreateLabel creates a new label for a user
+func (s *PostgreSQLStore) CreateLabel(ctx context.Context, label *Label) error {
+	now := time.Now()
+	label.ID = generateUUID()
+	label.CreatedAt = now
+	label.UpdatedAt = now
+	label.Color = normalizeColor(label.Color)
+
+	query := `INSERT INTO labels (id, user_id, name, description, color, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+
+	_, err := s.db.ExecContext(ctx, query, label.ID, label.UserID, label.Name, label.Description,
+		label.Color, label.CreatedAt, label.UpdatedAt)
+	if err != nil {
+		// Check for unique constraint violation
+		if strings.Contains(err.Error(), "ux_labels_user_name") {
+			return fmt.Errorf("label name already exists: %w", err)
+		}
+		// Check for limit violation
+		if strings.Contains(err.Error(), "label_limit_exceeded") {
+			return fmt.Errorf("label limit exceeded (100 labels per user): %w", err)
+		}
+		return fmt.Errorf("failed to create label: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateLabel updates an existing label
+func (s *PostgreSQLStore) UpdateLabel(ctx context.Context, label *Label) error {
+	label.UpdatedAt = time.Now()
+	if label.Color != "" {
+		label.Color = normalizeColor(label.Color)
+	}
+
+	query := `UPDATE labels SET name = $3, description = $4, color = $5, updated_at = $6
+		WHERE id = $1 AND user_id = $2`
+
+	result, err := s.db.ExecContext(ctx, query, label.ID, label.UserID, label.Name,
+		label.Description, label.Color, label.UpdatedAt)
+	if err != nil {
+		if strings.Contains(err.Error(), "ux_labels_user_name") {
+			return fmt.Errorf("label name already exists: %w", err)
+		}
+		return fmt.Errorf("failed to update label: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("label not found or access denied")
+	}
+
+	return nil
+}
+
+// DeleteLabel deletes a label and all its assignments
+func (s *PostgreSQLStore) DeleteLabel(ctx context.Context, userID, id string) error {
+	query := `DELETE FROM labels WHERE id = $1 AND user_id = $2`
+
+	result, err := s.db.ExecContext(ctx, query, id, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete label: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("label not found or access denied")
+	}
+
+	return nil
+}
+
+// GetLabel retrieves a label by ID for a user
+func (s *PostgreSQLStore) GetLabel(ctx context.Context, userID, id string) (*Label, error) {
+	query := `SELECT id, user_id, name, description, color, created_at, updated_at
+		FROM labels WHERE id = $1 AND user_id = $2`
+
+	label := &Label{}
+	err := s.db.QueryRowContext(ctx, query, id, userID).Scan(
+		&label.ID, &label.UserID, &label.Name, &label.Description,
+		&label.Color, &label.CreatedAt, &label.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("label not found")
+		}
+		return nil, fmt.Errorf("failed to get label: %w", err)
+	}
+
+	return label, nil
+}
+
+// ListLabels retrieves all labels for a user with usage counts
+func (s *PostgreSQLStore) ListLabels(ctx context.Context, userID string) ([]*LabelWithUsage, error) {
+	query := `
+		SELECT l.id, l.user_id, l.name, l.description, l.color, l.created_at, l.updated_at,
+			COALESCE(c.consumption_count, 0) as consumption_count,
+			COALESCE(i.item_count, 0) as item_count
+		FROM labels l
+		LEFT JOIN (
+			SELECT label_id, COUNT(*) as consumption_count
+			FROM consumption_labels cl
+			JOIN consumptions c ON c.id = cl.consumption_id
+			WHERE c.user_id = $1
+			GROUP BY label_id
+		) c ON c.label_id = l.id
+		LEFT JOIN (
+			SELECT label_id, COUNT(*) as item_count
+			FROM consumption_item_labels cil
+			JOIN consumption_items ci ON ci.id = cil.consumption_item_id
+			JOIN consumptions cons ON cons.id = ci.consumption_id
+			WHERE cons.user_id = $1
+			GROUP BY label_id
+		) i ON i.label_id = l.id
+		WHERE l.user_id = $1
+		ORDER BY l.name`
+
+	rows, err := s.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list labels: %w", err)
+	}
+	defer rows.Close()
+
+	var labels []*LabelWithUsage
+	for rows.Next() {
+		label := &LabelWithUsage{}
+		err := rows.Scan(
+			&label.ID, &label.UserID, &label.Name, &label.Description,
+			&label.Color, &label.CreatedAt, &label.UpdatedAt,
+			&label.ConsumptionCount, &label.ItemCount)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan label: %w", err)
+		}
+		labels = append(labels, label)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over labels: %w", err)
+	}
+
+	return labels, nil
+}
+
+// ListConsumptionLabels retrieves all labels assigned to a consumption
+func (s *PostgreSQLStore) ListConsumptionLabels(ctx context.Context, userID, consumptionID string) ([]*Label, error) {
+	query := `
+		SELECT l.id, l.user_id, l.name, l.description, l.color, l.created_at, l.updated_at
+		FROM labels l
+		JOIN consumption_labels cl ON l.id = cl.label_id
+		JOIN consumptions c ON c.id = cl.consumption_id
+		WHERE cl.consumption_id = $1 AND c.user_id = $2 AND l.user_id = $2
+		ORDER BY l.name`
+
+	rows, err := s.db.QueryContext(ctx, query, consumptionID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list consumption labels: %w", err)
+	}
+	defer rows.Close()
+
+	var labels []*Label
+	for rows.Next() {
+		label := &Label{}
+		err := rows.Scan(
+			&label.ID, &label.UserID, &label.Name, &label.Description,
+			&label.Color, &label.CreatedAt, &label.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan label: %w", err)
+		}
+		labels = append(labels, label)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over consumption labels: %w", err)
+	}
+
+	return labels, nil
+}
+
+// AssignConsumptionLabels assigns labels to a consumption
+func (s *PostgreSQLStore) AssignConsumptionLabels(ctx context.Context, userID, consumptionID string, labelIDs []string) error {
+	if len(labelIDs) == 0 {
+		return nil
+	}
+
+	// Start transaction
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Verify consumption ownership
+	var ownerID string
+	err = tx.QueryRowContext(ctx, "SELECT user_id FROM consumptions WHERE id = $1", consumptionID).Scan(&ownerID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("consumption not found")
+		}
+		return fmt.Errorf("failed to verify consumption ownership: %w", err)
+	}
+	if ownerID != userID {
+		return fmt.Errorf("access denied")
+	}
+
+	// Clear existing assignments
+	_, err = tx.ExecContext(ctx, "DELETE FROM consumption_labels WHERE consumption_id = $1", consumptionID)
+	if err != nil {
+		return fmt.Errorf("failed to clear existing assignments: %w", err)
+	}
+
+	// Add new assignments
+	now := time.Now()
+	for _, labelID := range labelIDs {
+		// Verify label ownership
+		var labelOwnerID string
+		err = tx.QueryRowContext(ctx, "SELECT user_id FROM labels WHERE id = $1", labelID).Scan(&labelOwnerID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("label not found: %s", labelID)
+			}
+			return fmt.Errorf("failed to verify label ownership: %w", err)
+		}
+		if labelOwnerID != userID {
+			return fmt.Errorf("label access denied: %s", labelID)
+		}
+
+		// Insert assignment (ignore duplicates with ON CONFLICT)
+		_, err = tx.ExecContext(ctx,
+			"INSERT INTO consumption_labels (consumption_id, label_id, created_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+			consumptionID, labelID, now)
+		if err != nil {
+			return fmt.Errorf("failed to assign label %s: %w", labelID, err)
+		}
+	}
+
+	return tx.Commit()
+}
+
+// UnassignConsumptionLabel removes a label assignment from a consumption
+func (s *PostgreSQLStore) UnassignConsumptionLabel(ctx context.Context, userID, consumptionID, labelID string) error {
+	query := `
+		DELETE FROM consumption_labels 
+		WHERE consumption_id = $1 AND label_id = $2
+		AND EXISTS (SELECT 1 FROM consumptions WHERE id = $1 AND user_id = $3)
+		AND EXISTS (SELECT 1 FROM labels WHERE id = $2 AND user_id = $3)`
+
+	result, err := s.db.ExecContext(ctx, query, consumptionID, labelID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to unassign consumption label: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("assignment not found or access denied")
+	}
+
+	return nil
+}
+
+// ListConsumptionItemLabels retrieves all labels assigned to a consumption item
+func (s *PostgreSQLStore) ListConsumptionItemLabels(ctx context.Context, userID, consumptionItemID string) ([]*Label, error) {
+	query := `
+		SELECT l.id, l.user_id, l.name, l.description, l.color, l.created_at, l.updated_at
+		FROM labels l
+		JOIN consumption_item_labels cil ON l.id = cil.label_id
+		JOIN consumption_items ci ON ci.id = cil.consumption_item_id
+		JOIN consumptions c ON c.id = ci.consumption_id
+		WHERE cil.consumption_item_id = $1 AND c.user_id = $2 AND l.user_id = $2
+		ORDER BY l.name`
+
+	rows, err := s.db.QueryContext(ctx, query, consumptionItemID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list consumption item labels: %w", err)
+	}
+	defer rows.Close()
+
+	var labels []*Label
+	for rows.Next() {
+		label := &Label{}
+		err := rows.Scan(
+			&label.ID, &label.UserID, &label.Name, &label.Description,
+			&label.Color, &label.CreatedAt, &label.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan label: %w", err)
+		}
+		labels = append(labels, label)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over consumption item labels: %w", err)
+	}
+
+	return labels, nil
+}
+
+// AssignConsumptionItemLabels assigns labels to a consumption item
+func (s *PostgreSQLStore) AssignConsumptionItemLabels(ctx context.Context, userID, consumptionItemID string, labelIDs []string) error {
+	if len(labelIDs) == 0 {
+		return nil
+	}
+
+	// Start transaction
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Verify consumption item ownership
+	var ownerID string
+	err = tx.QueryRowContext(ctx, `
+		SELECT c.user_id 
+		FROM consumption_items ci 
+		JOIN consumptions c ON c.id = ci.consumption_id 
+		WHERE ci.id = $1`, consumptionItemID).Scan(&ownerID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("consumption item not found")
+		}
+		return fmt.Errorf("failed to verify consumption item ownership: %w", err)
+	}
+	if ownerID != userID {
+		return fmt.Errorf("access denied")
+	}
+
+	// Clear existing assignments
+	_, err = tx.ExecContext(ctx, "DELETE FROM consumption_item_labels WHERE consumption_item_id = $1", consumptionItemID)
+	if err != nil {
+		return fmt.Errorf("failed to clear existing assignments: %w", err)
+	}
+
+	// Add new assignments
+	now := time.Now()
+	for _, labelID := range labelIDs {
+		// Verify label ownership
+		var labelOwnerID string
+		err = tx.QueryRowContext(ctx, "SELECT user_id FROM labels WHERE id = $1", labelID).Scan(&labelOwnerID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("label not found: %s", labelID)
+			}
+			return fmt.Errorf("failed to verify label ownership: %w", err)
+		}
+		if labelOwnerID != userID {
+			return fmt.Errorf("label access denied: %s", labelID)
+		}
+
+		// Insert assignment (ignore duplicates with ON CONFLICT)
+		_, err = tx.ExecContext(ctx,
+			"INSERT INTO consumption_item_labels (consumption_item_id, label_id, created_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+			consumptionItemID, labelID, now)
+		if err != nil {
+			return fmt.Errorf("failed to assign label %s: %w", labelID, err)
+		}
+	}
+
+	return tx.Commit()
+}
+
+// UnassignConsumptionItemLabel removes a label assignment from a consumption item
+func (s *PostgreSQLStore) UnassignConsumptionItemLabel(ctx context.Context, userID, consumptionItemID, labelID string) error {
+	query := `
+		DELETE FROM consumption_item_labels 
+		WHERE consumption_item_id = $1 AND label_id = $2
+		AND EXISTS (
+			SELECT 1 FROM consumption_items ci 
+			JOIN consumptions c ON c.id = ci.consumption_id 
+			WHERE ci.id = $1 AND c.user_id = $3
+		)
+		AND EXISTS (SELECT 1 FROM labels WHERE id = $2 AND user_id = $3)`
+
+	result, err := s.db.ExecContext(ctx, query, consumptionItemID, labelID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to unassign consumption item label: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("assignment not found or access denied")
+	}
+
+	return nil
+}
+
+// GetConsumptionsByLabels retrieves consumptions filtered by labels
+func (s *PostgreSQLStore) GetConsumptionsByLabels(ctx context.Context, userID string, labelNames []string, matchAll bool, limit, offset int) ([]*Consumption, error) {
+	if len(labelNames) == 0 {
+		// If no labels specified, use the regular method
+		return s.GetConsumptionsByUser(ctx, userID, limit, offset)
+	}
+
+	// Build placeholders for label names
+	placeholders := make([]string, len(labelNames))
+	args := []interface{}{userID}
+	for i, name := range labelNames {
+		placeholders[i] = fmt.Sprintf("$%d", i+2)
+		args = append(args, strings.ToLower(name))
+	}
+
+	var havingClause string
+	if matchAll {
+		havingClause = fmt.Sprintf("HAVING COUNT(DISTINCT l.id) = %d", len(labelNames))
+	} else {
+		havingClause = "HAVING COUNT(DISTINCT l.id) > 0"
+	}
+
+	// Query to get consumption IDs that match label criteria
+	labelFilter := fmt.Sprintf(`
+		SELECT c.id
+		FROM consumptions c
+		JOIN consumption_labels cl ON c.id = cl.consumption_id
+		JOIN labels l ON l.id = cl.label_id
+		WHERE c.user_id = $1 AND LOWER(l.name) IN (%s)
+		GROUP BY c.id
+		%s`, strings.Join(placeholders, ","), havingClause)
+
+	// Main query with limit and offset
+	query := fmt.Sprintf(`
+		SELECT id, user_id, transcript, total_calories, total_protein_g, total_fat_g, total_carbs_g,
+			dietary_fiber_g, total_sodium_mg, saturated_fat_g, trans_fat_g, cholesterol_mg,
+			total_sugars_g, added_sugars_g, vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg,
+			vitamin_e_mg, vitamin_k_mcg, thiamine_mg, riboflavin_mg, niacin_mg,
+			vitamin_b6_mg, folate_mcg, vitamin_b12_mcg, biotin_mcg, pantothenic_acid_mg,
+			choline_mg, calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
+			zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg,
+			chromium_mcg, fluoride_mg, chloride_mg, omega3_ala_g, omega3_epa_g,
+			omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, alcohol_g,
+			polyunsaturated_fat_g, monounsaturated_fat_g, note, created_at, updated_at
+		FROM consumptions
+		WHERE user_id = $1 AND id IN (%s)
+		ORDER BY created_at DESC
+		LIMIT $%d OFFSET $%d`,
+		labelFilter, len(args)+1, len(args)+2)
+
+	args = append(args, limit, offset)
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query consumptions by labels: %w", err)
+	}
+	defer rows.Close()
+
+	var consumptions []*Consumption
+	for rows.Next() {
+		consumption := &Consumption{}
+		err := rows.Scan(
+			&consumption.ID, &consumption.UserID, &consumption.Transcript,
+			&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
+			&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
+			&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
+			&consumption.TotalSugars, &consumption.AddedSugars, &consumption.VitaminA,
+			&consumption.VitaminC, &consumption.VitaminD, &consumption.VitaminE,
+			&consumption.VitaminK, &consumption.Thiamine, &consumption.Riboflavin,
+			&consumption.Niacin, &consumption.VitaminB6, &consumption.Folate,
+			&consumption.VitaminB12, &consumption.Biotin, &consumption.PantothenicAcid,
+			&consumption.Choline, &consumption.Calcium, &consumption.Iron,
+			&consumption.Magnesium, &consumption.Phosphorus, &consumption.Potassium,
+			&consumption.Zinc, &consumption.Copper, &consumption.Manganese,
+			&consumption.Selenium, &consumption.Iodine, &consumption.Molybdenum,
+			&consumption.Chromium, &consumption.Fluoride, &consumption.Chloride,
+			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
+			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine,
+			&consumption.Alcohol, &consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
+			&consumption.Note, &consumption.CreatedAt, &consumption.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan consumption: %w", err)
+		}
+		consumptions = append(consumptions, consumption)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over consumptions: %w", err)
+	}
+
+	// Load labels for each consumption
+	for _, consumption := range consumptions {
+		labels, err := s.ListConsumptionLabels(ctx, userID, consumption.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load consumption labels: %w", err)
+		}
+		consumption.Labels = labels
+	}
+
+	return consumptions, nil
 }

@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      consumption_item_labels: {
+        Row: {
+          consumption_item_id: string
+          created_at: string
+          label_id: string
+        }
+        Insert: {
+          consumption_item_id: string
+          created_at?: string
+          label_id: string
+        }
+        Update: {
+          consumption_item_id?: string
+          created_at?: string
+          label_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumption_item_labels_consumption_item_id_fkey"
+            columns: ["consumption_item_id"]
+            isOneToOne: false
+            referencedRelation: "consumption_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumption_item_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumption_items: {
         Row: {
           added_sugars_g: number
@@ -209,6 +242,39 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consumption_labels: {
+        Row: {
+          consumption_id: string
+          created_at: string
+          label_id: string
+        }
+        Insert: {
+          consumption_id: string
+          created_at?: string
+          label_id: string
+        }
+        Update: {
+          consumption_id?: string
+          created_at?: string
+          label_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumption_labels_consumption_id_fkey"
+            columns: ["consumption_id"]
+            isOneToOne: false
+            referencedRelation: "consumptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumption_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
             referencedColumns: ["id"]
           },
         ]
@@ -748,6 +814,44 @@ export type Database = {
           zinc_mg_per_100g?: number
         }
         Relationships: []
+      }
+      labels: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
