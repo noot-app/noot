@@ -9,7 +9,11 @@ CREATE TABLE IF NOT EXISTS public.labels (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT labels_description_len CHECK (description IS NULL OR length(description) <= 250),
-    CONSTRAINT labels_color_hex CHECK (color ~* '^#?[0-9a-f]{6}$')
+    CONSTRAINT labels_color_hex CHECK (color ~* '^#?[0-9a-f]{6}$'),
+    CONSTRAINT labels_name_format CHECK (
+        length(name) <= 39 AND
+        name ~ '^[a-zA-Z0-9]([a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$'
+    )
 );
 
 -- Unique constraint: case-insensitive name uniqueness per user
