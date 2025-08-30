@@ -3,8 +3,8 @@ import { env } from '$env/dynamic/public';
 
 /** @type {import('./$types').LayoutServerLoad} */
 export async function load({ locals }) {
-  // Server-side auth state management
-  // This will be used for SSR and initial page loads
+  // Get session using the new getSession function
+  const session = await locals.getSession();
   
   return {
     // Pass environment info to client
@@ -13,8 +13,7 @@ export async function load({ locals }) {
                        !env.PUBLIC_SUPABASE_URL.includes('REPLACE_ME') && 
                        !env.PUBLIC_SUPABASE_ANON_KEY.includes('REPLACE_ME')),
     
-    // Pass SSR auth data to client
-    user: locals.user,
-    session: locals.session
+    // Pass SSR session data to client
+    session
   };
 }

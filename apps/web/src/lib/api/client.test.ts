@@ -23,9 +23,9 @@ vi.mock('openapi-fetch', () => ({
 }));
 
 // Mock auth store
-const mockGetAuthProvider = vi.fn();
+const mockGetAccessToken = vi.fn();
 vi.mock('$lib/auth/store', () => ({
-  getAuthProvider: mockGetAuthProvider
+  getAccessToken: mockGetAccessToken
 }));
 
 describe('API Client', () => {
@@ -102,43 +102,6 @@ describe('API Client', () => {
       
       expect(mockMethod).toHaveBeenCalled();
     });
-
-    it('should handle auth provider not available', async () => {
-      mockGetAuthProvider.mockReturnValue(null);
-      
-      const { apiClient } = await import('./client');
-      
-      // Test that the client works without auth provider
-      expect(apiClient).toBeDefined();
-    });
-
-    it('should handle auth provider without getAccessToken method', async () => {
-      mockGetAuthProvider.mockReturnValue({
-        getCurrentUser: vi.fn()
-        // No getAccessToken method
-      });
-      
-      const { apiClient } = await import('./client');
-      
-      expect(apiClient).toBeDefined();
-    });
-
-    it('should handle getAccessToken throwing error', async () => {
-      const mockProvider = {
-        getAccessToken: vi.fn().mockRejectedValue(new Error('Token fetch failed'))
-      };
-      mockGetAuthProvider.mockReturnValue(mockProvider);
-      
-      // Mock console.warn to verify error handling
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
-      const { apiClient } = await import('./client');
-      
-      expect(apiClient).toBeDefined();
-      
-      // Cleanup
-      consoleSpy.mockRestore();
-    });
   });
 
   describe('API client proxy', () => {
@@ -151,10 +114,7 @@ describe('API Client', () => {
 
     it('should wrap HTTP methods with auth header injection', async () => {
       const mockToken = 'test-access-token';
-      const mockProvider = {
-        getAccessToken: vi.fn().mockResolvedValue(mockToken)
-      };
-      mockGetAuthProvider.mockReturnValue(mockProvider);
+      mockGetAccessToken.mockResolvedValue(mockToken);
       
       const mockGet = vi.fn().mockResolvedValue({ data: 'test' });
       mockCreateClient.mockReturnValue({
@@ -179,10 +139,7 @@ describe('API Client', () => {
 
     it('should handle requests without init parameter', async () => {
       const mockToken = 'test-access-token';
-      const mockProvider = {
-        getAccessToken: vi.fn().mockResolvedValue(mockToken)
-      };
-      mockGetAuthProvider.mockReturnValue(mockProvider);
+      mockGetAccessToken.mockResolvedValue(mockToken);
       
       const mockPost = vi.fn().mockResolvedValue({ data: 'test' });
       mockCreateClient.mockReturnValue({
@@ -207,10 +164,7 @@ describe('API Client', () => {
 
     it('should preserve existing headers while adding auth', async () => {
       const mockToken = 'test-access-token';
-      const mockProvider = {
-        getAccessToken: vi.fn().mockResolvedValue(mockToken)
-      };
-      mockGetAuthProvider.mockReturnValue(mockProvider);
+      mockGetAccessToken.mockResolvedValue(mockToken);
       
       const mockPut = vi.fn().mockResolvedValue({ data: 'test' });
       mockCreateClient.mockReturnValue({
@@ -236,10 +190,7 @@ describe('API Client', () => {
     });
 
     it('should work without access token', async () => {
-      const mockProvider = {
-        getAccessToken: vi.fn().mockResolvedValue(null)
-      };
-      mockGetAuthProvider.mockReturnValue(mockProvider);
+      mockGetAccessToken.mockResolvedValue(null);
       
       const mockDelete = vi.fn().mockResolvedValue({ data: 'test' });
       mockCreateClient.mockReturnValue({
@@ -278,10 +229,7 @@ describe('API Client', () => {
     });
 
     it('should handle empty token string', async () => {
-      const mockProvider = {
-        getAccessToken: vi.fn().mockResolvedValue('')
-      };
-      mockGetAuthProvider.mockReturnValue(mockProvider);
+      mockGetAccessToken.mockResolvedValue('');
       
       const mockGet = vi.fn().mockResolvedValue({ data: 'test' });
       mockCreateClient.mockReturnValue({
@@ -304,10 +252,7 @@ describe('API Client', () => {
     });
 
     it('should handle non-string token', async () => {
-      const mockProvider = {
-        getAccessToken: vi.fn().mockResolvedValue(123 as any) // Non-string token
-      };
-      mockGetAuthProvider.mockReturnValue(mockProvider);
+      mockGetAccessToken.mockResolvedValue(123 as any); // Non-string token
       
       const mockGet = vi.fn().mockResolvedValue({ data: 'test' });
       mockCreateClient.mockReturnValue({

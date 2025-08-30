@@ -1,219 +1,234 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { get } from 'svelte/store';
-import { isSupabaseEnabled } from '$lib/supabase';
 
-// Mock the auth provider creation globally
-const mockAuthProvider = {
-  getCurrentUser: vi.fn().mockResolvedValue(null),
-  signIn: vi.fn().mockResolvedValue({ 
-    user: { id: 'test-id', email: 'test@example.com', subscriptionTier: 'free' }, 
-    error: null 
-  }),
-  signUp: vi.fn().mockResolvedValue({ 
-    user: { id: 'test-id', email: 'test@example.com', subscriptionTier: 'free' }, 
-    error: null 
-  }),
-  signOut: vi.fn().mockResolvedValue({ error: null }),
-  resetPassword: vi.fn().mockResolvedValue({ error: null }),
-  onAuthStateChange: vi.fn().mockReturnValue(() => {}),
-  getAccessToken: vi.fn().mockResolvedValue(null)
-};
-
-// Mock modules with more comprehensive implementation
-vi.mock('./supabase-auth', () => ({
-  SupabaseAuthProvider: vi.fn().mockImplementation(() => mockAuthProvider)
-}));
-
-vi.mock('$lib/supabase', () => ({
-  isSupabaseEnabled: vi.fn().mockReturnValue(true)
-}));
-
-// Mock environment detection
+// Mock browser environment
 const mockWindow = {} as any;
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  // Don't reset modules to preserve mocks
-  // Mock client-side environment by default
-  (global as any).window = mockWindow;
-  
-  // Ensure isSupabaseEnabled mock is working
-  vi.mocked(isSupabaseEnabled).mockReturnValue(true);
-  
-  // Reset mock provider methods
-  Object.keys(mockAuthProvider).forEach(key => {
-    if (typeof mockAuthProvider[key as keyof typeof mockAuthProvider] === 'function') {
-      vi.mocked(mockAuthProvider[key as keyof typeof mockAuthProvider] as any).mockClear();
-    }
-  });
-  
-  // Reset global mock values
-  mockAuthProvider.signIn.mockResolvedValue({ 
-    user: { id: 'test-id', email: 'test@example.com', subscriptionTier: 'free' }, 
-    error: null 
-  });
-  mockAuthProvider.signUp.mockResolvedValue({ 
-    user: { id: 'test-id', email: 'test@example.com', subscriptionTier: 'free' }, 
-    error: null 
-  });
-  mockAuthProvider.signOut.mockResolvedValue({ error: null });
-  mockAuthProvider.resetPassword.mockResolvedValue({ error: null });
-});
+// Mock Supabase client
+const mockSupabaseClient = {
+  auth: {
+    onAuthStateChange: vi.fn().mockReturnValue({ 
+      data: { subscription: { unsubscribe: vi.fn() } } 
+    }),
+    signInWithPassword: vi.fn(),
+    signUp: vi.fn(), 
+    signOut: vi.fn(),
+    resetPasswordForEmail: vi.fn(),
+    getSession: vi.fn().mockResolvedValue({ data: { session: null } })
+  }
+};
 
-afterEach(() => {
-  delete (global as any).window;
-});
+// Mock Supabase SSR
+vi.mock('@supabase/ssr', () => ({
+  createBrowserClient: vi.fn().mockReturnValue(mockSupabaseClient),
+  isBrowser: vi.fn().mockReturnValue(true)
+}));
 
-describe('Auth Store', () => {
-  describe('getAuthProvider', () => {
-    it('should return null during SSR', async () => {
-      delete (global as any).window;
-      
-      const { getAuthProvider } = await import('./store');
-      const provider = getAuthProvider();
-      
-      expect(provider).toBe(null);
+// Mock environment
+vi.mock('$env/dynamic/public', () => ({
+  env: {
+    PUBLIC_SUPABASE_URL: 'http://localhost:54321',
+    PUBLIC_SUPABASE_ANON_KEY: 'test-anon-key'
+  }
+}));
+
+// Mock app navigation
+vi.mock('$app/environment', () => ({
+  browser: true
+}));
+
+vi.mock('$app/navigation', () => ({
+  invalidateAll: vi.fn().mockResolvedValue(undefined)
+}));
+
+describe('New Auth Store', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Mock client-side environment
+    (global as any).window = mockWindow;
+  });
+
+  afterEach(() => {
+    delete (global as any).window;
+  });
+
+  describe('stores initialization', () => {
+    it('should initialize session with null', async () => {
+      const { session } = await import('./store');
+      expect(get(session)).toBe(null);
     });
 
-    it('should create and cache auth provider instance', async () => {
-      const { getAuthProvider } = await import('./store');
+    it('should initialize user as derived from session', async () => {
+      const { user, session } = await import('./store');
+      expect(get(user)).toBe(null);
       
-      const provider1 = getAuthProvider();
-      const provider2 = getAuthProvider();
+      // Mock session
+      session.set({
+        access_token: 'test-token',
+        refresh_token: 'refresh-token',
+        expires_at: Date.now() + 3600,
+        expires_in: 3600,
+        token_type: 'bearer',
+        user: {
+          id: 'test-id',
+          email: 'test@example.com',
+          aud: 'authenticated',
+          created_at: '',
+          app_metadata: {},
+          user_metadata: {},
+          is_anonymous: false
+        }
+      });
       
-      expect(provider1).not.toBe(null);
-      expect(provider1).toBe(provider2); // Should return same cached instance
-    });
-
-  });
-
-  describe('currentUser store', () => {
-    it('should initialize with null value', async () => {
-      const { currentUser } = await import('./store');
-      expect(get(currentUser)).toBe(null);
-    });
-
-    it('should be writable', async () => {
-      const { currentUser } = await import('./store');
-      const mockUser = {
+      expect(get(user)).toEqual({
         id: 'test-id',
         email: 'test@example.com',
-        subscriptionTier: 'free' as const
-      };
+        aud: 'authenticated',
+        created_at: '',
+        app_metadata: {},
+        user_metadata: {},
+        is_anonymous: false
+      });
+    });
 
-      currentUser.set(mockUser);
-      expect(get(currentUser)).toEqual(mockUser);
+    it('should initialize isAuthenticated as derived from session', async () => {
+      vi.resetModules(); // Reset modules to ensure fresh state
+      const { isAuthenticated, session } = await import('./store');
+      
+      // Reset session to null to ensure clean state
+      session.set(null);
+      expect(get(isAuthenticated)).toBe(false);
+      
+      // Mock session
+      session.set({
+        access_token: 'test-token',
+        refresh_token: 'refresh-token',
+        expires_at: Date.now() + 3600,
+        expires_in: 3600,
+        token_type: 'bearer',
+        user: {
+          id: 'test-id',
+          email: 'test@example.com',
+          aud: 'authenticated',
+          created_at: '',
+          app_metadata: {},
+          user_metadata: {},
+          is_anonymous: false
+        }
+      });
+      
+      expect(get(isAuthenticated)).toBe(true);
     });
   });
 
-  describe('isPro derived store', () => {
-    it('should return false for free users', async () => {
-      const { currentUser, isPro } = await import('./store');
-      const freeUser = {
-        id: 'test-id',
-        email: 'test@example.com',
-        subscriptionTier: 'free' as const
-      };
+  describe('auth actions', () => {
+    it('should handle sign in', async () => {
+      mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
+        data: { 
+          user: { id: 'test-id', email: 'test@example.com' },
+          session: { access_token: 'token' }
+        },
+        error: null
+      });
 
-      currentUser.set(freeUser);
-      expect(get(isPro)).toBe(false);
-    });
-
-    it('should return true for pro users', async () => {
-      const { currentUser, isPro } = await import('./store');
-      const proUser = {
-        id: 'test-id',
-        email: 'test@example.com',
-        subscriptionTier: 'pro' as const
-      };
-
-      currentUser.set(proUser);
-      expect(get(isPro)).toBe(true);
-    });
-
-    it('should return false when user is null', async () => {
-      const { currentUser, isPro } = await import('./store');
-      currentUser.set(null);
-      expect(get(isPro)).toBe(false);
-    });
-  });
-
-  describe('initAuth', () => {
-    it('should skip initialization when already initialized', async () => {
-      const { initAuth } = await import('./store');
-      
-      await initAuth(); // First call
-      const result = await initAuth(); // Second call should skip
-      
-      expect(result).toBeUndefined();
-    });
-
-    it('should skip during SSR', async () => {
-      delete (global as any).window;
-      
-      const { initAuth } = await import('./store');
-      const result = await initAuth();
-      
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe('signIn', () => {
-    it('should handle successful sign in', async () => {
-      const mockUser = {
-        id: 'test-id',
-        email: 'test@example.com',
-        subscriptionTier: 'free' as const
-      };
-      
-      // Configure the global mock
-      mockAuthProvider.signIn.mockResolvedValue({ user: mockUser, error: null });
-      
       const { signIn } = await import('./store');
       const result = await signIn('test@example.com', 'password');
       
-      expect(result.user).toEqual(mockUser);
       expect(result.error).toBe(null);
-      expect(mockAuthProvider.signIn).toHaveBeenCalledWith('test@example.com', 'password');
+      expect(mockSupabaseClient.auth.signInWithPassword).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'password'
+      });
     });
 
     it('should handle sign in errors', async () => {
-      const mockError = 'Invalid credentials';
-      
-      // Configure the global mock  
-      mockAuthProvider.signIn.mockResolvedValue({ user: null, error: mockError });
-      
+      const authError = { message: 'Invalid credentials', name: 'AuthError' };
+      mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
+        data: { user: null, session: null },
+        error: authError
+      });
+
       const { signIn } = await import('./store');
       const result = await signIn('test@example.com', 'wrong-password');
       
-      expect(result.user).toBe(null);
-      expect(result.error).toEqual(new Error(mockError));
+      expect(result.error).toEqual(authError);
     });
 
-    it('should handle missing auth provider', async () => {
-      delete (global as any).window;
+    it('should handle sign up', async () => {
+      mockSupabaseClient.auth.signUp.mockResolvedValue({
+        data: { 
+          user: { id: 'test-id', email: 'test@example.com' },
+          session: null // Email confirmation required
+        },
+        error: null
+      });
+
+      const { signUp } = await import('./store');
+      const result = await signUp('test@example.com', 'password', { fullName: 'Test User' });
       
-      const { signIn } = await import('./store');
-      const result = await signIn('test@example.com', 'password');
-      
-      expect(result.user).toBe(null);
-      expect(result.error).toEqual(new Error('No auth provider available'));
+      expect(result.error).toBe(null);
+      expect(mockSupabaseClient.auth.signUp).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'password',
+        options: {
+          data: {
+            full_name: 'Test User'
+          }
+        }
+      });
     });
 
+    it('should handle sign out', async () => {
+      mockSupabaseClient.auth.signOut.mockResolvedValue({
+        error: null
+      });
+
+      const { signOut } = await import('./store');
+      const result = await signOut();
+      
+      expect(result.error).toBe(null);
+      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
+    });
+
+    it('should handle reset password', async () => {
+      mockSupabaseClient.auth.resetPasswordForEmail.mockResolvedValue({
+        error: null
+      });
+
+      const { resetPassword } = await import('./store');
+      const result = await resetPassword('test@example.com');
+      
+      expect(result.error).toBe(null);
+      expect(mockSupabaseClient.auth.resetPasswordForEmail).toHaveBeenCalledWith('test@example.com');
+    });
   });
 
-  describe('resetAuthInitialization', () => {
-    it('should reset auth initialization state', async () => {
-      const { initAuth, resetAuthInitialization } = await import('./store');
+  describe('getAccessToken', () => {
+    it('should return access token from session', async () => {
+      mockSupabaseClient.auth.getSession.mockResolvedValue({
+        data: { 
+          session: {
+            access_token: 'test-access-token',
+            user: { id: 'test-id' }
+          }
+        }
+      });
+
+      const { getAccessToken } = await import('./store');
+      const token = await getAccessToken();
       
-      // Initialize auth
-      await initAuth();
+      expect(token).toBe('test-access-token');
+    });
+
+    it('should return null when no session', async () => {
+      mockSupabaseClient.auth.getSession.mockResolvedValue({
+        data: { session: null }
+      });
+
+      const { getAccessToken } = await import('./store');
+      const token = await getAccessToken();
       
-      // Reset and initialize again
-      resetAuthInitialization();
-      const result = await initAuth(); // Should not skip
-      
-      expect(result).toBeUndefined();
+      expect(token).toBe(null);
     });
   });
 });

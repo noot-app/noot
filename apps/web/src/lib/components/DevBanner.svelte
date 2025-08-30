@@ -3,7 +3,7 @@
   import { page } from '$app/stores';
   import { navigating } from '$app/stores';
   import { onMount } from 'svelte';
-  import { currentUser } from '$lib/auth/store';
+  import { user } from '$lib/auth/store';
   import { isSupabaseEnabled } from '$lib/supabase';
   
   let pageLoadTime = 0;
@@ -21,7 +21,7 @@
   let rejectionHandler: ((event: PromiseRejectionEvent) => void) | undefined;
   
   function copyDebugInfo() {
-    const userDisplay = $currentUser ? `${$currentUser.email} (${$currentUser.subscriptionTier.toUpperCase()})` : 'Not logged in';
+    const userDisplay = $user ? `${$user.email} (unknown tier)` : 'Not logged in';
     const authType = isSupabaseEnabled() ? 'Supabase' : 'Not Configured';
     const debugInfo = `
 Dev Info:
@@ -191,7 +191,7 @@ Dev Info:
       <span class="dev-separator">•</span>
       <span class="dev-item">
         User: <strong>
-          {$currentUser ? `${$currentUser.email} (${$currentUser.subscriptionTier.toUpperCase()})` : 'Not logged in'}
+          {$user ? `${$user.email}` : 'Not logged in'}
         </strong>
       </span>
       <span class="dev-separator">•</span>

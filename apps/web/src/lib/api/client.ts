@@ -10,18 +10,14 @@ const baseClient = createClient<paths>({
   baseUrl: env.PUBLIC_API_BASE_URL || 'https://api.nootapp.io/api/v1'
 });
 
-// Get access token from the auth provider (if available)
+// Get access token from the new auth system
 async function getAccessToken(): Promise<string | null> {
   if (typeof window === 'undefined') return null;
   
   try {
     // Dynamic import to avoid SSR issues
-    const { getAuthProvider } = await import('$lib/auth/store');
-    
-    const authProvider = getAuthProvider();
-    if (authProvider && 'getAccessToken' in authProvider && typeof authProvider.getAccessToken === 'function') {
-      return await authProvider.getAccessToken();
-    }
+    const { getAccessToken } = await import('$lib/auth/store');
+    return await getAccessToken();
   } catch (error) {
     console.warn('Failed to get access token:', error);
   }
