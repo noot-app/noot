@@ -67,7 +67,6 @@ export type Database = {
           iodine_mcg: number
           iron_mg: number
           item_id: string | null
-          label: string | null
           magnesium_mg: number
           manganese_mg: number
           molybdenum_mcg: number
@@ -129,7 +128,6 @@ export type Database = {
           iodine_mcg?: number
           iron_mg?: number
           item_id?: string | null
-          label?: string | null
           magnesium_mg?: number
           manganese_mg?: number
           molybdenum_mcg?: number
@@ -191,7 +189,6 @@ export type Database = {
           iodine_mcg?: number
           iron_mg?: number
           item_id?: string | null
-          label?: string | null
           magnesium_mg?: number
           manganese_mg?: number
           molybdenum_mcg?: number
@@ -299,7 +296,6 @@ export type Database = {
           id: string
           iodine_mcg: number
           iron_mg: number
-          label: string | null
           magnesium_mg: number
           manganese_mg: number
           molybdenum_mcg: number
@@ -356,7 +352,6 @@ export type Database = {
           id?: string
           iodine_mcg?: number
           iron_mg?: number
-          label?: string | null
           magnesium_mg?: number
           manganese_mg?: number
           molybdenum_mcg?: number
@@ -413,7 +408,6 @@ export type Database = {
           id?: string
           iodine_mcg?: number
           iron_mg?: number
-          label?: string | null
           magnesium_mg?: number
           manganese_mg?: number
           molybdenum_mcg?: number
