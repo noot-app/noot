@@ -20,9 +20,11 @@
     const unsubscribe = user.subscribe((currentUser) => {
       if (currentUser && !redirecting) {
         redirecting = true;
+        loading = false; // Reset loading state on successful auth
         goto(returnUrl).catch((err) => {
           console.error('❌ Navigation failed:', err);
           redirecting = false; // Reset on failure
+          loading = false;
         });
       }
     });
@@ -59,13 +61,13 @@
         
         // Get user-friendly error message
         error = getAuthErrorMessage(errorCode, errorMessage);
-      } else {
-        console.error('⚠️ signIn returned no user and no error - unexpected state');
+        loading = false;
       }
+      // If no error, sign-in was successful - auth state change listener will handle redirect
+      // Don't set loading = false here, let the redirect happen
     } catch (err) {
       console.error('❌ Exception in handleLogin:', err);
       error = err instanceof Error ? err.message : 'An unexpected error occurred';
-    } finally {
       loading = false;
     }
   }
