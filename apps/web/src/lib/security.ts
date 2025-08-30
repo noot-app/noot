@@ -24,7 +24,7 @@ export function sanitizeReturnUrl(returnUrl: string | null, defaultUrl = '/'): s
 
   try {
     // If it's an absolute URL, parse it to check if it's same-origin
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('//')) {
       const url = new URL(trimmed);
       
       // Only allow same-origin URLs by checking if we're in a browser context
@@ -46,8 +46,14 @@ export function sanitizeReturnUrl(returnUrl: string | null, defaultUrl = '/'): s
       return defaultUrl;
     }
 
-    // Prevent path traversal attacks
+    // Prevent path traversal attacks - check both raw string and URL-decoded
     if (trimmed.includes('../') || trimmed.includes('..\\')) {
+      return defaultUrl;
+    }
+    
+    // Also check for URL-encoded path traversal
+    const decoded = decodeURIComponent(trimmed);
+    if (decoded.includes('../') || decoded.includes('..\\')) {
       return defaultUrl;
     }
 
