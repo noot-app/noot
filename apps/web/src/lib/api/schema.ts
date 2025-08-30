@@ -77,7 +77,7 @@ export interface paths {
         };
         /**
          * List consumptions
-         * @description Get a list of stored consumptions for the default user
+         * @description Get a list of stored consumptions for the default user, optionally filtered by labels
          */
         get: operations["getConsumptions"];
         put?: never;
@@ -192,6 +192,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List labels
+         * @description Get all labels owned by the current user, including usage counts
+         */
+        get: operations["getLabels"];
+        put?: never;
+        /**
+         * Create a new label
+         * @description Create a new label for the current user
+         */
+        post: operations["createLabel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/labels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update a label
+         * @description Update an existing label owned by the current user
+         */
+        put: operations["updateLabel"];
+        post?: never;
+        /**
+         * Delete a label
+         * @description Delete a label and unassign it from all consumptions/items
+         */
+        delete: operations["deleteLabel"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consumption/{id}/labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get labels assigned to a consumption
+         * @description Get all labels assigned to a specific consumption
+         */
+        get: operations["getConsumptionLabels"];
+        put?: never;
+        /**
+         * Assign labels to a consumption
+         * @description Assign one or more labels to a consumption by label IDs
+         */
+        post: operations["assignConsumptionLabels"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consumption/{id}/labels/{labelId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unassign a label from a consumption
+         * @description Remove a label assignment from a consumption
+         */
+        delete: operations["unassignConsumptionLabel"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consumption-items/{id}/labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get labels assigned to a consumption item
+         * @description Get all labels assigned to a specific consumption item
+         */
+        get: operations["getConsumptionItemLabels"];
+        put?: never;
+        /**
+         * Assign labels to a consumption item
+         * @description Assign one or more labels to a consumption item by label IDs
+         */
+        post: operations["assignConsumptionItemLabels"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/consumption-items/{id}/labels/{labelId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unassign a label from a consumption item
+         * @description Remove a label assignment from a consumption item
+         */
+        delete: operations["unassignConsumptionItemLabel"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/trends": {
         parameters: {
             query?: never;
@@ -287,11 +423,92 @@ export interface components {
             /** @example dev */
             version: string;
         };
+        Label: {
+            /** @description Label ID */
+            id: string;
+            /** @description Label name */
+            name: string;
+            /** @description Optional description of the label */
+            description?: string | null;
+            /**
+             * @description Hex color (#RRGGBB or RRGGBB)
+             * @example #1E90FF
+             */
+            color: string;
+            /**
+             * Format: date-time
+             * @description When the label was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the label was last updated
+             */
+            updated_at: string;
+        };
+        LabelCreateRequest: {
+            /** @description Label name (unique per user, case-insensitive) */
+            name: string;
+            /** @description Optional description of the label */
+            description?: string;
+            /**
+             * @description Hex color (#RRGGBB or RRGGBB)
+             * @example #1E90FF
+             */
+            color: string;
+        };
+        LabelUpdateRequest: {
+            /** @description Label name (unique per user, case-insensitive) */
+            name?: string;
+            /** @description Optional description of the label */
+            description?: string | null;
+            /**
+             * @description Hex color (#RRGGBB or RRGGBB)
+             * @example #1E90FF
+             */
+            color?: string;
+        };
+        LabelWithUsage: {
+            /** @description Label ID */
+            id: string;
+            /** @description Label name */
+            name: string;
+            /** @description Optional description of the label */
+            description?: string | null;
+            /**
+             * @description Hex color (#RRGGBB)
+             * @example #1E90FF
+             */
+            color: string;
+            /**
+             * Format: date-time
+             * @description When the label was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the label was last updated
+             */
+            updated_at: string;
+            /** @description Number of consumptions using this label */
+            consumption_count: number;
+            /** @description Number of consumption items using this label */
+            item_count: number;
+        };
+        LabelsResponse: {
+            labels: components["schemas"]["LabelWithUsage"][];
+        };
+        AssignLabelsRequest: {
+            /** @description Array of label IDs to assign */
+            ids: string[];
+        };
         ConsumptionResponse: {
             /** @description Consumption ID (for future edits/deletes) */
             id: string;
             /** @description Transcribed text from audio */
             transcript: string;
+            /** @description Labels assigned to this consumption */
+            labels?: components["schemas"]["Label"][];
             /** @description Items with complete nutrition information */
             items: components["schemas"]["ItemWithNutrition"][];
             summary: components["schemas"]["Summary"];
@@ -329,8 +546,8 @@ export interface components {
             brand?: string | null;
             /** @description Additional note about the item */
             note?: string | null;
-            /** @description Custom label for the item */
-            label?: string | null;
+            /** @description Labels assigned to this item */
+            labels?: components["schemas"]["Label"][];
             nutrients?: components["schemas"]["CompleteNutrient"];
         };
         ItemWithNutrition: {
@@ -478,8 +695,8 @@ export interface components {
             transcript: string;
             /** @description Additional note about the consumption */
             note?: string | null;
-            /** @description Custom label for the consumption */
-            label?: string | null;
+            /** @description Labels assigned to this consumption */
+            labels?: components["schemas"]["Label"][];
             items: components["schemas"]["ItemWithNutrition"][];
             summary: components["schemas"]["Summary"];
             /**
@@ -1065,7 +1282,12 @@ export interface operations {
     };
     getConsumptions: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Comma-separated list of label names to filter by */
+                labels?: string;
+                /** @description Label matching strategy - 'any' matches consumptions with at least one of the labels, 'all' matches consumptions with all labels */
+                match?: "any" | "all";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1392,6 +1614,477 @@ export interface operations {
                 };
             };
             /** @description Goal set not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of user labels with usage counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabelsResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createLabel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabelCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Label created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Label"];
+                };
+            };
+            /** @description Bad request (invalid color/name, validation errors) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Label limit exceeded (100 labels per user) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Label name already exists for user */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateLabel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Label ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabelUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Label updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Label"];
+                };
+            };
+            /** @description Bad request (validation errors) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Label not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Label name already exists for user */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteLabel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Label ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Label deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Label not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getConsumptionLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Consumption ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Labels assigned to the consumption */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        labels?: components["schemas"]["Label"][];
+                    };
+                };
+            };
+            /** @description Consumption not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    assignConsumptionLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Consumption ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignLabelsRequest"];
+            };
+        };
+        responses: {
+            /** @description Labels assigned successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        labels?: components["schemas"]["Label"][];
+                    };
+                };
+            };
+            /** @description Bad request (invalid label IDs) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Consumption or label not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    unassignConsumptionLabel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Consumption ID */
+                id: string;
+                /** @description Label ID */
+                labelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Label unassigned successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Consumption or label assignment not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getConsumptionItemLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Consumption item ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Labels assigned to the consumption item */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        labels?: components["schemas"]["Label"][];
+                    };
+                };
+            };
+            /** @description Consumption item not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    assignConsumptionItemLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Consumption item ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignLabelsRequest"];
+            };
+        };
+        responses: {
+            /** @description Labels assigned successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        labels?: components["schemas"]["Label"][];
+                    };
+                };
+            };
+            /** @description Bad request (invalid label IDs) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Consumption item or label not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    unassignConsumptionItemLabel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Consumption item ID */
+                id: string;
+                /** @description Label ID */
+                labelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Label unassigned successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Consumption item or label assignment not found */
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -115,6 +115,43 @@ func (m *mockStore) CreateItemAlias(ctx context.Context, alias *storage.ItemAlia
 func (m *mockStore) GetCanonicalName(ctx context.Context, aliasName, aliasBrand string) (canonicalName, canonicalBrand string, err error) {
 	return "", "", nil
 }
+
+// Label-related mock methods
+func (m *mockStore) CreateLabel(ctx context.Context, label *storage.Label) error { return nil }
+func (m *mockStore) UpdateLabel(ctx context.Context, label *storage.Label) error { return nil }
+func (m *mockStore) DeleteLabel(ctx context.Context, userID, id string) error    { return nil }
+func (m *mockStore) GetLabel(ctx context.Context, userID, id string) (*storage.Label, error) {
+	return nil, nil
+}
+func (m *mockStore) ListLabels(ctx context.Context, userID string) ([]*storage.LabelWithUsage, error) {
+	return nil, nil
+}
+
+// Label assignment mock methods
+func (m *mockStore) ListConsumptionLabels(ctx context.Context, userID, consumptionID string) ([]*storage.Label, error) {
+	return nil, nil
+}
+func (m *mockStore) AssignConsumptionLabels(ctx context.Context, userID, consumptionID string, labelIDs []string) error {
+	return nil
+}
+func (m *mockStore) UnassignConsumptionLabel(ctx context.Context, userID, consumptionID, labelID string) error {
+	return nil
+}
+func (m *mockStore) ListConsumptionItemLabels(ctx context.Context, userID, consumptionItemID string) ([]*storage.Label, error) {
+	return nil, nil
+}
+func (m *mockStore) AssignConsumptionItemLabels(ctx context.Context, userID, consumptionItemID string, labelIDs []string) error {
+	return nil
+}
+func (m *mockStore) UnassignConsumptionItemLabel(ctx context.Context, userID, consumptionItemID, labelID string) error {
+	return nil
+}
+
+// Filtering mock methods
+func (m *mockStore) GetConsumptionsByLabels(ctx context.Context, userID string, labelNames []string, matchAll bool, limit, offset int) ([]*storage.Consumption, error) {
+	return nil, nil
+}
+
 func (m *mockStore) Close() error { return nil }
 
 // Test JWT validation security patterns

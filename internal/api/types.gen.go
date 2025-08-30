@@ -68,11 +68,23 @@ const (
 	PreferNotToSay UserBiometricsSex = "prefer_not_to_say"
 )
 
+// Defines values for GetConsumptionsParamsMatch.
+const (
+	All GetConsumptionsParamsMatch = "all"
+	Any GetConsumptionsParamsMatch = "any"
+)
+
 // Defines values for ExportDataParamsFormat.
 const (
 	ExportDataParamsFormatCsv  ExportDataParamsFormat = "csv"
 	ExportDataParamsFormatJson ExportDataParamsFormat = "json"
 )
+
+// AssignLabelsRequest defines model for AssignLabelsRequest.
+type AssignLabelsRequest struct {
+	// Ids Array of label IDs to assign
+	Ids []string `json:"ids"`
+}
 
 // BiometricsResponse defines model for BiometricsResponse.
 type BiometricsResponse struct {
@@ -248,8 +260,8 @@ type Consumption struct {
 	Id    string              `json:"id"`
 	Items []ItemWithNutrition `json:"items"`
 
-	// Label Custom label for the consumption
-	Label *string `json:"label"`
+	// Labels Labels assigned to this consumption
+	Labels *[]Label `json:"labels,omitempty"`
 
 	// Note Additional note about the consumption
 	Note    *string `json:"note"`
@@ -269,6 +281,9 @@ type ConsumptionResponse struct {
 
 	// Items Items with complete nutrition information
 	Items []ItemWithNutrition `json:"items"`
+
+	// Labels Labels assigned to this consumption
+	Labels *[]Label `json:"labels,omitempty"`
 
 	// RequestId Request identifier for tracking
 	RequestId string  `json:"request_id"`
@@ -433,8 +448,8 @@ type Item struct {
 	// Grams Weight in grams (standardized internally)
 	Grams float32 `json:"grams"`
 
-	// Label Custom label for the item
-	Label *string `json:"label"`
+	// Labels Labels assigned to this item
+	Labels *[]Label `json:"labels,omitempty"`
 
 	// Name Name of the food item
 	Name string `json:"name"`
@@ -456,6 +471,83 @@ type ItemWithNutrition struct {
 
 	// Note Additional note (e.g., if nutrition data unavailable)
 	Note *string `json:"note,omitempty"`
+}
+
+// Label defines model for Label.
+type Label struct {
+	// Color Hex color (#RRGGBB or RRGGBB)
+	Color string `json:"color"`
+
+	// CreatedAt When the label was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// Description Optional description of the label
+	Description *string `json:"description"`
+
+	// Id Label ID
+	Id string `json:"id"`
+
+	// Name Label name
+	Name string `json:"name"`
+
+	// UpdatedAt When the label was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// LabelCreateRequest defines model for LabelCreateRequest.
+type LabelCreateRequest struct {
+	// Color Hex color (#RRGGBB or RRGGBB)
+	Color string `json:"color"`
+
+	// Description Optional description of the label
+	Description *string `json:"description,omitempty"`
+
+	// Name Label name (unique per user, case-insensitive)
+	Name string `json:"name"`
+}
+
+// LabelUpdateRequest defines model for LabelUpdateRequest.
+type LabelUpdateRequest struct {
+	// Color Hex color (#RRGGBB or RRGGBB)
+	Color *string `json:"color,omitempty"`
+
+	// Description Optional description of the label
+	Description *string `json:"description"`
+
+	// Name Label name (unique per user, case-insensitive)
+	Name *string `json:"name,omitempty"`
+}
+
+// LabelWithUsage defines model for LabelWithUsage.
+type LabelWithUsage struct {
+	// Color Hex color (#RRGGBB)
+	Color string `json:"color"`
+
+	// ConsumptionCount Number of consumptions using this label
+	ConsumptionCount int `json:"consumption_count"`
+
+	// CreatedAt When the label was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// Description Optional description of the label
+	Description *string `json:"description"`
+
+	// Id Label ID
+	Id string `json:"id"`
+
+	// ItemCount Number of consumption items using this label
+	ItemCount int `json:"item_count"`
+
+	// Name Label name
+	Name string `json:"name"`
+
+	// UpdatedAt When the label was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// LabelsResponse defines model for LabelsResponse.
+type LabelsResponse struct {
+	Labels []LabelWithUsage `json:"labels"`
 }
 
 // LifeStage defines model for LifeStage.
@@ -790,6 +882,18 @@ type CreateConsumptionMultipartBody struct {
 	Audio openapi_types.File `json:"audio"`
 }
 
+// GetConsumptionsParams defines parameters for GetConsumptions.
+type GetConsumptionsParams struct {
+	// Labels Comma-separated list of label names to filter by
+	Labels *string `form:"labels,omitempty" json:"labels,omitempty"`
+
+	// Match Label matching strategy - 'any' matches consumptions with at least one of the labels, 'all' matches consumptions with all labels
+	Match *GetConsumptionsParamsMatch `form:"match,omitempty" json:"match,omitempty"`
+}
+
+// GetConsumptionsParamsMatch defines parameters for GetConsumptions.
+type GetConsumptionsParamsMatch string
+
 // ExportDataParams defines parameters for ExportData.
 type ExportDataParams struct {
 	// Format Export format
@@ -847,11 +951,23 @@ type UpdateUserBiometricsJSONRequestBody = UpdateBiometricsRequest
 // CreateConsumptionMultipartRequestBody defines body for CreateConsumption for multipart/form-data ContentType.
 type CreateConsumptionMultipartRequestBody CreateConsumptionMultipartBody
 
+// AssignConsumptionItemLabelsJSONRequestBody defines body for AssignConsumptionItemLabels for application/json ContentType.
+type AssignConsumptionItemLabelsJSONRequestBody = AssignLabelsRequest
+
 // UpdateConsumptionJSONRequestBody defines body for UpdateConsumption for application/json ContentType.
 type UpdateConsumptionJSONRequestBody = UpdateConsumptionRequest
+
+// AssignConsumptionLabelsJSONRequestBody defines body for AssignConsumptionLabels for application/json ContentType.
+type AssignConsumptionLabelsJSONRequestBody = AssignLabelsRequest
 
 // UpdateGoalsJSONRequestBody defines body for UpdateGoals for application/json ContentType.
 type UpdateGoalsJSONRequestBody = UpdateGoalsRequest
 
 // SetActiveGoalSetJSONRequestBody defines body for SetActiveGoalSet for application/json ContentType.
 type SetActiveGoalSetJSONRequestBody = SetActiveGoalRequest
+
+// CreateLabelJSONRequestBody defines body for CreateLabel for application/json ContentType.
+type CreateLabelJSONRequestBody = LabelCreateRequest
+
+// UpdateLabelJSONRequestBody defines body for UpdateLabel for application/json ContentType.
+type UpdateLabelJSONRequestBody = LabelUpdateRequest

@@ -1055,7 +1055,6 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 		PolyunsaturatedFatGPer100g: convertAndRound(normalizedNutrients.PolyunsaturatedFat, 2),
 		MonounsaturatedFatGPer100g: convertAndRound(normalizedNutrients.MonounsaturatedFat, 2),
 		Note:                       item.Note,
-		Label:                      item.Label,
 
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),

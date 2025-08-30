@@ -219,6 +219,134 @@ func TestUserCreationFlow(t *testing.T) {
 		count := strings.TrimSpace(string(output))
 		assert.Equal(t, "1", count, "Should have exactly one profile for the email")
 	})
+
+	t.Run("Seeded Labels Exist", func(t *testing.T) {
+		// Check that labels were properly seeded for test users
+		t.Run("Monalisa Labels", func(t *testing.T) {
+			// Query labels for monalisa@birki.io
+			query := `SELECT name, description, color FROM public.labels l 
+				JOIN public.profiles p ON l.user_id = p.id 
+				WHERE p.email = 'monalisa@birki.io' 
+				ORDER BY name;`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query Monalisa's labels")
+
+			outputStr := strings.TrimSpace(string(output))
+			lines := strings.Split(outputStr, "\n")
+
+			// Should have 6 labels for Monalisa
+			assert.Len(t, lines, 6, "Monalisa should have 6 seeded labels")
+
+			// Parse each line and check expected labels
+			expectedLabels := map[string]struct {
+				description string
+				color       string
+			}{
+				"breakfast":    {"Morning meal items", "FF6B6B"},
+				"healthy":      {"Nutritious food choices", "4ECDC4"},
+				"snack":        {"", "FFE66D"}, // NULL description should appear as empty
+				"protein":      {"High protein foods", "95E1D3"},
+				"meal-prep":    {"Pre-prepared meals", "A8E6CF"},
+				"trigger-food": {"Foods that trigger negative responses", "FF0000"},
+			}
+
+			foundLabels := make(map[string]bool)
+			for _, line := range lines {
+				parts := strings.Split(line, "|")
+				require.Len(t, parts, 3, "Each label line should have 3 parts")
+
+				name := strings.TrimSpace(parts[0])
+				description := strings.TrimSpace(parts[1])
+				color := strings.TrimSpace(parts[2])
+
+				if expected, exists := expectedLabels[name]; exists {
+					foundLabels[name] = true
+					assert.Equal(t, expected.description, description, fmt.Sprintf("Description should match for label %s", name))
+					assert.Equal(t, expected.color, color, fmt.Sprintf("Color should match for label %s", name))
+				}
+			}
+
+			// Verify all expected labels were found
+			for labelName := range expectedLabels {
+				assert.True(t, foundLabels[labelName], fmt.Sprintf("Label %s should be found", labelName))
+			}
+		})
+
+		t.Run("Alice Labels", func(t *testing.T) {
+			// Query labels for alice@birki.io
+			query := `SELECT name, description, color FROM public.labels l 
+				JOIN public.profiles p ON l.user_id = p.id 
+				WHERE p.email = 'alice@birki.io' 
+				ORDER BY name;`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query Alice's labels")
+
+			outputStr := strings.TrimSpace(string(output))
+			lines := strings.Split(outputStr, "\n")
+
+			// Should have 3 labels for Alice
+			assert.Len(t, lines, 3, "Alice should have 3 seeded labels")
+
+			// Parse each line and check expected labels
+			expectedLabels := map[string]struct {
+				description string
+				color       string
+			}{
+				"lunch":        {"Midday meal items", "FF8B94"},
+				"comfort-food": {"Comfort food choices", "C7CEEA"},
+				"quick-meal":   {"Fast preparation meals", "FFEAA7"},
+			}
+
+			foundLabels := make(map[string]bool)
+			for _, line := range lines {
+				parts := strings.Split(line, "|")
+				require.Len(t, parts, 3, "Each label line should have 3 parts")
+
+				name := strings.TrimSpace(parts[0])
+				description := strings.TrimSpace(parts[1])
+				color := strings.TrimSpace(parts[2])
+
+				if expected, exists := expectedLabels[name]; exists {
+					foundLabels[name] = true
+					assert.Equal(t, expected.description, description, fmt.Sprintf("Description should match for label %s", name))
+					assert.Equal(t, expected.color, color, fmt.Sprintf("Color should match for label %s", name))
+				}
+			}
+
+			// Verify all expected labels were found
+			for labelName := range expectedLabels {
+				assert.True(t, foundLabels[labelName], fmt.Sprintf("Label %s should be found", labelName))
+			}
+		})
+
+		t.Run("Label Constraints", func(t *testing.T) {
+			// Test that labels table has proper constraints and indexes
+			constraintQuery := `SELECT conname, contype FROM pg_constraint 
+				WHERE conrelid = 'public.labels'::regclass 
+				ORDER BY conname;`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", constraintQuery)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query label constraints")
+
+			outputStr := strings.TrimSpace(string(output))
+
+			// Check for key constraints
+			assert.Contains(t, outputStr, "labels_color_hex", "Should have color hex constraint")
+			assert.Contains(t, outputStr, "labels_description_len", "Should have description length constraint")
+			assert.Contains(t, outputStr, "labels_pkey", "Should have primary key constraint")
+		})
+	})
 }
 
 // makeSignupRequest makes an HTTP POST request to the Supabase signup endpoint
