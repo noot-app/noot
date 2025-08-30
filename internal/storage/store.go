@@ -54,6 +54,24 @@ type Store interface {
 	CreateItemAlias(ctx context.Context, alias *ItemAlias) error
 	GetCanonicalName(ctx context.Context, aliasName, aliasBrand string) (canonicalName, canonicalBrand string, err error)
 
+	// Label operations
+	CreateLabel(ctx context.Context, label *Label) error
+	UpdateLabel(ctx context.Context, label *Label) error
+	DeleteLabel(ctx context.Context, userID, id string) error
+	GetLabel(ctx context.Context, userID, id string) (*Label, error)
+	ListLabels(ctx context.Context, userID string) ([]*LabelWithUsage, error)
+
+	// Label assignment operations
+	ListConsumptionLabels(ctx context.Context, userID, consumptionID string) ([]*Label, error)
+	AssignConsumptionLabels(ctx context.Context, userID, consumptionID string, labelIDs []string) error
+	UnassignConsumptionLabel(ctx context.Context, userID, consumptionID, labelID string) error
+	ListConsumptionItemLabels(ctx context.Context, userID, consumptionItemID string) ([]*Label, error)
+	AssignConsumptionItemLabels(ctx context.Context, userID, consumptionItemID string, labelIDs []string) error
+	UnassignConsumptionItemLabel(ctx context.Context, userID, consumptionItemID, labelID string) error
+
+	// Filtering operations
+	GetConsumptionsByLabels(ctx context.Context, userID string, labelNames []string, matchAll bool, limit, offset int) ([]*Consumption, error)
+
 	// Database lifecycle
 	Close() error
 }
@@ -138,7 +156,7 @@ type Consumption struct {
 	PolyunsaturatedFat float64    `json:"polyunsaturated_fat_g"`
 	MonounsaturatedFat float64    `json:"monounsaturated_fat_g"`
 	Note               *string    `json:"note,omitempty"`
-	Label              *string    `json:"label,omitempty"`
+	Labels             []*Label   `json:"labels,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          *time.Time `json:"updated_at,omitempty"`
 }
@@ -252,7 +270,6 @@ type Item struct {
 	PolyunsaturatedFatGPer100g float64 `json:"polyunsaturated_fat_g_per_100g"`
 	MonounsaturatedFatGPer100g float64 `json:"monounsaturated_fat_g_per_100g"`
 	Note                       *string `json:"note,omitempty"`
-	Label                      *string `json:"label,omitempty"`
 	// Timestamps for 30-day refresh logic
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -263,14 +280,13 @@ type Item struct {
 type ConsumptionItem struct {
 	ID            string   `json:"id"`
 	ConsumptionID string   `json:"consumption_id"`
-	ItemID        *string  `json:"item_id"`         // Optional reference to global items cache
-	Name          string   `json:"name"`            // Display name snapshot
-	Brand         string   `json:"brand"`           // Brand snapshot
-	Grams         float64  `json:"grams"`           // Actual grams consumed (normalized internally)
-	UserQuantity  *float64 `json:"user_quantity"`   // Original user input quantity for display
-	UserUnit      *string  `json:"user_unit"`       // Original user input unit for display
-	Label         *string  `json:"label,omitempty"` // Custom label for the item
-	Note          *string  `json:"note,omitempty"`  // Additional note about the item
+	ItemID        *string  `json:"item_id"`        // Optional reference to global items cache
+	Name          string   `json:"name"`           // Display name snapshot
+	Brand         string   `json:"brand"`          // Brand snapshot
+	Grams         float64  `json:"grams"`          // Actual grams consumed (normalized internally)
+	UserQuantity  *float64 `json:"user_quantity"`  // Original user input quantity for display
+	UserUnit      *string  `json:"user_unit"`      // Original user input unit for display
+	Note          *string  `json:"note,omitempty"` // Additional note about the item
 
 	// Nutrition snapshot for THIS SERVING (not per-100g)
 	Calories            float64 `json:"calories"`
@@ -322,6 +338,7 @@ type ConsumptionItem struct {
 	PolyunsaturatedFatG float64 `json:"polyunsaturated_fat_g"`
 	MonounsaturatedFatG float64 `json:"monounsaturated_fat_g"`
 
+	Labels    []*Label   `json:"labels,omitempty"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 }
@@ -431,4 +448,22 @@ type UserGoal struct {
 	OverridesJSON string    `json:"overrides_json"` // JSON map of nutrient_key -> target value
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// Label represents a user-owned label with GitHub-style properties
+type Label struct {
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	Name        string    `json:"name"`
+	Description *string   `json:"description,omitempty"`
+	Color       string    `json:"color"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// LabelWithUsage extends Label with usage count information
+type LabelWithUsage struct {
+	Label
+	ConsumptionCount int `json:"consumption_count"`
+	ItemCount        int `json:"item_count"`
 }

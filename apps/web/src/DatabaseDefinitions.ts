@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      consumption_item_labels: {
+        Row: {
+          consumption_item_id: string
+          created_at: string
+          label_id: string
+        }
+        Insert: {
+          consumption_item_id: string
+          created_at?: string
+          label_id: string
+        }
+        Update: {
+          consumption_item_id?: string
+          created_at?: string
+          label_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumption_item_labels_consumption_item_id_fkey"
+            columns: ["consumption_item_id"]
+            isOneToOne: false
+            referencedRelation: "consumption_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumption_item_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumption_items: {
         Row: {
           added_sugars_g: number
@@ -34,7 +67,6 @@ export type Database = {
           iodine_mcg: number
           iron_mg: number
           item_id: string | null
-          label: string | null
           magnesium_mg: number
           manganese_mg: number
           molybdenum_mcg: number
@@ -96,7 +128,6 @@ export type Database = {
           iodine_mcg?: number
           iron_mg?: number
           item_id?: string | null
-          label?: string | null
           magnesium_mg?: number
           manganese_mg?: number
           molybdenum_mcg?: number
@@ -158,7 +189,6 @@ export type Database = {
           iodine_mcg?: number
           iron_mg?: number
           item_id?: string | null
-          label?: string | null
           magnesium_mg?: number
           manganese_mg?: number
           molybdenum_mcg?: number
@@ -213,6 +243,39 @@ export type Database = {
           },
         ]
       }
+      consumption_labels: {
+        Row: {
+          consumption_id: string
+          created_at: string
+          label_id: string
+        }
+        Insert: {
+          consumption_id: string
+          created_at?: string
+          label_id: string
+        }
+        Update: {
+          consumption_id?: string
+          created_at?: string
+          label_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consumption_labels_consumption_id_fkey"
+            columns: ["consumption_id"]
+            isOneToOne: false
+            referencedRelation: "consumptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consumption_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumptions: {
         Row: {
           added_sugars_g: number
@@ -233,7 +296,6 @@ export type Database = {
           id: string
           iodine_mcg: number
           iron_mg: number
-          label: string | null
           magnesium_mg: number
           manganese_mg: number
           molybdenum_mcg: number
@@ -290,7 +352,6 @@ export type Database = {
           id?: string
           iodine_mcg?: number
           iron_mg?: number
-          label?: string | null
           magnesium_mg?: number
           manganese_mg?: number
           molybdenum_mcg?: number
@@ -347,7 +408,6 @@ export type Database = {
           id?: string
           iodine_mcg?: number
           iron_mg?: number
-          label?: string | null
           magnesium_mg?: number
           manganese_mg?: number
           molybdenum_mcg?: number
@@ -748,6 +808,44 @@ export type Database = {
           zinc_mg_per_100g?: number
         }
         Relationships: []
+      }
+      labels: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

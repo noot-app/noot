@@ -56,7 +56,6 @@ CREATE TABLE IF NOT EXISTS consumptions (
     monounsaturated_fat_g REAL NOT NULL DEFAULT 0,
     -- Additional metadata fields
     note TEXT CONSTRAINT consumptions_note_length_check CHECK (LENGTH(note) <= 1000),
-    label TEXT CONSTRAINT consumptions_label_length_check CHECK (LENGTH(label) <= 63),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE, -- When the consumption was last modified
     FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE

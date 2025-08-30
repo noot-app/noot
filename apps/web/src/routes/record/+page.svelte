@@ -19,6 +19,149 @@
   let consumptionId: string | null = null;
   let isEditing = false;
   let isSubmitting = false;
+  let availableLabels: any[] = [];
+  let isLoadingLabels = false;
+  let isAddingLabel = false;
+  let pendingLabels: Set<string> = new Set(); // Labels to be applied
+  let currentLabels: Set<string> = new Set(); // Currently applied labels
+  let isEditingLabels = false;
+
+  // Load user's available labels
+  async function loadLabels() {
+    if (isLoadingLabels) return;
+    
+    try {
+      isLoadingLabels = true;
+      console.log('Loading labels...');
+      const response = await apiClient.GET('/labels');
+      
+      console.log('Labels response:', response);
+      
+      if (response.error) {
+        console.error('Failed to load labels:', response.error);
+        return;
+      }
+      
+      availableLabels = response.data?.labels || [];
+      console.log('Loaded labels:', availableLabels);
+
+      // Initialize current labels from result
+      if (result?.labels) {
+        currentLabels = new Set(result.labels.map((l: any) => l.name));
+        pendingLabels = new Set(currentLabels);
+      }
+    } catch (err) {
+      console.error('Error loading labels:', err);
+    } finally {
+      isLoadingLabels = false;
+    }
+  }
+
+  // Toggle label in pending selection (GitHub-style)
+  function toggleLabelSelection(labelName: string) {
+    if (pendingLabels.has(labelName)) {
+      pendingLabels.delete(labelName);
+    } else {
+      pendingLabels.add(labelName);
+    }
+    pendingLabels = new Set(pendingLabels); // Trigger reactivity
+  }
+
+  // Apply all pending label changes (GitHub-style batch operation)
+  async function applyLabelChanges() {
+    if (!consumptionId || isAddingLabel) return;
+    
+    console.log('Applying label changes...');
+    console.log('Current labels:', Array.from(currentLabels));
+    console.log('Pending labels:', Array.from(pendingLabels));
+    
+    try {
+      isAddingLabel = true;
+      error = "";
+
+      // Calculate what needs to be added and removed
+      const toAdd = Array.from(pendingLabels).filter(name => !currentLabels.has(name));
+      const toRemove = Array.from(currentLabels).filter(name => !pendingLabels.has(name));
+      
+      console.log('Labels to add:', toAdd);
+      console.log('Labels to remove:', toRemove);
+
+      // Add new labels
+      if (toAdd.length > 0) {
+        const labelIds = toAdd.map(name => {
+          const label = availableLabels.find(l => l.name === name);
+          return label?.id;
+        }).filter(Boolean);
+
+        if (labelIds.length > 0) {
+          const addResponse = await apiClient.POST('/consumption/{id}/labels', {
+            params: { path: { id: consumptionId } },
+            body: { ids: labelIds }
+          });
+
+          console.log('Add labels response:', addResponse);
+
+          if (addResponse.error) {
+            throw new Error(`Failed to add labels: ${addResponse.error}`);
+          }
+        }
+      }
+
+      // Remove labels
+      for (const labelName of toRemove) {
+        const labelData = availableLabels.find(l => l.name === labelName);
+        if (labelData?.id) {
+          const removeResponse = await apiClient.DELETE('/consumption/{id}/labels/{labelId}', {
+            params: { path: { id: consumptionId, labelId: labelData.id } }
+          });
+
+          console.log('Remove label response:', removeResponse);
+
+          if (removeResponse.error) {
+            throw new Error(`Failed to remove label ${labelName}: ${removeResponse.error}`);
+          }
+        }
+      }
+
+      // Update local state
+      currentLabels = new Set(pendingLabels);
+      
+      // Update result object
+      if (result) {
+        result.labels = Array.from(currentLabels).map(name => 
+          availableLabels.find(l => l.name === name)
+        ).filter(Boolean);
+        result = { ...result }; // Trigger reactivity
+      }
+
+      isEditingLabels = false;
+      console.log('Label changes applied successfully');
+
+    } catch (err) {
+      error = `Error applying label changes: ${err}`;
+      console.error('Apply label changes error:', err);
+      // Reset pending to current on error
+      pendingLabels = new Set(currentLabels);
+    } finally {
+      isAddingLabel = false;
+    }
+  }
+
+  // Cancel label editing
+  function cancelLabelChanges() {
+    pendingLabels = new Set(currentLabels);
+    isEditingLabels = false;
+    error = "";
+  }
+
+  // Start label editing mode
+  function startLabelEditing() {
+    isEditingLabels = true;
+    pendingLabels = new Set(currentLabels);
+  }  // Load labels when we have a consumption ID
+  $: if (consumptionId && availableLabels.length === 0) {
+    loadLabels();
+  }
 
   async function startRecording() {
     try {
@@ -523,6 +666,123 @@
           </Card>
         {/if}
 
+        <!-- Labels Section -->
+        {#if consumptionId && availableLabels.length > 0}
+          <div class="card bg-base-200 shadow-lg">
+            <div class="card-body">
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="card-title text-sm flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                  Labels
+                </h3>
+                
+                {#if !isEditingLabels}
+                  <button 
+                    class="btn btn-outline btn-sm"
+                    on:click={startLabelEditing}
+                    disabled={isAddingLabel}
+                  >
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Edit Labels
+                  </button>
+                {/if}
+              </div>
+
+              <!-- Applied Labels Display (when not editing) -->
+              {#if !isEditingLabels}
+                {#if currentLabels.size > 0}
+                  <div class="flex flex-wrap gap-2">
+                    {#each Array.from(currentLabels) as labelName}
+                      {@const labelData = availableLabels.find(l => l.name === labelName)}
+                      {#if labelData}
+                        <div class="badge badge-lg" style="background-color: #{labelData.color}; color: white;">
+                          {labelData.name}
+                        </div>
+                      {/if}
+                    {/each}
+                  </div>
+                {:else}
+                  <p class="text-sm text-base-content/70">No labels applied to this meal</p>
+                {/if}
+              {/if}
+
+              <!-- Label Selection Interface (GitHub-style) -->
+              {#if isEditingLabels}
+                <div class="space-y-4">
+                  <div class="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
+                    {#each availableLabels as label}
+                      {@const isSelected = pendingLabels.has(label.name)}
+                      <button
+                        class="flex items-center justify-between p-3 rounded-lg border transition-all hover:bg-base-300 {isSelected ? 'bg-base-300 border-primary' : 'bg-base-100 border-base-300'}"
+                        on:click={() => toggleLabelSelection(label.name)}
+                        disabled={isAddingLabel}
+                      >
+                        <div class="flex items-center gap-3">
+                          <div class="checkbox-wrapper">
+                            <input 
+                              type="checkbox" 
+                              class="checkbox checkbox-primary checkbox-sm"
+                              checked={isSelected}
+                              readonly
+                            />
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <div 
+                              class="w-3 h-3 rounded-full"
+                              style="background-color: #{label.color};"
+                            ></div>
+                            <span class="font-medium">{label.name}</span>
+                          </div>
+                        </div>
+                        {#if label.description}
+                          <span class="text-xs text-base-content/60 truncate ml-2">{label.description}</span>
+                        {/if}
+                      </button>
+                    {/each}
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div class="flex justify-end gap-2 pt-2 border-t border-base-300">
+                    <button 
+                      class="btn btn-ghost btn-sm"
+                      on:click={cancelLabelChanges}
+                      disabled={isAddingLabel}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      class="btn btn-primary btn-sm"
+                      on:click={applyLabelChanges}
+                      disabled={isAddingLabel}
+                    >
+                      {#if isAddingLabel}
+                        <span class="loading loading-spinner loading-sm mr-1"></span>
+                        Applying...
+                      {:else}
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Apply Changes
+                      {/if}
+                    </button>
+                  </div>
+                </div>
+              {/if}
+              
+              {#if isLoadingLabels}
+                <div class="flex items-center gap-2 text-sm text-base-content/70">
+                  <span class="loading loading-spinner loading-sm"></span>
+                  Loading labels...
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/if}
+
         <!-- Food Items -->
         {#if result?.items && result.items.length > 0}
           <div class="card bg-base-200 shadow-lg">
@@ -647,6 +907,10 @@
                 transcript = "";
                 consumptionId = null;
                 isEditing = false;
+                availableLabels = [];  // Reset labels for new recording
+                currentLabels = new Set();
+                pendingLabels = new Set();
+                isEditingLabels = false;
                 status = "Ready to record";
                 error = "";
               }}

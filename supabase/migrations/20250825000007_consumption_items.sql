@@ -10,7 +10,6 @@ create table if not exists public.consumption_items (
   grams real not null default 0,
   user_quantity real null,
   user_unit text null,
-  label text null constraint consumption_items_label_length check (length(label) <= 63),
   note text null constraint consumption_items_note_length check (length(note) <= 1000),
   -- Snapshot nutrition for THIS SERVING
   calories real not null default 0,

@@ -153,8 +153,22 @@ paths:
   /consumptions:
     get:
       summary: List consumptions
-      description: Get a list of stored consumptions for the default user
+      description: Get a list of stored consumptions for the default user, optionally filtered by labels
       operationId: getConsumptions
+      parameters:
+        - name: labels
+          in: query
+          description: Comma-separated list of label names to filter by
+          schema:
+            type: string
+            example: "lunch,trigger-foods"
+        - name: match
+          in: query
+          description: Label matching strategy - 'any' matches consumptions with at least one of the labels, 'all' matches consumptions with all labels
+          schema:
+            type: string
+            enum: [any, all]
+            default: any
       responses:
         "200":
           description: List of consumptions
@@ -397,6 +411,378 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Goal set not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /labels:
+    get:
+      summary: List labels
+      description: Get all labels owned by the current user, including usage counts
+      operationId: getLabels
+      responses:
+        "200":
+          description: List of user labels with usage counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LabelsResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Create a new label
+      description: Create a new label for the current user
+      operationId: createLabel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LabelCreateRequest"
+      responses:
+        "201":
+          description: Label created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Label"
+        "400":
+          description: Bad request (invalid color/name, validation errors)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Label name already exists for user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Label limit exceeded (100 labels per user)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /labels/{id}:
+    put:
+      summary: Update a label
+      description: Update an existing label owned by the current user
+      operationId: updateLabel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Label ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LabelUpdateRequest"
+      responses:
+        "200":
+          description: Label updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Label"
+        "400":
+          description: Bad request (validation errors)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Label not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Label name already exists for user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete a label
+      description: Delete a label and unassign it from all consumptions/items
+      operationId: deleteLabel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Label ID
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Label deleted successfully
+        "404":
+          description: Label not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /consumption/{id}/labels:
+    get:
+      summary: Get labels assigned to a consumption
+      description: Get all labels assigned to a specific consumption
+      operationId: getConsumptionLabels
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Labels assigned to the consumption
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  labels:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Label"
+        "404":
+          description: Consumption not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Assign labels to a consumption
+      description: Assign one or more labels to a consumption by label IDs
+      operationId: assignConsumptionLabels
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignLabelsRequest"
+      responses:
+        "200":
+          description: Labels assigned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  labels:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Label"
+        "400":
+          description: Bad request (invalid label IDs)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Consumption or label not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /consumption/{id}/labels/{labelId}:
+    delete:
+      summary: Unassign a label from a consumption
+      description: Remove a label assignment from a consumption
+      operationId: unassignConsumptionLabel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption ID
+          schema:
+            type: string
+        - name: labelId
+          in: path
+          required: true
+          description: Label ID
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Label unassigned successfully
+        "404":
+          description: Consumption or label assignment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /consumption-items/{id}/labels:
+    get:
+      summary: Get labels assigned to a consumption item
+      description: Get all labels assigned to a specific consumption item
+      operationId: getConsumptionItemLabels
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption item ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Labels assigned to the consumption item
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  labels:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Label"
+        "404":
+          description: Consumption item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Assign labels to a consumption item
+      description: Assign one or more labels to a consumption item by label IDs
+      operationId: assignConsumptionItemLabels
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption item ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignLabelsRequest"
+      responses:
+        "200":
+          description: Labels assigned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  labels:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Label"
+        "400":
+          description: Bad request (invalid label IDs)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Consumption item or label not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /consumption-items/{id}/labels/{labelId}:
+    delete:
+      summary: Unassign a label from a consumption item
+      description: Remove a label assignment from a consumption item
+      operationId: unassignConsumptionItemLabel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption item ID
+          schema:
+            type: string
+        - name: labelId
+          in: path
+          required: true
+          description: Label ID
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Label unassigned successfully
+        "404":
+          description: Consumption item or label assignment not found
           content:
             application/json:
               schema:
@@ -662,6 +1048,123 @@ components:
           type: string
           example: "dev"
 
+    Label:
+      type: object
+      required: [id, name, color, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          description: Label ID
+        name:
+          type: string
+          maxLength: 63
+          description: Label name
+        description:
+          type: string
+          maxLength: 250
+          nullable: true
+          description: Optional description of the label
+        color:
+          type: string
+          description: Hex color (#RRGGBB or RRGGBB)
+          example: "#1E90FF"
+        created_at:
+          type: string
+          format: date-time
+          description: When the label was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the label was last updated
+
+    LabelCreateRequest:
+      type: object
+      required: [name, color]
+      properties:
+        name:
+          type: string
+          maxLength: 63
+          description: Label name (unique per user, case-insensitive)
+        description:
+          type: string
+          maxLength: 250
+          description: Optional description of the label
+        color:
+          type: string
+          description: Hex color (#RRGGBB or RRGGBB)
+          example: "#1E90FF"
+
+    LabelUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 63
+          description: Label name (unique per user, case-insensitive)
+        description:
+          type: string
+          maxLength: 250
+          nullable: true
+          description: Optional description of the label
+        color:
+          type: string
+          description: Hex color (#RRGGBB or RRGGBB)
+          example: "#1E90FF"
+
+    LabelWithUsage:
+      type: object
+      required: [id, name, color, created_at, updated_at, consumption_count, item_count]
+      properties:
+        id:
+          type: string
+          description: Label ID
+        name:
+          type: string
+          maxLength: 63
+          description: Label name
+        description:
+          type: string
+          maxLength: 250
+          nullable: true
+          description: Optional description of the label
+        color:
+          type: string
+          description: Hex color (#RRGGBB)
+          example: "#1E90FF"
+        created_at:
+          type: string
+          format: date-time
+          description: When the label was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the label was last updated
+        consumption_count:
+          type: integer
+          description: Number of consumptions using this label
+        item_count:
+          type: integer
+          description: Number of consumption items using this label
+
+    LabelsResponse:
+      type: object
+      required: [labels]
+      properties:
+        labels:
+          type: array
+          items:
+            $ref: "#/components/schemas/LabelWithUsage"
+
+    AssignLabelsRequest:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+          description: Array of label IDs to assign
+
     ConsumptionResponse:
       type: object
       required:
@@ -677,6 +1180,11 @@ components:
         transcript:
           type: string
           description: Transcribed text from audio
+        labels:
+          type: array
+          items:
+            $ref: "#/components/schemas/Label"
+          description: Labels assigned to this consumption
         items:
           type: array
           items:
@@ -759,11 +1267,11 @@ components:
           nullable: true
           maxLength: 1000
           description: Additional note about the item
-        label:
-          type: string
-          nullable: true
-          maxLength: 63
-          description: Custom label for the item
+        labels:
+          type: array
+          items:
+            $ref: "#/components/schemas/Label"
+          description: Labels assigned to this item
         nutrients:
           $ref: "#/components/schemas/CompleteNutrient"
 
@@ -1054,11 +1562,11 @@ components:
           nullable: true
           maxLength: 1000
           description: Additional note about the consumption
-        label:
-          type: string
-          nullable: true
-          maxLength: 63
-          description: Custom label for the consumption
+        labels:
+          type: array
+          items:
+            $ref: "#/components/schemas/Label"
+          description: Labels assigned to this consumption
         items:
           type: array
           items:

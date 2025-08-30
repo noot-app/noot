@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -358,7 +359,7 @@ func (s *APIServer) DeleteConsumption(c *gin.Context, id string) {
 }
 
 // GetConsumptions implements ServerInterface.GetConsumptions
-func (s *APIServer) GetConsumptions(c *gin.Context) {
+func (s *APIServer) GetConsumptions(c *gin.Context, params api.GetConsumptionsParams) {
 	if s.store == nil {
 		handleStorageUnavailableError(c)
 		return
@@ -378,11 +379,41 @@ func (s *APIServer) GetConsumptions(c *gin.Context) {
 		return
 	}
 
-	// Get recent consumptions
-	consumptions, err := s.store.GetConsumptionsByUser(c.Request.Context(), user.ID, MaxConsumptions, 0)
-	if err != nil {
-		handleInternalServerError(c, "Failed to get consumptions", err)
-		return
+	// Check for label filtering parameters from params
+	var labelsParam string
+	var matchParam string
+
+	if params.Labels != nil {
+		labelsParam = *params.Labels
+	}
+	if params.Match != nil {
+		matchParam = string(*params.Match)
+	}
+
+	var consumptions []*storage.Consumption
+	ctx := c.Request.Context()
+
+	if labelsParam != "" {
+		// Filter by labels
+		labelNames := strings.Split(labelsParam, ",")
+		// Trim whitespace from each label name
+		for i, name := range labelNames {
+			labelNames[i] = strings.TrimSpace(name)
+		}
+
+		matchAll := matchParam == "all"
+		consumptions, err = s.store.GetConsumptionsByLabels(ctx, user.ID, labelNames, matchAll, MaxConsumptions, 0)
+		if err != nil {
+			handleInternalServerError(c, "Failed to get consumptions by labels", err)
+			return
+		}
+	} else {
+		// Get recent consumptions without filtering
+		consumptions, err = s.store.GetConsumptionsByUser(ctx, user.ID, MaxConsumptions, 0)
+		if err != nil {
+			handleInternalServerError(c, "Failed to get consumptions", err)
+			return
+		}
 	}
 
 	// Convert storage consumptions to API format with consumption items
@@ -1352,6 +1383,409 @@ func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
 			LogError("Failed to clear active goal after deleting last goal", err, "user_id", user.ID, "goal_name", name)
 			// Don't fail the request - the goal was deleted successfully
 		}
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// Label handlers
+
+// GetLabels retrieves all labels for the current user with usage counts
+func (s *APIServer) GetLabels(c *gin.Context) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	labels, err := s.store.ListLabels(ctx, user.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve labels", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiLabels := make([]api.LabelWithUsage, len(labels))
+	for i, label := range labels {
+		apiLabels[i] = api.LabelWithUsage{
+			Id:               label.ID,
+			Name:             label.Name,
+			Description:      label.Description,
+			Color:            label.Color,
+			CreatedAt:        label.CreatedAt,
+			UpdatedAt:        label.UpdatedAt,
+			ConsumptionCount: label.ConsumptionCount,
+			ItemCount:        label.ItemCount,
+		}
+	}
+
+	response := api.LabelsResponse{
+		Labels: apiLabels,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// CreateLabel creates a new label for the current user
+func (s *APIServer) CreateLabel(c *gin.Context) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	var req api.LabelCreateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Validate required fields
+	if req.Name == "" {
+		appErr := NewAppError("Label name is required", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	if req.Color == "" {
+		appErr := NewAppError("Label color is required", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Create storage label
+	label := &storage.Label{
+		UserID:      user.ID,
+		Name:        req.Name,
+		Description: req.Description,
+		Color:       req.Color,
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.CreateLabel(ctx, label)
+	if err != nil {
+		if err.Error() == "label name already exists" {
+			appErr := NewAppError("Label name already exists", http.StatusConflict, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		if err.Error() == "label limit exceeded (100 labels per user)" {
+			appErr := NewAppError("Label limit exceeded (100 labels per user)", http.StatusForbidden, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to create label", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiLabel := api.Label{
+		Id:          label.ID,
+		Name:        label.Name,
+		Description: label.Description,
+		Color:       label.Color,
+		CreatedAt:   label.CreatedAt,
+		UpdatedAt:   label.UpdatedAt,
+	}
+
+	c.JSON(http.StatusCreated, apiLabel)
+}
+
+// UpdateLabel updates an existing label
+func (s *APIServer) UpdateLabel(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	var req api.LabelUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// Get existing label to ensure it exists and user owns it
+	existingLabel, err := s.store.GetLabel(ctx, user.ID, id)
+	if err != nil {
+		appErr := NewAppError("Label not found", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Update fields if provided
+	if req.Name != nil {
+		existingLabel.Name = *req.Name
+	}
+	if req.Description != nil {
+		existingLabel.Description = req.Description
+	}
+	if req.Color != nil {
+		existingLabel.Color = *req.Color
+	}
+
+	err = s.store.UpdateLabel(ctx, existingLabel)
+	if err != nil {
+		if err.Error() == "label name already exists" {
+			appErr := NewAppError("Label name already exists", http.StatusConflict, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to update label", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiLabel := api.Label{
+		Id:          existingLabel.ID,
+		Name:        existingLabel.Name,
+		Description: existingLabel.Description,
+		Color:       existingLabel.Color,
+		CreatedAt:   existingLabel.CreatedAt,
+		UpdatedAt:   existingLabel.UpdatedAt,
+	}
+
+	c.JSON(http.StatusOK, apiLabel)
+}
+
+// DeleteLabel deletes a label and all its assignments
+func (s *APIServer) DeleteLabel(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.DeleteLabel(ctx, user.ID, id)
+	if err != nil {
+		appErr := NewAppError("Label not found or access denied", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// GetConsumptionLabels retrieves labels assigned to a consumption
+func (s *APIServer) GetConsumptionLabels(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	labels, err := s.store.ListConsumptionLabels(ctx, user.ID, id)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve consumption labels", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiLabels := make([]api.Label, len(labels))
+	for i, label := range labels {
+		apiLabels[i] = api.Label{
+			Id:          label.ID,
+			Name:        label.Name,
+			Description: label.Description,
+			Color:       label.Color,
+			CreatedAt:   label.CreatedAt,
+			UpdatedAt:   label.UpdatedAt,
+		}
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{"labels": apiLabels})
+}
+
+// AssignConsumptionLabels assigns labels to a consumption
+func (s *APIServer) AssignConsumptionLabels(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	var req api.AssignLabelsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.AssignConsumptionLabels(ctx, user.ID, id, req.Ids)
+	if err != nil {
+		if err.Error() == "consumption not found" || err.Error() == "access denied" {
+			appErr := NewAppError("Consumption not found or access denied", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to assign labels", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Return current labels
+	labels, err := s.store.ListConsumptionLabels(ctx, user.ID, id)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve updated labels", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiLabels := make([]api.Label, len(labels))
+	for i, label := range labels {
+		apiLabels[i] = api.Label{
+			Id:          label.ID,
+			Name:        label.Name,
+			Description: label.Description,
+			Color:       label.Color,
+			CreatedAt:   label.CreatedAt,
+			UpdatedAt:   label.UpdatedAt,
+		}
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{"labels": apiLabels})
+}
+
+// UnassignConsumptionLabel removes a label assignment from a consumption
+func (s *APIServer) UnassignConsumptionLabel(c *gin.Context, id string, labelId string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.UnassignConsumptionLabel(ctx, user.ID, id, labelId)
+	if err != nil {
+		appErr := NewAppError("Assignment not found or access denied", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// GetConsumptionItemLabels retrieves labels assigned to a consumption item
+func (s *APIServer) GetConsumptionItemLabels(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	labels, err := s.store.ListConsumptionItemLabels(ctx, user.ID, id)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve consumption item labels", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiLabels := make([]api.Label, len(labels))
+	for i, label := range labels {
+		apiLabels[i] = api.Label{
+			Id:          label.ID,
+			Name:        label.Name,
+			Description: label.Description,
+			Color:       label.Color,
+			CreatedAt:   label.CreatedAt,
+			UpdatedAt:   label.UpdatedAt,
+		}
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{"labels": apiLabels})
+}
+
+// AssignConsumptionItemLabels assigns labels to a consumption item
+func (s *APIServer) AssignConsumptionItemLabels(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	var req api.AssignLabelsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.AssignConsumptionItemLabels(ctx, user.ID, id, req.Ids)
+	if err != nil {
+		if err.Error() == "consumption item not found" || err.Error() == "access denied" {
+			appErr := NewAppError("Consumption item not found or access denied", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to assign labels", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Return current labels
+	labels, err := s.store.ListConsumptionItemLabels(ctx, user.ID, id)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve updated labels", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiLabels := make([]api.Label, len(labels))
+	for i, label := range labels {
+		apiLabels[i] = api.Label{
+			Id:          label.ID,
+			Name:        label.Name,
+			Description: label.Description,
+			Color:       label.Color,
+			CreatedAt:   label.CreatedAt,
+			UpdatedAt:   label.UpdatedAt,
+		}
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{"labels": apiLabels})
+}
+
+// UnassignConsumptionItemLabel removes a label assignment from a consumption item
+func (s *APIServer) UnassignConsumptionItemLabel(c *gin.Context, id string, labelId string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.UnassignConsumptionItemLabel(ctx, user.ID, id, labelId)
+	if err != nil {
+		appErr := NewAppError("Assignment not found or access denied", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
 	}
 
 	c.Status(http.StatusNoContent)
