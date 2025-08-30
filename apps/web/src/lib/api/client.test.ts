@@ -189,6 +189,77 @@ describe('API Client', () => {
       });
     });
 
+    it('should only add auth headers for trusted API origins', async () => {
+      const mockToken = 'test-access-token';
+      mockGetAccessToken.mockResolvedValue(mockToken);
+      
+      const mockGet = vi.fn().mockResolvedValue({ data: 'test' });
+      mockCreateClient.mockReturnValue({
+        GET: mockGet,
+        POST: vi.fn(),
+        PUT: vi.fn(),
+        DELETE: vi.fn(),
+        PATCH: vi.fn()
+      });
+      
+      // Set a specific API base URL
+      mockEnv.PUBLIC_API_BASE_URL = 'https://api.example.com/v1';
+      vi.resetModules();
+      const { apiClient } = await import('./client');
+
+      // Test relative URL (should get auth header)
+      await (apiClient as any).GET('/test');
+      expect(mockGet).toHaveBeenLastCalledWith('/test', {
+        headers: {
+          'Authorization': `Bearer ${mockToken}`
+        }
+      });
+
+      // Test same-origin URL (should get auth header)
+      await (apiClient as any).GET('https://api.example.com/v1/users');
+      expect(mockGet).toHaveBeenLastCalledWith('https://api.example.com/v1/users', {
+        headers: {
+          'Authorization': `Bearer ${mockToken}`
+        }
+      });
+
+      // Reset mock to track external URL call
+      mockGet.mockClear();
+
+      // Test external URL (should NOT get auth header)
+      await (apiClient as any).GET('https://evil.com/steal-tokens');
+      expect(mockGet).toHaveBeenLastCalledWith('https://evil.com/steal-tokens', {
+        headers: {} // No auth header
+      });
+    });
+
+    it('should preserve existing headers while adding auth', async () => {
+      const mockToken = 'test-access-token';
+      mockGetAccessToken.mockResolvedValue(mockToken);
+      
+      const mockPut = vi.fn().mockResolvedValue({ data: 'test' });
+      mockCreateClient.mockReturnValue({
+        GET: vi.fn(),
+        POST: vi.fn(),
+        PUT: mockPut,
+        DELETE: vi.fn(),
+        PATCH: vi.fn()
+      });
+      
+      vi.resetModules();
+      const { apiClient } = await import('./client');
+      
+      const existingHeaders = { 'Content-Type': 'application/json' };
+      await (apiClient as any).PUT('/test', { headers: existingHeaders });
+      
+      expect(mockPut).toHaveBeenCalledWith('/test', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${mockToken}`
+        }
+      });
+    });
+
     it('should work without access token', async () => {
       mockGetAccessToken.mockResolvedValue(null);
       
@@ -292,19 +363,6 @@ describe('API Client', () => {
         
         expect(() => import('./client')).not.toThrow();
       });
-    });
-
-    it('should log API base URL for debugging', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      
-      mockEnv.PUBLIC_API_BASE_URL = 'http://test-url:3000';
-      vi.resetModules();
-      
-      await import('./client');
-      
-      expect(consoleSpy).toHaveBeenCalledWith('API Base URL (runtime):', 'http://test-url:3000');
-      
-      consoleSpy.mockRestore();
     });
   });
 });

@@ -1,9 +1,7 @@
 import createClient from 'openapi-fetch';
 import { env } from '$env/dynamic/public';
+import { shouldAttachAuthHeader } from '$lib/security';
 import type { paths } from './schema';
-
-// Debug logging for API base URL (can remove after confirming it works)
-console.log('API Base URL (runtime):', env.PUBLIC_API_BASE_URL);
 
 // Create base client with runtime environment variable
 const baseClient = createClient<paths>({ 
@@ -37,10 +35,13 @@ export const apiClient = new Proxy(baseClient, {
         const typedInit = init as Record<string, any>;
         typedInit.headers = typedInit.headers || {};
 
-        // Add JWT authorization header
-        const accessToken = await getAccessToken();
-        if (accessToken) {
-          typedInit.headers['Authorization'] = `Bearer ${accessToken}`;
+        // Security: Only add JWT authorization header for trusted API requests
+        const apiBaseUrl = env.PUBLIC_API_BASE_URL || 'https://api.nootapp.io/api/v1';
+        if (shouldAttachAuthHeader(url, apiBaseUrl)) {
+          const accessToken = await getAccessToken();
+          if (accessToken) {
+            typedInit.headers['Authorization'] = `Bearer ${accessToken}`;
+          }
         }
         
         // Note: CSRF protection not needed for Bearer token auth

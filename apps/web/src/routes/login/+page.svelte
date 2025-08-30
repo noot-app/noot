@@ -4,6 +4,7 @@
   import { dev } from '$app/environment';
   import { signIn, user } from '$lib/auth/store';
   import { getAuthErrorMessage } from '$lib/auth/error-messages';
+  import { sanitizeReturnUrl } from '$lib/security';
   import { onMount } from 'svelte';
   
   let email = '';
@@ -12,8 +13,8 @@
   let error: string | null = null;
   let redirecting = false; // Prevent multiple simultaneous redirects
 
-  // Get return URL from query params
-  const returnUrl = $page.url.searchParams.get('returnUrl') || '/';
+  // Get return URL from query params and sanitize it for security
+  const returnUrl = sanitizeReturnUrl($page.url.searchParams.get('returnUrl'));
 
   // Redirect if already authenticated
   onMount(() => {

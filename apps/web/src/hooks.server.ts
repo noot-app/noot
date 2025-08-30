@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { redirect, type Handle } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
+import { dev } from '$app/environment';
 import type { Session } from '@supabase/supabase-js';
 import { getValidatedSession } from '$lib/utils.js';
 
@@ -22,10 +23,17 @@ export const handle: Handle = async ({ event, resolve }) => {
         getAll: () => event.cookies.getAll(),
         setAll: (cookiesToSet: Array<{ name: string; value: string; options: Record<string, unknown> }>) => {
           cookiesToSet.forEach(({ name, value, options }) => {
-            event.cookies.set(name, value, { 
-              ...options, 
-              path: '/' 
-            });
+            // Enforce security settings for auth cookies in production
+            const secureOptions = {
+              ...options,
+              path: '/',
+              // Security hardening for production
+              httpOnly: true,
+              secure: !dev, // Only secure in production (HTTPS required)
+              sameSite: 'lax' as const, // Prevent CSRF while allowing normal navigation
+            };
+            
+            event.cookies.set(name, value, secureOptions);
           });
         },
       },
