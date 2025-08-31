@@ -622,8 +622,8 @@
 
   <!-- Results section (only shown when there are results) -->
   {#if transcript || result}
-    <div class="h-full bg-base-100 p-6 fade-in">
-      <div class="container mx-auto max-w-4xl space-y-6 h-full">
+    <div class="bg-base-100 p-6 fade-in">
+      <div class="container mx-auto max-w-4xl space-y-6">
         
         <!-- Action buttons (Edit/Redo) - only show if we have a consumption ID -->
         {#if consumptionId && status === "✅ Complete"}
@@ -930,15 +930,15 @@
 
         <!-- Navigation buttons -->
         {#if status === "✅ Complete" || status === "✅ Updated"}
-          <div class="flex justify-center gap-4 mt-8">
-            <a href="/summary" class="btn btn-outline">
+          <div class="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+            <a href="/summary" class="btn btn-outline min-h-[44px]">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
               View Summary
             </a>
             <button
-              class="btn btn-primary"
+              class="btn btn-primary min-h-[44px]"
               on:click={() => {
                 result = null;
                 transcript = "";
