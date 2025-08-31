@@ -296,6 +296,7 @@ export type Database = {
           id: string
           iodine_mcg: number
           iron_mg: number
+          is_public: boolean
           magnesium_mg: number
           manganese_mg: number
           molybdenum_mcg: number
@@ -352,6 +353,7 @@ export type Database = {
           id?: string
           iodine_mcg?: number
           iron_mg?: number
+          is_public?: boolean
           magnesium_mg?: number
           manganese_mg?: number
           molybdenum_mcg?: number
@@ -408,6 +410,7 @@ export type Database = {
           id?: string
           iodine_mcg?: number
           iron_mg?: number
+          is_public?: boolean
           magnesium_mg?: number
           manganese_mg?: number
           molybdenum_mcg?: number

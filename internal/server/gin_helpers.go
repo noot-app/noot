@@ -60,7 +60,7 @@ func parseDateRangeParamsFromConsumptions(params api.GetConsumptionsParams) (*Da
 	// Check for ambiguous parameters
 	hasDateRange := params.Start != nil || params.End != nil
 	hasDays := params.Days != nil
-	
+
 	if hasDateRange && hasDays {
 		return nil, NewAppError("Cannot specify both start/end dates and days parameter", http.StatusBadRequest, nil)
 	}
@@ -72,11 +72,11 @@ func parseDateRangeParamsFromConsumptions(params api.GetConsumptionsParams) (*Da
 		if params.Start != nil && params.End != nil {
 			result.StartTime = *params.Start
 			result.EndTime = *params.End
-			
+
 			// Calculate days for subscription validation
 			diff := result.EndTime.Sub(result.StartTime)
 			result.Days = int(diff.Hours()/24) + 1
-			
+
 			if result.Days <= 0 {
 				return nil, NewAppError("Invalid date range: end date must be after start date", http.StatusBadRequest, nil)
 			}
@@ -89,11 +89,11 @@ func parseDateRangeParamsFromConsumptions(params api.GetConsumptionsParams) (*Da
 		if result.Days <= 0 {
 			return nil, NewAppError("Days parameter must be greater than 0", http.StatusBadRequest, nil)
 		}
-		
+
 		// Calculate date range using server UTC time
 		result.EndTime = time.Now().UTC()
 		result.StartTime = result.EndTime.AddDate(0, 0, -result.Days+1)
-		
+
 		// Set times to beginning/end of day for proper date range queries
 		result.StartTime = time.Date(result.StartTime.Year(), result.StartTime.Month(), result.StartTime.Day(), 0, 0, 0, 0, time.UTC)
 		result.EndTime = time.Date(result.EndTime.Year(), result.EndTime.Month(), result.EndTime.Day(), 23, 59, 59, 999999999, time.UTC)
@@ -102,7 +102,7 @@ func parseDateRangeParamsFromConsumptions(params api.GetConsumptionsParams) (*Da
 		result.Days = DefaultDays
 		result.EndTime = time.Now().UTC()
 		result.StartTime = result.EndTime.AddDate(0, 0, -result.Days+1)
-		
+
 		// Set times to beginning/end of day for proper date range queries
 		result.StartTime = time.Date(result.StartTime.Year(), result.StartTime.Month(), result.StartTime.Day(), 0, 0, 0, 0, time.UTC)
 		result.EndTime = time.Date(result.EndTime.Year(), result.EndTime.Month(), result.EndTime.Day(), 23, 59, 59, 999999999, time.UTC)

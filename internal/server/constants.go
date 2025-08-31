@@ -6,10 +6,10 @@ import (
 
 const (
 	// API limits - updated to match tier-based requirements
-	MaxDaysAllowed    = 365 // Pro tier maximum days
-	MaxDaysFreeTier   = 7   // Free tier maximum days  
-	MaxConsumptions   = 50
-	DefaultDays       = 7
+	MaxDaysAllowed  = 365 // Pro tier maximum days
+	MaxDaysFreeTier = 7   // Free tier maximum days
+	MaxConsumptions = 50
+	DefaultDays     = 7
 
 	// HTTP headers and content types
 	ContentTypeJSON = "application/json"
