@@ -62,9 +62,16 @@
         // Get user-friendly error message
         error = getAuthErrorMessage(errorCode, errorMessage);
         loading = false;
+      } else {
+        // Successful sign-in. Perform explicit client redirect to avoid race conditions
+        // with invalidateAll/onAuthStateChange timing.
+        redirecting = true;
+        goto(redirect).catch((err) => {
+          console.error('❌ Navigation failed:', err);
+          redirecting = false;
+          loading = false;
+        });
       }
-      // If no error, sign-in was successful - auth state change listener will handle redirect
-      // Don't set loading = false here, let the redirect happen
     } catch (err) {
       console.error('❌ Exception in handleLogin:', err);
       error = err instanceof Error ? err.message : 'An unexpected error occurred';

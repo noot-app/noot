@@ -57,6 +57,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     throw redirect(303, '/login?redirect=' + encodeURIComponent(event.url.pathname + event.url.search));
   }
 
+  // If authenticated, avoid staying on auth pages. Respect the redirect query param when present.
+  if (session && (event.url.pathname === '/login' || event.url.pathname === '/signup')) {
+    const target = event.url.searchParams.get('redirect') || '/';
+    throw redirect(303, target);
+  }
+
   return resolve(event, {
     filterSerializedResponseHeaders(name) {
       return name === 'content-range' || name === 'x-supabase-api-version'

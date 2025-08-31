@@ -21,7 +21,7 @@
     units.init();
     
     // Initialize auth with SSR session data
-    initAuth(data?.session);
+  initAuth(data?.session);
   });
 </script>
 
