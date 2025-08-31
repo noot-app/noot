@@ -290,7 +290,7 @@
       <div class="text-center space-y-2 lg:space-y-3">
         <h4 class="font-semibold text-sm lg:text-base text-base-content mb-2 lg:mb-3">Social</h4>
         <div class="space-y-1 lg:space-y-2">
-          <a href="https://github.com/GrantBirki/noot" class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://github.com/noot-app" class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a>
           <span class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed">Twitter</span>
           <span class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed">Discord</span>
         </div>

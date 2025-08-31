@@ -5,7 +5,7 @@ info:
   version: "1.0"
   contact:
     name: Grant Birkinbine
-    url: https://github.com/GrantBirki/noot
+    url: https://github.com/noot-app
 
 servers:
   - url: /api/v1
