@@ -219,6 +219,49 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// GetConsumption implements ServerInterface.GetConsumption
+func (s *APIServer) GetConsumption(c *gin.Context, id string) {
+	if s.store == nil {
+		handleStorageUnavailableError(c)
+		return
+	}
+
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Ensure user is authenticated (also for ownership checks in future)
+	_, err := getCurrentUser(c, s.store)
+	if err != nil {
+		if appErr, ok := err.(*AppError); ok {
+			s.handleAppError(c, appErr, requestID)
+		} else {
+			handleInternalServerError(c, "Failed to get user", err)
+		}
+		return
+	}
+
+	// Fetch consumption
+	cons, err := s.store.GetConsumption(ctx, id)
+	if err != nil {
+		handleInternalServerError(c, "Failed to get consumption", err)
+		return
+	}
+	if cons == nil {
+		appErr := NewAppError("Consumption not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert to API including items
+	apiConsumption, err := storageConsumptionToAPI(ctx, s.store, cons)
+	if err != nil {
+		handleInternalServerError(c, "Failed to convert consumption", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, apiConsumption)
+}
+
 // UpdateConsumption implements ServerInterface.UpdateConsumption
 func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 	requestID := c.GetString("request_id")
@@ -384,7 +427,7 @@ func (s *APIServer) GetConsumptions(c *gin.Context, params api.GetConsumptionsPa
 	// Parse date range parameters if provided
 	var dateParams *DateRangeParams
 	hasDateFiltering := params.Start != nil || params.End != nil || params.Days != nil
-	
+
 	if hasDateFiltering {
 		dateParams, err = parseDateRangeParamsFromConsumptions(params)
 		if err != nil {
@@ -538,9 +581,15 @@ func (s *APIServer) GetGoals(c *gin.Context, params api.GetGoalsParams) {
 		return
 	}
 
-	// Get user's custom goals if they're a Pro user
+	// Determine goal source behavior
+	forceDRI := false
+	if params.Source != nil && *params.Source == api.GetGoalsParamsSourceDri {
+		forceDRI = true
+	}
+
+	// Get user's custom goals if they're a Pro user and not forcing DRI
 	var customOverrides *goals.UserOverrides
-	if user.SubscriptionTier == storage.SubscriptionTierPro {
+	if !forceDRI && user.SubscriptionTier == storage.SubscriptionTierPro {
 		// Check if a specific goal was requested via query parameter
 		goalName := ""
 		if params.GoalName != nil {

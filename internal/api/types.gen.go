@@ -17,8 +17,8 @@ const (
 
 // Defines values for GoalsSource.
 const (
-	Custom GoalsSource = "custom"
-	Dri    GoalsSource = "dri"
+	GoalsSourceCustom GoalsSource = "custom"
+	GoalsSourceDri    GoalsSource = "dri"
 )
 
 // Defines values for LifeStageSex.
@@ -78,6 +78,12 @@ const (
 const (
 	ExportDataParamsFormatCsv  ExportDataParamsFormat = "csv"
 	ExportDataParamsFormatJson ExportDataParamsFormat = "json"
+)
+
+// Defines values for GetGoalsParamsSource.
+const (
+	GetGoalsParamsSourceAuto GetGoalsParamsSource = "auto"
+	GetGoalsParamsSourceDri  GetGoalsParamsSource = "dri"
 )
 
 // AssignLabelsRequest defines model for AssignLabelsRequest.
@@ -705,7 +711,13 @@ type ExportDataParamsFormat string
 type GetGoalsParams struct {
 	// GoalName Name of the specific goal set to retrieve. If not provided, returns the active goal set.
 	GoalName *string `form:"goal_name,omitempty" json:"goal_name,omitempty"`
+
+	// Source Force goal source. 'auto' uses user's active goal set if available, otherwise DRI. 'dri' forces DRI-only targets, ignoring custom overrides.
+	Source *GetGoalsParamsSource `form:"source,omitempty" json:"source,omitempty"`
 }
+
+// GetGoalsParamsSource defines parameters for GetGoals.
+type GetGoalsParamsSource string
 
 // GetTrendsParams defines parameters for GetTrends.
 type GetTrendsParams struct {

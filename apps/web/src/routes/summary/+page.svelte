@@ -116,69 +116,88 @@
   // Calculate nutrition totals from consumptions data
   $: nutritionTotals = consumptionsData?.consumptions
     ? consumptionsData.consumptions.reduce((totals: any, consumption: any) => {
+        const t = consumption?.summary?.totals || {}
         return {
-          calories: (totals.calories || 0) + (consumption.total_calories || 0),
-          protein_g: (totals.protein_g || 0) + (consumption.total_protein_g || 0),
-          total_carbs_g: (totals.total_carbs_g || 0) + (consumption.total_carbs_g || 0),
-          total_fat_g: (totals.total_fat_g || 0) + (consumption.total_fat_g || 0),
-          dietary_fiber_g: (totals.dietary_fiber_g || 0) + (consumption.dietary_fiber_g || 0),
-          sodium_mg: (totals.sodium_mg || 0) + (consumption.total_sodium_mg || 0),
-          
+          calories: (totals.calories || 0) + (t.calories || 0),
+          protein_g: (totals.protein_g || 0) + (t.protein_g || 0),
+          total_carbs_g: (totals.total_carbs_g || 0) + (t.total_carbs_g || 0),
+          total_fat_g: (totals.total_fat_g || 0) + (t.total_fat_g || 0),
+          dietary_fiber_g:
+            (totals.dietary_fiber_g || 0) + (t.dietary_fiber_g || 0),
+          sodium_mg: (totals.sodium_mg || 0) + (t.sodium_mg || 0),
+
           // Fat types
-          saturated_fat_g: (totals.saturated_fat_g || 0) + (consumption.saturated_fat_g || 0),
-          trans_fat_g: (totals.trans_fat_g || 0) + (consumption.trans_fat_g || 0),
-          monounsaturated_fat_g: (totals.monounsaturated_fat_g || 0) + (consumption.monounsaturated_fat_g || 0),
-          polyunsaturated_fat_g: (totals.polyunsaturated_fat_g || 0) + (consumption.polyunsaturated_fat_g || 0),
-          omega3_ala_g: (totals.omega3_ala_g || 0) + (consumption.omega3_ala_g || 0),
-          omega3_epa_g: (totals.omega3_epa_g || 0) + (consumption.omega3_epa_g || 0),
-          omega3_dha_g: (totals.omega3_dha_g || 0) + (consumption.omega3_dha_g || 0),
-          omega6_g: (totals.omega6_g || 0) + (consumption.omega6_g || 0),
-          cholesterol_mg: (totals.cholesterol_mg || 0) + (consumption.cholesterol_mg || 0),
-          alcohol_g: (totals.alcohol_g || 0) + (consumption.alcohol_g || 0),
+          saturated_fat_g:
+            (totals.saturated_fat_g || 0) + (t.saturated_fat_g || 0),
+          trans_fat_g: (totals.trans_fat_g || 0) + (t.trans_fat_g || 0),
+          monounsaturated_fat_g:
+            (totals.monounsaturated_fat_g || 0) +
+            (t.monounsaturated_fat_g || 0),
+          polyunsaturated_fat_g:
+            (totals.polyunsaturated_fat_g || 0) +
+            (t.polyunsaturated_fat_g || 0),
+          omega3_ala_g: (totals.omega3_ala_g || 0) + (t.omega3_ala_g || 0),
+          omega3_epa_g: (totals.omega3_epa_g || 0) + (t.omega3_epa_g || 0),
+          omega3_dha_g: (totals.omega3_dha_g || 0) + (t.omega3_dha_g || 0),
+          omega6_g: (totals.omega6_g || 0) + (t.omega6_g || 0),
+          cholesterol_mg:
+            (totals.cholesterol_mg || 0) + (t.cholesterol_mg || 0),
+          alcohol_g: (totals.alcohol_g || 0) + (t.alcohol_g || 0),
 
           // Sugar types
-          total_sugars_g: (totals.total_sugars_g || 0) + (consumption.total_sugars_g || 0),
-          added_sugars_g: (totals.added_sugars_g || 0) + (consumption.added_sugars_g || 0),
+          total_sugars_g:
+            (totals.total_sugars_g || 0) + (t.total_sugars_g || 0),
+          added_sugars_g:
+            (totals.added_sugars_g || 0) + (t.added_sugars_g || 0),
 
           // B-Complex vitamins
-          thiamine_mg: (totals.thiamine_mg || 0) + (consumption.thiamine_mg || 0),
-          riboflavin_mg: (totals.riboflavin_mg || 0) + (consumption.riboflavin_mg || 0),
-          niacin_mg: (totals.niacin_mg || 0) + (consumption.niacin_mg || 0),
-          vitamin_b6_mg: (totals.vitamin_b6_mg || 0) + (consumption.vitamin_b6_mg || 0),
-          folate_mcg: (totals.folate_mcg || 0) + (consumption.folate_mcg || 0),
-          vitamin_b12_mcg: (totals.vitamin_b12_mcg || 0) + (consumption.vitamin_b12_mcg || 0),
-          biotin_mcg: (totals.biotin_mcg || 0) + (consumption.biotin_mcg || 0),
-          pantothenic_acid_mg: (totals.pantothenic_acid_mg || 0) + (consumption.pantothenic_acid_mg || 0),
+          thiamine_mg: (totals.thiamine_mg || 0) + (t.thiamine_mg || 0),
+          riboflavin_mg: (totals.riboflavin_mg || 0) + (t.riboflavin_mg || 0),
+          niacin_mg: (totals.niacin_mg || 0) + (t.niacin_mg || 0),
+          vitamin_b6_mg:
+            (totals.vitamin_b6_mg || 0) + (t.vitamin_b6_mg || 0),
+          folate_mcg: (totals.folate_mcg || 0) + (t.folate_mcg || 0),
+          vitamin_b12_mcg:
+            (totals.vitamin_b12_mcg || 0) + (t.vitamin_b12_mcg || 0),
+          biotin_mcg: (totals.biotin_mcg || 0) + (t.biotin_mcg || 0),
+          pantothenic_acid_mg:
+            (totals.pantothenic_acid_mg || 0) +
+            (t.pantothenic_acid_mg || 0),
 
           // Fat-soluble vitamins
-          vitamin_a_mcg: (totals.vitamin_a_mcg || 0) + (consumption.vitamin_a_mcg || 0),
-          vitamin_d_mcg: (totals.vitamin_d_mcg || 0) + (consumption.vitamin_d_mcg || 0),
-          vitamin_e_mg: (totals.vitamin_e_mg || 0) + (consumption.vitamin_e_mg || 0),
-          vitamin_k_mcg: (totals.vitamin_k_mcg || 0) + (consumption.vitamin_k_mcg || 0),
+          vitamin_a_mcg: (totals.vitamin_a_mcg || 0) + (t.vitamin_a_mcg || 0),
+          vitamin_d_mcg: (totals.vitamin_d_mcg || 0) + (t.vitamin_d_mcg || 0),
+          vitamin_e_mg: (totals.vitamin_e_mg || 0) + (t.vitamin_e_mg || 0),
+          vitamin_k_mcg: (totals.vitamin_k_mcg || 0) + (t.vitamin_k_mcg || 0),
 
           // Water-soluble vitamins
-          vitamin_c_mg: (totals.vitamin_c_mg || 0) + (consumption.vitamin_c_mg || 0),
-          choline_mg: (totals.choline_mg || 0) + (consumption.choline_mg || 0),
+          vitamin_c_mg: (totals.vitamin_c_mg || 0) + (t.vitamin_c_mg || 0),
+          choline_mg: (totals.choline_mg || 0) + (t.choline_mg || 0),
 
           // Essential minerals
-          calcium_mg: (totals.calcium_mg || 0) + (consumption.calcium_mg || 0),
-          iron_mg: (totals.iron_mg || 0) + (consumption.iron_mg || 0),
-          magnesium_mg: (totals.magnesium_mg || 0) + (consumption.magnesium_mg || 0),
-          phosphorus_mg: (totals.phosphorus_mg || 0) + (consumption.phosphorus_mg || 0),
-          potassium_mg: (totals.potassium_mg || 0) + (consumption.potassium_mg || 0),
-          zinc_mg: (totals.zinc_mg || 0) + (consumption.zinc_mg || 0),
-          copper_mg: (totals.copper_mg || 0) + (consumption.copper_mg || 0),
-          manganese_mg: (totals.manganese_mg || 0) + (consumption.manganese_mg || 0),
-          selenium_mcg: (totals.selenium_mcg || 0) + (consumption.selenium_mcg || 0),
-          iodine_mcg: (totals.iodine_mcg || 0) + (consumption.iodine_mcg || 0),
-          molybdenum_mcg: (totals.molybdenum_mcg || 0) + (consumption.molybdenum_mcg || 0),
-          chromium_mcg: (totals.chromium_mcg || 0) + (consumption.chromium_mcg || 0),
-          fluoride_mg: (totals.fluoride_mg || 0) + (consumption.fluoride_mg || 0),
-          chloride_mg: (totals.chloride_mg || 0) + (consumption.chloride_mg || 0),
+          calcium_mg: (totals.calcium_mg || 0) + (t.calcium_mg || 0),
+          iron_mg: (totals.iron_mg || 0) + (t.iron_mg || 0),
+          magnesium_mg: (totals.magnesium_mg || 0) + (t.magnesium_mg || 0),
+          phosphorus_mg:
+            (totals.phosphorus_mg || 0) + (t.phosphorus_mg || 0),
+          potassium_mg: (totals.potassium_mg || 0) + (t.potassium_mg || 0),
+          zinc_mg: (totals.zinc_mg || 0) + (t.zinc_mg || 0),
+          copper_mg: (totals.copper_mg || 0) + (t.copper_mg || 0),
+          manganese_mg:
+            (totals.manganese_mg || 0) + (t.manganese_mg || 0),
+          selenium_mcg:
+            (totals.selenium_mcg || 0) + (t.selenium_mcg || 0),
+          iodine_mcg: (totals.iodine_mcg || 0) + (t.iodine_mcg || 0),
+          molybdenum_mcg:
+            (totals.molybdenum_mcg || 0) + (t.molybdenum_mcg || 0),
+          chromium_mcg:
+            (totals.chromium_mcg || 0) + (t.chromium_mcg || 0),
+          fluoride_mg: (totals.fluoride_mg || 0) + (t.fluoride_mg || 0),
+          chloride_mg: (totals.chloride_mg || 0) + (t.chloride_mg || 0),
 
           // Other compounds
-          caffeine_mg: (totals.caffeine_mg || 0) + (consumption.caffeine_mg || 0),
-          creatine_mg: (totals.creatine_mg || 0) + (consumption.creatine_mg || 0),
+          caffeine_mg: (totals.caffeine_mg || 0) + (t.caffeine_mg || 0),
+          creatine_mg: (totals.creatine_mg || 0) + (t.creatine_mg || 0),
         }
       }, {})
     : undefined
@@ -355,9 +374,9 @@
                           </div>
                         </div>
                         <div class="flex items-center gap-2">
-                          {#if consumption.total_calories}
+                          {#if consumption.summary?.totals?.calories}
                             <div class="badge badge-primary">
-                              {Math.round(consumption.total_calories)} cal
+                              {Math.round(consumption.summary.totals.calories)} cal
                             </div>
                           {/if}
                           <button class="btn btn-sm btn-ghost">
@@ -370,21 +389,21 @@
                       {#if expandedMeals.has(consumption.id)}
                         <div class="mt-4 border-t pt-4">
                           <!-- Macronutrients Summary -->
-                          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                             <div class="text-center">
-                              <div class="text-lg font-bold text-primary">{Math.round(consumption.total_calories || 0)}</div>
+                <div class="text-lg font-bold text-primary">{Math.round(consumption.summary?.totals?.calories || 0)}</div>
                               <div class="text-xs text-base-content/60">Calories</div>
                             </div>
                             <div class="text-center">
-                              <div class="text-lg font-bold text-secondary">{(consumption.total_protein_g || 0).toFixed(1)}g</div>
+                <div class="text-lg font-bold text-secondary">{(consumption.summary?.totals?.protein_g || 0).toFixed(1)}g</div>
                               <div class="text-xs text-base-content/60">Protein</div>
                             </div>
                             <div class="text-center">
-                              <div class="text-lg font-bold text-accent">{(consumption.total_carbs_g || 0).toFixed(1)}g</div>
+                <div class="text-lg font-bold text-accent">{(consumption.summary?.totals?.total_carbs_g || 0).toFixed(1)}g</div>
                               <div class="text-xs text-base-content/60">Carbs</div>
                             </div>
                             <div class="text-center">
-                              <div class="text-lg font-bold text-warning">{(consumption.total_fat_g || 0).toFixed(1)}g</div>
+                <div class="text-lg font-bold text-warning">{(consumption.summary?.totals?.total_fat_g || 0).toFixed(1)}g</div>
                               <div class="text-xs text-base-content/60">Fat</div>
                             </div>
                           </div>
@@ -397,18 +416,20 @@
                                 {#each consumption.items as item}
                                   <div class="flex justify-between items-center text-sm">
                                     <div class="flex-1">
-                                      <span class="font-medium">{item.name}</span>
-                                      {#if item.brand}
-                                        <span class="text-base-content/60">({item.brand})</span>
+                                      <span class="font-medium">{item.item?.name || ''}</span>
+                                      {#if item.item?.brand}
+                                        <span class="text-base-content/60">({item.item?.brand})</span>
                                       {/if}
-                                      <span class="text-base-content/60">- {item.grams}g</span>
+                                      {#if item.item?.grams !== undefined}
+                                        <span class="text-base-content/60">- {item.item?.grams}g</span>
+                                      {/if}
                                     </div>
                                     <div class="text-right">
-                                      <div class="font-medium">{Math.round(item.calories)} cal</div>
+                                      <div class="font-medium">{Math.round(item.item?.nutrients?.calories || 0)} cal</div>
                                       <div class="text-xs text-base-content/60">
-                                        P: {(item.protein_g || 0).toFixed(1)}g |
-                                        C: {(item.total_carbs_g || 0).toFixed(1)}g |
-                                        F: {(item.total_fat_g || 0).toFixed(1)}g
+                                        P: {(item.item?.nutrients?.protein_g || 0).toFixed(1)}g |
+                                        C: {(item.item?.nutrients?.total_carbs_g || 0).toFixed(1)}g |
+                                        F: {(item.item?.nutrients?.total_fat_g || 0).toFixed(1)}g
                                       </div>
                                     </div>
                                   </div>
@@ -416,6 +437,9 @@
                               </div>
                             </div>
                           {/if}
+                          <div class="mt-4 flex justify-end">
+                            <a href={`/consumptions/${consumption.id}`} class="btn btn-sm btn-outline">View</a>
+                          </div>
                         </div>
                       {/if}
                     </div>

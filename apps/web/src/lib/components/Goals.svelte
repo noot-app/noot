@@ -13,6 +13,11 @@
   export let showMealContribution = false // New prop to indicate meal-specific view
   export let isSharedView = false // New prop for shareable link context (non-logged-in users)
   export let title = "Nutrition Goals" // Customizable title
+  // Optional: preloaded goals for 'auto' and 'dri' sources; if provided, component will use them
+  export let preloadGoalsAuto: Goals | null = null
+  export let preloadGoalsDri: Goals | null = null
+  // Optional: force source selection ('auto' uses user's active goal set; 'dri' forces DRI)
+  export let source: "auto" | "dri" | null = null
 
   let goals: Goals | null = null
   let loading = true
@@ -44,23 +49,22 @@
       loading = true
       error = ""
 
-      // For shared views, always use DRI defaults
-      if (isSharedView) {
-        const response = await apiClient.GET("/goals")
-
-        if (response.error) {
-          throw new Error(`API Error: ${response.error}`)
+      // If goals were preloaded, honor props and avoid network
+      if (preloadGoalsAuto || preloadGoalsDri) {
+        if (source === "dri" || isSharedView) {
+          goals = preloadGoalsDri ?? preloadGoalsAuto
+        } else {
+          goals = preloadGoalsAuto ?? preloadGoalsDri
         }
-
-        goals = response.data.goals
       } else {
-        // Normal user goals loading with DRI fallback
-        const response = await apiClient.GET("/goals")
-
+        // Fallback: fetch based on desired source
+        const desired = source ?? (isSharedView ? "dri" : "auto")
+        const response = await apiClient.GET("/goals", {
+          params: { query: { source: desired } },
+        })
         if (response.error) {
           throw new Error(`API Error: ${response.error}`)
         }
-
         goals = response.data.goals
       }
       goalsLoaded = true

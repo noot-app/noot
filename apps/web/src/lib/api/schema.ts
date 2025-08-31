@@ -31,7 +31,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Get a single consumption
+         * @description Retrieve a single consumption by ID for the authenticated user
+         */
+        get: operations["getConsumption"];
         /**
          * Update a consumption record
          * @description Update an existing consumption with edited nutrition data
@@ -977,6 +981,47 @@ export interface operations {
             };
         };
     };
+    getConsumption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Consumption ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Consumption found */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Consumption"];
+                };
+            };
+            /** @description Consumption not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     updateConsumption: {
         parameters: {
             query?: never;
@@ -1182,6 +1227,8 @@ export interface operations {
             query?: {
                 /** @description Name of the specific goal set to retrieve. If not provided, returns the active goal set. */
                 goal_name?: string;
+                /** @description Force goal source. 'auto' uses user's active goal set if available, otherwise DRI. 'dri' forces DRI-only targets, ignoring custom overrides. */
+                source?: "auto" | "dri";
             };
             header?: never;
             path?: never;

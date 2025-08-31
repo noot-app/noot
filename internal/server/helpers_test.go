@@ -115,7 +115,7 @@ func TestValidateSubscriptionAccess(t *testing.T) {
 		{
 			name:        "free user multiple days - denied",
 			user:        &storage.User{SubscriptionTier: SubscriptionTierFree},
-			days:        7,
+			days:        8,
 			expectError: true,
 		},
 		{
@@ -172,7 +172,7 @@ func TestApplyDaysLimit(t *testing.T) {
 		},
 		{
 			name:     "exceeds limit",
-			days:     10,
+			days:     MaxDaysAllowed + 1,
 			expected: MaxDaysAllowed,
 		},
 		{

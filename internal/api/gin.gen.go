@@ -37,6 +37,9 @@ type ServerInterface interface {
 	// Delete a consumption record
 	// (DELETE /consumption/{id})
 	DeleteConsumption(c *gin.Context, id string)
+	// Get a single consumption
+	// (GET /consumption/{id})
+	GetConsumption(c *gin.Context, id string)
 	// Update a consumption record
 	// (PUT /consumption/{id})
 	UpdateConsumption(c *gin.Context, id string)
@@ -254,6 +257,30 @@ func (siw *ServerInterfaceWrapper) DeleteConsumption(c *gin.Context) {
 	}
 
 	siw.Handler.DeleteConsumption(c, id)
+}
+
+// GetConsumption operation middleware
+func (siw *ServerInterfaceWrapper) GetConsumption(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetConsumption(c, id)
 }
 
 // UpdateConsumption operation middleware
@@ -489,6 +516,14 @@ func (siw *ServerInterfaceWrapper) GetGoals(c *gin.Context) {
 	err = runtime.BindQueryParameter("form", true, false, "goal_name", c.Request.URL.Query(), &params.GoalName)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter goal_name: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "source" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "source", c.Request.URL.Query(), &params.Source)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter source: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -737,6 +772,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/consumption-items/:id/labels", wrapper.AssignConsumptionItemLabels)
 	router.DELETE(options.BaseURL+"/consumption-items/:id/labels/:labelId", wrapper.UnassignConsumptionItemLabel)
 	router.DELETE(options.BaseURL+"/consumption/:id", wrapper.DeleteConsumption)
+	router.GET(options.BaseURL+"/consumption/:id", wrapper.GetConsumption)
 	router.PUT(options.BaseURL+"/consumption/:id", wrapper.UpdateConsumption)
 	router.GET(options.BaseURL+"/consumption/:id/labels", wrapper.GetConsumptionLabels)
 	router.POST(options.BaseURL+"/consumption/:id/labels", wrapper.AssignConsumptionLabels)

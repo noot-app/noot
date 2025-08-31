@@ -57,6 +57,36 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /consumption/{id}:
+    get:
+      summary: Get a single consumption
+      description: Retrieve a single consumption by ID for the authenticated user
+      operationId: getConsumption
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Consumption found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Consumption"
+        "404":
+          description: Consumption not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     put:
       summary: Update a consumption record
       description: Update an existing consumption with edited nutrition data
@@ -238,6 +268,14 @@ paths:
           schema:
             type: string
           description: Name of the specific goal set to retrieve. If not provided, returns the active goal set.
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [auto, dri]
+            default: auto
+          description: Force goal source. 'auto' uses user's active goal set if available, otherwise DRI. 'dri' forces DRI-only targets, ignoring custom overrides.
       responses:
         "200":
           description: User nutrition goals
