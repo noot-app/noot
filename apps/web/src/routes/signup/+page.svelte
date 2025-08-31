@@ -5,6 +5,7 @@
   import { signUp, signInWithGitHub, signInWithGoogle, user } from '$lib/auth/store';
   import { getAuthErrorMessage } from '$lib/auth/error-messages';
   import { onMount } from 'svelte';
+  import { DEFAULT_REDIRECT_PATH, getRedirectParam } from '$lib/utils/redirect';
   
   let email = '';
   let password = '';
@@ -18,7 +19,7 @@
   let success = false;
 
   // Get return URL from query params
-  const redirect = $page.url.searchParams.get('redirect') || '/record';
+  const redirect = getRedirectParam($page.url, DEFAULT_REDIRECT_PATH);
 
   // Redirect if already authenticated
   onMount(() => {

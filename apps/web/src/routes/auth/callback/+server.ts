@@ -1,9 +1,10 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { DEFAULT_REDIRECT_PATH, getRedirectParam } from '$lib/utils/redirect';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
   const code = url.searchParams.get('code');
-  const redirectParam = url.searchParams.get('redirect') || '/summary'; // default to /summary
+  const redirectParam = getRedirectParam(url, DEFAULT_REDIRECT_PATH);
   
   // Validate that code parameter exists; if not, prefer forwarding provider error codes
   if (!code) {
@@ -13,7 +14,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   }
   
   // Sanitize redirect to only allow internal paths (security measure)
-  const sanitizedRedirect = redirectParam.startsWith('/') ? redirectParam : '/';
+  const sanitizedRedirect = redirectParam;
   
   try {
     // Exchange the OAuth code for a session using Supabase SSR

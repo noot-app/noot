@@ -3,6 +3,7 @@ import { redirect, type Handle } from '@sveltejs/kit';
 import { env } from '$env/dynamic/public';
 import type { Session } from '@supabase/supabase-js';
 import { getValidatedSession } from '$lib/utils.js';
+import { DEFAULT_REDIRECT_PATH, getRedirectParam } from '$lib/utils/redirect';
 
 export const handle: Handle = async ({ event, resolve }) => {
   // Ensure environment variables are available
@@ -59,7 +60,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   // If authenticated, avoid staying on auth pages. Respect the redirect query param when present.
   if (session && (event.url.pathname === '/login' || event.url.pathname === '/signup')) {
-    const target = event.url.searchParams.get('redirect') || '/summary'; // default to /summary
+    const target = getRedirectParam(event.url, DEFAULT_REDIRECT_PATH);
     throw redirect(303, target);
   }
 
