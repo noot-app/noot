@@ -152,36 +152,4 @@
   </div>
 </div>
 
-<style>
-  :global(.prose h1) {
-    @apply text-3xl font-bold mb-4 text-primary;
-  }
-  
-  :global(.prose h2) {
-    @apply text-2xl font-semibold mb-3 mt-6 text-base-content;
-  }
-  
-  :global(.prose h3) {
-    @apply text-xl font-medium mb-2 mt-4 text-base-content;
-  }
-  
-  :global(.prose p) {
-    @apply mb-3 text-base-content/80;
-  }
-  
-  :global(.prose strong) {
-    @apply font-semibold text-base-content;
-  }
-  
-  :global(.prose ul) {
-    @apply list-disc ml-6 mb-4;
-  }
-  
-  :global(.prose li) {
-    @apply mb-1 text-base-content/80;
-  }
-  
-  :global(.prose a) {
-    @apply text-primary hover:underline;
-  }
-</style>
+<!-- component-scoped Tailwind @apply removed to avoid Tailwind v4 @reference issues; rely on prose/daisyUI defaults -->
