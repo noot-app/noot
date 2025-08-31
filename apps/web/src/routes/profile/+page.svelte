@@ -24,11 +24,15 @@
   type BiometricsResponse = paths["/biometrics"]["get"]["responses"]["200"]["content"]["application/json"];
   type UserBiometrics = paths["/biometrics"]["get"]["responses"]["200"]["content"]["application/json"]["biometrics"];
   type UpdateBiometricsRequest = paths["/biometrics"]["put"]["requestBody"]["content"]["application/json"];
+  type LabelsResponse = paths["/labels"]["get"]["responses"]["200"]["content"]["application/json"];
+  type Label = LabelsResponse["labels"][0];
   
   let goals: Goals | null = null;
   let user: User | null = null;
   let biometrics: UserBiometrics | null = null;
   let calculatedMetrics: BiometricsResponse["calculated_metrics"] | null = null;
+  let labels: Label[] = [];
+  let labelsLoading = false;
   let loading = true;
   let biometricsLoading = false;
   let error = "";
@@ -95,7 +99,7 @@
   let activityLevel: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active" = "lightly_active";
 
   onMount(async () => {
-    await Promise.all([loadGoals(), loadBiometrics(), loadGoalSets()]);
+    await Promise.all([loadGoals(), loadBiometrics(), loadGoalSets(), loadLabels()]);
   });
 
   function resetToDefaults() {
@@ -377,6 +381,28 @@
       }
     } finally {
       biometricsLoading = false;
+    }
+  }
+
+  async function loadLabels() {
+    try {
+      labelsLoading = true;
+      
+      const response = await apiClient.GET("/labels", {
+        params: { query: { include_usage: true } }
+      });
+      
+      if (response.error) {
+        throw new Error(`API Error: ${response.error}`);
+      }
+
+      labels = response.data?.labels || [];
+    } catch (err) {
+      // Don't show error for labels - they're not critical
+      console.warn("Failed to load labels:", err);
+      labels = [];
+    } finally {
+      labelsLoading = false;
     }
   }
 
@@ -1088,6 +1114,72 @@
     </div>
   </div>
 {/if}
+
+      <!-- Labels Section -->
+      <div class="card bg-base-200 shadow-lg mt-8">
+        <div class="card-body p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="card-title flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              Your Labels
+            </h2>
+            <a href="/labels" class="btn btn-primary btn-sm">
+              Manage Labels
+            </a>
+          </div>
+          
+          {#if labelsLoading}
+            <div class="flex justify-center py-6">
+              <span class="loading loading-spinner loading-sm"></span>
+              <span class="ml-2 text-sm text-base-content/70">Loading labels...</span>
+            </div>
+          {:else if labels.length === 0}
+            <div class="text-center py-8">
+              <svg class="w-12 h-12 mx-auto text-base-content/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <p class="text-base-content/50 text-sm mb-3">No labels found</p>
+              <a href="/labels" class="btn btn-primary btn-sm">
+                Create Your First Label
+              </a>
+            </div>
+          {:else}
+            <div class="space-y-3">
+              <p class="text-sm text-base-content/70">Organize your meals with labels you've created:</p>
+              
+              <!-- Labels Grid -->
+              <div class="flex flex-wrap gap-2">
+                {#each labels as label}
+                  <div 
+                    class="tooltip"
+                    data-tip={label.description || `${label.consumption_count} consumptions • ${label.item_count} items`}
+                  >
+                    <div 
+                      class="badge badge-lg px-3 py-2 text-white font-medium cursor-help"
+                      style="background-color: #{label.color}; border-color: #{label.color};"
+                    >
+                      {label.name}
+                      <span class="ml-1 text-xs opacity-80">
+                        {label.consumption_count + label.item_count}
+                      </span>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+              
+              {#if labels.length > 6}
+                <div class="text-center pt-2">
+                  <a href="/labels" class="btn btn-ghost btn-sm">
+                    View All {labels.length} Labels →
+                  </a>
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      </div>
 
       <!-- Additional Settings Section -->
       <div class="card bg-base-200 shadow-lg mt-8">

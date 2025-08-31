@@ -1,0 +1,436 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { apiClient } from '$lib/api/client';
+  import { toast } from '$lib/stores/toast';
+  import Toast from '$lib/components/Toast.svelte';
+  import FormField from '$lib/components/FormField.svelte';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+  import { parseErrorMessage, formatErrorForUser } from '$lib/utils/error-handling';
+  import type { paths } from '$lib/api/schema';
+
+  type LabelsResponse = paths["/labels"]["get"]["responses"]["200"]["content"]["application/json"];
+  type Label = LabelsResponse["labels"][0];
+  type CreateLabelRequest = paths["/labels"]["post"]["requestBody"]["content"]["application/json"];
+  type UpdateLabelRequest = paths["/labels/{id}"]["put"]["requestBody"]["content"]["application/json"];
+
+  let labels: Label[] = [];
+  let loading = true;
+  let error = '';
+
+  // New/Edit label modal state
+  let showModal = false;
+  let editingLabel: Label | null = null;
+  let modalTitle = '';
+  let labelName = '';
+  let labelDescription = '';
+  let labelColor = '';
+
+  // Delete confirmation modal
+  let showDeleteModal = false;
+  let labelToDelete: Label | null = null;
+
+  // Color palette (16 common colors as mentioned in requirements)
+  const colorPalette = [
+    'FF0000', // Red
+    'FF8C00', // Dark Orange
+    'FFD700', // Gold
+    '74B986', // Green
+    '1E90FF', // Blue
+    '9B59B6', // Purple
+    '9CA3AF', // Gray
+    '2DD4BF', // Teal
+    'A8E6CF', // Mint
+    'F59E0B', // Orange
+    'FF69B4', // Hot Pink
+    '8A2BE2', // Blue Violet
+    '00CED1', // Dark Turquoise
+    '32CD32', // Lime Green
+    'DC143C', // Crimson
+    '4B0082'  // Indigo
+  ];
+
+  // Form validation
+  $: isValidName = labelName.trim().length > 0 && labelName.length <= 39 && /^[a-zA-Z0-9]([a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/.test(labelName.trim());
+  $: isValidColor = /^#?[0-9a-f]{6}$/i.test(labelColor);
+  $: isValidDescription = labelDescription.length <= 250;
+  $: canSave = isValidName && isValidColor && isValidDescription;
+
+  async function loadLabels() {
+    try {
+      loading = true;
+      const response = await apiClient.GET('/labels', {
+        params: { query: { include_usage: true } }
+      });
+
+      if (response.error) {
+        const errorMsg = parseErrorMessage(response.error, 'Failed to load labels');
+        error = formatErrorForUser(errorMsg);
+        return;
+      }
+
+      labels = response.data?.labels || [];
+      error = '';
+    } catch (err) {
+      console.error('Error loading labels:', err);
+      error = 'Failed to load labels. Please try again.';
+    } finally {
+      loading = false;
+    }
+  }
+
+  function openCreateModal() {
+    editingLabel = null;
+    modalTitle = 'Create Label';
+    labelName = '';
+    labelDescription = '';
+    labelColor = '#FFD700'; // Default to gold
+    showModal = true;
+  }
+
+  function openEditModal(label: Label) {
+    editingLabel = label;
+    modalTitle = 'Edit Label';
+    labelName = label.name;
+    labelDescription = label.description || '';
+    labelColor = label.color.startsWith('#') ? label.color : `#${label.color}`;
+    showModal = true;
+  }
+
+  function closeModal() {
+    showModal = false;
+    editingLabel = null;
+    labelName = '';
+    labelDescription = '';
+    labelColor = '';
+  }
+
+  function selectColor(color: string) {
+    labelColor = `#${color}`;
+  }
+
+  function randomColor() {
+    const randomIndex = Math.floor(Math.random() * colorPalette.length);
+    labelColor = `#${colorPalette[randomIndex]}`;
+  }
+
+  async function saveLabel() {
+    if (!canSave) return;
+
+    try {
+      const colorWithoutHash = labelColor.replace('#', '');
+      
+      if (editingLabel) {
+        // Update existing label
+        const response = await apiClient.PUT('/labels/{id}', {
+          params: { path: { id: editingLabel.id } },
+          body: {
+            name: labelName.trim(),
+            description: labelDescription.trim() || null,
+            color: colorWithoutHash
+          }
+        });
+
+        if (response.error) {
+          const errorMsg = parseErrorMessage(response.error, 'Failed to update label');
+          toast.error(formatErrorForUser(errorMsg));
+          return;
+        }
+
+        // Update the label in the list
+        const index = labels.findIndex(l => l.id === editingLabel!.id);
+        if (index >= 0 && response.data) {
+          labels[index] = { ...response.data, consumption_count: labels[index].consumption_count, item_count: labels[index].item_count };
+        }
+        
+        toast.success('Label updated successfully');
+      } else {
+        // Create new label
+        const response = await apiClient.POST('/labels', {
+          body: {
+            name: labelName.trim(),
+            description: labelDescription.trim() || undefined,
+            color: colorWithoutHash
+          }
+        });
+
+        if (response.error) {
+          const errorMsg = parseErrorMessage(response.error, 'Failed to create label');
+          toast.error(formatErrorForUser(errorMsg));
+          return;
+        }
+
+        if (response.data) {
+          // Add new label to the list with zero usage counts
+          labels = [...labels, { ...response.data, consumption_count: 0, item_count: 0 }];
+        }
+        
+        toast.success('Label created successfully');
+      }
+
+      closeModal();
+    } catch (err) {
+      console.error('Error saving label:', err);
+      toast.error('Failed to save label. Please try again.');
+    }
+  }
+
+  function openDeleteModal(label: Label) {
+    labelToDelete = label;
+    showDeleteModal = true;
+  }
+
+  function closeDeleteModal() {
+    showDeleteModal = false;
+    labelToDelete = null;
+  }
+
+  async function deleteLabel() {
+    if (!labelToDelete) return;
+
+    try {
+      const response = await apiClient.DELETE('/labels/{id}', {
+        params: { path: { id: labelToDelete.id } }
+      });
+
+      if (response.error) {
+        const errorMsg = parseErrorMessage(response.error, 'Failed to delete label');
+        toast.error(formatErrorForUser(errorMsg));
+        return;
+      }
+
+      // Remove label from the list
+      labels = labels.filter(l => l.id !== labelToDelete!.id);
+      toast.success('Label deleted successfully');
+      
+      closeDeleteModal();
+    } catch (err) {
+      console.error('Error deleting label:', err);
+      toast.error('Failed to delete label. Please try again.');
+    }
+  }
+
+  onMount(() => {
+    loadLabels();
+  });
+</script>
+
+<svelte:head>
+  <title>Labels - Noot</title>
+  <meta name="description" content="Manage your labels for organizing meals and nutrition tracking." />
+</svelte:head>
+
+<div class="min-h-screen bg-base-200 p-4">
+  <div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h1 class="text-3xl font-bold text-base-content">Labels</h1>
+          <p class="text-base-content/70 mt-2">Organize your meals and nutrition tracking with custom labels.</p>
+        </div>
+        <button 
+          class="btn btn-primary"
+          on:click={openCreateModal}
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          New Label
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    {#if loading}
+      <div class="flex justify-center items-center py-12">
+        <span class="loading loading-spinner loading-lg"></span>
+      </div>
+    {:else if error}
+      <!-- Error state -->
+      <div class="alert alert-error">
+        <svg class="stroke-current shrink-0 w-6 h-6" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{error}</span>
+        <div>
+          <button class="btn btn-sm btn-ghost" on:click={loadLabels}>
+            Try Again
+          </button>
+        </div>
+      </div>
+    {:else}
+      <!-- Labels list -->
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          {#if labels.length === 0}
+            <div class="text-center py-12">
+              <svg class="w-16 h-16 mx-auto text-base-content/50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <h3 class="text-lg font-medium text-base-content/70 mb-2">No labels yet</h3>
+              <p class="text-base-content/50 mb-4">Create your first label to start organizing your meals.</p>
+              <button class="btn btn-primary" on:click={openCreateModal}>
+                Create Label
+              </button>
+            </div>
+          {:else}
+            <div class="space-y-2">
+              {#each labels as label}
+                <div class="flex items-center justify-between p-4 border border-base-300 rounded-lg hover:bg-base-50 transition-colors">
+                  <div class="flex items-center gap-3">
+                    <!-- Color badge -->
+                    <div 
+                      class="badge badge-lg px-4 py-3 text-white font-medium"
+                      style="background-color: #{label.color}; border-color: #{label.color};"
+                    >
+                      {label.name}
+                    </div>
+                    <div class="flex flex-col">
+                      {#if label.description}
+                        <span class="text-sm text-base-content/70">{label.description}</span>
+                      {/if}
+                      <span class="text-xs text-base-content/50">
+                        {label.consumption_count} consumptions • {label.item_count} items
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div class="flex gap-2">
+                    <button 
+                      class="btn btn-ghost btn-sm"
+                      on:click={() => openEditModal(label)}
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button 
+                      class="btn btn-ghost btn-sm text-error hover:bg-error hover:text-error-content"
+                      on:click={() => openDeleteModal(label)}
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
+  </div>
+</div>
+
+<!-- Create/Edit Label Modal -->
+{#if showModal}
+  <div class="modal modal-open">
+    <div class="modal-box max-w-md">
+      <h3 class="font-bold text-lg">{modalTitle}</h3>
+      
+      <form on:submit|preventDefault={saveLabel} class="space-y-4 mt-4">
+        <!-- Label Name -->
+        <FormField
+          id="labelName"
+          label="Label Name"
+          bind:value={labelName}
+          required
+          maxlength="39"
+          placeholder="e.g. breakfast, healthy"
+          error={!isValidName && labelName.length > 0 ? 'Name must be 1-39 characters and contain only letters, numbers, and hyphens' : ''}
+        />
+
+        <!-- Label Description -->
+        <FormField
+          id="labelDescription"
+          label="Description (Optional)"
+          bind:value={labelDescription}
+          maxlength="250"
+          placeholder="Optional description for this label"
+          error={!isValidDescription ? 'Description must be 250 characters or less' : ''}
+        />
+
+        <!-- Color Selection -->
+        <div class="form-control">
+          <label class="label" for="labelColor">
+            <span class="label-text">Color</span>
+          </label>
+          
+          <!-- Color palette -->
+          <div class="grid grid-cols-8 gap-2 mb-4">
+            {#each colorPalette as color}
+              <button
+                type="button"
+                class="w-8 h-8 rounded border-2 transition-all hover:scale-110"
+                class:border-primary={labelColor === `#${color}`}
+                class:border-base-300={labelColor !== `#${color}`}
+                style="background-color: #{color}"
+                on:click={() => selectColor(color)}
+              />
+            {/each}
+          </div>
+
+          <!-- Random color and manual input -->
+          <div class="flex gap-2 mb-2">
+            <button type="button" class="btn btn-sm btn-outline flex-1" on:click={randomColor}>
+              🎲 Random Color
+            </button>
+            <input
+              type="text"
+              class="input input-bordered input-sm flex-1"
+              bind:value={labelColor}
+              placeholder="#FFFFFF"
+              maxlength="7"
+            />
+          </div>
+
+          <!-- Color preview -->
+          <div class="flex items-center gap-2">
+            <div 
+              class="w-6 h-6 rounded border border-base-300"
+              style="background-color: {labelColor}"
+            />
+            <span class="text-sm text-base-content/70">Preview</span>
+          </div>
+
+          {#if !isValidColor && labelColor.length > 0}
+            <div class="label">
+              <span class="label-text-alt text-error">Please enter a valid hex color (e.g. #FF0000)</span>
+            </div>
+          {/if}
+        </div>
+      </form>
+
+      <div class="modal-action">
+        <button class="btn btn-ghost" on:click={closeModal}>Cancel</button>
+        <button 
+          class="btn btn-primary" 
+          disabled={!canSave}
+          on:click={saveLabel}
+        >
+          {editingLabel ? 'Update' : 'Create'}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Delete Confirmation Modal -->
+<ConfirmModal
+  isOpen={showDeleteModal}
+  title="Delete Label"
+  message="Are you sure you want to delete the label '{labelToDelete?.name}'? This will remove it from all associated consumptions and items."
+  confirmText="Delete"
+  confirmClass="btn-error"
+  on:confirm={deleteLabel}
+  on:close={closeDeleteModal}
+/>
+
+<Toast />
+
+<style>
+  .badge-lg {
+    font-size: 0.875rem;
+  }
+</style>
