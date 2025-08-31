@@ -15,13 +15,13 @@
   let success = false;
 
   // Get return URL from query params
-  const returnUrl = $page.url.searchParams.get('returnUrl') || '/';
+  const redirect = $page.url.searchParams.get('redirect') || '/';
 
   // Redirect if already authenticated
   onMount(() => {
     const unsubscribe = user.subscribe((currentUser) => {
       if (currentUser) {
-        goto(returnUrl);
+        goto(redirect);
       }
     });
     return unsubscribe;
@@ -77,7 +77,7 @@
   }
 
   function handleLoginRedirect() {
-    goto(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+    goto(`/login?redirect=${encodeURIComponent(redirect)}`);
   }
 </script>
 
