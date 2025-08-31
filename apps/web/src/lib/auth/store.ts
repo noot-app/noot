@@ -3,7 +3,7 @@ import { browser } from '$app/environment';
 import { invalidateAll } from '$app/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { env } from '$env/dynamic/public';
-import type { Session, AuthError, User as SupabaseUser } from '@supabase/supabase-js';
+import type { Session, AuthError } from '@supabase/supabase-js';
 
 /**
  * Simple auth store based on session from SSR data and browser client for auth actions.
@@ -173,4 +173,30 @@ export async function getAccessToken(): Promise<string | null> {
 
   const { data: { session: currentSession } } = await supabase.auth.getSession();
   return currentSession?.access_token ?? null;
+}
+
+/**
+ * Sign in with GitHub OAuth
+ */
+export async function signInWithGitHub(redirectToPath: string = '/'): Promise<{ error: AuthError | null }> {
+  const supabase = getBrowserClient();
+  if (!supabase) {
+    return { error: { message: 'Supabase not configured', name: 'configuration_error' } as AuthError };
+  }
+
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const callbackUrl = `${origin}/auth/callback?redirect=${encodeURIComponent(redirectToPath)}`;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: callbackUrl
+      }
+    });
+
+    return { error: error ?? null };
+  } catch (e) {
+    return { error: { message: (e as Error)?.message || 'OAuth error', name: 'oauth_error' } as AuthError };
+  }
 }

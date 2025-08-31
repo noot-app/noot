@@ -14,6 +14,7 @@ const mockSupabaseClient = {
     signUp: vi.fn(), 
     signOut: vi.fn(),
     resetPasswordForEmail: vi.fn(),
+    signInWithOAuth: vi.fn(),
     getSession: vi.fn().mockResolvedValue({ data: { session: null } })
   }
 };
@@ -45,7 +46,11 @@ describe('New Auth Store', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock client-side environment
-    (global as any).window = mockWindow;
+    (global as any).window = {
+      location: {
+        origin: 'http://localhost:3000'
+      }
+    };
   });
 
   afterEach(() => {
@@ -200,6 +205,61 @@ describe('New Auth Store', () => {
       
       expect(result.error).toBe(null);
       expect(mockSupabaseClient.auth.resetPasswordForEmail).toHaveBeenCalledWith('test@example.com');
+    });
+
+    it('should handle GitHub OAuth sign in', async () => {
+      mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+        data: { 
+          provider: 'github',
+          url: 'https://github.com/login/oauth/authorize'
+        },
+        error: null
+      });
+
+      const { signInWithGitHub } = await import('./store');
+      const result = await signInWithGitHub('/dashboard');
+      
+      expect(result.error).toBe(null);
+      expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'github',
+        options: {
+          redirectTo: 'http://localhost:3000/auth/callback?redirect=%2Fdashboard'
+        }
+      });
+    });
+
+    it('should handle GitHub OAuth errors', async () => {
+      const authError = { message: 'OAuth error', name: 'AuthError' };
+      mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+        data: null,
+        error: authError
+      });
+
+      const { signInWithGitHub } = await import('./store');
+      const result = await signInWithGitHub('/dashboard');
+      
+      expect(result.error).toEqual(authError);
+    });
+
+    it('should use default redirect path for GitHub OAuth', async () => {
+      mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({
+        data: { 
+          provider: 'github',
+          url: 'https://github.com/login/oauth/authorize'
+        },
+        error: null
+      });
+
+      const { signInWithGitHub } = await import('./store');
+      const result = await signInWithGitHub();
+      
+      expect(result.error).toBe(null);
+      expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'github',
+        options: {
+          redirectTo: 'http://localhost:3000/auth/callback?redirect=%2F'
+        }
+      });
     });
   });
 
