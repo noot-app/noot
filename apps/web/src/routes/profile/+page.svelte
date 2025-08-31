@@ -12,6 +12,9 @@
   import FormSelect from '$lib/components/FormSelect.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import TagIcon from '$lib/components/icons/Tag.svelte';
+  import StarIcon from '$lib/components/icons/Star.svelte';
+  import TrophyIcon from '$lib/components/icons/Trophy.svelte';
+  import IdentificationIcon from '$lib/components/icons/Identification.svelte';
   import { getStorageJSON, setStorageJSON } from '$lib/utils/secure-storage';
   import { parseErrorMessage, formatErrorForUser } from '$lib/utils/error-handling';
   import { getAppName } from "$lib/utils/app-info";
@@ -614,7 +617,7 @@
         <div class="card bg-base-200 shadow-lg">
           <div class="card-body p-6">
             <h2 class="card-title flex items-center gap-2">
-              🎯 Current Goals
+              <StarIcon className="w-5 h-5" /> Current Goals
               <div class="badge badge-primary badge-sm">
                 {goals.source === "custom" ? (goals.custom_name || "Custom") : "DRI"}
               </div>
@@ -663,7 +666,7 @@
         <div class="card bg-base-200 shadow-lg">
           <div class="card-body p-6">
             <h2 class="card-title flex items-center gap-2">
-              🏆 Goals              
+              <TrophyIcon className="w-5 h-5" /> Goals              
               {#if isProUser}
                 <div class="flex gap-2 ml-auto">
                   {#if goalSets.length > 0}
@@ -796,9 +799,7 @@
         <div class="card bg-base-200 shadow-lg">
           <div class="card-body p-6">
             <h2 class="card-title flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
-              </svg>
+              <IdentificationIcon className="w-5 h-5" />
               Biometrics
             </h2>
             
@@ -974,7 +975,7 @@
                       <span class="loading loading-spinner loading-xs"></span>
                       Saving...
                     {:else}
-                      💾 Save
+                      Save
                     {/if}
                   </button>
                 </div>
@@ -1100,7 +1101,7 @@
             <span class="loading loading-spinner loading-xs"></span>
             Saving...
           {:else}
-            💾 Save Goals
+            Save Goals
           {/if}
         </button>
         
@@ -1228,7 +1229,7 @@
                       <span class="loading loading-spinner loading-xs"></span>
                       Signing out...
                     {:else}
-                      🚪 Sign Out
+                      Sign Out
                     {/if}
                   </button>
                 </div>

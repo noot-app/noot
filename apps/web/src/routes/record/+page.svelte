@@ -662,14 +662,14 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
                 {/if}
-                💾 Save Changes
+                Save Changes
               </button>
               <button
                 class="btn btn-outline btn-ghost"
                 on:click={cancelEdit}
                 disabled={isSubmitting}
               >
-                ❌ Cancel
+                Cancel
               </button>
             {/if}
           </div>
