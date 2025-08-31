@@ -11,19 +11,27 @@ import type { Session, AuthError } from '@supabase/supabase-js';
  * the j4w8n/sveltekit-supabase-ssr pattern.
  */
 
-// Create browser client for auth actions (sign in, sign out, etc.)
+// Singleton browser client and cached session
+let browserClient: ReturnType<typeof createBrowserClient> | null = null;
+let sessionPromise: Promise<Session | null> | null = null;
+let sawFirstAuthEvent = false;
+
+// Create/get browser client for auth actions (sign in, sign out, etc.)
 const getBrowserClient = () => {
   if (!browser) return null;
-  
+
+  if (browserClient) return browserClient;
+
   const supabaseUrl = env.PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY;
-  
+
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('Supabase environment variables not configured');
     return null;
   }
-  
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+
+  browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  return browserClient;
 };
 
 /**
@@ -66,6 +74,7 @@ export function initAuth(initialSession: Session | null = null) {
   // Set initial session from SSR
   if (initialSession) {
     session.set(initialSession);
+  // cache via session store subscription only
   }
   
   const supabase = getBrowserClient();
@@ -79,10 +88,19 @@ export function initAuth(initialSession: Session | null = null) {
     session.set(newSession);
     
     // Invalidate all data to refetch with new auth state
+    if (!sawFirstAuthEvent) {
+      // Skip the very first auth event to avoid double-loading on initial page mount
+      sawFirstAuthEvent = true;
+      return;
+    }
+
     if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
       await invalidateAll();
     }
   });
+
+  // Keep latestSession in sync for consumers that need a synchronous read
+  // No-op; subscription retained if needed later for side-effects
 
   // Cleanup subscription on page unload
   if (typeof window !== 'undefined') {
@@ -194,9 +212,13 @@ export async function signInWithGitHub(redirectToPath = '/'): Promise<{ error: A
  * Get the current access token for API requests
  */
 export async function getAccessToken(): Promise<string | null> {
+  // Always consult Supabase for the freshest session; coalesce concurrent calls
   const supabase = getBrowserClient();
   if (!supabase) return null;
-
-  const { data: { session: currentSession } } = await supabase.auth.getSession();
+  if (!sessionPromise) {
+    sessionPromise = supabase.auth.getSession().then(({ data: { session } }) => session);
+  }
+  const currentSession = await sessionPromise;
+  sessionPromise = null;
   return currentSession?.access_token ?? null;
 }

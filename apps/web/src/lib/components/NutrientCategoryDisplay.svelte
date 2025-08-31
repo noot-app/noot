@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { apiClient } from "$lib/api/client";
   import type { paths } from "$lib/api/schema";
 
   type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
@@ -9,12 +8,13 @@
   // Props for configuring the display
   export let nutrients: Record<string, number> = {};
   export let showProgress = false; // Whether to show progress bars
-  export let showGoals = false; // Whether to load and show progress against goals
+  export let showGoals = false; // Whether to show progress against goals
   export let isExpandable = false; // Whether the component is collapsible
   export let title = "Nutrient Profile";
   export let className = "";
   export let showMealContribution = false; // New prop for meal-specific view (different progress bar styling)
   export let showLimitsOnly = false; // Only show nutrients that have upper limits
+  export let goalsData: Goals | null = null; // Injected goals to avoid duplicate fetches
   
   let goals: Goals | null = null;
   let loading = false;
@@ -102,40 +102,16 @@
     }
   };
 
-  async function loadGoals() {
-    if (goals || !showGoals) return;
-
-    try {
-      loading = true;
-      error = "";
-      
-      const response = await apiClient.GET("/goals");
-      
-      if (response.error) {
-        throw new Error(`API Error: ${response.error}`);
-      }
-      
-      goals = response.data.goals;
-    } catch (err) {
-      error = `Error loading goals: ${err}`;
-      console.error("Goals error:", err);
-    } finally {
-      loading = false;
-    }
-  }
+  // Sync provided goals
+  $: goals = goalsData || goals;
 
   function handleToggle() {
     if (!isExpandable) return;
     isExpanded = !isExpanded;
-    if (isExpanded && showGoals && !goals) {
-      loadGoals();
-    }
   }
 
   onMount(() => {
-    if (showGoals && isExpanded) {
-      loadGoals();
-    }
+  // No-op; goals are provided by parent to avoid duplicate requests
   });
 
   function getNutrientValue(key: string): number {
