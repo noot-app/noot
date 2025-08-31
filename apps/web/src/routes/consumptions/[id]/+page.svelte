@@ -20,7 +20,7 @@
 </script>
 
 <svelte:head>
-  <title>Meal Details</title>
+  <title>Consumption Details</title>
 </svelte:head>
 
 <div class="min-h-screen bg-base-100">
@@ -31,7 +31,7 @@
 
     <div class="flex items-start justify-between gap-4 mb-4">
       <div>
-        <h1 class="text-2xl font-bold">Meal Details</h1>
+        <h1 class="text-2xl font-bold">Consumption Details</h1>
         {#if data.consumption?.created_at}
           <p class="text-sm text-base-content/60">{new Date(data.consumption.created_at).toLocaleString()}</p>
         {/if}
@@ -72,7 +72,7 @@
     {#if data.consumption?.items?.length}
       <div class="card bg-base-200 shadow mt-6">
         <div class="card-body">
-          <h2 class="card-title mb-2">Items in this meal</h2>
+          <h2 class="card-title mb-2">Items in this consumption</h2>
           <div class="space-y-2">
             {#each data.consumption.items as item}
               <div class="flex justify-between items-center text-sm">
