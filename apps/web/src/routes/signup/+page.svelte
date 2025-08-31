@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { dev } from '$app/environment';
-  import { signUp, signInWithGitHub, user } from '$lib/auth/store';
+  import { signUp, signInWithGitHub, signInWithGoogle, user } from '$lib/auth/store';
   import { getAuthErrorMessage } from '$lib/auth/error-messages';
   import { onMount } from 'svelte';
   
@@ -13,6 +13,7 @@
   let username = '';
   let loading = false;
   let githubLoading = false;
+  let googleLoading = false;
   let error: string | null = null;
   let success = false;
 
@@ -24,6 +25,14 @@
     const errorParam = $page.url.searchParams.get('error');
     if (errorParam) {
       error = getAuthErrorMessage(errorParam, 'An authentication error occurred. Please try again.');
+    }
+    const hash = $page.url.hash || '';
+    if (hash.includes('error=')) {
+      const params = new URLSearchParams(hash.replace(/^#/, ''));
+      const oauthError = params.get('error_code') || params.get('error');
+      if (oauthError) {
+        error = getAuthErrorMessage(oauthError, 'An authentication error occurred. Please try again.');
+      }
     }
     const unsubscribe = user.subscribe((currentUser) => {
       if (currentUser) {
@@ -99,9 +108,28 @@
       }
       // Success will redirect to GitHub and back via /auth/callback
     } catch (err) {
-      console.error('❌ GitHub signup error:', err);
-      error = 'An error occurred during GitHub authentication. Please try again.';
+      console.error('✌️ GitHub signup error:', err);
+      error = 'An error occurred during authentication. Please try again.';
       githubLoading = false;
+    }
+  }
+
+  async function handleGoogleSignup() {
+    if (googleLoading) return;
+    googleLoading = true;
+    error = null;
+
+    try {
+      const result = await signInWithGoogle(redirect);
+      if (result.error) {
+        error = getAuthErrorMessage(result.error.name, result.error.message);
+        googleLoading = false;
+      }
+      // Success will redirect to Google and back via /auth/callback
+    } catch (err) {
+      console.error('✌️ Google signup error:', err);
+      error = 'An error occurred during authentication. Please try again.';
+      googleLoading = false;
     }
   }
 </script>
@@ -178,17 +206,27 @@
       </button>
 
       <!-- Placeholder for Google (coming soon) -->
-      <button type="button" class="btn w-full" disabled title="Google sign up coming soon">
-        <span class="inline-flex items-center justify-center gap-2 whitespace-nowrap">
-          <svg class="w-5 h-5" viewBox="0 0 48 48" aria-hidden="true">
-            <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.983 32.91 29.369 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C34.871 6.053 29.718 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"/>
-            <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.239 16.15 18.793 12 24 12c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C34.871 6.053 29.718 4 24 4 16.318 4 9.716 8.337 6.306 14.691z"/>
-            <path fill="#4CAF50" d="M24 44c5.304 0 10.165-2.033 13.828-5.343l-6.383-5.396C29.435 34.203 26.863 35.2 24 35.2c-5.334 0-9.845-3.417-11.469-8.147l-6.56 5.056C8.35 38.614 15.627 44 24 44z"/>
-            <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-1.688 4.91-6.302 8-11.303 8-5.334 0-9.845-3.417-11.469-8.147l-6.56 5.056C8.35 38.614 15.627 44 24 44c11.045 0 20-8.955 20-20 0-1.341-.138-2.651-.389-3.917z"/>
-          </svg>
-          Continue with Google (soon)
-        </span>
-      </button>
+        <button
+          type="button"
+          disabled={googleLoading || loading}
+          class="btn btn-outline w-full relative"
+          on:click={handleGoogleSignup}
+          aria-describedby="google-button-status"
+        >
+          <span class="inline-flex items-center justify-center gap-2 whitespace-nowrap" class:opacity-0={googleLoading}>
+            <svg class="w-5 h-5" viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.983 32.91 29.369 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C34.871 6.053 29.718 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z"/>
+              <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.239 16.15 18.793 12 24 12c3.059 0 5.842 1.156 7.961 3.039l5.657-5.657C34.871 6.053 29.718 4 24 4 16.318 4 9.716 8.337 6.306 14.691z"/>
+              <path fill="#4CAF50" d="M24 44c5.304 0 10.165-2.033 13.828-5.343l-6.383-5.396C29.435 34.203 26.863 35.2 24 35.2c-5.334 0-9.845-3.417-11.469-8.147l-6.56 5.056C8.35 38.614 15.627 44 24 44z"/>
+              <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-1.688 4.91-6.302 8-11.303 8-5.334 0-9.845-3.417-11.469-8.147l-6.56 5.056C8.35 38.614 15.627 44 24 44c11.045 0 20-8.955 20-20 0-1.341-.138-2.651-.389-3.917z"/>
+            </svg>
+            Continue with Google
+          </span>
+          {#if googleLoading}
+            <span class="loading loading-spinner loading-sm absolute" aria-hidden="true"></span>
+            <span class="sr-only" id="google-button-status">Connecting to Google, please wait</span>
+          {/if}
+        </button>
     </div>
 
     <!-- Divider -->
@@ -213,6 +251,7 @@
           type="text"
           bind:value={username}
           required
+          autocomplete="username"
           class="input input-bordered w-full"
           placeholder="Enter your username"
           disabled={loading}
@@ -228,6 +267,7 @@
           name="fullName"
           type="text"
           bind:value={fullName}
+          autocomplete="name"
           class="input input-bordered w-full"
           placeholder="Enter your full name (optional)"
           disabled={loading}

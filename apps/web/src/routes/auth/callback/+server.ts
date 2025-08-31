@@ -5,9 +5,11 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   const code = url.searchParams.get('code');
   const redirectParam = url.searchParams.get('redirect') || '/summary'; // default to /summary
   
-  // Validate that code parameter exists
+  // Validate that code parameter exists; if not, prefer forwarding provider error codes
   if (!code) {
-    throw redirect(303, '/login?error=missing_oauth_code');
+    const providerErrorCode = url.searchParams.get('error_code') || url.searchParams.get('error');
+    const errorParam = providerErrorCode ?? 'missing_oauth_code';
+    throw redirect(303, `/login?error=${encodeURIComponent(errorParam)}`);
   }
   
   // Sanitize redirect to only allow internal paths (security measure)
