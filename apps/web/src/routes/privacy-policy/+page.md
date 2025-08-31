@@ -2,7 +2,7 @@
 
 **Last Updated:** August 31, 2025
 
-**Contact Information:** support@nootapp.io
+**Contact Information:** [support@nootapp.io](mailto:support@nootapp.io)
 
 ## Introduction
 
@@ -108,7 +108,7 @@ You have the following rights regarding your personal information:
 
 ### How to Exercise Your Rights
 
-To exercise these rights, contact us at support@nootapp.io. We will respond within the timeframes required by applicable law.
+To exercise these rights, contact us at [support@nootapp.io](mailto:support@nootapp.io). We will respond within the timeframes required by applicable law.
 
 ### Account Controls
 
@@ -164,7 +164,7 @@ Your continued use of Noot after changes become effective constitutes acceptance
 
 If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:
 
-**Email:** support@nootapp.io
+**Email:** [support@nootapp.io](mailto:support@nootapp.io)
 
 **Mailing Address:**
 Noot

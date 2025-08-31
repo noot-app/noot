@@ -3,7 +3,6 @@
 **Last Updated:** August 31, 2025
 
 **Contact Information:** [support@nootapp.io](mailto:support@nootapp.io)
- 
 
 ## Agreement to Terms
 
