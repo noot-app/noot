@@ -3,7 +3,7 @@ import { browser } from '$app/environment';
 import { invalidateAll } from '$app/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { env } from '$env/dynamic/public';
-import type { Session, AuthError, User as SupabaseUser } from '@supabase/supabase-js';
+import type { Session, AuthError } from '@supabase/supabase-js';
 
 /**
  * Simple auth store based on session from SSR data and browser client for auth actions.
@@ -161,6 +161,32 @@ export async function resetPassword(email: string): Promise<{ error: AuthError |
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email);
+  return { error };
+}
+
+/**
+ * Sign in with GitHub OAuth
+ */
+export async function signInWithGitHub(redirectToPath = '/'): Promise<{ error: AuthError | null }> {
+  const supabase = getBrowserClient();
+  if (!supabase) {
+    return { error: { message: 'Supabase not configured', name: 'configuration_error' } as AuthError };
+  }
+
+  if (!browser) {
+    return { error: { message: 'OAuth only available in browser', name: 'browser_required' } as AuthError };
+  }
+
+  // Build callback URL with redirect parameter
+  const callbackUrl = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectToPath)}`;
+  
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'github',
+    options: {
+      redirectTo: callbackUrl
+    }
+  });
+
   return { error };
 }
 

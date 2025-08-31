@@ -12,6 +12,9 @@ export const authErrorMessages: Record<string, string> = {
   user_not_found: 'No account found with this email address.',
   weak_password: 'Password is too weak. Please choose a stronger password.',
   email_not_confirmed_retry: 'Email not confirmed. Please check your email for a confirmation and then try again.',
+  missing_oauth_code: 'GitHub authentication failed. Please try again.',
+  oauth_exchange_failed: 'Authentication failed during GitHub sign-in. Please try again.',
+  oauth_callback_failed: 'An error occurred during GitHub authentication. Please try again.',
 };
 
 /**
