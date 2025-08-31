@@ -161,7 +161,7 @@ Our Service integrates with third-party services including:
 - **Cloudflare**: Hosting and content delivery
 - **AI Service Providers**: Transcription and natural language processing
 
-Your use of these services is subject to their respective terms and policies.
+Your use of these services is subject to their respective terms and policies. We may also use other third-party services for analytics, logging, and other purposes to improve the Service.
 
 ## Privacy
 
