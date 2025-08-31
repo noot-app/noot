@@ -1,40 +1,41 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { dev } from '$app/environment';
-  import { resetPassword } from '$lib/auth/store';
-  
-  let email = '';
-  let loading = false;
-  let error: string | null = null;
-  let success = false;
+  import { goto } from "$app/navigation"
+  import { dev } from "$app/environment"
+  import { resetPassword } from "$lib/auth/store"
+
+  let email = ""
+  let loading = false
+  let error: string | null = null
+  let success = false
 
   async function handleResetPassword() {
     if (!email) {
-      error = 'Please enter your email address';
-      return;
+      error = "Please enter your email address"
+      return
     }
 
-    loading = true;
-    error = null;
-    success = false;
+    loading = true
+    error = null
+    success = false
 
     try {
-      const result = await resetPassword(email);
-      
+      const result = await resetPassword(email)
+
       if (result.error) {
-        error = result.error.message;
+        error = result.error.message
       } else {
-        success = true;
+        success = true
       }
     } catch (err) {
-      error = err instanceof Error ? err.message : 'An unexpected error occurred';
+      error =
+        err instanceof Error ? err.message : "An unexpected error occurred"
     } finally {
-      loading = false;
+      loading = false
     }
   }
 
   function handleBackToLogin() {
-    goto('/login');
+    goto("/login")
   }
 </script>
 
@@ -43,26 +44,39 @@
   <meta name="description" content="Reset your Noot account password." />
 </svelte:head>
 
-<div class="min-h-screen flex items-center justify-center bg-base-200 py-12 px-4 sm:px-6 lg:px-8">
+<div
+  class="min-h-screen flex items-center justify-center bg-base-200 py-12 px-4 sm:px-6 lg:px-8"
+>
   <div class="max-w-md w-full space-y-8">
     <div>
       <h2 class="mt-6 text-center text-3xl font-extrabold text-base-content">
         Reset your password
       </h2>
       <p class="mt-2 text-center text-sm text-base-content/70">
-        Enter your email address and we'll send you a link to reset your password.
+        Enter your email address and we'll send you a link to reset your
+        password.
       </p>
     </div>
 
     {#if dev}
       <div class="alert alert-info">
         <div class="flex-1">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
           </svg>
           <div>
-            <strong>Development Mode:</strong> Authentication may be using development settings.
-            Check your environment variables for production deployment.
+            <strong>Development Mode:</strong> Authentication may be using development
+            settings. Check your environment variables for production deployment.
           </div>
         </div>
       </div>
@@ -71,11 +85,22 @@
     {#if success}
       <div class="alert alert-success">
         <div class="flex-1">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
           </svg>
           <div>
-            <strong>Password reset email sent!</strong> Check your inbox for a link to reset your password.
+            <strong>Password reset email sent!</strong> Check your inbox for a link
+            to reset your password.
           </div>
         </div>
       </div>
@@ -102,8 +127,18 @@
       {#if error}
         <div class="alert alert-error">
           <div class="flex-1">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
             </svg>
             <div>{error}</div>
           </div>
@@ -117,7 +152,7 @@
           class="btn btn-primary w-full"
           class:loading
         >
-          {loading ? 'Sending...' : 'Send reset email'}
+          {loading ? "Sending..." : "Send reset email"}
         </button>
       </div>
     </form>

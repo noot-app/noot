@@ -156,7 +156,7 @@ Payment processing is handled by Stripe, Inc. By making payments, you agree to S
 Our Service integrates with third-party services including:
 
 - **Stripe**: Payment processing
-- **Supabase**: Authentication and database services  
+- **Supabase**: Authentication and database services
 - **Cloudflare**: Hosting and content delivery
 - **AI Service Providers**: Transcription and natural language processing
 
@@ -300,4 +300,4 @@ California, United States
 
 ---
 
-*These Terms of Service are designed to comply with applicable laws and protect both users and Noot. However, they do not constitute legal advice, and you should consult with legal counsel for specific legal questions.*
+_These Terms of Service are designed to comply with applicable laws and protect both users and Noot. However, they do not constitute legal advice, and you should consult with legal counsel for specific legal questions._

@@ -1,9 +1,9 @@
-import { writable, derived } from 'svelte/store';
-import { browser } from '$app/environment';
-import { invalidateAll } from '$app/navigation';
-import { createBrowserClient } from '@supabase/ssr';
-import { env } from '$env/dynamic/public';
-import type { Session, AuthError } from '@supabase/supabase-js';
+import { writable, derived } from "svelte/store"
+import { browser } from "$app/environment"
+import { invalidateAll } from "$app/navigation"
+import { createBrowserClient } from "@supabase/ssr"
+import { env } from "$env/dynamic/public"
+import type { Session, AuthError } from "@supabase/supabase-js"
 
 /**
  * Simple auth store based on session from SSR data and browser client for auth actions.
@@ -12,231 +12,289 @@ import type { Session, AuthError } from '@supabase/supabase-js';
  */
 
 // Singleton browser client and cached session
-let browserClient: ReturnType<typeof createBrowserClient> | null = null;
-let sessionPromise: Promise<Session | null> | null = null;
-let sawFirstAuthEvent = false;
+let browserClient: ReturnType<typeof createBrowserClient> | null = null
+let sessionPromise: Promise<Session | null> | null = null
+let sawFirstAuthEvent = false
 
 // Create/get browser client for auth actions (sign in, sign out, etc.)
 const getBrowserClient = () => {
-  if (!browser) return null;
+  if (!browser) return null
 
-  if (browserClient) return browserClient;
+  if (browserClient) return browserClient
 
-  const supabaseUrl = env.PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = env.PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables not configured');
-    return null;
+    console.warn("Supabase environment variables not configured")
+    return null
   }
 
-  browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
-  return browserClient;
-};
+  browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey)
+  return browserClient
+}
 
 /**
  * Session store - initialized from SSR data in layout and updated on auth changes
  */
-export const session = writable<Session | null>(null);
+export const session = writable<Session | null>(null)
 
 /**
  * Derived user store from session
  */
-export const user = derived(session, ($session) => $session?.user ?? null);
+export const user = derived(session, ($session) => $session?.user ?? null)
 
 /**
  * Derived store to check if user is authenticated
  */
-export const isAuthenticated = derived(session, ($session) => !!$session);
+export const isAuthenticated = derived(session, ($session) => !!$session)
 
 /**
  * User profile data store (from our profiles table)
  */
 export const userProfile = writable<{
-  id: string;
-  email: string;
-  subscription_tier: 'free' | 'pro';
-} | null>(null);
+  id: string
+  email: string
+  subscription_tier: "free" | "pro"
+} | null>(null)
 
 /**
  * Derived store to check if user has pro subscription
  */
-export const isPro = derived(userProfile, ($userProfile) => 
-  $userProfile?.subscription_tier === 'pro'
-);
+export const isPro = derived(
+  userProfile,
+  ($userProfile) => $userProfile?.subscription_tier === "pro",
+)
 
 /**
  * Initialize session from SSR data and set up auth state change listener
  */
 export function initAuth(initialSession: Session | null = null) {
-  if (!browser) return;
-  
+  if (!browser) return
+
   // Set initial session from SSR
   if (initialSession) {
-    session.set(initialSession);
-  // cache via session store subscription only
+    session.set(initialSession)
+    // cache via session store subscription only
   }
-  
-  const supabase = getBrowserClient();
-  if (!supabase) return;
-  
+
+  const supabase = getBrowserClient()
+  if (!supabase) return
+
   // Set up auth state change listener
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-    console.debug('Auth state changed:', event);
-    
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    console.debug("Auth state changed:", event)
+
     // Update session store
-    session.set(newSession);
-    
+    session.set(newSession)
+
     // Invalidate all data to refetch with new auth state
     if (!sawFirstAuthEvent) {
       // Skip the very first auth event to avoid double-loading on initial page mount
-      sawFirstAuthEvent = true;
-      return;
+      sawFirstAuthEvent = true
+      return
     }
 
-    if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-      await invalidateAll();
+    if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+      await invalidateAll()
     }
-  });
+  })
 
   // Keep latestSession in sync for consumers that need a synchronous read
   // No-op; subscription retained if needed later for side-effects
 
   // Cleanup subscription on page unload
-  if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', () => {
-      subscription.unsubscribe();
-    });
+  if (typeof window !== "undefined") {
+    window.addEventListener("beforeunload", () => {
+      subscription.unsubscribe()
+    })
   }
 }
 
 /**
  * Sign in with email and password
  */
-export async function signIn(email: string, password: string): Promise<{ error: AuthError | null }> {
-  const supabase = getBrowserClient();
+export async function signIn(
+  email: string,
+  password: string,
+): Promise<{ error: AuthError | null }> {
+  const supabase = getBrowserClient()
   if (!supabase) {
-    return { error: { message: 'Supabase not configured', name: 'configuration_error' } as AuthError };
+    return {
+      error: {
+        message: "Supabase not configured",
+        name: "configuration_error",
+      } as AuthError,
+    }
   }
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
-    password
-  });
+    password,
+  })
 
-  return { error };
+  return { error }
 }
 
 /**
  * Sign up with email and password
  */
-export async function signUp(email: string, password: string, metadata?: { fullName?: string }): Promise<{ error: AuthError | null }> {
-  const supabase = getBrowserClient();
+export async function signUp(
+  email: string,
+  password: string,
+  metadata?: { fullName?: string },
+): Promise<{ error: AuthError | null }> {
+  const supabase = getBrowserClient()
   if (!supabase) {
-    return { error: { message: 'Supabase not configured', name: 'configuration_error' } as AuthError };
+    return {
+      error: {
+        message: "Supabase not configured",
+        name: "configuration_error",
+      } as AuthError,
+    }
   }
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: metadata ? { 
-        full_name: metadata.fullName
-      } : undefined
-    }
-  });
+      data: metadata
+        ? {
+            full_name: metadata.fullName,
+          }
+        : undefined,
+    },
+  })
 
-  return { error };
+  return { error }
 }
 
 /**
  * Sign out
  */
 export async function signOut(): Promise<{ error: AuthError | null }> {
-  const supabase = getBrowserClient();
+  const supabase = getBrowserClient()
   if (!supabase) {
-    return { error: { message: 'Supabase not configured', name: 'configuration_error' } as AuthError };
+    return {
+      error: {
+        message: "Supabase not configured",
+        name: "configuration_error",
+      } as AuthError,
+    }
   }
 
-  const { error } = await supabase.auth.signOut();
-  
+  const { error } = await supabase.auth.signOut()
+
   if (!error) {
     // Clear session and profile data
-    session.set(null);
-    userProfile.set(null);
+    session.set(null)
+    userProfile.set(null)
   }
 
-  return { error };
+  return { error }
 }
 
 /**
  * Reset password
  */
-export async function resetPassword(email: string): Promise<{ error: AuthError | null }> {
-  const supabase = getBrowserClient();
+export async function resetPassword(
+  email: string,
+): Promise<{ error: AuthError | null }> {
+  const supabase = getBrowserClient()
   if (!supabase) {
-    return { error: { message: 'Supabase not configured', name: 'configuration_error' } as AuthError };
+    return {
+      error: {
+        message: "Supabase not configured",
+        name: "configuration_error",
+      } as AuthError,
+    }
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
-  return { error };
+  const { error } = await supabase.auth.resetPasswordForEmail(email)
+  return { error }
 }
 
 /**
  * Sign in with GitHub OAuth
  */
-export async function signInWithGitHub(redirectToPath = '/'): Promise<{ error: AuthError | null }> {
-  const supabase = getBrowserClient();
+export async function signInWithGitHub(
+  redirectToPath = "/",
+): Promise<{ error: AuthError | null }> {
+  const supabase = getBrowserClient()
   if (!supabase) {
-    return { error: { message: 'Supabase not configured', name: 'configuration_error' } as AuthError };
+    return {
+      error: {
+        message: "Supabase not configured",
+        name: "configuration_error",
+      } as AuthError,
+    }
   }
 
   if (!browser) {
-    return { error: { message: 'OAuth only available in browser', name: 'browser_required' } as AuthError };
+    return {
+      error: {
+        message: "OAuth only available in browser",
+        name: "browser_required",
+      } as AuthError,
+    }
   }
 
   // Build callback URL with redirect parameter
-  const callbackUrl = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectToPath)}`;
-  
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'github',
-    options: {
-      redirectTo: callbackUrl
-    }
-  });
+  const callbackUrl = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectToPath)}`
 
-  return { error };
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "github",
+    options: {
+      redirectTo: callbackUrl,
+    },
+  })
+
+  return { error }
 }
 
 /**
  * Sign in with Google OAuth
  */
-export async function signInWithGoogle(redirectToPath = '/'): Promise<{ error: AuthError | null }> {
-  const supabase = getBrowserClient();
+export async function signInWithGoogle(
+  redirectToPath = "/",
+): Promise<{ error: AuthError | null }> {
+  const supabase = getBrowserClient()
   if (!supabase) {
-    return { error: { message: 'Supabase not configured', name: 'configuration_error' } as AuthError };
+    return {
+      error: {
+        message: "Supabase not configured",
+        name: "configuration_error",
+      } as AuthError,
+    }
   }
 
   if (!browser) {
-    return { error: { message: 'OAuth only available in browser', name: 'browser_required' } as AuthError };
+    return {
+      error: {
+        message: "OAuth only available in browser",
+        name: "browser_required",
+      } as AuthError,
+    }
   }
 
   // Build callback URL with redirect parameter
-  const callbackUrl = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectToPath)}`;
+  const callbackUrl = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectToPath)}`
 
   const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+    provider: "google",
     options: {
       redirectTo: callbackUrl,
       // Request offline access and consent to obtain provider_refresh_token when needed
       queryParams: {
-        access_type: 'offline',
-        prompt: 'consent'
-      }
-    }
-  });
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
+  })
 
-  return { error };
+  return { error }
 }
 
 /**
@@ -244,12 +302,14 @@ export async function signInWithGoogle(redirectToPath = '/'): Promise<{ error: A
  */
 export async function getAccessToken(): Promise<string | null> {
   // Always consult Supabase for the freshest session; coalesce concurrent calls
-  const supabase = getBrowserClient();
-  if (!supabase) return null;
+  const supabase = getBrowserClient()
+  if (!supabase) return null
   if (!sessionPromise) {
-    sessionPromise = supabase.auth.getSession().then(({ data: { session } }) => session);
+    sessionPromise = supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => session)
   }
-  const currentSession = await sessionPromise;
-  sessionPromise = null;
-  return currentSession?.access_token ?? null;
+  const currentSession = await sessionPromise
+  sessionPromise = null
+  return currentSession?.access_token ?? null
 }

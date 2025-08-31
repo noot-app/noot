@@ -34,13 +34,13 @@
 
 ```css
 .custom-heading {
-  font-family: 'MuseoModerno', sans-serif;
+  font-family: "MuseoModerno", sans-serif;
   font-weight: 650; /* Any value between 100-900 works! */
   font-style: normal;
 }
 
 .custom-italic {
-  font-family: 'MuseoModerno', sans-serif;
+  font-family: "MuseoModerno", sans-serif;
   font-weight: 400;
   font-style: italic;
 }

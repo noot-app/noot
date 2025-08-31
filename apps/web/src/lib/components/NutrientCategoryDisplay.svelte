@@ -1,25 +1,26 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import type { paths } from "$lib/api/schema";
+  import { onMount } from "svelte"
+  import type { paths } from "$lib/api/schema"
 
-  type GoalsResponse = paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"];
-  type Goals = GoalsResponse["goals"];
+  type GoalsResponse =
+    paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"]
+  type Goals = GoalsResponse["goals"]
 
   // Props for configuring the display
-  export let nutrients: Record<string, number> = {};
-  export let showProgress = false; // Whether to show progress bars
-  export let showGoals = false; // Whether to show progress against goals
-  export let isExpandable = false; // Whether the component is collapsible
-  export let title = "Nutrient Profile";
-  export let className = "";
-  export let showMealContribution = false; // New prop for meal-specific view (different progress bar styling)
-  export let showLimitsOnly = false; // Only show nutrients that have upper limits
-  export let goalsData: Goals | null = null; // Injected goals to avoid duplicate fetches
-  
-  let goals: Goals | null = null;
-  let loading = false;
-  let error = "";
-  let isExpanded = !isExpandable; // If not expandable, always show content
+  export let nutrients: Record<string, number> = {}
+  export let showProgress = false // Whether to show progress bars
+  export let showGoals = false // Whether to show progress against goals
+  export let isExpandable = false // Whether the component is collapsible
+  export let title = "Nutrient Profile"
+  export let className = ""
+  export let showMealContribution = false // New prop for meal-specific view (different progress bar styling)
+  export let showLimitsOnly = false // Only show nutrients that have upper limits
+  export let goalsData: Goals | null = null // Injected goals to avoid duplicate fetches
+
+  let goals: Goals | null = null
+  let loading = false
+  let error = ""
+  let isExpanded = !isExpandable // If not expandable, always show content
 
   // Nutrient categories with icons - standardized categorization
   const nutrientCategories = {
@@ -34,11 +35,19 @@
         { key: "added_sugars_g", label: "Added Sugars", unit: "g" },
         { key: "total_fat_g", label: "Total Fat", unit: "g" },
         { key: "saturated_fat_g", label: "Saturated Fat", unit: "g" },
-        { key: "monounsaturated_fat_g", label: "Monounsaturated Fat", unit: "g" },
-        { key: "polyunsaturated_fat_g", label: "Polyunsaturated Fat", unit: "g" },
+        {
+          key: "monounsaturated_fat_g",
+          label: "Monounsaturated Fat",
+          unit: "g",
+        },
+        {
+          key: "polyunsaturated_fat_g",
+          label: "Polyunsaturated Fat",
+          unit: "g",
+        },
         { key: "trans_fat_g", label: "Trans Fat", unit: "g" },
-        { key: "cholesterol_mg", label: "Cholesterol", unit: "mg" }
-      ]
+        { key: "cholesterol_mg", label: "Cholesterol", unit: "mg" },
+      ],
     },
     vitamins: {
       title: "Vitamins",
@@ -56,9 +65,13 @@
         { key: "folate_mcg", label: "Folate", unit: "mcg" },
         { key: "vitamin_b12_mcg", label: "Vitamin B12", unit: "mcg" },
         { key: "biotin_mcg", label: "Biotin", unit: "mcg" },
-        { key: "pantothenic_acid_mg", label: "Pantothenic Acid (B5)", unit: "mg" },
-        { key: "choline_mg", label: "Choline", unit: "mg" }
-      ]
+        {
+          key: "pantothenic_acid_mg",
+          label: "Pantothenic Acid (B5)",
+          unit: "mg",
+        },
+        { key: "choline_mg", label: "Choline", unit: "mg" },
+      ],
     },
     minerals: {
       title: "Minerals",
@@ -78,18 +91,18 @@
         { key: "molybdenum_mcg", label: "Molybdenum", unit: "mcg" },
         { key: "chromium_mcg", label: "Chromium", unit: "mcg" },
         { key: "fluoride_mg", label: "Fluoride", unit: "mg" },
-        { key: "chloride_mg", label: "Chloride", unit: "mg" }
-      ]
+        { key: "chloride_mg", label: "Chloride", unit: "mg" },
+      ],
     },
     emerging_nutrients: {
-      title: "\"Emerging\" Nutrients",
+      title: '"Emerging" Nutrients',
       icon: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
       nutrients: [
         { key: "omega3_ala_g", label: "Omega-3 ALA", unit: "g" },
         { key: "omega3_epa_g", label: "Omega-3 EPA", unit: "g" },
         { key: "omega3_dha_g", label: "Omega-3 DHA", unit: "g" },
-        { key: "omega6_g", label: "Omega-6 Fatty Acids", unit: "g" }
-      ]
+        { key: "omega6_g", label: "Omega-6 Fatty Acids", unit: "g" },
+      ],
     },
     functional_compounds: {
       title: "Functional Compounds",
@@ -97,205 +110,217 @@
       nutrients: [
         { key: "alcohol_g", label: "Alcohol", unit: "g" },
         { key: "caffeine_mg", label: "Caffeine", unit: "mg" },
-        { key: "creatine_mg", label: "Creatine", unit: "mg" }
-      ]
-    }
-  };
+        { key: "creatine_mg", label: "Creatine", unit: "mg" },
+      ],
+    },
+  }
 
   // Sync provided goals
-  $: goals = goalsData || goals;
+  $: goals = goalsData || goals
 
   function handleToggle() {
-    if (!isExpandable) return;
-    isExpanded = !isExpanded;
+    if (!isExpandable) return
+    isExpanded = !isExpanded
   }
 
   onMount(() => {
-  // No-op; goals are provided by parent to avoid duplicate requests
-  });
+    // No-op; goals are provided by parent to avoid duplicate requests
+  })
 
   function getNutrientValue(key: string): number {
-    const value = nutrients[key];
-    return (typeof value === 'number' && isFinite(value)) ? value : 0;
+    const value = nutrients[key]
+    return typeof value === "number" && isFinite(value) ? value : 0
   }
 
   function getProgress(key: string): number {
-    if (!goals) return 0;
-    
-    const current = getNutrientValue(key);
-    
+    if (!goals) return 0
+
+    const current = getNutrientValue(key)
+
     // Check if this is an upper limit (should be minimized)
     if (goals?.upper_limits?.[key] !== undefined) {
-      const limit = goals.upper_limits[key];
+      const limit = goals.upper_limits[key]
       if (limit === 0) {
         // For zero limits (like trans fat), any amount is over
-        return current > 0 ? 100 : 0;
+        return current > 0 ? 100 : 0
       }
       // For upper limits, "progress" is how close to the limit (inverted logic)
-      const progress = (current / limit) * 100;
-      return isFinite(progress) ? Math.min(progress, 100) : 0;
+      const progress = (current / limit) * 100
+      return isFinite(progress) ? Math.min(progress, 100) : 0
     }
-    
+
     // Regular target logic
-    if (goals?.targets[key] === undefined) return 0;
-    const progress = (current / goals.targets[key]) * 100;
-    return isFinite(progress) ? Math.min(progress, 100) : 0;
+    if (goals?.targets[key] === undefined) return 0
+    const progress = (current / goals.targets[key]) * 100
+    return isFinite(progress) ? Math.min(progress, 100) : 0
   }
 
   function getActualProgress(key: string): number {
-    if (!goals) return 0;
-    
-    const current = getNutrientValue(key);
-    
+    if (!goals) return 0
+
+    const current = getNutrientValue(key)
+
     // Check if this is an upper limit
     if (goals?.upper_limits?.[key] !== undefined) {
-      const limit = goals.upper_limits[key];
+      const limit = goals.upper_limits[key]
       if (limit === 0) {
-        return current > 0 ? 200 : 0; // Show high percentage for any trans fat
+        return current > 0 ? 200 : 0 // Show high percentage for any trans fat
       }
-      const progress = (current / limit) * 100;
-      return isFinite(progress) ? progress : 0;
+      const progress = (current / limit) * 100
+      return isFinite(progress) ? progress : 0
     }
-    
+
     // Regular target logic
-    if (goals?.targets[key] === undefined) return 0;
-    const progress = (current / goals.targets[key]) * 100;
-    return isFinite(progress) ? progress : 0;
+    if (goals?.targets[key] === undefined) return 0
+    const progress = (current / goals.targets[key]) * 100
+    return isFinite(progress) ? progress : 0
   }
 
   function formatValue(value: number): string {
-    if (!isFinite(value) || value === 0) return "0";
-    if (value < 1) return value.toFixed(1);
-    return value.toFixed(0);
+    if (!isFinite(value) || value === 0) return "0"
+    if (value < 1) return value.toFixed(1)
+    return value.toFixed(0)
   }
 
   function getProgressBarClass(key: string, progress: number): string {
-    if (!goals) return "progress-primary";
-    const isLimit = goals?.upper_limits?.[key] !== undefined;
-    
+    if (!goals) return "progress-primary"
+    const isLimit = goals?.upper_limits?.[key] !== undefined
+
     if (showMealContribution) {
       // For meal contribution, use accent color
-      return isLimit ? "progress-warning" : "progress-accent";
+      return isLimit ? "progress-warning" : "progress-accent"
     }
-    
+
     if (isLimit) {
       // For upper limits: lighter gray until hitting the limit, then red
-      if (progress >= 100) return "progress-error";
-      return "progress-lighter";
+      if (progress >= 100) return "progress-error"
+      return "progress-lighter"
     } else {
-      if (progress >= 80) return "progress-success";
-      if (progress >= 50) return "progress-warning";
-      return "progress-primary";
+      if (progress >= 80) return "progress-success"
+      if (progress >= 50) return "progress-warning"
+      return "progress-primary"
     }
   }
 
   function getDailyText(key: string): string {
-    if (!goals) return "";
-    
-    const target = goals.targets?.[key];
-    const limit = goals.upper_limits?.[key];
-    
+    if (!goals) return ""
+
+    const target = goals.targets?.[key]
+    const limit = goals.upper_limits?.[key]
+
     if (target) {
-      return `${formatValue(target)} ${goals.units[key] || ""}`;
+      return `${formatValue(target)} ${goals.units[key] || ""}`
     } else if (limit) {
-      return `${formatValue(limit)} ${goals.units[key] || ""} limit`;
+      return `${formatValue(limit)} ${goals.units[key] || ""} limit`
     }
-    
-    return "";
+
+    return ""
   }
 
   function hasNutrientData(categoryNutrients: any[]): boolean {
-    return categoryNutrients.some(nutrient => {
-      const value = getNutrientValue(nutrient.key);
-      
+    return categoryNutrients.some((nutrient) => {
+      const value = getNutrientValue(nutrient.key)
+
       // For summary page (!showMealContribution), always show categories with goals/targets
       // even if all nutrients have zero values
       if (!showMealContribution && goals) {
-        const hasTarget = goals?.targets?.[nutrient.key] !== undefined;
-        const hasLimit = goals?.upper_limits?.[nutrient.key] !== undefined;
-        
+        const hasTarget = goals?.targets?.[nutrient.key] !== undefined
+        const hasLimit = goals?.upper_limits?.[nutrient.key] !== undefined
+
         if (showLimitsOnly) {
-          return hasLimit;
+          return hasLimit
         }
-        
+
         // For regular categorized view, exclude nutrients that have upper limits
         // (they should only appear in the "minimize these" section)
         if (hasLimit) {
-          return false;
+          return false
         }
-        
-        return hasTarget;
+
+        return hasTarget
       }
-      
+
       // For meal contribution view, only show nutrients with values > 0
-      if (value <= 0) return false;
-      
+      if (value <= 0) return false
+
       // If showLimitsOnly is true, only show nutrients that have upper limits
       if (showLimitsOnly) {
-        return goals?.upper_limits?.[nutrient.key] !== undefined;
+        return goals?.upper_limits?.[nutrient.key] !== undefined
       }
-      
+
       // For regular categorized view, exclude nutrients that have upper limits
       // (they should only appear in the "minimize these" section)
       if (goals?.upper_limits?.[nutrient.key] !== undefined) {
-        return false;
+        return false
       }
-      
+
       // Otherwise, show nutrients with values
-      return true;
-    });
+      return true
+    })
   }
 
   function getOverageText(key: string, current: number): string {
-    if (!goals) return "";
-    
+    if (!goals) return ""
+
     // Check if this is an upper limit
     if (goals?.upper_limits?.[key] !== undefined) {
-      const limit = goals.upper_limits[key];
+      const limit = goals.upper_limits[key]
       if (limit === 0 && current > 0) {
-        return "⚠️";
+        return "⚠️"
       }
       if (current > limit) {
-        const overage = ((current / limit) - 1) * 100;
-        return isFinite(overage) ? `⚠️ ${overage.toFixed(0)}% over limit` : "⚠️ Over limit";
+        const overage = (current / limit - 1) * 100
+        return isFinite(overage)
+          ? `⚠️ ${overage.toFixed(0)}% over limit`
+          : "⚠️ Over limit"
       }
-      return "";
+      return ""
     }
-    
+
     // Regular target logic
-    if (goals?.targets[key] === undefined) return "";
-    const actualProgress = (current / goals.targets[key]) * 100;
-    if (!isFinite(actualProgress) || actualProgress <= 100) return "";
-    const overage = actualProgress - 100;
-    return isFinite(overage) ? `+${overage.toFixed(0)}% over` : "+Over";
+    if (goals?.targets[key] === undefined) return ""
+    const actualProgress = (current / goals.targets[key]) * 100
+    if (!isFinite(actualProgress) || actualProgress <= 100) return ""
+    const overage = actualProgress - 100
+    return isFinite(overage) ? `+${overage.toFixed(0)}% over` : "+Over"
   }
 
   // Get all nutrients that have upper limits
   function getNutrientsWithLimits() {
-    if (!goals) return [];
-    const allNutrients = Object.values(nutrientCategories).flatMap(category => category.nutrients);
-    return allNutrients.filter(nutrient => 
-      goals?.upper_limits?.[nutrient.key] !== undefined && 
-      (getNutrientValue(nutrient.key) > 0 || !showMealContribution)
-    );
+    if (!goals) return []
+    const allNutrients = Object.values(nutrientCategories).flatMap(
+      (category) => category.nutrients,
+    )
+    return allNutrients.filter(
+      (nutrient) =>
+        goals?.upper_limits?.[nutrient.key] !== undefined &&
+        (getNutrientValue(nutrient.key) > 0 || !showMealContribution),
+    )
   }
 </script>
 
 <div class="nutrient-category-display {className}">
   {#if isExpandable}
     <div class="border-t border-base-300 pt-3 mt-3">
-      <button 
+      <button
         class="flex items-center justify-between w-full text-left hover:bg-base-200 p-2 rounded transition-colors"
         on:click={handleToggle}
       >
         <span class="text-sm font-medium text-primary">{title}</span>
-        <svg 
-          class="w-4 h-4 transform transition-transform {isExpanded ? 'rotate-180' : ''}" 
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          class="w-4 h-4 transform transition-transform {isExpanded
+            ? 'rotate-180'
+            : ''}"
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
     </div>
@@ -304,16 +329,32 @@
   {/if}
 
   {#if isExpanded}
-    <div class="nutrient-content space-y-6 {isExpandable ? 'mt-4 animate-fade-in' : ''}">
+    <div
+      class="nutrient-content space-y-6 {isExpandable
+        ? 'mt-4 animate-fade-in'
+        : ''}"
+    >
       {#if showGoals && loading}
         <div class="text-center py-4">
           <span class="loading loading-spinner loading-sm"></span>
-          <p class="text-xs text-base-content/70 mt-2">Loading nutrition goals...</p>
+          <p class="text-xs text-base-content/70 mt-2">
+            Loading nutrition goals...
+          </p>
         </div>
       {:else if showGoals && error}
         <div class="alert alert-error alert-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
           <span class="text-xs">{error}</span>
         </div>
@@ -330,9 +371,13 @@
                   <div class="flex justify-between items-center mb-1">
                     <span class="font-medium">
                       {nutrient.label}
-                      <span class="badge badge-outline badge-info badge-xs ml-1">Limit</span>
+                      <span class="badge badge-outline badge-info badge-xs ml-1"
+                        >Limit</span
+                      >
                       {#if showGoals && getOverageText(nutrient.key, value)}
-                        <span class="text-xs text-warning ml-1">{getOverageText(nutrient.key, value)}</span>
+                        <span class="text-xs text-warning ml-1"
+                          >{getOverageText(nutrient.key, value)}</span
+                        >
                       {/if}
                     </span>
                     <span class="text-base-content/70">
@@ -347,18 +392,26 @@
                       {#if showMealContribution}
                         <!-- Stacked progress bar showing meal contribution -->
                         <div class="flex-1 relative">
-                          <progress 
-                            class="progress progress-sm absolute inset-0 {getProgressBarClass(nutrient.key, progress)}"
-                            value={progress} 
+                          <progress
+                            class="progress progress-sm absolute inset-0 {getProgressBarClass(
+                              nutrient.key,
+                              progress,
+                            )}"
+                            value={progress}
                             max="100"
-                            title="This meal's contribution: {progress.toFixed(0)}% of limit"
+                            title="This meal's contribution: {progress.toFixed(
+                              0,
+                            )}% of limit"
                           ></progress>
                         </div>
                       {:else}
                         <!-- Standard progress bar -->
-                        <progress 
-                          class="progress progress-sm flex-1 {getProgressBarClass(nutrient.key, progress)}"
-                          value={Math.min(progress, 100)} 
+                        <progress
+                          class="progress progress-sm flex-1 {getProgressBarClass(
+                            nutrient.key,
+                            progress,
+                          )}"
+                          value={Math.min(progress, 100)}
                           max="100"
                         ></progress>
                       {/if}
@@ -376,9 +429,21 @@
           {#each Object.entries(nutrientCategories) as [, category]}
             {#if hasNutrientData(category.nutrients)}
               <div>
-                <h4 class="font-semibold text-base mb-3 pb-2 border-b border-base-300 flex items-center nutrient-header">
-                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={category.icon} />
+                <h4
+                  class="font-semibold text-base mb-3 pb-2 border-b border-base-300 flex items-center nutrient-header"
+                >
+                  <svg
+                    class="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d={category.icon}
+                    />
                   </svg>
                   {category.title}
                 </h4>
@@ -395,10 +460,15 @@
                               <span class="font-medium">
                                 {nutrient.label}
                                 {#if showLimitsOnly}
-                                  <span class="badge badge-outline badge-info badge-xs ml-1">Limit</span>
+                                  <span
+                                    class="badge badge-outline badge-info badge-xs ml-1"
+                                    >Limit</span
+                                  >
                                 {/if}
                                 {#if showGoals && getOverageText(nutrient.key, value)}
-                                  <span class="text-xs text-info ml-1">{getOverageText(nutrient.key, value)}</span>
+                                  <span class="text-xs text-info ml-1"
+                                    >{getOverageText(nutrient.key, value)}</span
+                                  >
                                 {/if}
                               </span>
                               <span class="text-base-content/70">
@@ -413,22 +483,32 @@
                                 {#if showMealContribution}
                                   <!-- Stacked progress bar showing meal contribution -->
                                   <div class="flex-1 relative">
-                                    <progress 
-                                      class="progress progress-sm absolute inset-0 {getProgressBarClass(nutrient.key, progress)}"
-                                      value={progress} 
+                                    <progress
+                                      class="progress progress-sm absolute inset-0 {getProgressBarClass(
+                                        nutrient.key,
+                                        progress,
+                                      )}"
+                                      value={progress}
                                       max="100"
-                                      title="This meal's contribution: {progress.toFixed(0)}%"
+                                      title="This meal's contribution: {progress.toFixed(
+                                        0,
+                                      )}%"
                                     ></progress>
                                   </div>
                                 {:else}
                                   <!-- Standard progress bar -->
-                                  <progress 
-                                    class="progress progress-sm flex-1 {getProgressBarClass(nutrient.key, progress)}"
-                                    value={Math.min(progress, 100)} 
+                                  <progress
+                                    class="progress progress-sm flex-1 {getProgressBarClass(
+                                      nutrient.key,
+                                      progress,
+                                    )}"
+                                    value={Math.min(progress, 100)}
                                     max="100"
                                   ></progress>
                                 {/if}
-                                <span class="text-xs text-base-content/60 min-w-[3rem]">
+                                <span
+                                  class="text-xs text-base-content/60 min-w-[3rem]"
+                                >
                                   {getActualProgress(nutrient.key).toFixed(0)}%
                                 </span>
                               </div>
@@ -442,38 +522,60 @@
               </div>
             {/if}
           {/each}
-          
+
           <!-- Sugar Breakdown Section (only if there are sugars) -->
           {@const totalSugars = getNutrientValue("total_sugars_g")}
           {@const addedSugars = getNutrientValue("added_sugars_g")}
           {@const naturalSugars = Math.max(0, totalSugars - addedSugars)}
           {#if totalSugars > 0}
             <div class="border-t border-base-300 pt-4">
-              <h4 class="font-semibold text-base mb-3 pb-2 border-b border-base-300 flex items-center nutrient-header">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <h4
+                class="font-semibold text-base mb-3 pb-2 border-b border-base-300 flex items-center nutrient-header"
+              >
+                <svg
+                  class="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
                 </svg>
                 Sugar Breakdown
               </h4>
               <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 text-sm">
                 <!-- Total Sugars -->
-                <div class="flex justify-between items-center p-3 bg-base-100 rounded-lg">
+                <div
+                  class="flex justify-between items-center p-3 bg-base-100 rounded-lg"
+                >
                   <span class="font-medium">Total Sugars</span>
-                  <span class="text-base-content/70">{totalSugars.toFixed(1)}g</span>
+                  <span class="text-base-content/70"
+                    >{totalSugars.toFixed(1)}g</span
+                  >
                 </div>
                 <!-- Natural Sugars -->
-                <div class="flex justify-between items-center p-3 bg-success/10 rounded-lg">
+                <div
+                  class="flex justify-between items-center p-3 bg-success/10 rounded-lg"
+                >
                   <span class="font-medium text-success">Natural Sugars</span>
                   <span class="text-success">{naturalSugars.toFixed(1)}g</span>
                 </div>
                 <!-- Added Sugars -->
-                <div class="flex justify-between items-center p-3 bg-warning/10 rounded-lg">
+                <div
+                  class="flex justify-between items-center p-3 bg-warning/10 rounded-lg"
+                >
                   <span class="font-medium text-warning">Added Sugars</span>
                   <span class="text-warning">{addedSugars.toFixed(1)}g</span>
                 </div>
               </div>
               <div class="text-xs text-base-content/60 mt-2">
-                <strong>Natural sugars</strong> come from whole foods (fruits, vegetables, dairy). <strong>Added sugars</strong> are added during processing.
+                <strong>Natural sugars</strong> come from whole foods (fruits,
+                vegetables, dairy). <strong>Added sugars</strong> are added during
+                processing.
               </div>
             </div>
           {/if}
@@ -482,7 +584,8 @@
         {#if showGoals && !goals}
           <div class="text-center py-2">
             <p class="text-xs text-base-content/60">
-              Daily percentages are calculated based on Dietary Reference Intakes (DRI)
+              Daily percentages are calculated based on Dietary Reference
+              Intakes (DRI)
             </p>
           </div>
         {/if}
@@ -510,7 +613,7 @@
   :global(.progress-neutral) {
     --progress-color: oklch(var(--n));
   }
-  
+
   .nutrient-header {
     color: var(--color-base-content);
   }

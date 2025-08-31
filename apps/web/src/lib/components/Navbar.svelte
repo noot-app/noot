@@ -1,20 +1,20 @@
 <script lang="ts">
-  import { page } from "$app/stores";
+  import { page } from "$app/stores"
 
-  import TagIcon from "$lib/components/icons/Tag.svelte";
-  import UserIcon from "$lib/components/icons/User.svelte";
-  import ChartBarIcon from "$lib/components/icons/ChartBar.svelte";
-  import MicrophoneIcon from "$lib/components/icons/Microphone.svelte";
+  import TagIcon from "$lib/components/icons/Tag.svelte"
+  import UserIcon from "$lib/components/icons/User.svelte"
+  import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
+  import MicrophoneIcon from "$lib/components/icons/Microphone.svelte"
 
   // Navigation items
   const navItems = [
-  { href: "/record", label: "Record", icon: "microphone" },
-  { href: "/summary", label: "Summary", icon: "chart-bar" },
+    { href: "/record", label: "Record", icon: "microphone" },
+    { href: "/summary", label: "Summary", icon: "chart-bar" },
     { href: "/labels", label: "Labels", icon: "tag" },
-    { href: "/profile", label: "Profile", icon: "user" }
-  ];
+    { href: "/profile", label: "Profile", icon: "user" },
+  ]
 
-  $: currentPath = $page.url.pathname;
+  $: currentPath = $page.url.pathname
 </script>
 
 <header class="navbar bg-base-200 shadow-lg">
@@ -24,9 +24,7 @@
       <a href="/" class="flex items-center">
         <span class="text-2xl noot-logo">NOOT</span>
       </a>
-      <div class="badge badge-outline text-xs beta-badge">
-        Beta
-      </div>
+      <div class="badge badge-outline text-xs beta-badge">Beta</div>
     </div>
   </div>
 
@@ -37,31 +35,59 @@
   <div class="navbar-end">
     <!-- Mobile hamburger menu using DaisyUI's native dropdown -->
     <div class="dropdown dropdown-end lg:hidden">
-      <div tabindex="0" role="button" class="btn btn-square btn-ghost" aria-label="Open navigation menu">
-        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      <div
+        tabindex="0"
+        role="button"
+        class="btn btn-square btn-ghost"
+        aria-label="Open navigation menu"
+      >
+        <svg
+          class="w-7 h-7"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16M4 18h16"
+          />
         </svg>
       </div>
       <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-      <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+      <ul
+        tabindex="0"
+        class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52"
+      >
         {#each navItems as item}
           <li>
-            <a 
-              href={item.href} 
+            <a
+              href={item.href}
               class="flex items-center gap-3 py-3 px-4 min-h-[44px]"
               class:active={currentPath === item.href}
             >
-              {#if item.icon === 'tag'}
+              {#if item.icon === "tag"}
                 <TagIcon className="w-6 h-6" />
-              {:else if item.icon === 'user'}
+              {:else if item.icon === "user"}
                 <UserIcon className="w-6 h-6" />
-              {:else if item.icon === 'chart-bar'}
+              {:else if item.icon === "chart-bar"}
                 <ChartBarIcon className="w-6 h-6" />
-              {:else if item.icon === 'microphone'}
+              {:else if item.icon === "microphone"}
                 <MicrophoneIcon className="w-6 h-6" />
               {:else}
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon} />
+                <svg
+                  class="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d={item.icon}
+                  />
                 </svg>
               {/if}
               {item.label}
@@ -76,22 +102,32 @@
       <ul class="menu menu-horizontal px-1">
         {#each navItems as item}
           <li>
-            <a 
+            <a
               href={item.href}
               class="flex items-center gap-2"
               class:active={currentPath === item.href}
             >
-              {#if item.icon === 'tag'}
+              {#if item.icon === "tag"}
                 <TagIcon className="w-4 h-4" />
-              {:else if item.icon === 'user'}
+              {:else if item.icon === "user"}
                 <UserIcon className="w-4 h-4" />
-              {:else if item.icon === 'chart-bar'}
+              {:else if item.icon === "chart-bar"}
                 <ChartBarIcon className="w-4 h-4" />
-              {:else if item.icon === 'microphone'}
+              {:else if item.icon === "microphone"}
                 <MicrophoneIcon className="w-4 h-4" />
               {:else}
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon} />
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d={item.icon}
+                  />
                 </svg>
               {/if}
               {item.label}
@@ -108,12 +144,12 @@
     background-color: oklch(var(--p));
     color: oklch(var(--pc));
   }
-  
+
   /* Ensure mobile menu doesn't get cut off */
   .dropdown:focus-within .dropdown-content {
     display: block;
   }
-  
+
   .beta-badge {
     border-color: #bb704f;
     color: #bb704f;

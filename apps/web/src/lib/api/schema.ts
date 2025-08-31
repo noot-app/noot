@@ -4,2353 +4,2363 @@
  */
 
 export interface paths {
-    "/consumption": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Log a consumption via audio
-         * @description Upload an audio file of spoken consumption data to be transcribed, parsed, and analyzed for nutrition information
-         */
-        post: operations["createConsumption"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/consumption/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Update a consumption record
-         * @description Update an existing consumption with edited nutrition data
-         */
-        put: operations["updateConsumption"];
-        post?: never;
-        /**
-         * Delete a consumption record
-         * @description Delete a consumption record by ID (used for redo functionality)
-         */
-        delete: operations["deleteConsumption"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Health check
-         * @description Get the health status of the API
-         */
-        get: operations["getHealth"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/consumptions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List consumptions
-         * @description Get a list of stored consumptions for the default user, optionally filtered by labels
-         */
-        get: operations["getConsumptions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/nutrition-summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get nutrition summary
-         * @description Get aggregated nutrition data over a time period
-         */
-        get: operations["getNutritionSummary"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/goals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get nutrition goals
-         * @description Get resolved nutrition goals based on user profile (DRI) and any custom overrides
-         */
-        get: operations["getGoals"];
-        /**
-         * Update nutrition goals (Pro only)
-         * @description Set custom nutrition goal overrides for Pro users
-         */
-        put: operations["updateGoals"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/goals/sets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List all goal sets (Pro only)
-         * @description Get a list of all custom goal sets for the user
-         */
-        get: operations["getGoalSets"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/goals/sets/{name}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete a goal set (Pro only)
-         * @description Delete a specific custom goal set
-         */
-        delete: operations["deleteGoalSet"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/goals/active": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Set active goal set (Pro only)
-         * @description Set which goal set is currently active for the user
-         */
-        put: operations["setActiveGoalSet"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/labels": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List labels
-         * @description Get all labels owned by the current user, including usage counts
-         */
-        get: operations["getLabels"];
-        put?: never;
-        /**
-         * Create a new label
-         * @description Create a new label for the current user
-         */
-        post: operations["createLabel"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/labels/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Update a label
-         * @description Update an existing label owned by the current user
-         */
-        put: operations["updateLabel"];
-        post?: never;
-        /**
-         * Delete a label
-         * @description Delete a label and unassign it from all consumptions/items
-         */
-        delete: operations["deleteLabel"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/consumption/{id}/labels": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get labels assigned to a consumption
-         * @description Get all labels assigned to a specific consumption
-         */
-        get: operations["getConsumptionLabels"];
-        put?: never;
-        /**
-         * Assign labels to a consumption
-         * @description Assign one or more labels to a consumption by label IDs
-         */
-        post: operations["assignConsumptionLabels"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/consumption/{id}/labels/{labelId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Unassign a label from a consumption
-         * @description Remove a label assignment from a consumption
-         */
-        delete: operations["unassignConsumptionLabel"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/consumption-items/{id}/labels": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get labels assigned to a consumption item
-         * @description Get all labels assigned to a specific consumption item
-         */
-        get: operations["getConsumptionItemLabels"];
-        put?: never;
-        /**
-         * Assign labels to a consumption item
-         * @description Assign one or more labels to a consumption item by label IDs
-         */
-        post: operations["assignConsumptionItemLabels"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/consumption-items/{id}/labels/{labelId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Unassign a label from a consumption item
-         * @description Remove a label assignment from a consumption item
-         */
-        delete: operations["unassignConsumptionItemLabel"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/trends": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get nutrition trends
-         * @description Get time series data for nutrition metrics over a specified period
-         */
-        get: operations["getTrends"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Export nutrition data (Pro only)
-         * @description Export nutrition data in CSV or JSON format for a specified date range
-         */
-        get: operations["exportData"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/biometrics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get user biometrics
-         * @description Retrieve current biometric data for the authenticated user
-         */
-        get: operations["getUserBiometrics"];
-        /**
-         * Update user biometrics
-         * @description Create or update biometric data for the authenticated user
-         */
-        put: operations["updateUserBiometrics"];
-        post?: never;
-        /**
-         * Delete user biometrics
-         * @description Delete all biometric data for the authenticated user
-         */
-        delete: operations["deleteUserBiometrics"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
+  "/consumption": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Log a consumption via audio
+     * @description Upload an audio file of spoken consumption data to be transcribed, parsed, and analyzed for nutrition information
+     */
+    post: operations["createConsumption"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/consumption/{id}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Update a consumption record
+     * @description Update an existing consumption with edited nutrition data
+     */
+    put: operations["updateConsumption"]
+    post?: never
+    /**
+     * Delete a consumption record
+     * @description Delete a consumption record by ID (used for redo functionality)
+     */
+    delete: operations["deleteConsumption"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/health": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Health check
+     * @description Get the health status of the API
+     */
+    get: operations["getHealth"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/consumptions": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List consumptions
+     * @description Get a list of stored consumptions for the default user, optionally filtered by labels
+     */
+    get: operations["getConsumptions"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/nutrition-summary": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get nutrition summary
+     * @description Get aggregated nutrition data over a time period
+     */
+    get: operations["getNutritionSummary"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/goals": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get nutrition goals
+     * @description Get resolved nutrition goals based on user profile (DRI) and any custom overrides
+     */
+    get: operations["getGoals"]
+    /**
+     * Update nutrition goals (Pro only)
+     * @description Set custom nutrition goal overrides for Pro users
+     */
+    put: operations["updateGoals"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/goals/sets": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List all goal sets (Pro only)
+     * @description Get a list of all custom goal sets for the user
+     */
+    get: operations["getGoalSets"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/goals/sets/{name}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /**
+     * Delete a goal set (Pro only)
+     * @description Delete a specific custom goal set
+     */
+    delete: operations["deleteGoalSet"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/goals/active": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Set active goal set (Pro only)
+     * @description Set which goal set is currently active for the user
+     */
+    put: operations["setActiveGoalSet"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/labels": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List labels
+     * @description Get all labels owned by the current user, including usage counts
+     */
+    get: operations["getLabels"]
+    put?: never
+    /**
+     * Create a new label
+     * @description Create a new label for the current user
+     */
+    post: operations["createLabel"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/labels/{id}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Update a label
+     * @description Update an existing label owned by the current user
+     */
+    put: operations["updateLabel"]
+    post?: never
+    /**
+     * Delete a label
+     * @description Delete a label and unassign it from all consumptions/items
+     */
+    delete: operations["deleteLabel"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/consumption/{id}/labels": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get labels assigned to a consumption
+     * @description Get all labels assigned to a specific consumption
+     */
+    get: operations["getConsumptionLabels"]
+    put?: never
+    /**
+     * Assign labels to a consumption
+     * @description Assign one or more labels to a consumption by label IDs
+     */
+    post: operations["assignConsumptionLabels"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/consumption/{id}/labels/{labelId}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /**
+     * Unassign a label from a consumption
+     * @description Remove a label assignment from a consumption
+     */
+    delete: operations["unassignConsumptionLabel"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/consumption-items/{id}/labels": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get labels assigned to a consumption item
+     * @description Get all labels assigned to a specific consumption item
+     */
+    get: operations["getConsumptionItemLabels"]
+    put?: never
+    /**
+     * Assign labels to a consumption item
+     * @description Assign one or more labels to a consumption item by label IDs
+     */
+    post: operations["assignConsumptionItemLabels"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/consumption-items/{id}/labels/{labelId}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /**
+     * Unassign a label from a consumption item
+     * @description Remove a label assignment from a consumption item
+     */
+    delete: operations["unassignConsumptionItemLabel"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/trends": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get nutrition trends
+     * @description Get time series data for nutrition metrics over a specified period
+     */
+    get: operations["getTrends"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/export": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Export nutrition data (Pro only)
+     * @description Export nutrition data in CSV or JSON format for a specified date range
+     */
+    get: operations["exportData"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/biometrics": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get user biometrics
+     * @description Retrieve current biometric data for the authenticated user
+     */
+    get: operations["getUserBiometrics"]
+    /**
+     * Update user biometrics
+     * @description Create or update biometric data for the authenticated user
+     */
+    put: operations["updateUserBiometrics"]
+    post?: never
+    /**
+     * Delete user biometrics
+     * @description Delete all biometric data for the authenticated user
+     */
+    delete: operations["deleteUserBiometrics"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
-export type webhooks = Record<string, never>;
+export type webhooks = Record<string, never>
 export interface components {
-    schemas: {
-        ErrorResponse: {
-            /** @description Error message */
-            error: string;
-            /** @description HTTP status code */
-            code: number;
-            /**
-             * Format: date-time
-             * @description Timestamp when the error occurred
-             */
-            timestamp: string;
-            /** @description Stack trace (only in debug mode) */
-            stack?: string[];
-            /** @description Request trace ID */
-            trace_id?: string;
-        };
-        HealthResponse: {
-            /** @example healthy */
-            status: string;
-            /** Format: date-time */
-            timestamp: string;
-            /** @example dev */
-            version: string;
-        };
-        Label: {
-            /** @description Label ID */
-            id: string;
-            /** @description Label name */
-            name: string;
-            /** @description Optional description of the label */
-            description?: string | null;
-            /**
-             * @description Hex color (#RRGGBB or RRGGBB)
-             * @example #1E90FF
-             */
-            color: string;
-            /**
-             * Format: date-time
-             * @description When the label was created
-             */
-            created_at: string;
-            /**
-             * Format: date-time
-             * @description When the label was last updated
-             */
-            updated_at: string;
-        };
-        LabelCreateRequest: {
-            /** @description Label name (unique per user, case-insensitive) */
-            name: string;
-            /** @description Optional description of the label */
-            description?: string;
-            /**
-             * @description Hex color (#RRGGBB or RRGGBB)
-             * @example #1E90FF
-             */
-            color: string;
-        };
-        LabelUpdateRequest: {
-            /** @description Label name (unique per user, case-insensitive) */
-            name?: string;
-            /** @description Optional description of the label */
-            description?: string | null;
-            /**
-             * @description Hex color (#RRGGBB or RRGGBB)
-             * @example #1E90FF
-             */
-            color?: string;
-        };
-        LabelWithUsage: {
-            /** @description Label ID */
-            id: string;
-            /** @description Label name */
-            name: string;
-            /** @description Optional description of the label */
-            description?: string | null;
-            /**
-             * @description Hex color (#RRGGBB)
-             * @example #1E90FF
-             */
-            color: string;
-            /**
-             * Format: date-time
-             * @description When the label was created
-             */
-            created_at: string;
-            /**
-             * Format: date-time
-             * @description When the label was last updated
-             */
-            updated_at: string;
-            /** @description Number of consumptions using this label */
-            consumption_count: number;
-            /** @description Number of consumption items using this label */
-            item_count: number;
-        };
-        LabelsResponse: {
-            labels: components["schemas"]["LabelWithUsage"][];
-        };
-        AssignLabelsRequest: {
-            /** @description Array of label IDs to assign */
-            ids: string[];
-        };
-        ConsumptionResponse: {
-            /** @description Consumption ID (for future edits/deletes) */
-            id: string;
-            /** @description Transcribed text from audio */
-            transcript: string;
-            /** @description Labels assigned to this consumption */
-            labels?: components["schemas"]["Label"][];
-            /** @description Items with complete nutrition information */
-            items: components["schemas"]["ItemWithNutrition"][];
-            summary: components["schemas"]["Summary"];
-            /** @description Request identifier for tracking */
-            request_id: string;
-        };
-        ConsumptionsResponse: {
-            consumptions: components["schemas"]["Consumption"][];
-            user: components["schemas"]["User"];
-            /** @description Number of consumptions returned */
-            count: number;
-        };
-        NutritionSummaryResponse: {
-            summary: components["schemas"]["NutritionSummary"];
-            user: components["schemas"]["User"];
-            /** @description Number of days in the summary */
-            days: number;
-            date_range: {
-                /** Format: date-time */
-                start?: string;
-                /** Format: date-time */
-                end?: string;
-            };
-        };
-        Item: {
-            /** @description Name of the food item */
-            name: string;
-            /** @description Weight in grams (standardized internally) */
-            grams: number;
-            /** @description Original user input quantity for display */
-            user_quantity?: number | null;
-            /** @description Original user input unit for display */
-            user_unit?: string | null;
-            /** @description Brand name */
-            brand?: string | null;
-            /** @description Additional note about the item */
-            note?: string | null;
-            /** @description Labels assigned to this item */
-            labels?: components["schemas"]["Label"][];
-            nutrients?: components["schemas"]["CompleteNutrient"];
-        };
-        ItemWithNutrition: {
-            item: components["schemas"]["Item"];
-            /** @description Additional note (e.g., if nutrition data unavailable) */
-            note?: string;
-        };
-        CompleteNutrient: {
-            /** @description Calories per serving */
-            calories: number;
-            /** @description Protein in grams */
-            protein_g: number;
-            /** @description Total fat in grams */
-            total_fat_g: number;
-            /** @description Saturated fat in grams */
-            saturated_fat_g: number;
-            /** @description Trans fat in grams */
-            trans_fat_g: number;
-            /** @description Cholesterol in milligrams */
-            cholesterol_mg: number;
-            /** @description Sodium in milligrams */
-            sodium_mg: number;
-            /** @description Total carbohydrates in grams */
-            total_carbs_g: number;
-            /** @description Dietary fiber in grams */
-            dietary_fiber_g: number;
-            /** @description Total sugars in grams */
-            total_sugars_g: number;
-            /** @description Added sugars in grams */
-            added_sugars_g: number;
-            /** @description Vitamin A in micrograms */
-            vitamin_a_mcg: number;
-            /** @description Vitamin C in milligrams */
-            vitamin_c_mg: number;
-            /** @description Vitamin D in micrograms */
-            vitamin_d_mcg: number;
-            /** @description Vitamin E in milligrams */
-            vitamin_e_mg: number;
-            /** @description Vitamin K in micrograms */
-            vitamin_k_mcg: number;
-            /** @description Thiamine (B1) in milligrams */
-            thiamine_mg: number;
-            /** @description Riboflavin (B2) in milligrams */
-            riboflavin_mg: number;
-            /** @description Niacin (B3) in milligrams */
-            niacin_mg: number;
-            /** @description Vitamin B6 in milligrams */
-            vitamin_b6_mg: number;
-            /** @description Folate in micrograms */
-            folate_mcg: number;
-            /** @description Vitamin B12 in micrograms */
-            vitamin_b12_mcg: number;
-            /** @description Calcium in milligrams */
-            calcium_mg: number;
-            /** @description Iron in milligrams */
-            iron_mg: number;
-            /** @description Magnesium in milligrams */
-            magnesium_mg: number;
-            /** @description Phosphorus in milligrams */
-            phosphorus_mg: number;
-            /** @description Potassium in milligrams */
-            potassium_mg: number;
-            /** @description Zinc in milligrams */
-            zinc_mg: number;
-            /** @description Copper in milligrams */
-            copper_mg: number;
-            /** @description Manganese in milligrams */
-            manganese_mg: number;
-            /** @description Selenium in micrograms */
-            selenium_mcg: number;
-            /** @description Biotin in micrograms */
-            biotin_mcg: number;
-            /** @description Pantothenic Acid (B5) in milligrams */
-            pantothenic_acid_mg: number;
-            /** @description Choline in milligrams */
-            choline_mg: number;
-            /** @description Chloride in milligrams */
-            chloride_mg: number;
-            /** @description Chromium in micrograms */
-            chromium_mcg: number;
-            /** @description Fluoride in milligrams */
-            fluoride_mg: number;
-            /** @description Iodine in micrograms */
-            iodine_mcg: number;
-            /** @description Molybdenum in micrograms */
-            molybdenum_mcg: number;
-            /** @description Omega-3 ALA (Alpha-linolenic acid) in grams */
-            omega3_ala_g: number;
-            /** @description Omega-3 EPA (Eicosapentaenoic acid) in grams */
-            omega3_epa_g: number;
-            /** @description Omega-3 DHA (Docosahexaenoic acid) in grams */
-            omega3_dha_g: number;
-            /** @description Omega-6 fatty acids in grams */
-            omega6_g: number;
-            /** @description Creatine in milligrams */
-            creatine_mg: number;
-            /** @description Caffeine in milligrams */
-            caffeine_mg: number;
-            /** @description Alcohol in grams */
-            alcohol_g: number;
-            /** @description Polyunsaturated fat in grams */
-            polyunsaturated_fat_g: number;
-            /** @description Monounsaturated fat in grams */
-            monounsaturated_fat_g: number;
-        };
-        Summary: {
-            totals: components["schemas"]["CompleteNutrient"];
-            /** @description Percentage of daily values for each nutrient */
-            percent_of_daily: {
-                [key: string]: number;
-            };
-            /** @description Daily value amounts used for calculations */
-            daily_values: {
-                [key: string]: number;
-            };
-        };
-        User: {
-            /** @description User ID (auth.users.id UUID for Supabase) */
-            id: string;
-            /** @description Unique user handle/username */
-            handle: string;
-            /** @description User's full display name */
-            full_name?: string | null;
-            /** @description User email address */
-            email: string;
-            /**
-             * @description User subscription level
-             * @enum {string}
-             */
-            subscription_tier: "free" | "pro";
-            /** @description User avatar/profile image URL */
-            avatar_url?: string | null;
-            /**
-             * Format: date-time
-             * @description User creation timestamp
-             */
-            created_at: string;
-        };
-        Consumption: {
-            /** @description Consumption ID */
-            id: string;
-            /** @description User ID who logged this consumption */
-            user_id: string;
-            /** @description Original transcribed text */
-            transcript: string;
-            /** @description Additional note about the consumption */
-            note?: string | null;
-            /** @description Labels assigned to this consumption */
-            labels?: components["schemas"]["Label"][];
-            items: components["schemas"]["ItemWithNutrition"][];
-            summary: components["schemas"]["Summary"];
-            /**
-             * Format: date-time
-             * @description Timestamp when consumption was logged
-             */
-            created_at: string;
-        };
-        NutritionSummary: {
-            /** @description User ID */
-            user_id: string;
-            /**
-             * Format: date-time
-             * @description Start date of the summary period
-             */
-            start_date: string;
-            /**
-             * Format: date-time
-             * @description End date of the summary period
-             */
-            end_date: string;
-            /** @description Total number of consumptions in the period */
-            consumption_count: number;
-            /** @description Total calories consumed */
-            total_calories: number;
-            /** @description Total protein in grams */
-            total_protein_g: number;
-            /** @description Total fat in grams */
-            total_fat_g: number;
-            /** @description Total carbohydrates in grams */
-            total_carbs_g: number;
-            /** @description Total fiber in grams */
-            total_fiber_g: number;
-            /** @description Total sodium in milligrams */
-            total_sodium_mg: number;
-            /** @description Total saturated fat in grams */
-            total_saturated_fat_g: number;
-            /** @description Total trans fat in grams */
-            total_trans_fat_g: number;
-            /** @description Total cholesterol in milligrams */
-            total_cholesterol_mg: number;
-            /** @description Total sugars in grams */
-            total_sugars_g: number;
-            /** @description Total added sugars in grams */
-            total_added_sugars_g: number;
-            /** @description Total vitamin A in micrograms */
-            total_vitamin_a_mcg: number;
-            /** @description Total vitamin C in milligrams */
-            total_vitamin_c_mg: number;
-            /** @description Total vitamin D in micrograms */
-            total_vitamin_d_mcg: number;
-            /** @description Total vitamin E in milligrams */
-            total_vitamin_e_mg: number;
-            /** @description Total vitamin K in micrograms */
-            total_vitamin_k_mcg: number;
-            /** @description Total thiamine (B1) in milligrams */
-            total_thiamine_mg: number;
-            /** @description Total riboflavin (B2) in milligrams */
-            total_riboflavin_mg: number;
-            /** @description Total niacin (B3) in milligrams */
-            total_niacin_mg: number;
-            /** @description Total vitamin B6 in milligrams */
-            total_vitamin_b6_mg: number;
-            /** @description Total folate in micrograms */
-            total_folate_mcg: number;
-            /** @description Total vitamin B12 in micrograms */
-            total_vitamin_b12_mcg: number;
-            /** @description Total calcium in milligrams */
-            total_calcium_mg: number;
-            /** @description Total iron in milligrams */
-            total_iron_mg: number;
-            /** @description Total magnesium in milligrams */
-            total_magnesium_mg: number;
-            /** @description Total phosphorus in milligrams */
-            total_phosphorus_mg: number;
-            /** @description Total potassium in milligrams */
-            total_potassium_mg: number;
-            /** @description Total zinc in milligrams */
-            total_zinc_mg: number;
-            /** @description Total copper in milligrams */
-            total_copper_mg: number;
-            /** @description Total manganese in milligrams */
-            total_manganese_mg: number;
-            /** @description Total selenium in micrograms */
-            total_selenium_mcg: number;
-            /** @description Total biotin in micrograms */
-            total_biotin_mcg: number;
-            /** @description Total pantothenic acid (B5) in milligrams */
-            total_pantothenic_acid_mg: number;
-            /** @description Total choline in milligrams */
-            total_choline_mg: number;
-            /** @description Total chloride in milligrams */
-            total_chloride_mg: number;
-            /** @description Total chromium in micrograms */
-            total_chromium_mcg: number;
-            /** @description Total fluoride in milligrams */
-            total_fluoride_mg: number;
-            /** @description Total iodine in micrograms */
-            total_iodine_mcg: number;
-            /** @description Total molybdenum in micrograms */
-            total_molybdenum_mcg: number;
-            /** @description Total Omega-3 ALA (Alpha-linolenic acid) in grams */
-            total_omega3_ala_g: number;
-            /** @description Total Omega-3 EPA (Eicosapentaenoic acid) in grams */
-            total_omega3_epa_g: number;
-            /** @description Total Omega-3 DHA (Docosahexaenoic acid) in grams */
-            total_omega3_dha_g: number;
-            /** @description Total Omega-6 fatty acids in grams */
-            total_omega6_g: number;
-            /** @description Total creatine in milligrams */
-            total_creatine_mg: number;
-            /** @description Total caffeine in milligrams */
-            total_caffeine_mg: number;
-            /** @description Total alcohol in grams */
-            total_alcohol_g: number;
-            /** @description Total polyunsaturated fat in grams */
-            total_polyunsaturated_fat_g: number;
-            /** @description Total monounsaturated fat in grams */
-            total_monounsaturated_fat_g: number;
-            /** @description Average calories per day */
-            avg_calories_per_day: number;
-            /** @description Average protein per day in grams */
-            avg_protein_per_day: number;
-            /** @description Average fat per day in grams */
-            avg_fat_per_day: number;
-            /** @description Average carbs per day in grams */
-            avg_carbs_per_day: number;
-            /** @description Average fiber per day in grams */
-            avg_fiber_per_day: number;
-            /** @description Average sodium per day in milligrams */
-            avg_sodium_per_day: number;
-            /** @description Daily nutrition breakdown */
-            daily_breakdown: components["schemas"]["DailySummary"][];
-        };
-        DailySummary: {
-            /**
-             * Format: date-time
-             * @description Date for this daily summary
-             */
-            date: string;
-            /** @description Number of consumptions on this date */
-            consumption_count: number;
-            /** @description Total calories for the day */
-            calories: number;
-            /** @description Total protein in grams for the day */
-            protein_g: number;
-            /** @description Total fat in grams for the day */
-            total_fat_g: number;
-            /** @description Total carbohydrates in grams for the day */
-            total_carbs_g: number;
-            /** @description Total fiber in grams for the day */
-            fiber_g: number;
-            /** @description Total sodium in milligrams for the day */
-            sodium_mg: number;
-        };
-        GoalsResponse: {
-            goals: components["schemas"]["Goals"];
-            user: components["schemas"]["User"];
-        };
-        Goals: {
-            /**
-             * @description Target amounts for each nutrient
-             * @example {
-             *       "calories": 2000,
-             *       "protein_g": 50,
-             *       "vitamin_c_mg": 90
-             *     }
-             */
-            targets: {
-                [key: string]: number;
-            };
-            /**
-             * @description Upper limit amounts for each nutrient (where defined)
-             * @example {
-             *       "sodium_mg": 2300
-             *     }
-             */
-            upper_limits: {
-                [key: string]: number;
-            };
-            /**
-             * @description Units for each nutrient
-             * @example {
-             *       "calories": "kcal",
-             *       "protein_g": "g",
-             *       "vitamin_c_mg": "mg"
-             *     }
-             */
-            units: {
-                [key: string]: string;
-            };
-            /**
-             * @description Source of the goals (DRI defaults or custom overrides)
-             * @enum {string}
-             */
-            source: "dri" | "custom";
-            /**
-             * @description Name of the custom goal set (only present when source is "custom")
-             * @example Bulk Season
-             */
-            custom_name?: string;
-            life_stage: components["schemas"]["LifeStage"];
-        };
-        LifeStage: {
-            /**
-             * @description User sex for DRI calculation
-             * @enum {string}
-             */
-            sex: "male" | "female" | "unspecified";
-            /**
-             * @description Age bracket used for DRI lookup
-             * @example 19-30 y
-             */
-            age_bracket: string;
-        };
-        UpdateGoalsRequest: {
-            /**
-             * @description Custom name for the goal set (required for managing multiple goal sets)
-             * @example Bulk Season
-             */
-            name: string;
-            /**
-             * @description Custom nutrition goal overrides
-             * @example {
-             *       "calories": 3000,
-             *       "protein_g": 180,
-             *       "vitamin_c_mg": 120
-             *     }
-             */
-            overrides: {
-                [key: string]: number;
-            };
-        };
-        SetActiveGoalRequest: {
-            /**
-             * @description Name of the goal set to make active
-             * @example Bulk Season
-             */
-            name: string;
-        };
-        GoalSetsResponse: {
-            /** @description List of all available goal sets */
-            goal_sets: components["schemas"]["GoalSetSummary"][];
-            /**
-             * @description Name of the currently active goal set
-             * @example Bulk Season
-             */
-            active_goal_name: string;
-            user: components["schemas"]["User"];
-        };
-        GoalSetSummary: {
-            /**
-             * @description Name of the goal set
-             * @example Bulk Season
-             */
-            name: string;
-            /**
-             * Format: date-time
-             * @description When the goal set was created
-             * @example 2023-01-01T00:00:00Z
-             */
-            created_at: string;
-            /**
-             * Format: date-time
-             * @description When the goal set was last updated
-             * @example 2023-01-15T10:30:00Z
-             */
-            updated_at: string;
-        };
-        TrendsResponse: {
-            /**
-             * @description Time series data for each requested metric
-             * @example {
-             *       "calories": [
-             *         {
-             *           "date": "2023-01-01T00:00:00Z",
-             *           "value": 2100
-             *         },
-             *         {
-             *           "date": "2023-01-02T00:00:00Z",
-             *           "value": 2250
-             *         }
-             *       ]
-             *     }
-             */
-            series: {
-                [key: string]: components["schemas"]["DataPoint"][];
-            };
-            user: components["schemas"]["User"];
-            date_range: {
-                /** Format: date-time */
-                start?: string;
-                /** Format: date-time */
-                end?: string;
-            };
-            /** @description Number of days in the time series */
-            days: number;
-        };
-        DataPoint: {
-            /**
-             * Format: date-time
-             * @description Date for this data point
-             */
-            date: string;
-            /** @description Nutrient value for this date */
-            value: number;
-        };
-        ExportResponse: {
-            /** @description Time series data for each requested metric */
-            series: {
-                [key: string]: components["schemas"]["DataPoint"][];
-            };
-            user: components["schemas"]["User"];
-            date_range: {
-                /** Format: date-time */
-                start?: string;
-                /** Format: date-time */
-                end?: string;
-            };
-            /**
-             * @description Export format used
-             * @enum {string}
-             */
-            format: "csv" | "json";
-        };
-        UpdateConsumptionRequest: {
-            /** @description Updated items with nutrition information */
-            items: components["schemas"]["ItemWithNutrition"][];
-        };
-        DeleteResponse: {
-            /**
-             * @description Confirmation message
-             * @example Consumption deleted successfully
-             */
-            message: string;
-            /** @description ID of the deleted consumption */
-            id: string;
-        };
-        BiometricsResponse: {
-            biometrics?: components["schemas"]["UserBiometrics"];
-            calculated_metrics?: {
-                /** @description Calculated age in years */
-                age_years?: number;
-                /** @description Basal Metabolic Rate (calories/day) */
-                bmr?: number;
-                /** @description Total Daily Energy Expenditure (calories/day) */
-                tdee?: number;
-                /** @description Body Mass Index */
-                bmi?: number;
-            };
-        };
-        UserBiometrics: {
-            /**
-             * Format: date
-             * @description Date of birth
-             */
-            birth_date?: string;
-            /**
-             * @description Biological sex for DRI calculations
-             * @enum {string}
-             */
-            sex?: "male" | "female" | "other" | "prefer_not_to_say";
-            /** @description Height in centimeters */
-            height_cm?: number;
-            /** @description Weight in kilograms */
-            weight_kg?: number;
-            /**
-             * @description Physical activity level
-             * @enum {string}
-             */
-            activity_level?: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active";
-        };
-        UpdateBiometricsRequest: {
-            /**
-             * Format: date
-             * @description Date of birth
-             */
-            birth_date?: string;
-            /**
-             * @description Biological sex for DRI calculations
-             * @enum {string}
-             */
-            sex?: "male" | "female" | "other" | "prefer_not_to_say";
-            /** @description Height in centimeters */
-            height_cm?: number;
-            /** @description Weight in kilograms */
-            weight_kg?: number;
-            /**
-             * @description Physical activity level
-             * @enum {string}
-             */
-            activity_level?: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active";
-        };
-    };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+  schemas: {
+    ErrorResponse: {
+      /** @description Error message */
+      error: string
+      /** @description HTTP status code */
+      code: number
+      /**
+       * Format: date-time
+       * @description Timestamp when the error occurred
+       */
+      timestamp: string
+      /** @description Stack trace (only in debug mode) */
+      stack?: string[]
+      /** @description Request trace ID */
+      trace_id?: string
+    }
+    HealthResponse: {
+      /** @example healthy */
+      status: string
+      /** Format: date-time */
+      timestamp: string
+      /** @example dev */
+      version: string
+    }
+    Label: {
+      /** @description Label ID */
+      id: string
+      /** @description Label name */
+      name: string
+      /** @description Optional description of the label */
+      description?: string | null
+      /**
+       * @description Hex color (#RRGGBB or RRGGBB)
+       * @example #1E90FF
+       */
+      color: string
+      /**
+       * Format: date-time
+       * @description When the label was created
+       */
+      created_at: string
+      /**
+       * Format: date-time
+       * @description When the label was last updated
+       */
+      updated_at: string
+    }
+    LabelCreateRequest: {
+      /** @description Label name (unique per user, case-insensitive) */
+      name: string
+      /** @description Optional description of the label */
+      description?: string
+      /**
+       * @description Hex color (#RRGGBB or RRGGBB)
+       * @example #1E90FF
+       */
+      color: string
+    }
+    LabelUpdateRequest: {
+      /** @description Label name (unique per user, case-insensitive) */
+      name?: string
+      /** @description Optional description of the label */
+      description?: string | null
+      /**
+       * @description Hex color (#RRGGBB or RRGGBB)
+       * @example #1E90FF
+       */
+      color?: string
+    }
+    LabelWithUsage: {
+      /** @description Label ID */
+      id: string
+      /** @description Label name */
+      name: string
+      /** @description Optional description of the label */
+      description?: string | null
+      /**
+       * @description Hex color (#RRGGBB)
+       * @example #1E90FF
+       */
+      color: string
+      /**
+       * Format: date-time
+       * @description When the label was created
+       */
+      created_at: string
+      /**
+       * Format: date-time
+       * @description When the label was last updated
+       */
+      updated_at: string
+      /** @description Number of consumptions using this label */
+      consumption_count: number
+      /** @description Number of consumption items using this label */
+      item_count: number
+    }
+    LabelsResponse: {
+      labels: components["schemas"]["LabelWithUsage"][]
+    }
+    AssignLabelsRequest: {
+      /** @description Array of label IDs to assign */
+      ids: string[]
+    }
+    ConsumptionResponse: {
+      /** @description Consumption ID (for future edits/deletes) */
+      id: string
+      /** @description Transcribed text from audio */
+      transcript: string
+      /** @description Labels assigned to this consumption */
+      labels?: components["schemas"]["Label"][]
+      /** @description Items with complete nutrition information */
+      items: components["schemas"]["ItemWithNutrition"][]
+      summary: components["schemas"]["Summary"]
+      /** @description Request identifier for tracking */
+      request_id: string
+    }
+    ConsumptionsResponse: {
+      consumptions: components["schemas"]["Consumption"][]
+      user: components["schemas"]["User"]
+      /** @description Number of consumptions returned */
+      count: number
+    }
+    NutritionSummaryResponse: {
+      summary: components["schemas"]["NutritionSummary"]
+      user: components["schemas"]["User"]
+      /** @description Number of days in the summary */
+      days: number
+      date_range: {
+        /** Format: date-time */
+        start?: string
+        /** Format: date-time */
+        end?: string
+      }
+    }
+    Item: {
+      /** @description Name of the food item */
+      name: string
+      /** @description Weight in grams (standardized internally) */
+      grams: number
+      /** @description Original user input quantity for display */
+      user_quantity?: number | null
+      /** @description Original user input unit for display */
+      user_unit?: string | null
+      /** @description Brand name */
+      brand?: string | null
+      /** @description Additional note about the item */
+      note?: string | null
+      /** @description Labels assigned to this item */
+      labels?: components["schemas"]["Label"][]
+      nutrients?: components["schemas"]["CompleteNutrient"]
+    }
+    ItemWithNutrition: {
+      item: components["schemas"]["Item"]
+      /** @description Additional note (e.g., if nutrition data unavailable) */
+      note?: string
+    }
+    CompleteNutrient: {
+      /** @description Calories per serving */
+      calories: number
+      /** @description Protein in grams */
+      protein_g: number
+      /** @description Total fat in grams */
+      total_fat_g: number
+      /** @description Saturated fat in grams */
+      saturated_fat_g: number
+      /** @description Trans fat in grams */
+      trans_fat_g: number
+      /** @description Cholesterol in milligrams */
+      cholesterol_mg: number
+      /** @description Sodium in milligrams */
+      sodium_mg: number
+      /** @description Total carbohydrates in grams */
+      total_carbs_g: number
+      /** @description Dietary fiber in grams */
+      dietary_fiber_g: number
+      /** @description Total sugars in grams */
+      total_sugars_g: number
+      /** @description Added sugars in grams */
+      added_sugars_g: number
+      /** @description Vitamin A in micrograms */
+      vitamin_a_mcg: number
+      /** @description Vitamin C in milligrams */
+      vitamin_c_mg: number
+      /** @description Vitamin D in micrograms */
+      vitamin_d_mcg: number
+      /** @description Vitamin E in milligrams */
+      vitamin_e_mg: number
+      /** @description Vitamin K in micrograms */
+      vitamin_k_mcg: number
+      /** @description Thiamine (B1) in milligrams */
+      thiamine_mg: number
+      /** @description Riboflavin (B2) in milligrams */
+      riboflavin_mg: number
+      /** @description Niacin (B3) in milligrams */
+      niacin_mg: number
+      /** @description Vitamin B6 in milligrams */
+      vitamin_b6_mg: number
+      /** @description Folate in micrograms */
+      folate_mcg: number
+      /** @description Vitamin B12 in micrograms */
+      vitamin_b12_mcg: number
+      /** @description Calcium in milligrams */
+      calcium_mg: number
+      /** @description Iron in milligrams */
+      iron_mg: number
+      /** @description Magnesium in milligrams */
+      magnesium_mg: number
+      /** @description Phosphorus in milligrams */
+      phosphorus_mg: number
+      /** @description Potassium in milligrams */
+      potassium_mg: number
+      /** @description Zinc in milligrams */
+      zinc_mg: number
+      /** @description Copper in milligrams */
+      copper_mg: number
+      /** @description Manganese in milligrams */
+      manganese_mg: number
+      /** @description Selenium in micrograms */
+      selenium_mcg: number
+      /** @description Biotin in micrograms */
+      biotin_mcg: number
+      /** @description Pantothenic Acid (B5) in milligrams */
+      pantothenic_acid_mg: number
+      /** @description Choline in milligrams */
+      choline_mg: number
+      /** @description Chloride in milligrams */
+      chloride_mg: number
+      /** @description Chromium in micrograms */
+      chromium_mcg: number
+      /** @description Fluoride in milligrams */
+      fluoride_mg: number
+      /** @description Iodine in micrograms */
+      iodine_mcg: number
+      /** @description Molybdenum in micrograms */
+      molybdenum_mcg: number
+      /** @description Omega-3 ALA (Alpha-linolenic acid) in grams */
+      omega3_ala_g: number
+      /** @description Omega-3 EPA (Eicosapentaenoic acid) in grams */
+      omega3_epa_g: number
+      /** @description Omega-3 DHA (Docosahexaenoic acid) in grams */
+      omega3_dha_g: number
+      /** @description Omega-6 fatty acids in grams */
+      omega6_g: number
+      /** @description Creatine in milligrams */
+      creatine_mg: number
+      /** @description Caffeine in milligrams */
+      caffeine_mg: number
+      /** @description Alcohol in grams */
+      alcohol_g: number
+      /** @description Polyunsaturated fat in grams */
+      polyunsaturated_fat_g: number
+      /** @description Monounsaturated fat in grams */
+      monounsaturated_fat_g: number
+    }
+    Summary: {
+      totals: components["schemas"]["CompleteNutrient"]
+      /** @description Percentage of daily values for each nutrient */
+      percent_of_daily: {
+        [key: string]: number
+      }
+      /** @description Daily value amounts used for calculations */
+      daily_values: {
+        [key: string]: number
+      }
+    }
+    User: {
+      /** @description User ID (auth.users.id UUID for Supabase) */
+      id: string
+      /** @description Unique user handle/username */
+      handle: string
+      /** @description User's full display name */
+      full_name?: string | null
+      /** @description User email address */
+      email: string
+      /**
+       * @description User subscription level
+       * @enum {string}
+       */
+      subscription_tier: "free" | "pro"
+      /** @description User avatar/profile image URL */
+      avatar_url?: string | null
+      /**
+       * Format: date-time
+       * @description User creation timestamp
+       */
+      created_at: string
+    }
+    Consumption: {
+      /** @description Consumption ID */
+      id: string
+      /** @description User ID who logged this consumption */
+      user_id: string
+      /** @description Original transcribed text */
+      transcript: string
+      /** @description Additional note about the consumption */
+      note?: string | null
+      /** @description Labels assigned to this consumption */
+      labels?: components["schemas"]["Label"][]
+      items: components["schemas"]["ItemWithNutrition"][]
+      summary: components["schemas"]["Summary"]
+      /**
+       * Format: date-time
+       * @description Timestamp when consumption was logged
+       */
+      created_at: string
+    }
+    NutritionSummary: {
+      /** @description User ID */
+      user_id: string
+      /**
+       * Format: date-time
+       * @description Start date of the summary period
+       */
+      start_date: string
+      /**
+       * Format: date-time
+       * @description End date of the summary period
+       */
+      end_date: string
+      /** @description Total number of consumptions in the period */
+      consumption_count: number
+      /** @description Total calories consumed */
+      total_calories: number
+      /** @description Total protein in grams */
+      total_protein_g: number
+      /** @description Total fat in grams */
+      total_fat_g: number
+      /** @description Total carbohydrates in grams */
+      total_carbs_g: number
+      /** @description Total fiber in grams */
+      total_fiber_g: number
+      /** @description Total sodium in milligrams */
+      total_sodium_mg: number
+      /** @description Total saturated fat in grams */
+      total_saturated_fat_g: number
+      /** @description Total trans fat in grams */
+      total_trans_fat_g: number
+      /** @description Total cholesterol in milligrams */
+      total_cholesterol_mg: number
+      /** @description Total sugars in grams */
+      total_sugars_g: number
+      /** @description Total added sugars in grams */
+      total_added_sugars_g: number
+      /** @description Total vitamin A in micrograms */
+      total_vitamin_a_mcg: number
+      /** @description Total vitamin C in milligrams */
+      total_vitamin_c_mg: number
+      /** @description Total vitamin D in micrograms */
+      total_vitamin_d_mcg: number
+      /** @description Total vitamin E in milligrams */
+      total_vitamin_e_mg: number
+      /** @description Total vitamin K in micrograms */
+      total_vitamin_k_mcg: number
+      /** @description Total thiamine (B1) in milligrams */
+      total_thiamine_mg: number
+      /** @description Total riboflavin (B2) in milligrams */
+      total_riboflavin_mg: number
+      /** @description Total niacin (B3) in milligrams */
+      total_niacin_mg: number
+      /** @description Total vitamin B6 in milligrams */
+      total_vitamin_b6_mg: number
+      /** @description Total folate in micrograms */
+      total_folate_mcg: number
+      /** @description Total vitamin B12 in micrograms */
+      total_vitamin_b12_mcg: number
+      /** @description Total calcium in milligrams */
+      total_calcium_mg: number
+      /** @description Total iron in milligrams */
+      total_iron_mg: number
+      /** @description Total magnesium in milligrams */
+      total_magnesium_mg: number
+      /** @description Total phosphorus in milligrams */
+      total_phosphorus_mg: number
+      /** @description Total potassium in milligrams */
+      total_potassium_mg: number
+      /** @description Total zinc in milligrams */
+      total_zinc_mg: number
+      /** @description Total copper in milligrams */
+      total_copper_mg: number
+      /** @description Total manganese in milligrams */
+      total_manganese_mg: number
+      /** @description Total selenium in micrograms */
+      total_selenium_mcg: number
+      /** @description Total biotin in micrograms */
+      total_biotin_mcg: number
+      /** @description Total pantothenic acid (B5) in milligrams */
+      total_pantothenic_acid_mg: number
+      /** @description Total choline in milligrams */
+      total_choline_mg: number
+      /** @description Total chloride in milligrams */
+      total_chloride_mg: number
+      /** @description Total chromium in micrograms */
+      total_chromium_mcg: number
+      /** @description Total fluoride in milligrams */
+      total_fluoride_mg: number
+      /** @description Total iodine in micrograms */
+      total_iodine_mcg: number
+      /** @description Total molybdenum in micrograms */
+      total_molybdenum_mcg: number
+      /** @description Total Omega-3 ALA (Alpha-linolenic acid) in grams */
+      total_omega3_ala_g: number
+      /** @description Total Omega-3 EPA (Eicosapentaenoic acid) in grams */
+      total_omega3_epa_g: number
+      /** @description Total Omega-3 DHA (Docosahexaenoic acid) in grams */
+      total_omega3_dha_g: number
+      /** @description Total Omega-6 fatty acids in grams */
+      total_omega6_g: number
+      /** @description Total creatine in milligrams */
+      total_creatine_mg: number
+      /** @description Total caffeine in milligrams */
+      total_caffeine_mg: number
+      /** @description Total alcohol in grams */
+      total_alcohol_g: number
+      /** @description Total polyunsaturated fat in grams */
+      total_polyunsaturated_fat_g: number
+      /** @description Total monounsaturated fat in grams */
+      total_monounsaturated_fat_g: number
+      /** @description Average calories per day */
+      avg_calories_per_day: number
+      /** @description Average protein per day in grams */
+      avg_protein_per_day: number
+      /** @description Average fat per day in grams */
+      avg_fat_per_day: number
+      /** @description Average carbs per day in grams */
+      avg_carbs_per_day: number
+      /** @description Average fiber per day in grams */
+      avg_fiber_per_day: number
+      /** @description Average sodium per day in milligrams */
+      avg_sodium_per_day: number
+      /** @description Daily nutrition breakdown */
+      daily_breakdown: components["schemas"]["DailySummary"][]
+    }
+    DailySummary: {
+      /**
+       * Format: date-time
+       * @description Date for this daily summary
+       */
+      date: string
+      /** @description Number of consumptions on this date */
+      consumption_count: number
+      /** @description Total calories for the day */
+      calories: number
+      /** @description Total protein in grams for the day */
+      protein_g: number
+      /** @description Total fat in grams for the day */
+      total_fat_g: number
+      /** @description Total carbohydrates in grams for the day */
+      total_carbs_g: number
+      /** @description Total fiber in grams for the day */
+      fiber_g: number
+      /** @description Total sodium in milligrams for the day */
+      sodium_mg: number
+    }
+    GoalsResponse: {
+      goals: components["schemas"]["Goals"]
+      user: components["schemas"]["User"]
+    }
+    Goals: {
+      /**
+       * @description Target amounts for each nutrient
+       * @example {
+       *       "calories": 2000,
+       *       "protein_g": 50,
+       *       "vitamin_c_mg": 90
+       *     }
+       */
+      targets: {
+        [key: string]: number
+      }
+      /**
+       * @description Upper limit amounts for each nutrient (where defined)
+       * @example {
+       *       "sodium_mg": 2300
+       *     }
+       */
+      upper_limits: {
+        [key: string]: number
+      }
+      /**
+       * @description Units for each nutrient
+       * @example {
+       *       "calories": "kcal",
+       *       "protein_g": "g",
+       *       "vitamin_c_mg": "mg"
+       *     }
+       */
+      units: {
+        [key: string]: string
+      }
+      /**
+       * @description Source of the goals (DRI defaults or custom overrides)
+       * @enum {string}
+       */
+      source: "dri" | "custom"
+      /**
+       * @description Name of the custom goal set (only present when source is "custom")
+       * @example Bulk Season
+       */
+      custom_name?: string
+      life_stage: components["schemas"]["LifeStage"]
+    }
+    LifeStage: {
+      /**
+       * @description User sex for DRI calculation
+       * @enum {string}
+       */
+      sex: "male" | "female" | "unspecified"
+      /**
+       * @description Age bracket used for DRI lookup
+       * @example 19-30 y
+       */
+      age_bracket: string
+    }
+    UpdateGoalsRequest: {
+      /**
+       * @description Custom name for the goal set (required for managing multiple goal sets)
+       * @example Bulk Season
+       */
+      name: string
+      /**
+       * @description Custom nutrition goal overrides
+       * @example {
+       *       "calories": 3000,
+       *       "protein_g": 180,
+       *       "vitamin_c_mg": 120
+       *     }
+       */
+      overrides: {
+        [key: string]: number
+      }
+    }
+    SetActiveGoalRequest: {
+      /**
+       * @description Name of the goal set to make active
+       * @example Bulk Season
+       */
+      name: string
+    }
+    GoalSetsResponse: {
+      /** @description List of all available goal sets */
+      goal_sets: components["schemas"]["GoalSetSummary"][]
+      /**
+       * @description Name of the currently active goal set
+       * @example Bulk Season
+       */
+      active_goal_name: string
+      user: components["schemas"]["User"]
+    }
+    GoalSetSummary: {
+      /**
+       * @description Name of the goal set
+       * @example Bulk Season
+       */
+      name: string
+      /**
+       * Format: date-time
+       * @description When the goal set was created
+       * @example 2023-01-01T00:00:00Z
+       */
+      created_at: string
+      /**
+       * Format: date-time
+       * @description When the goal set was last updated
+       * @example 2023-01-15T10:30:00Z
+       */
+      updated_at: string
+    }
+    TrendsResponse: {
+      /**
+       * @description Time series data for each requested metric
+       * @example {
+       *       "calories": [
+       *         {
+       *           "date": "2023-01-01T00:00:00Z",
+       *           "value": 2100
+       *         },
+       *         {
+       *           "date": "2023-01-02T00:00:00Z",
+       *           "value": 2250
+       *         }
+       *       ]
+       *     }
+       */
+      series: {
+        [key: string]: components["schemas"]["DataPoint"][]
+      }
+      user: components["schemas"]["User"]
+      date_range: {
+        /** Format: date-time */
+        start?: string
+        /** Format: date-time */
+        end?: string
+      }
+      /** @description Number of days in the time series */
+      days: number
+    }
+    DataPoint: {
+      /**
+       * Format: date-time
+       * @description Date for this data point
+       */
+      date: string
+      /** @description Nutrient value for this date */
+      value: number
+    }
+    ExportResponse: {
+      /** @description Time series data for each requested metric */
+      series: {
+        [key: string]: components["schemas"]["DataPoint"][]
+      }
+      user: components["schemas"]["User"]
+      date_range: {
+        /** Format: date-time */
+        start?: string
+        /** Format: date-time */
+        end?: string
+      }
+      /**
+       * @description Export format used
+       * @enum {string}
+       */
+      format: "csv" | "json"
+    }
+    UpdateConsumptionRequest: {
+      /** @description Updated items with nutrition information */
+      items: components["schemas"]["ItemWithNutrition"][]
+    }
+    DeleteResponse: {
+      /**
+       * @description Confirmation message
+       * @example Consumption deleted successfully
+       */
+      message: string
+      /** @description ID of the deleted consumption */
+      id: string
+    }
+    BiometricsResponse: {
+      biometrics?: components["schemas"]["UserBiometrics"]
+      calculated_metrics?: {
+        /** @description Calculated age in years */
+        age_years?: number
+        /** @description Basal Metabolic Rate (calories/day) */
+        bmr?: number
+        /** @description Total Daily Energy Expenditure (calories/day) */
+        tdee?: number
+        /** @description Body Mass Index */
+        bmi?: number
+      }
+    }
+    UserBiometrics: {
+      /**
+       * Format: date
+       * @description Date of birth
+       */
+      birth_date?: string
+      /**
+       * @description Biological sex for DRI calculations
+       * @enum {string}
+       */
+      sex?: "male" | "female" | "other" | "prefer_not_to_say"
+      /** @description Height in centimeters */
+      height_cm?: number
+      /** @description Weight in kilograms */
+      weight_kg?: number
+      /**
+       * @description Physical activity level
+       * @enum {string}
+       */
+      activity_level?:
+        | "sedentary"
+        | "lightly_active"
+        | "moderately_active"
+        | "very_active"
+        | "extra_active"
+    }
+    UpdateBiometricsRequest: {
+      /**
+       * Format: date
+       * @description Date of birth
+       */
+      birth_date?: string
+      /**
+       * @description Biological sex for DRI calculations
+       * @enum {string}
+       */
+      sex?: "male" | "female" | "other" | "prefer_not_to_say"
+      /** @description Height in centimeters */
+      height_cm?: number
+      /** @description Weight in kilograms */
+      weight_kg?: number
+      /**
+       * @description Physical activity level
+       * @enum {string}
+       */
+      activity_level?:
+        | "sedentary"
+        | "lightly_active"
+        | "moderately_active"
+        | "very_active"
+        | "extra_active"
+    }
+  }
+  responses: never
+  parameters: never
+  requestBodies: never
+  headers: never
+  pathItems: never
 }
-export type $defs = Record<string, never>;
+export type $defs = Record<string, never>
 export interface operations {
-    createConsumption: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": {
-                    /**
-                     * Format: binary
-                     * @description Audio file (webm, opus, mp3, wav)
-                     */
-                    audio: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Successful consumption analysis */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConsumptionResponse"];
-                };
-            };
-            /** @description Bad request (invalid multipart form, no audio file, etc.) */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Method not allowed */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    updateConsumption: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Consumption ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateConsumptionRequest"];
-            };
-        };
-        responses: {
-            /** @description Consumption updated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConsumptionResponse"];
-                };
-            };
-            /** @description Bad request (invalid request body, validation errors) */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Consumption not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    deleteConsumption: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Consumption ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Consumption deleted successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeleteResponse"];
-                };
-            };
-            /** @description Consumption not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getHealth: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Service is healthy */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HealthResponse"];
-                };
-            };
-            /** @description Method not allowed */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getConsumptions: {
-        parameters: {
-            query?: {
-                /** @description Comma-separated list of label names to filter by */
-                labels?: string;
-                /** @description Label matching strategy - 'any' matches consumptions with at least one of the labels, 'all' matches consumptions with all labels */
-                match?: "any" | "all";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of consumptions */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConsumptionsResponse"];
-                };
-            };
-            /** @description Method not allowed */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getNutritionSummary: {
-        parameters: {
-            query?: {
-                /** @description Start date (RFC3339 format) */
-                start?: string;
-                /** @description End date (RFC3339 format) */
-                end?: string;
-                /** @description Number of days to look back from today */
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Nutrition summary data */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NutritionSummaryResponse"];
-                };
-            };
-            /** @description Invalid parameters */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Access denied (subscription limitation) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description User not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Method not allowed */
-            405: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getGoals: {
-        parameters: {
-            query?: {
-                /** @description Name of the specific goal set to retrieve. If not provided, returns the active goal set. */
-                goal_name?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description User nutrition goals */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GoalsResponse"];
-                };
-            };
-            /** @description User not found or goal set not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    updateGoals: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateGoalsRequest"];
-            };
-        };
-        responses: {
-            /** @description Goals updated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GoalsResponse"];
-                };
-            };
-            /** @description Invalid request body */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Access denied (Pro subscription required) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getGoalSets: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of goal sets */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GoalSetsResponse"];
-                };
-            };
-            /** @description Access denied (Pro subscription required) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    deleteGoalSet: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Name of the goal set to delete */
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Goal set deleted successfully */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Cannot delete the active goal set */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Access denied (Pro subscription required) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Goal set not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    setActiveGoalSet: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SetActiveGoalRequest"];
-            };
-        };
-        responses: {
-            /** @description Active goal set updated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GoalsResponse"];
-                };
-            };
-            /** @description Access denied (Pro subscription required) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Goal set not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getLabels: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of user labels with usage counts */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LabelsResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    createLabel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LabelCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Label created successfully */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Label"];
-                };
-            };
-            /** @description Bad request (invalid color/name, validation errors) */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Label limit exceeded (100 labels per user) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Label name already exists for user */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    updateLabel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Label ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LabelUpdateRequest"];
-            };
-        };
-        responses: {
-            /** @description Label updated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Label"];
-                };
-            };
-            /** @description Bad request (validation errors) */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Label not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Label name already exists for user */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    deleteLabel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Label ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Label deleted successfully */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Label not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getConsumptionLabels: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Consumption ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Labels assigned to the consumption */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        labels?: components["schemas"]["Label"][];
-                    };
-                };
-            };
-            /** @description Consumption not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    assignConsumptionLabels: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Consumption ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AssignLabelsRequest"];
-            };
-        };
-        responses: {
-            /** @description Labels assigned successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        labels?: components["schemas"]["Label"][];
-                    };
-                };
-            };
-            /** @description Bad request (invalid label IDs) */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Consumption or label not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    unassignConsumptionLabel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Consumption ID */
-                id: string;
-                /** @description Label ID */
-                labelId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Label unassigned successfully */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Consumption or label assignment not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getConsumptionItemLabels: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Consumption item ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Labels assigned to the consumption item */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        labels?: components["schemas"]["Label"][];
-                    };
-                };
-            };
-            /** @description Consumption item not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    assignConsumptionItemLabels: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Consumption item ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AssignLabelsRequest"];
-            };
-        };
-        responses: {
-            /** @description Labels assigned successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        labels?: components["schemas"]["Label"][];
-                    };
-                };
-            };
-            /** @description Bad request (invalid label IDs) */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Consumption item or label not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    unassignConsumptionItemLabel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Consumption item ID */
-                id: string;
-                /** @description Label ID */
-                labelId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Label unassigned successfully */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Consumption item or label assignment not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getTrends: {
-        parameters: {
-            query?: {
-                /** @description Comma-separated list of metrics to include */
-                metrics?: string;
-                /** @description Start date (RFC3339 format) */
-                start?: string;
-                /** @description End date (RFC3339 format) */
-                end?: string;
-                /** @description Number of days to look back from today (alternative to start/end) */
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Nutrition trends data */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrendsResponse"];
-                };
-            };
-            /** @description Invalid parameters */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Access denied (subscription limitation) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description User not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    exportData: {
-        parameters: {
-            query: {
-                /** @description Export format */
-                format: "csv" | "json";
-                /** @description Start date (RFC3339 format) */
-                start?: string;
-                /** @description End date (RFC3339 format) */
-                end?: string;
-                /** @description Comma-separated list of metrics to include (defaults to common macros) */
-                metrics?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Exported data */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExportResponse"];
-                    "text/csv": string;
-                };
-            };
-            /** @description Invalid parameters */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Access denied (Pro subscription required) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description User not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getUserBiometrics: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description User biometrics data */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BiometricsResponse"];
-                };
-            };
-            /** @description User not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    updateUserBiometrics: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateBiometricsRequest"];
-            };
-        };
-        responses: {
-            /** @description Biometrics updated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BiometricsResponse"];
-                };
-            };
-            /** @description Invalid request data */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    deleteUserBiometrics: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Biometrics deleted successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeleteResponse"];
-                };
-            };
-            /** @description Biometrics not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
+  createConsumption: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "multipart/form-data": {
+          /**
+           * Format: binary
+           * @description Audio file (webm, opus, mp3, wav)
+           */
+          audio: string
+        }
+      }
+    }
+    responses: {
+      /** @description Successful consumption analysis */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ConsumptionResponse"]
+        }
+      }
+      /** @description Bad request (invalid multipart form, no audio file, etc.) */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Method not allowed */
+      405: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  updateConsumption: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Consumption ID */
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateConsumptionRequest"]
+      }
+    }
+    responses: {
+      /** @description Consumption updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ConsumptionResponse"]
+        }
+      }
+      /** @description Bad request (invalid request body, validation errors) */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Consumption not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  deleteConsumption: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Consumption ID */
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Consumption deleted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["DeleteResponse"]
+        }
+      }
+      /** @description Consumption not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  getHealth: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Service is healthy */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HealthResponse"]
+        }
+      }
+      /** @description Method not allowed */
+      405: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  getConsumptions: {
+    parameters: {
+      query?: {
+        /** @description Comma-separated list of label names to filter by */
+        labels?: string
+        /** @description Label matching strategy - 'any' matches consumptions with at least one of the labels, 'all' matches consumptions with all labels */
+        match?: "any" | "all"
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description List of consumptions */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ConsumptionsResponse"]
+        }
+      }
+      /** @description Method not allowed */
+      405: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  getNutritionSummary: {
+    parameters: {
+      query?: {
+        /** @description Start date (RFC3339 format) */
+        start?: string
+        /** @description End date (RFC3339 format) */
+        end?: string
+        /** @description Number of days to look back from today */
+        days?: number
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Nutrition summary data */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["NutritionSummaryResponse"]
+        }
+      }
+      /** @description Invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Access denied (subscription limitation) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description User not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Method not allowed */
+      405: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  getGoals: {
+    parameters: {
+      query?: {
+        /** @description Name of the specific goal set to retrieve. If not provided, returns the active goal set. */
+        goal_name?: string
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description User nutrition goals */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["GoalsResponse"]
+        }
+      }
+      /** @description User not found or goal set not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  updateGoals: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateGoalsRequest"]
+      }
+    }
+    responses: {
+      /** @description Goals updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["GoalsResponse"]
+        }
+      }
+      /** @description Invalid request body */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Access denied (Pro subscription required) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  getGoalSets: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description List of goal sets */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["GoalSetsResponse"]
+        }
+      }
+      /** @description Access denied (Pro subscription required) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  deleteGoalSet: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Name of the goal set to delete */
+        name: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Goal set deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Cannot delete the active goal set */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Access denied (Pro subscription required) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Goal set not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  setActiveGoalSet: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SetActiveGoalRequest"]
+      }
+    }
+    responses: {
+      /** @description Active goal set updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["GoalsResponse"]
+        }
+      }
+      /** @description Access denied (Pro subscription required) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Goal set not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  getLabels: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description List of user labels with usage counts */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["LabelsResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  createLabel: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LabelCreateRequest"]
+      }
+    }
+    responses: {
+      /** @description Label created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["Label"]
+        }
+      }
+      /** @description Bad request (invalid color/name, validation errors) */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Label limit exceeded (100 labels per user) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Label name already exists for user */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  updateLabel: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Label ID */
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LabelUpdateRequest"]
+      }
+    }
+    responses: {
+      /** @description Label updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["Label"]
+        }
+      }
+      /** @description Bad request (validation errors) */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Label not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Label name already exists for user */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  deleteLabel: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Label ID */
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Label deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Label not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  getConsumptionLabels: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Consumption ID */
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Labels assigned to the consumption */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": {
+            labels?: components["schemas"]["Label"][]
+          }
+        }
+      }
+      /** @description Consumption not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  assignConsumptionLabels: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Consumption ID */
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AssignLabelsRequest"]
+      }
+    }
+    responses: {
+      /** @description Labels assigned successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": {
+            labels?: components["schemas"]["Label"][]
+          }
+        }
+      }
+      /** @description Bad request (invalid label IDs) */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Consumption or label not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  unassignConsumptionLabel: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Consumption ID */
+        id: string
+        /** @description Label ID */
+        labelId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Label unassigned successfully */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Consumption or label assignment not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  getConsumptionItemLabels: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Consumption item ID */
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Labels assigned to the consumption item */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": {
+            labels?: components["schemas"]["Label"][]
+          }
+        }
+      }
+      /** @description Consumption item not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  assignConsumptionItemLabels: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Consumption item ID */
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AssignLabelsRequest"]
+      }
+    }
+    responses: {
+      /** @description Labels assigned successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": {
+            labels?: components["schemas"]["Label"][]
+          }
+        }
+      }
+      /** @description Bad request (invalid label IDs) */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Consumption item or label not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  unassignConsumptionItemLabel: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Consumption item ID */
+        id: string
+        /** @description Label ID */
+        labelId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Label unassigned successfully */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Consumption item or label assignment not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  getTrends: {
+    parameters: {
+      query?: {
+        /** @description Comma-separated list of metrics to include */
+        metrics?: string
+        /** @description Start date (RFC3339 format) */
+        start?: string
+        /** @description End date (RFC3339 format) */
+        end?: string
+        /** @description Number of days to look back from today (alternative to start/end) */
+        days?: number
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Nutrition trends data */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["TrendsResponse"]
+        }
+      }
+      /** @description Invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Access denied (subscription limitation) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description User not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  exportData: {
+    parameters: {
+      query: {
+        /** @description Export format */
+        format: "csv" | "json"
+        /** @description Start date (RFC3339 format) */
+        start?: string
+        /** @description End date (RFC3339 format) */
+        end?: string
+        /** @description Comma-separated list of metrics to include (defaults to common macros) */
+        metrics?: string
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Exported data */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ExportResponse"]
+          "text/csv": string
+        }
+      }
+      /** @description Invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Access denied (Pro subscription required) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description User not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  getUserBiometrics: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description User biometrics data */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["BiometricsResponse"]
+        }
+      }
+      /** @description User not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  updateUserBiometrics: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateBiometricsRequest"]
+      }
+    }
+    responses: {
+      /** @description Biometrics updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["BiometricsResponse"]
+        }
+      }
+      /** @description Invalid request data */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
+  deleteUserBiometrics: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Biometrics deleted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["DeleteResponse"]
+        }
+      }
+      /** @description Biometrics not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ErrorResponse"]
+        }
+      }
+    }
+  }
 }

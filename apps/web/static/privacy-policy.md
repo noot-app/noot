@@ -79,7 +79,7 @@ Your information may be transferred to and processed in countries other than you
 - **Standard Contractual Clauses**: For transfers to other countries
 - **User Consent**: Where legally required
 
-*Note: We currently do not have representatives in the European Union or United Kingdom.*
+_Note: We currently do not have representatives in the European Union or United Kingdom._
 
 ## Data Security
 
@@ -174,4 +174,4 @@ We will respond to your inquiries within a reasonable timeframe and in accordanc
 
 ---
 
-*This Privacy Policy is designed to comply with applicable privacy laws, including GDPR and CPRA. However, it does not constitute legal advice, and you should consult with legal counsel for specific legal questions.*
+_This Privacy Policy is designed to comply with applicable privacy laws, including GDPR and CPRA. However, it does not constitute legal advice, and you should consult with legal counsel for specific legal questions._

@@ -1,28 +1,30 @@
 <script lang="ts">
-  import { dev } from '$app/environment';
-  import { page } from '$app/stores';
-  import { navigating } from '$app/stores';
-  import { onMount } from 'svelte';
-  import { user } from '$lib/auth/store';
-  import { isSupabaseEnabled } from '$lib/supabase';
-  
-  let pageLoadTime = 0;
-  let memoryUsage = '';
-  let networkType = '';
-  let isHidden = false;
-  let navigationStartTime = 0;
-  let errorCount = 0;
-  let warningCount = 0;
-  
+  import { dev } from "$app/environment"
+  import { page } from "$app/stores"
+  import { navigating } from "$app/stores"
+  import { onMount } from "svelte"
+  import { user } from "$lib/auth/store"
+  import { isSupabaseEnabled } from "$lib/supabase"
+
+  let pageLoadTime = 0
+  let memoryUsage = ""
+  let networkType = ""
+  let isHidden = false
+  let navigationStartTime = 0
+  let errorCount = 0
+  let warningCount = 0
+
   // Original console methods
-  let originalError: typeof console.error;
-  let originalWarn: typeof console.warn;
-  let errorHandler: ((event: ErrorEvent) => void) | undefined;
-  let rejectionHandler: ((event: PromiseRejectionEvent) => void) | undefined;
-  
+  let originalError: typeof console.error
+  let originalWarn: typeof console.warn
+  let errorHandler: ((event: ErrorEvent) => void) | undefined
+  let rejectionHandler: ((event: PromiseRejectionEvent) => void) | undefined
+
   function copyDebugInfo() {
-    const userDisplay = $user ? `${$user.email} (unknown tier)` : 'Not logged in';
-    const authType = isSupabaseEnabled() ? 'Supabase' : 'Not Configured';
+    const userDisplay = $user
+      ? `${$user.email} (unknown tier)`
+      : "Not logged in"
+    const authType = isSupabaseEnabled() ? "Supabase" : "Not Configured"
     const debugInfo = `
 Dev Info:
 - Route: ${$page.url.pathname}
@@ -33,125 +35,134 @@ Dev Info:
 - Warnings: ${warningCount}
 - Auth Provider: ${authType}
 - User: ${userDisplay}
-    `.trim();
-    
+    `.trim()
+
     navigator.clipboard.writeText(debugInfo).then(() => {
-      console.log('Debug info copied to clipboard');
-    });
+      console.log("Debug info copied to clipboard")
+    })
   }
-  
+
   function setupConsoleMonitoring() {
     // Store original methods
-    originalError = console.error;
-    originalWarn = console.warn;
-    
+    originalError = console.error
+    originalWarn = console.warn
+
     // Override console.error
     console.error = (...args: any[]) => {
-      errorCount++;
-      originalError.apply(console, args);
-    };
-    
+      errorCount++
+      originalError.apply(console, args)
+    }
+
     // Override console.warn
     console.warn = (...args: any[]) => {
-      warningCount++;
-      originalWarn.apply(console, args);
-    };
-    
+      warningCount++
+      originalWarn.apply(console, args)
+    }
+
     // Listen for unhandled errors
     errorHandler = () => {
-      errorCount++;
-    };
-    window.addEventListener('error', errorHandler);
-    
+      errorCount++
+    }
+    window.addEventListener("error", errorHandler)
+
     // Listen for unhandled promise rejections
     rejectionHandler = () => {
-      errorCount++;
-    };
-    window.addEventListener('unhandledrejection', rejectionHandler);
+      errorCount++
+    }
+    window.addEventListener("unhandledrejection", rejectionHandler)
   }
-  
+
   function restoreConsoleMonitoring() {
     if (originalError && originalWarn) {
-      console.error = originalError;
-      console.warn = originalWarn;
+      console.error = originalError
+      console.warn = originalWarn
     }
-    
+
     if (errorHandler) {
-      window.removeEventListener('error', errorHandler);
+      window.removeEventListener("error", errorHandler)
     }
-    
+
     if (rejectionHandler) {
-      window.removeEventListener('unhandledrejection', rejectionHandler);
+      window.removeEventListener("unhandledrejection", rejectionHandler)
     }
   }
-  
+
   function clearCounts() {
-    errorCount = 0;
-    warningCount = 0;
+    errorCount = 0
+    warningCount = 0
   }
-  
+
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === '`' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    if (
+      event.key === "`" &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    ) {
       // Only toggle if not in an input field
-      const target = event.target as HTMLElement;
-      if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA' && !target.isContentEditable) {
-        event.preventDefault();
-        isHidden = !isHidden;
+      const target = event.target as HTMLElement
+      if (
+        target.tagName !== "INPUT" &&
+        target.tagName !== "TEXTAREA" &&
+        !target.isContentEditable
+      ) {
+        event.preventDefault()
+        isHidden = !isHidden
       }
     }
   }
-  
+
   onMount(() => {
     // Initial page load time
-    pageLoadTime = Math.round(performance.now());
-    
+    pageLoadTime = Math.round(performance.now())
+
     // Setup console monitoring
-    setupConsoleMonitoring();
-    
+    setupConsoleMonitoring()
+
     // Get memory usage if available
-    if ('memory' in performance) {
-      const mem = (performance as any).memory;
-      memoryUsage = `${Math.round(mem.usedJSHeapSize / 1024 / 1024)}MB`;
+    if ("memory" in performance) {
+      const mem = (performance as any).memory
+      memoryUsage = `${Math.round(mem.usedJSHeapSize / 1024 / 1024)}MB`
     }
-    
+
     // Get network information if available
-    if ('connection' in navigator) {
-      const conn = (navigator as any).connection;
-      networkType = conn?.effectiveType || 'unknown';
+    if ("connection" in navigator) {
+      const conn = (navigator as any).connection
+      networkType = conn?.effectiveType || "unknown"
     }
-    
+
     // Add global keydown listener
-    window.addEventListener('keydown', handleKeydown);
-    
+    window.addEventListener("keydown", handleKeydown)
+
     return () => {
-      window.removeEventListener('keydown', handleKeydown);
-      restoreConsoleMonitoring();
-    };
-  });
-  
+      window.removeEventListener("keydown", handleKeydown)
+      restoreConsoleMonitoring()
+    }
+  })
+
   // Update body class based on banner visibility
-  $: if (typeof document !== 'undefined') {
+  $: if (typeof document !== "undefined") {
     if (dev && !isHidden) {
-      document.body.classList.add('dev-mode');
+      document.body.classList.add("dev-mode")
     } else {
-      document.body.classList.remove('dev-mode');
+      document.body.classList.remove("dev-mode")
     }
   }
-  
+
   // Track navigation start time
   $: if ($navigating) {
-    navigationStartTime = performance.now();
+    navigationStartTime = performance.now()
   }
-  
+
   // Update page load time when navigation completes
   $: if (!$navigating && navigationStartTime > 0) {
-    pageLoadTime = Math.round(performance.now() - navigationStartTime);
-    navigationStartTime = 0;
-    
+    pageLoadTime = Math.round(performance.now() - navigationStartTime)
+    navigationStartTime = 0
+
     // Update memory usage on navigation
-    if ('memory' in performance) {
-      const mem = (performance as any).memory;
-      memoryUsage = `${Math.round(mem.usedJSHeapSize / 1024 / 1024)}MB`;
+    if ("memory" in performance) {
+      const mem = (performance as any).memory
+      memoryUsage = `${Math.round(mem.usedJSHeapSize / 1024 / 1024)}MB`
     }
   }
 </script>
@@ -173,30 +184,41 @@ Dev Info:
       {/if}
       <span class="dev-separator">•</span>
       <span class="dev-item">
-        Errors: <strong class="error-count" class:has-errors={errorCount > 0}>{errorCount}</strong>
+        Errors: <strong class="error-count" class:has-errors={errorCount > 0}
+          >{errorCount}</strong
+        >
       </span>
       <span class="dev-separator">•</span>
       <span class="dev-item">
-        Warnings: <strong class="warning-count" class:has-warnings={warningCount > 0}>{warningCount}</strong>
+        Warnings: <strong
+          class="warning-count"
+          class:has-warnings={warningCount > 0}>{warningCount}</strong
+        >
       </span>
       <span class="dev-separator">•</span>
       <span class="dev-item">
-        Auth: <strong class="auth-provider" class:supabase={isSupabaseEnabled()}>
-          {isSupabaseEnabled() ? 'Supabase' : 'Not Configured'}
+        Auth: <strong
+          class="auth-provider"
+          class:supabase={isSupabaseEnabled()}
+        >
+          {isSupabaseEnabled() ? "Supabase" : "Not Configured"}
         </strong>
         {#if !isSupabaseEnabled()}
-          <span class="security-warning" title="Authentication is not properly configured">⚠️</span>
+          <span
+            class="security-warning"
+            title="Authentication is not properly configured">⚠️</span
+          >
         {/if}
       </span>
       <span class="dev-separator">•</span>
       <span class="dev-item">
         User: <strong>
-          {$user ? `${$user.email}` : 'Not logged in'}
+          {$user ? `${$user.email}` : "Not logged in"}
         </strong>
       </span>
       <span class="dev-separator">•</span>
-      <button 
-        class="dev-button" 
+      <button
+        class="dev-button"
         on:click={copyDebugInfo}
         title="Copy debug info to clipboard"
       >
@@ -204,8 +226,8 @@ Dev Info:
       </button>
       {#if errorCount > 0 || warningCount > 0}
         <span class="dev-separator">•</span>
-        <button 
-          class="dev-button clear-button" 
+        <button
+          class="dev-button clear-button"
           on:click={clearCounts}
           title="Clear error and warning counts"
         >
@@ -228,13 +250,13 @@ Dev Info:
     background: linear-gradient(90deg, #660000, #800020, #660000);
     color: #f5f5f5;
     font-size: 11px;
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
     border-bottom: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     height: 20px;
     overflow: visible;
   }
-  
+
   .dev-banner-content {
     display: flex;
     align-items: center;
@@ -242,7 +264,7 @@ Dev Info:
     padding: 0 12px;
     height: 100%;
   }
-  
+
   .dev-label {
     background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -252,27 +274,27 @@ Dev Info:
     font-weight: bold;
     flex-shrink: 0;
   }
-  
+
   .dev-item {
     white-space: nowrap;
     flex-shrink: 0;
     color: #e0e0e0;
   }
-  
+
   .dev-item strong {
     color: #c0c0c0;
     font-weight: normal;
   }
-  
+
   .dev-hint {
     opacity: 0.6;
     font-size: 10px;
   }
-  
+
   .error-count {
     color: #c0c0c0;
   }
-  
+
   .error-count.has-errors {
     color: #ff6b6b;
     background: rgba(255, 107, 107, 0.1);
@@ -280,11 +302,11 @@ Dev Info:
     border-radius: 2px;
     border: 1px solid rgba(255, 107, 107, 0.3);
   }
-  
+
   .warning-count {
     color: #c0c0c0;
   }
-  
+
   .warning-count.has-warnings {
     color: #ffd93d;
     background: rgba(255, 217, 61, 0.1);
@@ -292,22 +314,22 @@ Dev Info:
     border-radius: 2px;
     border: 1px solid rgba(255, 217, 61, 0.3);
   }
-  
+
   .clear-button {
     background: rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.25);
   }
-  
+
   .clear-button:hover {
     background: rgba(255, 255, 255, 0.25);
   }
-  
+
   .dev-separator {
     opacity: 0.4;
     flex-shrink: 0;
     color: #c0c0c0;
   }
-  
+
   .dev-button {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -318,7 +340,7 @@ Dev Info:
     transition: background-color 0.2s ease;
     font-size: 10px;
   }
-  
+
   .dev-button:hover {
     background: rgba(255, 255, 255, 0.2);
   }
@@ -327,7 +349,7 @@ Dev Info:
   .auth-provider {
     color: #c0c0c0;
   }
-  
+
   .auth-provider.supabase {
     color: #10b981;
     background: rgba(16, 185, 129, 0.1);
@@ -335,20 +357,26 @@ Dev Info:
     border-radius: 2px;
     border: 1px solid rgba(16, 185, 129, 0.3);
   }
-  
+
   .security-warning {
     color: #ff6b6b;
     font-size: 10px;
     margin-left: 2px;
     animation: pulse 2s infinite;
   }
-  
+
   @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.6; }
-    100% { opacity: 1; }
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 1;
+    }
   }
-  
+
   /* Ensure content below banner doesn't get hidden */
   :global(body.dev-mode) {
     padding-top: 20px;

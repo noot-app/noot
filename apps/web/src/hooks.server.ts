@@ -1,37 +1,39 @@
-import { createServerClient } from '@supabase/ssr';
-import { redirect, type Handle } from '@sveltejs/kit';
-import { env } from '$env/dynamic/public';
-import type { Session } from '@supabase/supabase-js';
-import { getValidatedSession } from '$lib/utils.js';
-import { DEFAULT_REDIRECT_PATH, getRedirectParam } from '$lib/utils/redirect';
+import { createServerClient } from "@supabase/ssr"
+import { redirect, type Handle } from "@sveltejs/kit"
+import { env } from "$env/dynamic/public"
+import type { Session } from "@supabase/supabase-js"
+import { getValidatedSession } from "$lib/utils.js"
+import { DEFAULT_REDIRECT_PATH, getRedirectParam } from "$lib/utils/redirect"
 
 export const handle: Handle = async ({ event, resolve }) => {
   // Ensure environment variables are available
-  const supabaseUrl = env.PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY;
-  
+  const supabaseUrl = env.PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY
+
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables not configured');
-    return resolve(event);
+    console.warn("Supabase environment variables not configured")
+    return resolve(event)
   }
 
-  event.locals.supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll: () => event.cookies.getAll(),
-        setAll: (cookiesToSet: Array<{ name: string; value: string; options: Record<string, unknown> }>) => {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            event.cookies.set(name, value, { 
-              ...options, 
-              path: '/' 
-            });
-          });
-        },
+  event.locals.supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll: () => event.cookies.getAll(),
+      setAll: (
+        cookiesToSet: Array<{
+          name: string
+          value: string
+          options: Record<string, unknown>
+        }>,
+      ) => {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          event.cookies.set(name, value, {
+            ...options,
+            path: "/",
+          })
+        })
       },
-    }
-  ) as unknown as App.Locals['supabase'];
+    },
+  }) as unknown as App.Locals["supabase"]
 
   /**
    * We use getSession, as a function, rather than a static object
@@ -40,33 +42,41 @@ export const handle: Handle = async ({ event, resolve }) => {
    * things like auth state changes wouldn't correctly update data on pages.
    */
   event.locals.getSession = async (): Promise<Session | null> => {
-    return await getValidatedSession(event.locals.supabase);
+    return await getValidatedSession(event.locals.supabase)
   }
 
-  const session = await event.locals.getSession();
+  const session = await event.locals.getSession()
 
   /**
    * Only authenticated users can access these paths and their sub-paths.
    * We protect /summary, /profile, and /record routes.
    */
-  const protectedPaths = ['/summary', '/profile', '/record'];
-  const isProtectedPath = protectedPaths.some(path => 
-    event.url.pathname === path || event.url.pathname.startsWith(path + '/')
-  );
-  
+  const protectedPaths = ["/summary", "/profile", "/record"]
+  const isProtectedPath = protectedPaths.some(
+    (path) =>
+      event.url.pathname === path || event.url.pathname.startsWith(path + "/"),
+  )
+
   if (!session && isProtectedPath) {
-    throw redirect(303, '/login?redirect=' + encodeURIComponent(event.url.pathname + event.url.search));
+    throw redirect(
+      303,
+      "/login?redirect=" +
+        encodeURIComponent(event.url.pathname + event.url.search),
+    )
   }
 
   // If authenticated, avoid staying on auth pages. Respect the redirect query param when present.
-  if (session && (event.url.pathname === '/login' || event.url.pathname === '/signup')) {
-    const target = getRedirectParam(event.url, DEFAULT_REDIRECT_PATH);
-    throw redirect(303, target);
+  if (
+    session &&
+    (event.url.pathname === "/login" || event.url.pathname === "/signup")
+  ) {
+    const target = getRedirectParam(event.url, DEFAULT_REDIRECT_PATH)
+    throw redirect(303, target)
   }
 
   return resolve(event, {
     filterSerializedResponseHeaders(name) {
-      return name === 'content-range' || name === 'x-supabase-api-version'
+      return name === "content-range" || name === "x-supabase-api-version"
     },
-  });
-};
+  })
+}

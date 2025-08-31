@@ -6,13 +6,13 @@
  * Safely get a value from localStorage
  */
 export function getStorageItem(key: string): string | null {
-  if (typeof window === 'undefined') return null;
-  
+  if (typeof window === "undefined") return null
+
   try {
-    return localStorage.getItem(key);
+    return localStorage.getItem(key)
   } catch (error) {
-    console.warn(`Failed to get localStorage item ${key}:`, error);
-    return null;
+    console.warn(`Failed to get localStorage item ${key}:`, error)
+    return null
   }
 }
 
@@ -20,14 +20,14 @@ export function getStorageItem(key: string): string | null {
  * Safely set a value in localStorage
  */
 export function setStorageItem(key: string, value: string): boolean {
-  if (typeof window === 'undefined') return false;
-  
+  if (typeof window === "undefined") return false
+
   try {
-    localStorage.setItem(key, value);
-    return true;
+    localStorage.setItem(key, value)
+    return true
   } catch (error) {
-    console.warn(`Failed to set localStorage item ${key}:`, error);
-    return false;
+    console.warn(`Failed to set localStorage item ${key}:`, error)
+    return false
   }
 }
 
@@ -35,14 +35,14 @@ export function setStorageItem(key: string, value: string): boolean {
  * Safely remove a value from localStorage
  */
 export function removeStorageItem(key: string): boolean {
-  if (typeof window === 'undefined') return false;
-  
+  if (typeof window === "undefined") return false
+
   try {
-    localStorage.removeItem(key);
-    return true;
+    localStorage.removeItem(key)
+    return true
   } catch (error) {
-    console.warn(`Failed to remove localStorage item ${key}:`, error);
-    return false;
+    console.warn(`Failed to remove localStorage item ${key}:`, error)
+    return false
   }
 }
 
@@ -50,14 +50,14 @@ export function removeStorageItem(key: string): boolean {
  * Get and parse a JSON value from localStorage safely
  */
 export function getStorageJSON<T>(key: string, defaultValue: T): T {
-  const value = getStorageItem(key);
-  if (!value) return defaultValue;
-  
+  const value = getStorageItem(key)
+  if (!value) return defaultValue
+
   try {
-    return JSON.parse(value) as T;
+    return JSON.parse(value) as T
   } catch (error) {
-    console.warn(`Failed to parse JSON from localStorage ${key}:`, error);
-    return defaultValue;
+    console.warn(`Failed to parse JSON from localStorage ${key}:`, error)
+    return defaultValue
   }
 }
 
@@ -66,10 +66,10 @@ export function getStorageJSON<T>(key: string, defaultValue: T): T {
  */
 export function setStorageJSON<T>(key: string, value: T): boolean {
   try {
-    const jsonValue = JSON.stringify(value);
-    return setStorageItem(key, jsonValue);
+    const jsonValue = JSON.stringify(value)
+    return setStorageItem(key, jsonValue)
   } catch (error) {
-    console.warn(`Failed to stringify value for localStorage ${key}:`, error);
-    return false;
+    console.warn(`Failed to stringify value for localStorage ${key}:`, error)
+    return false
   }
 }

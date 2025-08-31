@@ -18,11 +18,11 @@
   let { children, data }: Props = $props()
 
   onMount(() => {
-    units.init();
-    
+    units.init()
+
     // Initialize auth with SSR session data
-  initAuth(data?.session);
-  });
+    initAuth(data?.session)
+  })
 </script>
 
 <!-- Adaptive favicon management -->

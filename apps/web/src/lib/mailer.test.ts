@@ -31,7 +31,11 @@ describe("mailer", () => {
         },
       })
 
-      expect(mockConsoleLog).toHaveBeenCalledWith("User email (stub):", mockUser, "Test")
+      expect(mockConsoleLog).toHaveBeenCalledWith(
+        "User email (stub):",
+        mockUser,
+        "Test",
+      )
     })
 
     it("should not send email if user is unsubscribed", async () => {
@@ -46,7 +50,11 @@ describe("mailer", () => {
         _template_properties: {},
       })
 
-      expect(mockConsoleLog).toHaveBeenCalledWith("User email (stub):", mockUser, "Test")
+      expect(mockConsoleLog).toHaveBeenCalledWith(
+        "User email (stub):",
+        mockUser,
+        "Test",
+      )
     })
   })
 
@@ -68,7 +76,7 @@ describe("mailer", () => {
       expect(mockConsoleLog).toHaveBeenCalledWith(
         "Templated email (stub):",
         "Test subject",
-        ["to@example.com"]
+        ["to@example.com"],
       )
     })
   })
@@ -82,7 +90,11 @@ describe("mailer", () => {
         body: "Test body",
       })
 
-      expect(mockConsoleLog).toHaveBeenCalledWith("Admin email (stub):", "Admin Test", "Test body")
+      expect(mockConsoleLog).toHaveBeenCalledWith(
+        "Admin email (stub):",
+        "Admin Test",
+        "Test body",
+      )
     })
   })
 })

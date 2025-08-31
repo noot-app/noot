@@ -1,272 +1,276 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { get } from 'svelte/store';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { get } from "svelte/store"
 
 // Mock browser environment
-const mockWindow = {} as any;
+const mockWindow = {} as any
 
 // Mock Supabase client
 const mockSupabaseClient = {
   auth: {
-    onAuthStateChange: vi.fn().mockReturnValue({ 
-      data: { subscription: { unsubscribe: vi.fn() } } 
+    onAuthStateChange: vi.fn().mockReturnValue({
+      data: { subscription: { unsubscribe: vi.fn() } },
     }),
     signInWithPassword: vi.fn(),
-    signUp: vi.fn(), 
+    signUp: vi.fn(),
     signOut: vi.fn(),
     resetPasswordForEmail: vi.fn(),
     signInWithOAuth: vi.fn(),
-    getSession: vi.fn().mockResolvedValue({ data: { session: null } })
-  }
-};
+    getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+  },
+}
 
 // Mock Supabase SSR
-vi.mock('@supabase/ssr', () => ({
+vi.mock("@supabase/ssr", () => ({
   createBrowserClient: vi.fn().mockReturnValue(mockSupabaseClient),
-  isBrowser: vi.fn().mockReturnValue(true)
-}));
+  isBrowser: vi.fn().mockReturnValue(true),
+}))
 
 // Mock environment
-vi.mock('$env/dynamic/public', () => ({
+vi.mock("$env/dynamic/public", () => ({
   env: {
-    PUBLIC_SUPABASE_URL: 'http://localhost:54321',
-    PUBLIC_SUPABASE_ANON_KEY: 'test-anon-key'
-  }
-}));
+    PUBLIC_SUPABASE_URL: "http://localhost:54321",
+    PUBLIC_SUPABASE_ANON_KEY: "test-anon-key",
+  },
+}))
 
 // Mock app navigation
-vi.mock('$app/environment', () => ({
-  browser: true
-}));
+vi.mock("$app/environment", () => ({
+  browser: true,
+}))
 
-vi.mock('$app/navigation', () => ({
-  invalidateAll: vi.fn().mockResolvedValue(undefined)
-}));
+vi.mock("$app/navigation", () => ({
+  invalidateAll: vi.fn().mockResolvedValue(undefined),
+}))
 
-describe('New Auth Store', () => {
+describe("New Auth Store", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.clearAllMocks()
     // Mock client-side environment
-    (global as any).window = mockWindow;
-  });
+    ;(global as any).window = mockWindow
+  })
 
   afterEach(() => {
-    delete (global as any).window;
-  });
+    delete (global as any).window
+  })
 
-  describe('stores initialization', () => {
-    it('should initialize session with null', async () => {
-      const { session } = await import('./store');
-      expect(get(session)).toBe(null);
-    });
+  describe("stores initialization", () => {
+    it("should initialize session with null", async () => {
+      const { session } = await import("./store")
+      expect(get(session)).toBe(null)
+    })
 
-    it('should initialize user as derived from session', async () => {
-      const { user, session } = await import('./store');
-      expect(get(user)).toBe(null);
-      
+    it("should initialize user as derived from session", async () => {
+      const { user, session } = await import("./store")
+      expect(get(user)).toBe(null)
+
       // Mock session
       session.set({
-        access_token: 'test-token',
-        refresh_token: 'refresh-token',
+        access_token: "test-token",
+        refresh_token: "refresh-token",
         expires_at: Date.now() + 3600,
         expires_in: 3600,
-        token_type: 'bearer',
+        token_type: "bearer",
         user: {
-          id: 'test-id',
-          email: 'test@example.com',
-          aud: 'authenticated',
-          created_at: '',
+          id: "test-id",
+          email: "test@example.com",
+          aud: "authenticated",
+          created_at: "",
           app_metadata: {},
           user_metadata: {},
-          is_anonymous: false
-        }
-      });
-      
+          is_anonymous: false,
+        },
+      })
+
       expect(get(user)).toEqual({
-        id: 'test-id',
-        email: 'test@example.com',
-        aud: 'authenticated',
-        created_at: '',
+        id: "test-id",
+        email: "test@example.com",
+        aud: "authenticated",
+        created_at: "",
         app_metadata: {},
         user_metadata: {},
-        is_anonymous: false
-      });
-    });
+        is_anonymous: false,
+      })
+    })
 
-    it('should initialize isAuthenticated as derived from session', async () => {
-      vi.resetModules(); // Reset modules to ensure fresh state
-      const { isAuthenticated, session } = await import('./store');
-      
+    it("should initialize isAuthenticated as derived from session", async () => {
+      vi.resetModules() // Reset modules to ensure fresh state
+      const { isAuthenticated, session } = await import("./store")
+
       // Reset session to null to ensure clean state
-      session.set(null);
-      expect(get(isAuthenticated)).toBe(false);
-      
+      session.set(null)
+      expect(get(isAuthenticated)).toBe(false)
+
       // Mock session
       session.set({
-        access_token: 'test-token',
-        refresh_token: 'refresh-token',
+        access_token: "test-token",
+        refresh_token: "refresh-token",
         expires_at: Date.now() + 3600,
         expires_in: 3600,
-        token_type: 'bearer',
+        token_type: "bearer",
         user: {
-          id: 'test-id',
-          email: 'test@example.com',
-          aud: 'authenticated',
-          created_at: '',
+          id: "test-id",
+          email: "test@example.com",
+          aud: "authenticated",
+          created_at: "",
           app_metadata: {},
           user_metadata: {},
-          is_anonymous: false
-        }
-      });
-      
-      expect(get(isAuthenticated)).toBe(true);
-    });
-  });
-
-  describe('auth actions', () => {
-    it('should handle sign in', async () => {
-      mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
-        data: { 
-          user: { id: 'test-id', email: 'test@example.com' },
-          session: { access_token: 'token' }
+          is_anonymous: false,
         },
-        error: null
-      });
+      })
 
-      const { signIn } = await import('./store');
-      const result = await signIn('test@example.com', 'password');
-      
-      expect(result.error).toBe(null);
+      expect(get(isAuthenticated)).toBe(true)
+    })
+  })
+
+  describe("auth actions", () => {
+    it("should handle sign in", async () => {
+      mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
+        data: {
+          user: { id: "test-id", email: "test@example.com" },
+          session: { access_token: "token" },
+        },
+        error: null,
+      })
+
+      const { signIn } = await import("./store")
+      const result = await signIn("test@example.com", "password")
+
+      expect(result.error).toBe(null)
       expect(mockSupabaseClient.auth.signInWithPassword).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password'
-      });
-    });
+        email: "test@example.com",
+        password: "password",
+      })
+    })
 
-    it('should handle sign in errors', async () => {
-      const authError = { message: 'Invalid credentials', name: 'AuthError' };
+    it("should handle sign in errors", async () => {
+      const authError = { message: "Invalid credentials", name: "AuthError" }
       mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
         data: { user: null, session: null },
-        error: authError
-      });
+        error: authError,
+      })
 
-      const { signIn } = await import('./store');
-      const result = await signIn('test@example.com', 'wrong-password');
-      
-      expect(result.error).toEqual(authError);
-    });
+      const { signIn } = await import("./store")
+      const result = await signIn("test@example.com", "wrong-password")
 
-    it('should handle sign up', async () => {
+      expect(result.error).toEqual(authError)
+    })
+
+    it("should handle sign up", async () => {
       mockSupabaseClient.auth.signUp.mockResolvedValue({
-        data: { 
-          user: { id: 'test-id', email: 'test@example.com' },
-          session: null // Email confirmation required
+        data: {
+          user: { id: "test-id", email: "test@example.com" },
+          session: null, // Email confirmation required
         },
-        error: null
-      });
+        error: null,
+      })
 
-      const { signUp } = await import('./store');
-      const result = await signUp('test@example.com', 'password', { fullName: 'Test User' });
-      
-      expect(result.error).toBe(null);
+      const { signUp } = await import("./store")
+      const result = await signUp("test@example.com", "password", {
+        fullName: "Test User",
+      })
+
+      expect(result.error).toBe(null)
       expect(mockSupabaseClient.auth.signUp).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password',
+        email: "test@example.com",
+        password: "password",
         options: {
           data: {
-            full_name: 'Test User'
-          }
-        }
-      });
-    });
+            full_name: "Test User",
+          },
+        },
+      })
+    })
 
-    it('should handle sign out', async () => {
+    it("should handle sign out", async () => {
       mockSupabaseClient.auth.signOut.mockResolvedValue({
-        error: null
-      });
+        error: null,
+      })
 
-      const { signOut } = await import('./store');
-      const result = await signOut();
-      
-      expect(result.error).toBe(null);
-      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
-    });
+      const { signOut } = await import("./store")
+      const result = await signOut()
 
-    it('should handle reset password', async () => {
+      expect(result.error).toBe(null)
+      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled()
+    })
+
+    it("should handle reset password", async () => {
       mockSupabaseClient.auth.resetPasswordForEmail.mockResolvedValue({
-        error: null
-      });
+        error: null,
+      })
 
-      const { resetPassword } = await import('./store');
-      const result = await resetPassword('test@example.com');
-      
-      expect(result.error).toBe(null);
-      expect(mockSupabaseClient.auth.resetPasswordForEmail).toHaveBeenCalledWith('test@example.com');
-    });
-  });
+      const { resetPassword } = await import("./store")
+      const result = await resetPassword("test@example.com")
 
-  describe('getAccessToken', () => {
-    it('should return access token from session', async () => {
+      expect(result.error).toBe(null)
+      expect(
+        mockSupabaseClient.auth.resetPasswordForEmail,
+      ).toHaveBeenCalledWith("test@example.com")
+    })
+  })
+
+  describe("getAccessToken", () => {
+    it("should return access token from session", async () => {
       mockSupabaseClient.auth.getSession.mockResolvedValue({
-        data: { 
+        data: {
           session: {
-            access_token: 'test-access-token',
-            user: { id: 'test-id' }
-          }
-        }
-      });
+            access_token: "test-access-token",
+            user: { id: "test-id" },
+          },
+        },
+      })
 
-      const { getAccessToken } = await import('./store');
-      const token = await getAccessToken();
-      
-      expect(token).toBe('test-access-token');
-    });
+      const { getAccessToken } = await import("./store")
+      const token = await getAccessToken()
 
-    it('should return null when no session', async () => {
+      expect(token).toBe("test-access-token")
+    })
+
+    it("should return null when no session", async () => {
       mockSupabaseClient.auth.getSession.mockResolvedValue({
-        data: { session: null }
-      });
+        data: { session: null },
+      })
 
-      const { getAccessToken } = await import('./store');
-      const token = await getAccessToken();
-      
-      expect(token).toBe(null);
-    });
-  });
+      const { getAccessToken } = await import("./store")
+      const token = await getAccessToken()
 
-  describe('signInWithGitHub', () => {
-    it('should initiate GitHub OAuth sign in', async () => {
-      Object.defineProperty(window, 'location', {
-        value: { origin: 'http://localhost:3000' },
-        writable: true
-      });
+      expect(token).toBe(null)
+    })
+  })
 
-      mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ error: null });
+  describe("signInWithGitHub", () => {
+    it("should initiate GitHub OAuth sign in", async () => {
+      Object.defineProperty(window, "location", {
+        value: { origin: "http://localhost:3000" },
+        writable: true,
+      })
 
-      const { signInWithGitHub } = await import('./store');
-      const result = await signInWithGitHub('/profile');
-      
-      expect(result.error).toBe(null);
+      mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ error: null })
+
+      const { signInWithGitHub } = await import("./store")
+      const result = await signInWithGitHub("/profile")
+
+      expect(result.error).toBe(null)
       expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
-        provider: 'github',
+        provider: "github",
         options: {
-          redirectTo: 'http://localhost:3000/auth/callback?redirect=%2Fprofile'
-        }
-      });
-    });
+          redirectTo: "http://localhost:3000/auth/callback?redirect=%2Fprofile",
+        },
+      })
+    })
 
-    it('should handle GitHub OAuth errors', async () => {
-      Object.defineProperty(window, 'location', {
-        value: { origin: 'http://localhost:3000' },
-        writable: true
-      });
+    it("should handle GitHub OAuth errors", async () => {
+      Object.defineProperty(window, "location", {
+        value: { origin: "http://localhost:3000" },
+        writable: true,
+      })
 
-      const error = { message: 'OAuth provider error', name: 'oauth_error' };
-      mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ error });
+      const error = { message: "OAuth provider error", name: "oauth_error" }
+      mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ error })
 
-      const { signInWithGitHub } = await import('./store');
-      const result = await signInWithGitHub();
-      
-      expect(result.error).toEqual(error);
-    });
-  });
-});
+      const { signInWithGitHub } = await import("./store")
+      const result = await signInWithGitHub()
+
+      expect(result.error).toEqual(error)
+    })
+  })
+})
