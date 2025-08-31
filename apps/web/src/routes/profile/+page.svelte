@@ -960,7 +960,7 @@
                       on:click={deleteBiometrics}
                       disabled={savingBiometrics}
                     >
-                      🗑️ Delete
+                      Delete
                     </button>
                   {:else}
                     <div></div>
