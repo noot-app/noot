@@ -2,9 +2,6 @@ import createClient from 'openapi-fetch';
 import { env } from '$env/dynamic/public';
 import type { paths } from './schema';
 
-// Debug logging for API base URL (can remove after confirming it works)
-console.log('API Base URL (runtime):', env.PUBLIC_API_BASE_URL);
-
 // Create base client with runtime environment variable
 const baseClient = createClient<paths>({ 
   baseUrl: env.PUBLIC_API_BASE_URL || 'https://api.nootapp.io/api/v1'
