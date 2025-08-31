@@ -246,15 +246,15 @@ func TestUserCreationFlow(t *testing.T) {
 				description string
 				color       string
 			}{
-				"breakfast":     {"", "FFD700"},
-				"lunch":         {"", "74B986"},
-				"dinner":        {"", "1E90FF"},
-				"snack":         {"A small snack or light bite", "9B59B6"},
-				"drink":         {"A beverage", "9CA3AF"},
-				"trigger-food":  {"The consumption contained a known trigger food", "FF0000"},
-				"high-protein":  {"High protein foods", "2DD4BF"},
-				"meal-prep":     {"Pre-prepared meals", "A8E6CF"},
-				"restaurant":    {"Restaurant or takeout meal", "F59E0B"},
+				"breakfast":    {"", "FFD700"},
+				"lunch":        {"", "74B986"},
+				"dinner":       {"", "1E90FF"},
+				"snack":        {"A small snack or light bite", "9B59B6"},
+				"drink":        {"A beverage", "9CA3AF"},
+				"trigger-food": {"The consumption contained a known trigger food", "FF0000"},
+				"high-protein": {"High protein foods", "2DD4BF"},
+				"meal-prep":    {"Pre-prepared meals", "A8E6CF"},
+				"restaurant":   {"Restaurant or takeout meal", "F59E0B"},
 			}
 
 			foundLabels := make(map[string]bool)
@@ -303,15 +303,15 @@ func TestUserCreationFlow(t *testing.T) {
 				description string
 				color       string
 			}{
-				"breakfast":     {"", "FFD700"},
-				"lunch":         {"", "74B986"},
-				"dinner":        {"", "1E90FF"},
-				"snack":         {"A small snack or light bite", "9B59B6"},
-				"drink":         {"A beverage", "9CA3AF"},
-				"trigger-food":  {"The consumption contained a known trigger food", "FF0000"},
-				"high-protein":  {"High protein foods", "2DD4BF"},
-				"meal-prep":     {"Pre-prepared meals", "A8E6CF"},
-				"restaurant":    {"Restaurant or takeout meal", "F59E0B"},
+				"breakfast":    {"", "FFD700"},
+				"lunch":        {"", "74B986"},
+				"dinner":       {"", "1E90FF"},
+				"snack":        {"A small snack or light bite", "9B59B6"},
+				"drink":        {"A beverage", "9CA3AF"},
+				"trigger-food": {"The consumption contained a known trigger food", "FF0000"},
+				"high-protein": {"High protein foods", "2DD4BF"},
+				"meal-prep":    {"Pre-prepared meals", "A8E6CF"},
+				"restaurant":   {"Restaurant or takeout meal", "F59E0B"},
 			}
 
 			foundLabels := make(map[string]bool)

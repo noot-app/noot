@@ -10,6 +10,7 @@
   export let min: string | number | undefined = undefined;
   export let max: string | number | undefined = undefined;
   export let step: string | number | undefined = undefined;
+  export let maxlength: number | undefined = undefined;
   export let helpText: string = '';
   export let error: string = '';
   
@@ -39,6 +40,7 @@
     {min}
     {max}
     {step}
+  {maxlength}
     class="input input-bordered {sizeClass} {inputClass} {hasError ? 'input-error' : ''}"
     bind:value
   />

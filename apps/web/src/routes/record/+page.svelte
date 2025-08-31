@@ -4,6 +4,8 @@
   import Goals from "$lib/components/Goals.svelte";
   import NutrientComposition from "$lib/components/NutrientComposition.svelte";
   import Card from "$lib/components/Card.svelte";
+  import Label from '$lib/components/Label.svelte';
+  import TagIcon from '$lib/components/icons/Tag.svelte';
   import { getAppName } from "$lib/utils/app-info";
 
   // Get app name from runtime environment
@@ -700,9 +702,7 @@
             <div class="card-body">
               <div class="flex justify-between items-center mb-4">
                 <h3 class="card-title text-sm flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
+                  <TagIcon className="w-4 h-4" />
                   Labels
                 </h3>
                 
@@ -727,9 +727,7 @@
                     {#each Array.from(currentLabels) as labelName}
                       {@const labelData = availableLabels.find(l => l.name === labelName)}
                       {#if labelData}
-                        <div class="badge badge-lg" style="background-color: #{labelData.color}; color: white;">
-                          {labelData.name}
-                        </div>
+                        <Label name={labelData.name} color={labelData.color} />
                       {/if}
                     {/each}
                   </div>
@@ -772,7 +770,7 @@
                           <div class="flex items-center gap-2">
                             <div 
                               class="w-3 h-3 rounded-full"
-                              style="background-color: #{label.color};"
+                              style="background-color: {label.color?.startsWith('#') ? label.color : `#${label.color}`};"
                             ></div>
                             <span class="font-medium">{label.name}</span>
                           </div>

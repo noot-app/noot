@@ -5,7 +5,9 @@
   import Toast from '$lib/components/Toast.svelte';
   import FormField from '$lib/components/FormField.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-  import { parseErrorMessage, formatErrorForUser } from '$lib/utils/error-handling';
+  import Label from '$lib/components/Label.svelte';
+  import TagIcon from '$lib/components/icons/Tag.svelte';
+  import { formatErrorForUser } from '$lib/utils/error-handling';
   import type { paths } from '$lib/api/schema';
 
   type LabelsResponse = paths["/labels"]["get"]["responses"]["200"]["content"]["application/json"];
@@ -58,13 +60,10 @@
   async function loadLabels() {
     try {
       loading = true;
-      const response = await apiClient.GET('/labels', {
-        params: { query: { include_usage: true } }
-      });
+      const response = await apiClient.GET('/labels');
 
       if (response.error) {
-        const errorMsg = parseErrorMessage(response.error, 'Failed to load labels');
-        error = formatErrorForUser(errorMsg);
+        error = formatErrorForUser(response.error);
         return;
       }
 
@@ -109,9 +108,24 @@
   }
 
   function randomColor() {
-    const randomIndex = Math.floor(Math.random() * colorPalette.length);
-    labelColor = `#${colorPalette[randomIndex]}`;
+    // Generate a random hex color (avoiding very light colors for readability)
+    function randByte() { return Math.floor(Math.random() * 256); }
+    function toHex(n: number) { return n.toString(16).padStart(2, '0'); }
+    function isTooLight(r: number, g: number, b: number) {
+      // Perceived luminance (ITU-R BT.709)
+      const luminance = 0.2126 * (r / 255) + 0.7152 * (g / 255) + 0.0722 * (b / 255);
+      return luminance > 0.85; // very light
+    }
+
+    let r = randByte(), g = randByte(), b = randByte();
+    // Re-roll a couple times if too light to keep text-white readable
+    for (let i = 0; i < 3 && isTooLight(r, g, b); i++) {
+      r = randByte(); g = randByte(); b = randByte();
+    }
+    labelColor = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   }
+
+  // Color normalization handled inside Label component
 
   async function saveLabel() {
     if (!canSave) return;
@@ -131,8 +145,7 @@
         });
 
         if (response.error) {
-          const errorMsg = parseErrorMessage(response.error, 'Failed to update label');
-          toast.error(formatErrorForUser(errorMsg));
+          toast.error(formatErrorForUser(response.error));
           return;
         }
 
@@ -154,8 +167,7 @@
         });
 
         if (response.error) {
-          const errorMsg = parseErrorMessage(response.error, 'Failed to create label');
-          toast.error(formatErrorForUser(errorMsg));
+          toast.error(formatErrorForUser(response.error));
           return;
         }
 
@@ -193,8 +205,7 @@
       });
 
       if (response.error) {
-        const errorMsg = parseErrorMessage(response.error, 'Failed to delete label');
-        toast.error(formatErrorForUser(errorMsg));
+        toast.error(formatErrorForUser(response.error));
         return;
       }
 
@@ -219,8 +230,8 @@
   <meta name="description" content="Manage your labels for organizing meals and nutrition tracking." />
 </svelte:head>
 
-<div class="min-h-screen bg-base-200 p-4">
-  <div class="max-w-4xl mx-auto">
+<div class="min-h-screen bg-base-100">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
     <!-- Header -->
     <div class="mb-8">
       <div class="flex items-center justify-between mb-4">
@@ -264,9 +275,7 @@
         <div class="card-body">
           {#if labels.length === 0}
             <div class="text-center py-12">
-              <svg class="w-16 h-16 mx-auto text-base-content/50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
+              <TagIcon className="w-16 h-16 mx-auto text-base-content/50 mb-4" />
               <h3 class="text-lg font-medium text-base-content/70 mb-2">No labels yet</h3>
               <p class="text-base-content/50 mb-4">Create your first label to start organizing your meals.</p>
               <button class="btn btn-primary" on:click={openCreateModal}>
@@ -279,18 +288,13 @@
                 <div class="flex items-center justify-between p-4 border border-base-300 rounded-lg hover:bg-base-50 transition-colors">
                   <div class="flex items-center gap-3">
                     <!-- Color badge -->
-                    <div 
-                      class="badge badge-lg px-4 py-3 text-white font-medium"
-                      style="background-color: #{label.color}; border-color: #{label.color};"
-                    >
-                      {label.name}
-                    </div>
+                    <Label name={label.name} color={label.color} />
                     <div class="flex flex-col">
                       {#if label.description}
                         <span class="text-sm text-base-content/70">{label.description}</span>
                       {/if}
                       <span class="text-xs text-base-content/50">
-                        {label.consumption_count} consumptions • {label.item_count} items
+                        {label.consumption_count} {label.consumption_count === 1 ? 'consumption' : 'consumptions'}
                       </span>
                     </div>
                   </div>
@@ -298,6 +302,8 @@
                   <div class="flex gap-2">
                     <button 
                       class="btn btn-ghost btn-sm"
+                      aria-label={`Edit label ${label.name}`}
+                      title={`Edit label ${label.name}`}
                       on:click={() => openEditModal(label)}
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -306,6 +312,8 @@
                     </button>
                     <button 
                       class="btn btn-ghost btn-sm text-error hover:bg-error hover:text-error-content"
+                      aria-label={`Delete label ${label.name}`}
+                      title={`Delete label ${label.name}`}
                       on:click={() => openDeleteModal(label)}
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +344,7 @@
           label="Label Name"
           bind:value={labelName}
           required
-          maxlength="39"
+          maxlength={39}
           placeholder="e.g. breakfast, healthy"
           error={!isValidName && labelName.length > 0 ? 'Name must be 1-39 characters and contain only letters, numbers, and hyphens' : ''}
         />
@@ -346,7 +354,7 @@
           id="labelDescription"
           label="Description (Optional)"
           bind:value={labelDescription}
-          maxlength="250"
+          maxlength={250}
           placeholder="Optional description for this label"
           error={!isValidDescription ? 'Description must be 250 characters or less' : ''}
         />
@@ -366,8 +374,10 @@
                 class:border-primary={labelColor === `#${color}`}
                 class:border-base-300={labelColor !== `#${color}`}
                 style="background-color: #{color}"
+                aria-label={`Select color #${color}`}
+                title={`Select color #${color}`}
                 on:click={() => selectColor(color)}
-              />
+              ></button>
             {/each}
           </div>
 
@@ -381,17 +391,13 @@
               class="input input-bordered input-sm flex-1"
               bind:value={labelColor}
               placeholder="#FFFFFF"
-              maxlength="7"
+              maxlength={7}
             />
           </div>
 
-          <!-- Color preview -->
-          <div class="flex items-center gap-2">
-            <div 
-              class="w-6 h-6 rounded border border-base-300"
-              style="background-color: {labelColor}"
-            />
-            <span class="text-sm text-base-content/70">Preview</span>
+          <!-- Color preview as full badge -->
+          <div class="flex items-center gap-2 mt-2">
+            <Label name={labelName || 'Label preview'} color={labelColor} ariaLabel="Label color preview" />
           </div>
 
           {#if !isValidColor && labelColor.length > 0}
@@ -418,19 +424,16 @@
 
 <!-- Delete Confirmation Modal -->
 <ConfirmModal
-  isOpen={showDeleteModal}
+  show={showDeleteModal}
   title="Delete Label"
-  message="Are you sure you want to delete the label '{labelToDelete?.name}'? This will remove it from all associated consumptions and items."
+  message="Are you sure you want to delete the label '{labelToDelete?.name}'? This will remove it from all associated consumptions."
   confirmText="Delete"
-  confirmClass="btn-error"
-  on:confirm={deleteLabel}
-  on:close={closeDeleteModal}
+  confirmVariant="error"
+  onConfirm={deleteLabel}
+  onCancel={closeDeleteModal}
 />
 
 <Toast />
 
 <style>
-  .badge-lg {
-    font-size: 0.875rem;
-  }
 </style>

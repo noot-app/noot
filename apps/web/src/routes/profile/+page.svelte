@@ -8,8 +8,10 @@
   import Toast from '$lib/components/Toast.svelte';
   import InfoButton from '$lib/components/InfoButton.svelte';
   import FormField from '$lib/components/FormField.svelte';
+  import Label from '$lib/components/Label.svelte';
   import FormSelect from '$lib/components/FormSelect.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+  import TagIcon from '$lib/components/icons/Tag.svelte';
   import { getStorageJSON, setStorageJSON } from '$lib/utils/secure-storage';
   import { parseErrorMessage, formatErrorForUser } from '$lib/utils/error-handling';
   import { getAppName } from "$lib/utils/app-info";
@@ -388,9 +390,7 @@
     try {
       labelsLoading = true;
       
-      const response = await apiClient.GET("/labels", {
-        params: { query: { include_usage: true } }
-      });
+  const response = await apiClient.GET("/labels");
       
       if (response.error) {
         throw new Error(`API Error: ${response.error}`);
@@ -1120,9 +1120,7 @@
         <div class="card-body p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="card-title flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
+              <TagIcon className="w-5 h-5" />
               Your Labels
             </h2>
             <a href="/labels" class="btn btn-primary btn-sm">
@@ -1137,9 +1135,7 @@
             </div>
           {:else if labels.length === 0}
             <div class="text-center py-8">
-              <svg class="w-12 h-12 mx-auto text-base-content/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
+              <TagIcon className="w-12 h-12 mx-auto text-base-content/30 mb-3" />
               <p class="text-base-content/50 text-sm mb-3">No labels found</p>
               <a href="/labels" class="btn btn-primary btn-sm">
                 Create Your First Label
@@ -1154,17 +1150,11 @@
                 {#each labels as label}
                   <div 
                     class="tooltip"
-                    data-tip={label.description || `${label.consumption_count} consumptions • ${label.item_count} items`}
+                    data-tip={label.description || `${label.consumption_count} ${label.consumption_count === 1 ? 'consumption' : 'consumptions'}`}
                   >
-                    <div 
-                      class="badge badge-lg px-3 py-2 text-white font-medium cursor-help"
-                      style="background-color: #{label.color}; border-color: #{label.color};"
-                    >
-                      {label.name}
-                      <span class="ml-1 text-xs opacity-80">
-                        {label.consumption_count + label.item_count}
-                      </span>
-                    </div>
+                    <Label name={label.name} color={label.color} className="cursor-help px-3 py-2">
+                      <span class="ml-1 text-xs opacity-80">{label.consumption_count}</span>
+                    </Label>
                   </div>
                 {/each}
               </div>
