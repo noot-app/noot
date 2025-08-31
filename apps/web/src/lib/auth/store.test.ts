@@ -14,6 +14,7 @@ const mockSupabaseClient = {
     signUp: vi.fn(), 
     signOut: vi.fn(),
     resetPasswordForEmail: vi.fn(),
+    signInWithOAuth: vi.fn(),
     getSession: vi.fn().mockResolvedValue({ data: { session: null } })
   }
 };
@@ -229,6 +230,43 @@ describe('New Auth Store', () => {
       const token = await getAccessToken();
       
       expect(token).toBe(null);
+    });
+  });
+
+  describe('signInWithGitHub', () => {
+    it('should initiate GitHub OAuth sign in', async () => {
+      Object.defineProperty(window, 'location', {
+        value: { origin: 'http://localhost:3000' },
+        writable: true
+      });
+
+      mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ error: null });
+
+      const { signInWithGitHub } = await import('./store');
+      const result = await signInWithGitHub('/profile');
+      
+      expect(result.error).toBe(null);
+      expect(mockSupabaseClient.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'github',
+        options: {
+          redirectTo: 'http://localhost:3000/auth/callback?redirect=%2Fprofile'
+        }
+      });
+    });
+
+    it('should handle GitHub OAuth errors', async () => {
+      Object.defineProperty(window, 'location', {
+        value: { origin: 'http://localhost:3000' },
+        writable: true
+      });
+
+      const error = { message: 'OAuth provider error', name: 'oauth_error' };
+      mockSupabaseClient.auth.signInWithOAuth.mockResolvedValue({ error });
+
+      const { signInWithGitHub } = await import('./store');
+      const result = await signInWithGitHub();
+      
+      expect(result.error).toEqual(error);
     });
   });
 });

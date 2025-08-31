@@ -183,6 +183,63 @@ export async function resetPassword(email: string): Promise<{ error: AuthError |
 }
 
 /**
+ * Sign in with GitHub OAuth
+ */
+export async function signInWithGitHub(redirectToPath = '/'): Promise<{ error: AuthError | null }> {
+  const supabase = getBrowserClient();
+  if (!supabase) {
+    return { error: { message: 'Supabase not configured', name: 'configuration_error' } as AuthError };
+  }
+
+  if (!browser) {
+    return { error: { message: 'OAuth only available in browser', name: 'browser_required' } as AuthError };
+  }
+
+  // Build callback URL with redirect parameter
+  const callbackUrl = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectToPath)}`;
+  
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'github',
+    options: {
+      redirectTo: callbackUrl
+    }
+  });
+
+  return { error };
+}
+
+/**
+ * Sign in with Google OAuth
+ */
+export async function signInWithGoogle(redirectToPath = '/'): Promise<{ error: AuthError | null }> {
+  const supabase = getBrowserClient();
+  if (!supabase) {
+    return { error: { message: 'Supabase not configured', name: 'configuration_error' } as AuthError };
+  }
+
+  if (!browser) {
+    return { error: { message: 'OAuth only available in browser', name: 'browser_required' } as AuthError };
+  }
+
+  // Build callback URL with redirect parameter
+  const callbackUrl = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectToPath)}`;
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: callbackUrl,
+      // Request offline access and consent to obtain provider_refresh_token when needed
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent'
+      }
+    }
+  });
+
+  return { error };
+}
+
+/**
  * Get the current access token for API requests
  */
 export async function getAccessToken(): Promise<string | null> {
