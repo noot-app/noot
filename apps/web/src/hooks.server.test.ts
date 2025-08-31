@@ -70,7 +70,7 @@ describe('hooks.server handle', () => {
       throw new Error('Expected redirect to be thrown');
     } catch (e: any) {
       expect(e.status).toBe(303);
-      expect(decodeURIComponent(e.location)).toBe('/login?returnUrl=/profile');
+      expect(decodeURIComponent(e.location)).toBe('/login?redirect=/profile');
     }
   });
 

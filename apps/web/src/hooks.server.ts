@@ -54,7 +54,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   );
   
   if (!session && isProtectedPath) {
-    throw redirect(303, '/login?returnUrl=' + encodeURIComponent(event.url.pathname + event.url.search));
+    throw redirect(303, '/login?redirect=' + encodeURIComponent(event.url.pathname + event.url.search));
   }
 
   return resolve(event, {

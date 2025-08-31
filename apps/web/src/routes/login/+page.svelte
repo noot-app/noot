@@ -13,7 +13,7 @@
   let redirecting = false; // Prevent multiple simultaneous redirects
 
   // Get return URL from query params
-  const returnUrl = $page.url.searchParams.get('returnUrl') || '/';
+  const redirect = $page.url.searchParams.get('redirect') || '/';
 
   // Redirect if already authenticated
   onMount(() => {
@@ -21,7 +21,7 @@
       if (currentUser && !redirecting) {
         redirecting = true;
         loading = false; // Reset loading state on successful auth
-        goto(returnUrl).catch((err) => {
+        goto(redirect).catch((err) => {
           console.error('❌ Navigation failed:', err);
           redirecting = false; // Reset on failure
           loading = false;
@@ -73,7 +73,7 @@
   }
 
   function handleSignUpRedirect() {
-    goto(`/signup?returnUrl=${encodeURIComponent(returnUrl)}`);
+    goto(`/signup?redirect=${encodeURIComponent(redirect)}`);
   }
 
   function handleResetPassword() {
