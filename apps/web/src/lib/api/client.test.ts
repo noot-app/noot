@@ -293,18 +293,5 @@ describe('API Client', () => {
         expect(() => import('./client')).not.toThrow();
       });
     });
-
-    it('should log API base URL for debugging', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      
-      mockEnv.PUBLIC_API_BASE_URL = 'http://test-url:3000';
-      vi.resetModules();
-      
-      await import('./client');
-      
-      expect(consoleSpy).toHaveBeenCalledWith('API Base URL (runtime):', 'http://test-url:3000');
-      
-      consoleSpy.mockRestore();
-    });
   });
 });

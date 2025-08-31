@@ -3,8 +3,10 @@ import { env } from '$env/dynamic/public';
 import type { paths } from './schema';
 
 // Create base client with runtime environment variable
+const apiBaseUrl = env.PUBLIC_API_BASE_URL || 'https://api.nootapp.io/api/v1';
+
 const baseClient = createClient<paths>({ 
-  baseUrl: env.PUBLIC_API_BASE_URL || 'https://api.nootapp.io/api/v1'
+  baseUrl: apiBaseUrl
 });
 
 // Get access token from the new auth system

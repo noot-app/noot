@@ -22,13 +22,21 @@
   let availableLabels: any[] = [];
   let isLoadingLabels = false;
   let isAddingLabel = false;
+  // Prevent repeated fetches when the list is empty or after first successful/failed attempt
+  let labelsLoaded = false;
   let pendingLabels: Set<string> = new Set(); // Labels to be applied
   let currentLabels: Set<string> = new Set(); // Currently applied labels
   let isEditingLabels = false;
+  
+  function retryLoadLabels() {
+    if (!consumptionId) return;
+    labelsLoaded = false;
+    loadLabels();
+  }
 
   // Load user's available labels
   async function loadLabels() {
-    if (isLoadingLabels) return;
+  if (isLoadingLabels || labelsLoaded) return;
     
     try {
       isLoadingLabels = true;
@@ -42,18 +50,36 @@
         return;
       }
       
-      availableLabels = response.data?.labels || [];
+  availableLabels = response.data?.labels || [];
       console.log('Loaded labels:', availableLabels);
 
       // Initialize current labels from result
       if (result?.labels) {
         currentLabels = new Set(result.labels.map((l: any) => l.name));
         pendingLabels = new Set(currentLabels);
+      } else if (consumptionId) {
+        // If result doesn't include labels, fetch labels assigned to this consumption
+        try {
+          const assigned = await apiClient.GET('/consumption/{id}/labels', {
+            params: { path: { id: consumptionId } }
+          });
+          if (!assigned.error) {
+            const assignedLabels = assigned.data?.labels || [];
+            currentLabels = new Set(assignedLabels.map((l: any) => l.name));
+            pendingLabels = new Set(currentLabels);
+          } else {
+            console.warn('Failed to load consumption labels:', assigned.error);
+          }
+        } catch (e) {
+          console.warn('Error loading consumption labels:', e);
+        }
       }
     } catch (err) {
       console.error('Error loading labels:', err);
     } finally {
       isLoadingLabels = false;
+  // Mark as loaded even if empty or on error to avoid tight reactive loops
+  labelsLoaded = true;
     }
   }
 
@@ -158,8 +184,8 @@
   function startLabelEditing() {
     isEditingLabels = true;
     pendingLabels = new Set(currentLabels);
-  }  // Load labels when we have a consumption ID
-  $: if (consumptionId && availableLabels.length === 0) {
+  }  // Load labels when we have a consumption ID (guarded to only load once)
+  $: if (consumptionId && !labelsLoaded) {
     loadLabels();
   }
 
@@ -234,6 +260,7 @@
       transcript = "";
       result = null;
       consumptionId = null;
+  labelsLoaded = false; // new recording cycle
 
       const formData = new FormData();
       formData.append('audio', audioBlob, 'audio.webm');
@@ -320,6 +347,7 @@
       result = null;
       transcript = "";
       consumptionId = null;
+  labelsLoaded = false;
       isEditing = false;
       status = "Ready to record";
     } catch (err) {
@@ -666,8 +694,8 @@
           </Card>
         {/if}
 
-        <!-- Labels Section -->
-        {#if consumptionId && availableLabels.length > 0}
+  <!-- Labels Section -->
+  {#if consumptionId}
           <div class="card bg-base-200 shadow-lg">
             <div class="card-body">
               <div class="flex justify-between items-center mb-4">
@@ -706,13 +734,24 @@
                     {/each}
                   </div>
                 {:else}
-                  <p class="text-sm text-base-content/70">No labels applied to this meal</p>
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm text-base-content/70">No labels applied to this meal</p>
+                    {#if availableLabels.length === 0 && !isLoadingLabels}
+                      <button class="btn btn-xs" on:click={retryLoadLabels}>Load labels</button>
+                    {/if}
+                  </div>
                 {/if}
               {/if}
 
               <!-- Label Selection Interface (GitHub-style) -->
               {#if isEditingLabels}
                 <div class="space-y-4">
+                  {#if availableLabels.length === 0 && !isLoadingLabels}
+                    <div class="flex items-center gap-2">
+                      <p class="text-sm text-base-content/70">No labels available for selection.</p>
+                      <button class="btn btn-xs" on:click={retryLoadLabels}>Retry</button>
+                    </div>
+                  {/if}
                   <div class="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
                     {#each availableLabels as label}
                       {@const isSelected = pendingLabels.has(label.name)}
@@ -906,6 +945,7 @@
                 result = null;
                 transcript = "";
                 consumptionId = null;
+                labelsLoaded = false;
                 isEditing = false;
                 availableLabels = [];  // Reset labels for new recording
                 currentLabels = new Set();
