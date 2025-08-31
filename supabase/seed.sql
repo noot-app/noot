@@ -100,6 +100,3 @@ WHERE email = 'monalisa@birki.io';
 -- Note: Alice remains 'free' tier as set by the trigger
 -- Note: Application users will be created automatically by the authentication trigger
 -- when these auth.users are inserted, so they should now appear in public.profiles table.
-
--- Note: Default labels are now automatically created for each user by the handle_new_user() trigger
--- No need to manually insert labels here as they will be created when the user profiles are created
