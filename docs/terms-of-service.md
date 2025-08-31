@@ -1,0 +1,288 @@
+# Terms of Service
+
+**Last Updated:** August 31, 2024
+
+**Contact Information:** support@nootapp.io
+
+## Agreement to Terms
+
+Welcome to Noot, an AI-powered nutrition tracking application. These Terms of Service ("Terms") constitute a legally binding agreement between you and Noot Inc. ("Noot," "we," "us," or "our") governing your use of our application, website, and related services (collectively, the "Service").
+
+By accessing or using our Service, you agree to be bound by these Terms. If you do not agree to these Terms, you may not use our Service.
+
+## Eligibility
+
+### Age Requirements
+
+You must be at least 13 years old to use our Service. If you are between 13 and 18 years old, you must have permission from a parent or guardian and they must agree to these Terms on your behalf.
+
+### Capacity
+
+You represent that you have the legal capacity to enter into this agreement and that your use of the Service will not violate any applicable law or regulation.
+
+### Geographic Restrictions
+
+Our Service is provided from the United States. We make no representation that the Service is appropriate or available for use outside the United States.
+
+## Account Management
+
+### Account Creation
+
+To use certain features of our Service, you must create an account by providing accurate and complete information. You are responsible for:
+
+- Maintaining the confidentiality of your account credentials
+- All activities that occur under your account
+- Notifying us immediately of any unauthorized use
+
+### Account Accuracy
+
+You agree to provide accurate, current, and complete information and to update your information as necessary to maintain its accuracy.
+
+### Account Termination
+
+You may terminate your account at any time. We may suspend or terminate your account if you violate these Terms or for other reasons at our discretion, with or without notice.
+
+## Service Description
+
+### Core Features
+
+Noot provides AI-powered nutrition tracking services, including:
+
+- Audio recording and transcription of meal descriptions
+- Automated nutrition analysis and calorie counting
+- Daily, weekly, and monthly nutrition summaries
+- Personalized recommendations and insights
+- Goal tracking and progress monitoring
+
+### Beta Features
+
+Some features may be provided in beta or preview form. Beta features are provided "as is" without warranties and may be modified or discontinued at any time.
+
+## Content and Intellectual Property
+
+### Your Content
+
+You retain ownership of content you submit to our Service, including audio recordings and meal descriptions ("Your Content"). By submitting Your Content, you grant us a worldwide, non-exclusive, royalty-free license to use, process, and analyze Your Content to provide our Service.
+
+### Our Content
+
+The Service, including its design, functionality, text, graphics, and other content, is owned by Noot and is protected by intellectual property laws. You may not copy, modify, distribute, or create derivative works from our content without permission.
+
+### Feedback
+
+Any feedback, suggestions, or ideas you provide about our Service become our property and may be used without restriction or compensation to you.
+
+## Acceptable Use
+
+### Permitted Uses
+
+You may use our Service for personal, non-commercial purposes in accordance with these Terms.
+
+### Prohibited Uses
+
+You may not:
+
+- Use the Service for illegal activities or to violate others' rights
+- Upload harmful, offensive, or inappropriate content
+- Attempt to circumvent security measures or access restrictions
+- Interfere with the operation of the Service or other users' experience
+- Use automated tools to access the Service without permission
+- Reverse engineer, decompile, or attempt to extract source code
+- Resell, redistribute, or commercially exploit the Service
+
+## AI and Health Disclaimers
+
+### AI-Generated Content
+
+Our Service uses artificial intelligence to process audio recordings and generate nutrition analysis. AI-generated content:
+
+- May contain inaccuracies or errors
+- Should be reviewed and verified by users
+- Is provided for informational purposes only
+- May improve over time but is not guaranteed to be perfect
+
+### Health and Medical Disclaimer
+
+**IMPORTANT: NOOT IS NOT A MEDICAL SERVICE**
+
+- **Not Medical Advice**: Our Service provides nutritional information and tracking tools for informational purposes only and does not constitute medical advice, diagnosis, or treatment
+- **Not HIPAA Covered**: We are not a healthcare provider and are not subject to HIPAA regulations
+- **Consult Professionals**: Always consult qualified healthcare professionals for medical advice, diagnosis, or treatment
+- **No Warranties**: We make no warranties about the accuracy of nutrition information or its suitability for your health needs
+- **Emergency Situations**: Do not rely on our Service for medical emergencies
+
+### Nutrition Information Accuracy
+
+Nutrition information provided by our Service:
+
+- Is based on general databases and AI analysis
+- May not reflect exact nutritional content of specific foods
+- Should be used as estimates for tracking purposes
+- May require verification against official nutrition labels
+
+## Payment Terms
+
+### Subscription Services
+
+Certain features of our Service may require payment. Payment terms include:
+
+- **Billing**: Recurring subscriptions are billed in advance
+- **Payment Processing**: Payments are processed securely by Stripe
+- **Refunds**: Refund policies are available on our website
+- **Price Changes**: We may change prices with advance notice
+
+### Stripe Payment Processing
+
+Payment processing is handled by Stripe, Inc. By making payments, you agree to Stripe's Terms of Service and Privacy Policy.
+
+## Third-Party Services
+
+Our Service integrates with third-party services including:
+
+- **Stripe**: Payment processing
+- **Supabase**: Authentication and database services  
+- **Cloudflare**: Hosting and content delivery
+- **AI Service Providers**: Transcription and natural language processing
+
+Your use of these services is subject to their respective terms and policies.
+
+## Privacy
+
+Your privacy is important to us. Our Privacy Policy explains how we collect, use, and protect your information and is incorporated into these Terms by reference.
+
+## Service Availability
+
+### Uptime
+
+While we strive to provide reliable service, we do not guarantee uninterrupted access to our Service. The Service may be temporarily unavailable for maintenance, updates, or technical issues.
+
+### Service Changes
+
+We may modify, suspend, or discontinue any part of our Service at any time, with or without notice.
+
+## Limitation of Liability
+
+### Disclaimer of Warranties
+
+THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
+
+### Limitation of Damages
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, NOOT SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF DATA, REVENUE, OR PROFITS, ARISING FROM YOUR USE OF THE SERVICE.
+
+### Maximum Liability
+
+Our total liability to you for any claims arising from these Terms or your use of the Service shall not exceed the amount you paid us in the 12 months preceding the claim.
+
+## Indemnification
+
+You agree to indemnify and hold harmless Noot and its officers, directors, employees, and agents from any claims, damages, or expenses arising from:
+
+- Your use of the Service
+- Your violation of these Terms
+- Your violation of any third-party rights
+- Your Content or any content you submit
+
+## Governing Law and Dispute Resolution
+
+### Governing Law
+
+These Terms are governed by the laws of the State of California, United States, without regard to conflict of law principles.
+
+### Arbitration Agreement
+
+**PLEASE READ THIS SECTION CAREFULLY - IT AFFECTS YOUR LEGAL RIGHTS**
+
+Most disputes can be resolved through our customer support. For disputes that cannot be resolved informally, you and Noot agree to resolve disputes through binding arbitration instead of court proceedings.
+
+### Arbitration Rules
+
+- Arbitration will be conducted by the American Arbitration Association (AAA)
+- The arbitration will take place in California or via remote proceeding
+- The arbitrator's decision is final and binding
+- Each party pays their own attorney fees unless required by law
+
+### Class Action Waiver
+
+You agree that disputes must be brought individually and not as part of a class action, collective action, or representative proceeding.
+
+### Exceptions
+
+The arbitration requirement does not apply to:
+
+- Small claims court proceedings
+- Intellectual property disputes
+- Requests for injunctive relief
+
+## DMCA Copyright Policy
+
+We respect intellectual property rights and respond to valid DMCA takedown notices. If you believe your copyrighted work has been infringed, please contact us at support@nootapp.io with:
+
+- Description of the copyrighted work
+- Location of the infringing material
+- Your contact information
+- Statement of good faith belief
+- Statement of accuracy and authority
+- Electronic or physical signature
+
+## Export Controls
+
+The Service may be subject to export control laws. You agree not to export, re-export, or transfer the Service to any prohibited country, person, or entity.
+
+## Termination
+
+### Termination Rights
+
+Either party may terminate this agreement at any time. We may suspend or terminate your access immediately for violations of these Terms.
+
+### Effect of Termination
+
+Upon termination:
+
+- Your right to use the Service ends immediately
+- You remain liable for any charges incurred
+- Surviving provisions remain in effect
+- We may delete your account and data
+
+## General Provisions
+
+### Entire Agreement
+
+These Terms, together with our Privacy Policy, constitute the entire agreement between you and Noot.
+
+### Severability
+
+If any provision of these Terms is found invalid or unenforceable, the remaining provisions remain in full effect.
+
+### Waiver
+
+Our failure to enforce any provision does not constitute a waiver of our right to enforce it later.
+
+### Assignment
+
+We may assign these Terms without notice. You may not assign your rights without our written consent.
+
+### Updates to Terms
+
+We may update these Terms from time to time. We will notify you of material changes by:
+
+- Updating the "Last Updated" date
+- Sending email notifications
+- Displaying notices in the Service
+
+Continued use after changes constitutes acceptance of the new Terms.
+
+## Contact Information
+
+If you have questions about these Terms, please contact us:
+
+**Email:** support@nootapp.io
+
+**Mailing Address:** 
+Noot Inc.
+[Address to be provided]
+California, United States
+
+---
+
+*These Terms of Service are designed to comply with applicable laws and protect both users and Noot. However, they do not constitute legal advice, and you should consult with legal counsel for specific legal questions.*
