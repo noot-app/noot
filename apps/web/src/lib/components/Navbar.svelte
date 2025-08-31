@@ -37,8 +37,8 @@
   <div class="navbar-end">
     <!-- Mobile hamburger menu using DaisyUI's native dropdown -->
     <div class="dropdown dropdown-end lg:hidden">
-      <div tabindex="0" role="button" class="btn btn-square btn-ghost">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div tabindex="0" role="button" class="btn btn-square btn-ghost" aria-label="Open navigation menu">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </div>
@@ -48,19 +48,19 @@
           <li>
             <a 
               href={item.href} 
-              class="flex items-center gap-3"
+              class="flex items-center gap-3 py-3 px-4 min-h-[44px]"
               class:active={currentPath === item.href}
             >
               {#if item.icon === 'tag'}
-                <TagIcon className="w-5 h-5" />
+                <TagIcon className="w-6 h-6" />
               {:else if item.icon === 'user'}
-                <UserIcon className="w-5 h-5" />
+                <UserIcon className="w-6 h-6" />
               {:else if item.icon === 'chart-bar'}
-                <ChartBarIcon className="w-5 h-5" />
+                <ChartBarIcon className="w-6 h-6" />
               {:else if item.icon === 'microphone'}
-                <MicrophoneIcon className="w-5 h-5" />
+                <MicrophoneIcon className="w-6 h-6" />
               {:else}
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon} />
                 </svg>
               {/if}

@@ -234,13 +234,13 @@
   <div class="container mx-auto px-4 py-8 max-w-6xl">
     <!-- Header -->
     <div class="mb-8">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <div>
           <h1 class="text-3xl font-bold text-base-content">Labels</h1>
           <p class="text-base-content/70 mt-2">Organize your meals and nutrition tracking with custom labels.</p>
         </div>
         <button 
-          class="btn btn-primary"
+          class="btn btn-primary min-h-[44px] shrink-0"
           on:click={openCreateModal}
         >
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1320,7 +1320,7 @@
 <!-- Imperial System Meme Modal -->
 {#if showImperialModal}
   <div class="modal modal-open">
-    <div class="modal-box max-w-2xl">
+    <div class="modal-box max-w-2xl max-h-[90vh] overflow-y-auto">
       <div class="text-center space-y-6">
         <!-- Meme Header -->
         <div class="text-6xl">🚫</div>
@@ -1357,7 +1357,7 @@
         <!-- Acknowledgment Button -->
         <div class="modal-action justify-center">
           <button 
-            class="btn btn-success btn-lg"
+            class="btn btn-success btn-lg min-h-[44px]"
             on:click={closeImperialModal}
           >
             I acknowledge that the metric system is better

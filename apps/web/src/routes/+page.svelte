@@ -261,7 +261,7 @@
     <!-- Navigation Links -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-6 lg:mb-8">
       <div class="text-center space-y-2 lg:space-y-3">
-        <h6 class="font-semibold text-sm lg:text-base text-base-content mb-2 lg:mb-3">Product</h6>
+        <h4 class="font-semibold text-sm lg:text-base text-base-content mb-2 lg:mb-3">Product</h4>
         <div class="space-y-1 lg:space-y-2">
           <a href="#how-it-works" class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors">How it Works</a>
           <a href="/record" class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors">Features</a>
@@ -270,7 +270,7 @@
       </div>
       
       <div class="text-center space-y-2 lg:space-y-3">
-        <h6 class="font-semibold text-sm lg:text-base text-base-content mb-2 lg:mb-3">Company</h6>
+        <h4 class="font-semibold text-sm lg:text-base text-base-content mb-2 lg:mb-3">Company</h4>
         <div class="space-y-1 lg:space-y-2">
           <span class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed">About</span>
           <span class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed">Blog</span>
@@ -279,7 +279,7 @@
       </div>
       
       <div class="text-center space-y-2 lg:space-y-3">
-        <h6 class="font-semibold text-sm lg:text-base text-base-content mb-2 lg:mb-3">Legal</h6>
+        <h4 class="font-semibold text-sm lg:text-base text-base-content mb-2 lg:mb-3">Legal</h4>
         <div class="space-y-1 lg:space-y-2">
           <a href="/privacy-policy" class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors">Privacy Policy</a>
           <a href="/terms-of-service" class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors">Terms of Service</a>
@@ -288,7 +288,7 @@
       </div>
       
       <div class="text-center space-y-2 lg:space-y-3">
-        <h6 class="font-semibold text-sm lg:text-base text-base-content mb-2 lg:mb-3">Social</h6>
+        <h4 class="font-semibold text-sm lg:text-base text-base-content mb-2 lg:mb-3">Social</h4>
         <div class="space-y-1 lg:space-y-2">
           <a href="https://github.com/GrantBirki/noot" class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors" target="_blank" rel="noopener noreferrer">GitHub</a>
           <span class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed">Twitter</span>
