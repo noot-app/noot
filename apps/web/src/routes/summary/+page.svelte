@@ -11,7 +11,8 @@
   let currentView: "today" | "week" = "today"
   let isLoading = false
   let error = ""
-  let summaryData: any = null
+  let consumptionsData: any = null
+  let expandedMeals: Set<string> = new Set()
 
   onMount(() => {
     loadSummary()
@@ -74,7 +75,7 @@
         endDate = endOfToday.toISOString()
       }
 
-      const response = await apiClient.GET("/nutrition-summary", {
+      const response = await apiClient.GET("/consumptions", {
         params: {
           query: {
             start: startDate,
@@ -87,7 +88,7 @@
         throw new Error(`API Error: ${response.error}`)
       }
 
-      summaryData = response.data
+      consumptionsData = response.data
     } catch (err) {
       error = `Error loading summary: ${err}`
       console.error("Summary error:", err)
@@ -103,76 +104,87 @@
     }
   }
 
-  // Extract current nutrition values for goals comparison
-  $: currentNutrition = summaryData?.summary
-    ? {
-        // Basic macronutrients
-        calories: summaryData.summary.total_calories || 0,
-        protein_g: summaryData.summary.total_protein_g || 0,
-        total_carbs_g: summaryData.summary.total_carbs_g || 0,
-        total_fat_g: summaryData.summary.total_fat_g || 0,
-        dietary_fiber_g: summaryData.summary.total_fiber_g || 0,
-        sodium_mg: summaryData.summary.total_sodium_mg || 0,
+  function toggleMealExpansion(mealId: string) {
+    if (expandedMeals.has(mealId)) {
+      expandedMeals.delete(mealId)
+    } else {
+      expandedMeals.add(mealId)
+    }
+    expandedMeals = expandedMeals // trigger reactivity
+  }
 
-        // Fat types
-        saturated_fat_g: summaryData.summary.total_saturated_fat_g || 0,
-        trans_fat_g: summaryData.summary.total_trans_fat_g || 0,
-        monounsaturated_fat_g:
-          summaryData.summary.total_monounsaturated_fat_g || 0,
-        polyunsaturated_fat_g:
-          summaryData.summary.total_polyunsaturated_fat_g || 0,
-        omega3_ala_g: summaryData.summary.total_omega3_ala_g || 0,
-        omega3_epa_g: summaryData.summary.total_omega3_epa_g || 0,
-        omega3_dha_g: summaryData.summary.total_omega3_dha_g || 0,
-        omega6_g: summaryData.summary.total_omega6_g || 0,
-        cholesterol_mg: summaryData.summary.total_cholesterol_mg || 0,
-        alcohol_g: summaryData.summary.total_alcohol_g || 0,
+  // Calculate nutrition totals from consumptions data
+  $: nutritionTotals = consumptionsData?.consumptions
+    ? consumptionsData.consumptions.reduce((totals: any, consumption: any) => {
+        return {
+          calories: (totals.calories || 0) + (consumption.total_calories || 0),
+          protein_g: (totals.protein_g || 0) + (consumption.total_protein_g || 0),
+          total_carbs_g: (totals.total_carbs_g || 0) + (consumption.total_carbs_g || 0),
+          total_fat_g: (totals.total_fat_g || 0) + (consumption.total_fat_g || 0),
+          dietary_fiber_g: (totals.dietary_fiber_g || 0) + (consumption.dietary_fiber_g || 0),
+          sodium_mg: (totals.sodium_mg || 0) + (consumption.total_sodium_mg || 0),
+          
+          // Fat types
+          saturated_fat_g: (totals.saturated_fat_g || 0) + (consumption.saturated_fat_g || 0),
+          trans_fat_g: (totals.trans_fat_g || 0) + (consumption.trans_fat_g || 0),
+          monounsaturated_fat_g: (totals.monounsaturated_fat_g || 0) + (consumption.monounsaturated_fat_g || 0),
+          polyunsaturated_fat_g: (totals.polyunsaturated_fat_g || 0) + (consumption.polyunsaturated_fat_g || 0),
+          omega3_ala_g: (totals.omega3_ala_g || 0) + (consumption.omega3_ala_g || 0),
+          omega3_epa_g: (totals.omega3_epa_g || 0) + (consumption.omega3_epa_g || 0),
+          omega3_dha_g: (totals.omega3_dha_g || 0) + (consumption.omega3_dha_g || 0),
+          omega6_g: (totals.omega6_g || 0) + (consumption.omega6_g || 0),
+          cholesterol_mg: (totals.cholesterol_mg || 0) + (consumption.cholesterol_mg || 0),
+          alcohol_g: (totals.alcohol_g || 0) + (consumption.alcohol_g || 0),
 
-        // Sugar types
-        total_sugars_g: summaryData.summary.total_sugars_g || 0,
-        added_sugars_g: summaryData.summary.total_added_sugars_g || 0,
+          // Sugar types
+          total_sugars_g: (totals.total_sugars_g || 0) + (consumption.total_sugars_g || 0),
+          added_sugars_g: (totals.added_sugars_g || 0) + (consumption.added_sugars_g || 0),
 
-        // B-Complex vitamins
-        thiamine_mg: summaryData.summary.total_thiamine_mg || 0,
-        riboflavin_mg: summaryData.summary.total_riboflavin_mg || 0,
-        niacin_mg: summaryData.summary.total_niacin_mg || 0,
-        vitamin_b6_mg: summaryData.summary.total_vitamin_b6_mg || 0,
-        folate_mcg: summaryData.summary.total_folate_mcg || 0,
-        vitamin_b12_mcg: summaryData.summary.total_vitamin_b12_mcg || 0,
-        biotin_mcg: summaryData.summary.total_biotin_mcg || 0,
-        pantothenic_acid_mg: summaryData.summary.total_pantothenic_acid_mg || 0,
+          // B-Complex vitamins
+          thiamine_mg: (totals.thiamine_mg || 0) + (consumption.thiamine_mg || 0),
+          riboflavin_mg: (totals.riboflavin_mg || 0) + (consumption.riboflavin_mg || 0),
+          niacin_mg: (totals.niacin_mg || 0) + (consumption.niacin_mg || 0),
+          vitamin_b6_mg: (totals.vitamin_b6_mg || 0) + (consumption.vitamin_b6_mg || 0),
+          folate_mcg: (totals.folate_mcg || 0) + (consumption.folate_mcg || 0),
+          vitamin_b12_mcg: (totals.vitamin_b12_mcg || 0) + (consumption.vitamin_b12_mcg || 0),
+          biotin_mcg: (totals.biotin_mcg || 0) + (consumption.biotin_mcg || 0),
+          pantothenic_acid_mg: (totals.pantothenic_acid_mg || 0) + (consumption.pantothenic_acid_mg || 0),
 
-        // Fat-soluble vitamins
-        vitamin_a_mcg: summaryData.summary.total_vitamin_a_mcg || 0,
-        vitamin_d_mcg: summaryData.summary.total_vitamin_d_mcg || 0,
-        vitamin_e_mg: summaryData.summary.total_vitamin_e_mg || 0,
-        vitamin_k_mcg: summaryData.summary.total_vitamin_k_mcg || 0,
+          // Fat-soluble vitamins
+          vitamin_a_mcg: (totals.vitamin_a_mcg || 0) + (consumption.vitamin_a_mcg || 0),
+          vitamin_d_mcg: (totals.vitamin_d_mcg || 0) + (consumption.vitamin_d_mcg || 0),
+          vitamin_e_mg: (totals.vitamin_e_mg || 0) + (consumption.vitamin_e_mg || 0),
+          vitamin_k_mcg: (totals.vitamin_k_mcg || 0) + (consumption.vitamin_k_mcg || 0),
 
-        // Water-soluble vitamins
-        vitamin_c_mg: summaryData.summary.total_vitamin_c_mg || 0,
-        choline_mg: summaryData.summary.total_choline_mg || 0,
+          // Water-soluble vitamins
+          vitamin_c_mg: (totals.vitamin_c_mg || 0) + (consumption.vitamin_c_mg || 0),
+          choline_mg: (totals.choline_mg || 0) + (consumption.choline_mg || 0),
 
-        // Essential minerals
-        calcium_mg: summaryData.summary.total_calcium_mg || 0,
-        iron_mg: summaryData.summary.total_iron_mg || 0,
-        magnesium_mg: summaryData.summary.total_magnesium_mg || 0,
-        phosphorus_mg: summaryData.summary.total_phosphorus_mg || 0,
-        potassium_mg: summaryData.summary.total_potassium_mg || 0,
-        zinc_mg: summaryData.summary.total_zinc_mg || 0,
-        copper_mg: summaryData.summary.total_copper_mg || 0,
-        manganese_mg: summaryData.summary.total_manganese_mg || 0,
-        selenium_mcg: summaryData.summary.total_selenium_mcg || 0,
-        iodine_mcg: summaryData.summary.total_iodine_mcg || 0,
-        molybdenum_mcg: summaryData.summary.total_molybdenum_mcg || 0,
-        chromium_mcg: summaryData.summary.total_chromium_mcg || 0,
-        fluoride_mg: summaryData.summary.total_fluoride_mg || 0,
-        chloride_mg: summaryData.summary.total_chloride_mg || 0,
+          // Essential minerals
+          calcium_mg: (totals.calcium_mg || 0) + (consumption.calcium_mg || 0),
+          iron_mg: (totals.iron_mg || 0) + (consumption.iron_mg || 0),
+          magnesium_mg: (totals.magnesium_mg || 0) + (consumption.magnesium_mg || 0),
+          phosphorus_mg: (totals.phosphorus_mg || 0) + (consumption.phosphorus_mg || 0),
+          potassium_mg: (totals.potassium_mg || 0) + (consumption.potassium_mg || 0),
+          zinc_mg: (totals.zinc_mg || 0) + (consumption.zinc_mg || 0),
+          copper_mg: (totals.copper_mg || 0) + (consumption.copper_mg || 0),
+          manganese_mg: (totals.manganese_mg || 0) + (consumption.manganese_mg || 0),
+          selenium_mcg: (totals.selenium_mcg || 0) + (consumption.selenium_mcg || 0),
+          iodine_mcg: (totals.iodine_mcg || 0) + (consumption.iodine_mcg || 0),
+          molybdenum_mcg: (totals.molybdenum_mcg || 0) + (consumption.molybdenum_mcg || 0),
+          chromium_mcg: (totals.chromium_mcg || 0) + (consumption.chromium_mcg || 0),
+          fluoride_mg: (totals.fluoride_mg || 0) + (consumption.fluoride_mg || 0),
+          chloride_mg: (totals.chloride_mg || 0) + (consumption.chloride_mg || 0),
 
-        // Other compounds
-        caffeine_mg: summaryData.summary.total_caffeine_mg || 0,
-        creatine_mg: summaryData.summary.total_creatine_mg || 0,
-      }
+          // Other compounds
+          caffeine_mg: (totals.caffeine_mg || 0) + (consumption.caffeine_mg || 0),
+          creatine_mg: (totals.creatine_mg || 0) + (consumption.creatine_mg || 0),
+        }
+      }, {})
     : undefined
+
+  // Use calculated totals for goals comparison (same structure as before)
+  $: currentNutrition = nutritionTotals
 </script>
 
 <svelte:head>
@@ -235,9 +247,9 @@
     {/if}
 
     <!-- Summary Data -->
-    {#if summaryData && !isLoading}
+    {#if consumptionsData && !isLoading}
       <!-- Check if we have any actual data -->
-      {#if (!summaryData.summary.total_calories || summaryData.summary.total_calories === 0) && !summaryData.recent_consumptions?.length}
+      {#if !consumptionsData.consumptions || consumptionsData.consumptions.length === 0}
         <!-- No Data State -->
         <div class="text-center py-12">
           <div class="text-6xl mb-4">🍽️</div>
@@ -254,51 +266,18 @@
         <div class="space-y-8">
           <!-- Overview Stats -->
           <NutritionStats
-            calories={summaryData.summary.total_calories || 0}
-            protein={summaryData.summary.total_protein_g || 0}
-            carbs={summaryData.summary.total_carbs_g || 0}
-            fat={summaryData.summary.total_fat_g || 0}
+            calories={nutritionTotals?.calories || 0}
+            protein={nutritionTotals?.protein_g || 0}
+            carbs={nutritionTotals?.total_carbs_g || 0}
+            fat={nutritionTotals?.total_fat_g || 0}
             size="normal"
           />
 
           <!-- Nutrition Goals -->
           <Goals {currentNutrition} />
 
-          <!-- Daily Breakdown (for week view) -->
-          {#if currentView === "week" && summaryData.summary.daily_breakdown && summaryData.summary.daily_breakdown.length > 0}
-            <div class="card bg-base-200 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title mb-4">Daily Breakdown</h2>
-                <div class="overflow-x-auto">
-                  <table class="table table-zebra">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Calories</th>
-                        <th>Protein</th>
-                        <th>Carbs</th>
-                        <th>Fat</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {#each summaryData.summary.daily_breakdown as day}
-                        <tr>
-                          <td>{new Date(day.date).toLocaleDateString()}</td>
-                          <td>{day.calories}</td>
-                          <td>{day.protein_g?.toFixed(1) || 0}g</td>
-                          <td>{day.total_carbs_g?.toFixed(1) || 0}g</td>
-                          <td>{day.total_fat_g?.toFixed(1) || 0}g</td>
-                        </tr>
-                      {/each}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          {/if}
-
-          <!-- Today's Details (for today view) -->
-          {#if currentView === "today" && summaryData.summary.daily_breakdown && summaryData.summary.daily_breakdown.length > 0}
+          <!-- Today's Summary Stats (for today view) -->
+          {#if currentView === "today"}
             <div class="card bg-base-200 shadow-xl">
               <div class="card-body">
                 <h2 class="card-title mb-4">Today's Summary</h2>
@@ -308,31 +287,28 @@
                   <div class="stat">
                     <div class="stat-title">Meals Logged</div>
                     <div class="stat-value text-lg">
-                      {summaryData.summary.consumption_count}
+                      {consumptionsData.consumptions.length}
                     </div>
                     <div class="stat-desc">Today</div>
                   </div>
                   <div class="stat">
                     <div class="stat-title">Avg per Meal</div>
                     <div class="stat-value text-lg">
-                      {Math.round(
-                        summaryData.summary.total_calories /
-                          summaryData.summary.consumption_count,
-                      )}
+                      {consumptionsData.consumptions.length > 0 ? Math.round((nutritionTotals?.calories || 0) / consumptionsData.consumptions.length) : 0}
                     </div>
                     <div class="stat-desc">Calories</div>
                   </div>
                   <div class="stat">
                     <div class="stat-title">Fiber</div>
                     <div class="stat-value text-lg">
-                      {(summaryData.summary.total_fiber_g || 0).toFixed(1)}g
+                      {(nutritionTotals?.dietary_fiber_g || 0).toFixed(1)}g
                     </div>
                     <div class="stat-desc">Total</div>
                   </div>
                   <div class="stat">
                     <div class="stat-title">Sodium</div>
                     <div class="stat-value text-lg">
-                      {summaryData.summary.total_sodium_mg || 0} mg
+                      {Math.round(nutritionTotals?.sodium_mg || 0)} mg
                     </div>
                     <div class="stat-desc">Total</div>
                   </div>
@@ -341,39 +317,113 @@
             </div>
           {/if}
 
-          <!-- Recent Consumptions -->
-          {#if summaryData.recent_consumptions && summaryData.recent_consumptions.length > 0}
-            <div class="card bg-base-200 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title mb-4">Recent Meals</h2>
-                <div class="space-y-3">
-                  {#each summaryData.recent_consumptions as consumption}
-                    <div class="card bg-base-100 shadow">
-                      <div class="card-body p-4">
-                        <div class="flex justify-between items-start">
-                          <div class="flex-1">
-                            <p class="font-medium mb-1">
-                              "{consumption.transcript}"
-                            </p>
-                            <p class="text-sm text-base-content/60">
-                              {new Date(
-                                consumption.created_at,
-                              ).toLocaleString()}
-                            </p>
+          <!-- Individual Meals -->
+          <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title mb-4">
+                {currentView === "today" ? "Today's" : "This Week's"} Meals
+              </h2>
+              <div class="space-y-3">
+                {#each consumptionsData.consumptions as consumption}
+                  <div class="card bg-base-100 shadow">
+                    <div class="card-body p-4">
+                      <!-- Meal Header - always visible -->
+                      <div 
+                        class="flex justify-between items-start cursor-pointer"
+                        role="button"
+                        tabindex="0"
+                        on:click={() => toggleMealExpansion(consumption.id)}
+                        on:keydown={(e) => e.key === 'Enter' && toggleMealExpansion(consumption.id)}
+                      >
+                        <div class="flex-1">
+                          <p class="font-medium mb-1">
+                            "{consumption.transcript}"
+                          </p>
+                          <div class="flex items-center gap-4 text-sm text-base-content/60">
+                            <span>
+                              {new Date(consumption.created_at).toLocaleString()}
+                            </span>
+                            {#if consumption.labels && consumption.labels.length > 0}
+                              <div class="flex gap-1">
+                                {#each consumption.labels as label}
+                                  <span class="badge badge-sm" style="background-color: {label.color}20; color: {label.color}; border: 1px solid {label.color};">
+                                    {label.name}
+                                  </span>
+                                {/each}
+                              </div>
+                            {/if}
                           </div>
+                        </div>
+                        <div class="flex items-center gap-2">
                           {#if consumption.total_calories}
                             <div class="badge badge-primary">
-                              {consumption.total_calories} cal
+                              {Math.round(consumption.total_calories)} cal
+                            </div>
+                          {/if}
+                          <button class="btn btn-sm btn-ghost">
+                            {expandedMeals.has(consumption.id) ? '▼' : '▶'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Expanded Details -->
+                      {#if expandedMeals.has(consumption.id)}
+                        <div class="mt-4 border-t pt-4">
+                          <!-- Macronutrients Summary -->
+                          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            <div class="text-center">
+                              <div class="text-lg font-bold text-primary">{Math.round(consumption.total_calories || 0)}</div>
+                              <div class="text-xs text-base-content/60">Calories</div>
+                            </div>
+                            <div class="text-center">
+                              <div class="text-lg font-bold text-secondary">{(consumption.total_protein_g || 0).toFixed(1)}g</div>
+                              <div class="text-xs text-base-content/60">Protein</div>
+                            </div>
+                            <div class="text-center">
+                              <div class="text-lg font-bold text-accent">{(consumption.total_carbs_g || 0).toFixed(1)}g</div>
+                              <div class="text-xs text-base-content/60">Carbs</div>
+                            </div>
+                            <div class="text-center">
+                              <div class="text-lg font-bold text-warning">{(consumption.total_fat_g || 0).toFixed(1)}g</div>
+                              <div class="text-xs text-base-content/60">Fat</div>
+                            </div>
+                          </div>
+
+                          <!-- Individual Items in this meal -->
+                          {#if consumption.items && consumption.items.length > 0}
+                            <div class="bg-base-200 rounded-lg p-3">
+                              <h4 class="font-medium mb-2 text-sm">Items in this meal:</h4>
+                              <div class="space-y-2">
+                                {#each consumption.items as item}
+                                  <div class="flex justify-between items-center text-sm">
+                                    <div class="flex-1">
+                                      <span class="font-medium">{item.name}</span>
+                                      {#if item.brand}
+                                        <span class="text-base-content/60">({item.brand})</span>
+                                      {/if}
+                                      <span class="text-base-content/60">- {item.grams}g</span>
+                                    </div>
+                                    <div class="text-right">
+                                      <div class="font-medium">{Math.round(item.calories)} cal</div>
+                                      <div class="text-xs text-base-content/60">
+                                        P: {(item.protein_g || 0).toFixed(1)}g |
+                                        C: {(item.total_carbs_g || 0).toFixed(1)}g |
+                                        F: {(item.total_fat_g || 0).toFixed(1)}g
+                                      </div>
+                                    </div>
+                                  </div>
+                                {/each}
+                              </div>
                             </div>
                           {/if}
                         </div>
-                      </div>
+                      {/if}
                     </div>
-                  {/each}
-                </div>
+                  </div>
+                {/each}
               </div>
             </div>
-          {/if}
+          </div>
         </div>
       {/if}
     {/if}
