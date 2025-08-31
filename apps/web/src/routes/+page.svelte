@@ -281,8 +281,8 @@
       <div class="text-center space-y-2 lg:space-y-3">
         <h6 class="font-semibold text-sm lg:text-base text-base-content mb-2 lg:mb-3">Legal</h6>
         <div class="space-y-1 lg:space-y-2">
-          <span class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed">Privacy Policy</span>
-          <span class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed">Terms of Service</span>
+          <a href="/privacy-policy" class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors">Privacy Policy</a>
+          <a href="/terms-of-service" class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors">Terms of Service</a>
           <span class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed">Cookie Policy</span>
         </div>
       </div>
