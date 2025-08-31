@@ -238,20 +238,23 @@ func TestUserCreationFlow(t *testing.T) {
 			outputStr := strings.TrimSpace(string(output))
 			lines := strings.Split(outputStr, "\n")
 
-			// Should have 6 labels for Monalisa
-			assert.Len(t, lines, 6, "Monalisa should have 6 seeded labels")
+			// Should have 9 default labels for Monalisa
+			assert.Len(t, lines, 9, "Monalisa should have 9 default seeded labels")
 
-			// Parse each line and check expected labels
+			// Parse each line and check expected default labels
 			expectedLabels := map[string]struct {
 				description string
 				color       string
 			}{
-				"breakfast":    {"Morning meal items", "FF6B6B"},
-				"healthy":      {"Nutritious food choices", "4ECDC4"},
-				"snack":        {"", "FFE66D"}, // NULL description should appear as empty
-				"protein":      {"High protein foods", "95E1D3"},
-				"meal-prep":    {"Pre-prepared meals", "A8E6CF"},
-				"trigger-food": {"Foods that trigger negative responses", "FF0000"},
+				"breakfast":     {"", "FFD700"},
+				"lunch":         {"", "74B986"},
+				"dinner":        {"", "1E90FF"},
+				"snack":         {"A small snack or light bite", "9B59B6"},
+				"drink":         {"A beverage", "9CA3AF"},
+				"trigger-food":  {"The consumption contained a known trigger food", "FF0000"},
+				"high-protein":  {"High protein foods", "2DD4BF"},
+				"meal-prep":     {"Pre-prepared meals", "A8E6CF"},
+				"restaurant":    {"Restaurant or takeout meal", "F59E0B"},
 			}
 
 			foundLabels := make(map[string]bool)
@@ -292,17 +295,23 @@ func TestUserCreationFlow(t *testing.T) {
 			outputStr := strings.TrimSpace(string(output))
 			lines := strings.Split(outputStr, "\n")
 
-			// Should have 3 labels for Alice
-			assert.Len(t, lines, 3, "Alice should have 3 seeded labels")
+			// Should have 9 default labels for Alice
+			assert.Len(t, lines, 9, "Alice should have 9 default seeded labels")
 
-			// Parse each line and check expected labels
+			// Parse each line and check expected default labels (same as Monalisa)
 			expectedLabels := map[string]struct {
 				description string
 				color       string
 			}{
-				"lunch":        {"Midday meal items", "FF8B94"},
-				"comfort-food": {"Comfort food choices", "C7CEEA"},
-				"quick-meal":   {"Fast preparation meals", "FFEAA7"},
+				"breakfast":     {"", "FFD700"},
+				"lunch":         {"", "74B986"},
+				"dinner":        {"", "1E90FF"},
+				"snack":         {"A small snack or light bite", "9B59B6"},
+				"drink":         {"A beverage", "9CA3AF"},
+				"trigger-food":  {"The consumption contained a known trigger food", "FF0000"},
+				"high-protein":  {"High protein foods", "2DD4BF"},
+				"meal-prep":     {"Pre-prepared meals", "A8E6CF"},
+				"restaurant":    {"Restaurant or takeout meal", "F59E0B"},
 			}
 
 			foundLabels := make(map[string]bool)
