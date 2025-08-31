@@ -2,7 +2,9 @@
   import { apiClient } from "$lib/api/client";
   import { onMount } from "svelte";
   import { dev } from '$app/environment';
+  import { goto } from '$app/navigation';
   import { toast } from '$lib/stores/toast';
+  import { signOut } from '$lib/auth/store';
   import Toast from '$lib/components/Toast.svelte';
   import InfoButton from '$lib/components/InfoButton.svelte';
   import FormField from '$lib/components/FormField.svelte';
@@ -71,6 +73,9 @@
   
   // Reset DRI confirmation modal state
   let showResetDRIModal = false;
+  
+  // Sign out state
+  let signingOut = false;
   
   // Goal sets data
   let goalSets: Array<{name: string, created_at: string, updated_at: string}> = [];
@@ -506,6 +511,34 @@
   function closeImperialModal() {
     showImperialModal = false;
     selectedUnits = "metric"; // Force selection back to metric
+  }
+
+  async function handleSignOut() {
+    try {
+      signingOut = true;
+      
+      const { error } = await signOut();
+      
+      if (error) {
+        toast.error("Failed to sign out. Please try again.");
+        if (dev) {
+          console.error("Sign out error:", error);
+        }
+        return;
+      }
+      
+      toast.success("Successfully signed out!");
+      
+      // Redirect to login page
+      await goto("/login");
+    } catch (err) {
+      toast.error("An unexpected error occurred during sign out.");
+      if (dev) {
+        console.error("Sign out error:", err);
+      }
+    } finally {
+      signingOut = false;
+    }
   }
 
   function getActivityLevelDisplay(level: string): string {
@@ -1104,6 +1137,18 @@
                 <div class="space-y-2">
                   <button class="btn btn-outline btn-sm w-full">Export Data</button>
                   <button class="btn btn-outline btn-sm w-full">Clear History</button>
+                  <button 
+                    class="btn btn-error btn-sm w-full"
+                    disabled={signingOut}
+                    on:click={handleSignOut}
+                  >
+                    {#if signingOut}
+                      <span class="loading loading-spinner loading-xs"></span>
+                      Signing out...
+                    {:else}
+                      🚪 Sign Out
+                    {/if}
+                  </button>
                 </div>
               </div>
             </div>
