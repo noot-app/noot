@@ -8,8 +8,13 @@
   import Toast from '$lib/components/Toast.svelte';
   import InfoButton from '$lib/components/InfoButton.svelte';
   import FormField from '$lib/components/FormField.svelte';
+  import Label from '$lib/components/Label.svelte';
   import FormSelect from '$lib/components/FormSelect.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+  import TagIcon from '$lib/components/icons/Tag.svelte';
+  import StarIcon from '$lib/components/icons/Star.svelte';
+  import TrophyIcon from '$lib/components/icons/Trophy.svelte';
+  import IdentificationIcon from '$lib/components/icons/Identification.svelte';
   import { getStorageJSON, setStorageJSON } from '$lib/utils/secure-storage';
   import { parseErrorMessage, formatErrorForUser } from '$lib/utils/error-handling';
   import { getAppName } from "$lib/utils/app-info";
@@ -24,11 +29,15 @@
   type BiometricsResponse = paths["/biometrics"]["get"]["responses"]["200"]["content"]["application/json"];
   type UserBiometrics = paths["/biometrics"]["get"]["responses"]["200"]["content"]["application/json"]["biometrics"];
   type UpdateBiometricsRequest = paths["/biometrics"]["put"]["requestBody"]["content"]["application/json"];
+  type LabelsResponse = paths["/labels"]["get"]["responses"]["200"]["content"]["application/json"];
+  type Label = LabelsResponse["labels"][0];
   
   let goals: Goals | null = null;
   let user: User | null = null;
   let biometrics: UserBiometrics | null = null;
   let calculatedMetrics: BiometricsResponse["calculated_metrics"] | null = null;
+  let labels: Label[] = [];
+  let labelsLoading = false;
   let loading = true;
   let biometricsLoading = false;
   let error = "";
@@ -95,7 +104,7 @@
   let activityLevel: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active" = "lightly_active";
 
   onMount(async () => {
-    await Promise.all([loadGoals(), loadBiometrics(), loadGoalSets()]);
+    await Promise.all([loadGoals(), loadBiometrics(), loadGoalSets(), loadLabels()]);
   });
 
   function resetToDefaults() {
@@ -380,6 +389,26 @@
     }
   }
 
+  async function loadLabels() {
+    try {
+      labelsLoading = true;
+      
+  const response = await apiClient.GET("/labels");
+      
+      if (response.error) {
+        throw new Error(`API Error: ${response.error}`);
+      }
+
+      labels = response.data?.labels || [];
+    } catch (err) {
+      // Don't show error for labels - they're not critical
+      console.warn("Failed to load labels:", err);
+      labels = [];
+    } finally {
+      labelsLoading = false;
+    }
+  }
+
   async function saveCustomGoals() {
     if (!goals) return;
     
@@ -588,7 +617,7 @@
         <div class="card bg-base-200 shadow-lg">
           <div class="card-body p-6">
             <h2 class="card-title flex items-center gap-2">
-              🎯 Current Goals
+              <StarIcon className="w-5 h-5" /> Current Goals
               <div class="badge badge-primary badge-sm">
                 {goals.source === "custom" ? (goals.custom_name || "Custom") : "DRI"}
               </div>
@@ -637,7 +666,7 @@
         <div class="card bg-base-200 shadow-lg">
           <div class="card-body p-6">
             <h2 class="card-title flex items-center gap-2">
-              🏆 Goals              
+              <TrophyIcon className="w-5 h-5" /> Goals              
               {#if isProUser}
                 <div class="flex gap-2 ml-auto">
                   {#if goalSets.length > 0}
@@ -770,9 +799,7 @@
         <div class="card bg-base-200 shadow-lg">
           <div class="card-body p-6">
             <h2 class="card-title flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" />
-              </svg>
+              <IdentificationIcon className="w-5 h-5" />
               Biometrics
             </h2>
             
@@ -933,7 +960,7 @@
                       on:click={deleteBiometrics}
                       disabled={savingBiometrics}
                     >
-                      🗑️ Delete
+                      Delete
                     </button>
                   {:else}
                     <div></div>
@@ -948,7 +975,7 @@
                       <span class="loading loading-spinner loading-xs"></span>
                       Saving...
                     {:else}
-                      💾 Save
+                      Save
                     {/if}
                   </button>
                 </div>
@@ -1074,7 +1101,7 @@
             <span class="loading loading-spinner loading-xs"></span>
             Saving...
           {:else}
-            💾 Save Goals
+            Save Goals
           {/if}
         </button>
         
@@ -1088,6 +1115,62 @@
     </div>
   </div>
 {/if}
+
+      <!-- Labels Section -->
+      <div class="card bg-base-200 shadow-lg mt-8">
+        <div class="card-body p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="card-title flex items-center gap-2">
+              <TagIcon className="w-5 h-5" />
+              Your Labels
+            </h2>
+            <a href="/labels" class="btn btn-primary btn-sm">
+              Manage Labels
+            </a>
+          </div>
+          
+          {#if labelsLoading}
+            <div class="flex justify-center py-6">
+              <span class="loading loading-spinner loading-sm"></span>
+              <span class="ml-2 text-sm text-base-content/70">Loading labels...</span>
+            </div>
+          {:else if labels.length === 0}
+            <div class="text-center py-8">
+              <TagIcon className="w-12 h-12 mx-auto text-base-content/30 mb-3" />
+              <p class="text-base-content/50 text-sm mb-3">No labels found</p>
+              <a href="/labels" class="btn btn-primary btn-sm">
+                Create Your First Label
+              </a>
+            </div>
+          {:else}
+            <div class="space-y-3">
+              <p class="text-sm text-base-content/70">Organize your meals with labels you've created:</p>
+              
+              <!-- Labels Grid -->
+              <div class="flex flex-wrap gap-2">
+                {#each labels as label}
+                  <div 
+                    class="tooltip"
+                    data-tip={label.description || `${label.consumption_count} ${label.consumption_count === 1 ? 'consumption' : 'consumptions'}`}
+                  >
+                    <Label name={label.name} color={label.color} className="cursor-help px-3 py-2">
+                      <span class="ml-1 text-xs opacity-80">{label.consumption_count}</span>
+                    </Label>
+                  </div>
+                {/each}
+              </div>
+              
+              {#if labels.length > 6}
+                <div class="text-center pt-2">
+                  <a href="/labels" class="btn btn-ghost btn-sm">
+                    View All {labels.length} Labels →
+                  </a>
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      </div>
 
       <!-- Additional Settings Section -->
       <div class="card bg-base-200 shadow-lg mt-8">
@@ -1146,7 +1229,7 @@
                       <span class="loading loading-spinner loading-xs"></span>
                       Signing out...
                     {:else}
-                      🚪 Sign Out
+                      Sign Out
                     {/if}
                   </button>
                 </div>
