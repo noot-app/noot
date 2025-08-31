@@ -403,7 +403,6 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 				jwtSecret := getEnv("SUPABASE_JWT_SECRET", "")
 				if jwtSecret != "" {
 					// If JWT secret is configured in development, use JWT auth
-					LogInfo("JWT secret configured in development - enforcing JWT authentication")
 					isProduction = true
 				} else {
 					LogDebug("Development mode with no JWT secret - skipping JWT auth")
