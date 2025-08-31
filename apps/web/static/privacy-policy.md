@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last Updated:** August 31, 2024
+**Last Updated:** August 31, 2025
 
 **Contact Information:** support@nootapp.io
 
@@ -166,9 +166,8 @@ If you have questions, concerns, or requests regarding this Privacy Policy or ou
 
 **Email:** support@nootapp.io
 
-**Mailing Address:** 
-Noot Inc.
-[Address to be provided]
+**Mailing Address:**
+Noot
 California, United States
 
 We will respond to your inquiries within a reasonable timeframe and in accordance with applicable law.

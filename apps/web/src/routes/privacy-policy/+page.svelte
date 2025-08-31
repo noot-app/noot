@@ -17,7 +17,7 @@
         <div class="prose prose-sm lg:prose max-w-none">
           <h1>Privacy Policy</h1>
           
-          <p><strong>Last Updated:</strong> August 31, 2024</p>
+          <p><strong>Last Updated:</strong> August 31, 2025</p>
           <p><strong>Contact Information:</strong> <a href="mailto:support@nootapp.io">support@nootapp.io</a></p>
 
           <h2>Introduction</h2>
@@ -138,7 +138,7 @@
           <p>If you have questions, concerns, or requests regarding this Privacy Policy, please contact us:</p>
           <p><strong>Email:</strong> <a href="mailto:support@nootapp.io">support@nootapp.io</a></p>
           <p><strong>Mailing Address:</strong><br>
-          Noot Inc.<br>
+          Noot<br>
           California, United States</p>
         </div>
         
