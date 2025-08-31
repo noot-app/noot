@@ -229,8 +229,8 @@ func (s *APIServer) GetConsumption(c *gin.Context, id string) {
 	requestID := c.GetString("request_id")
 	ctx := c.Request.Context()
 
-	// Ensure user is authenticated (also for ownership checks in future)
-	_, err := getCurrentUser(c, s.store)
+	// Ensure user is authenticated and get user for ownership checks
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		if appErr, ok := err.(*AppError); ok {
 			s.handleAppError(c, appErr, requestID)
@@ -247,6 +247,18 @@ func (s *APIServer) GetConsumption(c *gin.Context, id string) {
 		return
 	}
 	if cons == nil {
+		appErr := NewAppError("Consumption not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Verify access permissions
+	// Users can access their own consumptions, and in the future, public consumptions
+	hasAccess := cons.UserID == user.ID
+	// TODO: When public sharing feature is added:
+	// hasAccess = hasAccess || cons.IsPublic
+
+	if !hasAccess {
 		appErr := NewAppError("Consumption not found", http.StatusNotFound, nil)
 		s.handleAppError(c, appErr, requestID)
 		return
