@@ -57,6 +57,36 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /consumption/{id}:
+    get:
+      summary: Get a single consumption
+      description: Retrieve a single consumption by ID for the authenticated user
+      operationId: getConsumption
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Consumption found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Consumption"
+        "404":
+          description: Consumption not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     put:
       summary: Update a consumption record
       description: Update an existing consumption with edited nutrition data
@@ -153,7 +183,7 @@ paths:
   /consumptions:
     get:
       summary: List consumptions
-      description: Get a list of stored consumptions for the default user, optionally filtered by labels
+      description: Get a list of stored consumptions for the default user, optionally filtered by labels and date range. Supports tier-based date range limits - Free users can access up to 7 days, Pro users up to 365 days.
       operationId: getConsumptions
       parameters:
         - name: labels
@@ -169,6 +199,25 @@ paths:
             type: string
             enum: [any, all]
             default: any
+        - name: start
+          in: query
+          description: Start date (RFC3339 format) - cannot be used together with 'days' parameter
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          description: End date (RFC3339 format) - cannot be used together with 'days' parameter
+          schema:
+            type: string
+            format: date-time
+        - name: days
+          in: query
+          description: Number of days to look back from today - cannot be used together with 'start/end' parameters. Free tier limited to 7 days, Pro tier to 365 days.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
       responses:
         "200":
           description: List of consumptions
@@ -176,59 +225,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ConsumptionsResponse"
-        "405":
-          description: Method not allowed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /nutrition-summary:
-    get:
-      summary: Get nutrition summary
-      description: Get aggregated nutrition data over a time period
-      operationId: getNutritionSummary
-      parameters:
-        - name: start
-          in: query
-          description: Start date (RFC3339 format)
-          schema:
-            type: string
-            format: date-time
-        - name: end
-          in: query
-          description: End date (RFC3339 format)
-          schema:
-            type: string
-            format: date-time
-        - name: days
-          in: query
-          description: Number of days to look back from today
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 365
-      responses:
-        "200":
-          description: Nutrition summary data
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NutritionSummaryResponse"
         "400":
-          description: Invalid parameters
+          description: Invalid parameters (e.g., both start/end and days provided, invalid date format)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: Access denied (subscription limitation)
+          description: Access denied (subscription tier limitation - Free users limited to 7 days, Pro users to 365 days)
           content:
             application/json:
               schema:
@@ -264,6 +268,14 @@ paths:
           schema:
             type: string
           description: Name of the specific goal set to retrieve. If not provided, returns the active goal set.
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [auto, dri]
+            default: auto
+          description: Force goal source. 'auto' uses user's active goal set if available, otherwise DRI. 'dri' forces DRI-only targets, ignoring custom overrides.
       responses:
         "200":
           description: User nutrition goals
@@ -1213,31 +1225,6 @@ components:
           type: integer
           description: Number of consumptions returned
 
-    NutritionSummaryResponse:
-      type: object
-      required:
-        - summary
-        - user
-        - days
-        - date_range
-      properties:
-        summary:
-          $ref: "#/components/schemas/NutritionSummary"
-        user:
-          $ref: "#/components/schemas/User"
-        days:
-          type: integer
-          description: Number of days in the summary
-        date_range:
-          type: object
-          properties:
-            start:
-              type: string
-              format: date-time
-            end:
-              type: string
-              format: date-time
-
     Item:
       type: object
       required:
@@ -1577,289 +1564,6 @@ components:
           type: string
           format: date-time
           description: Timestamp when consumption was logged
-
-    NutritionSummary:
-      type: object
-      required:
-        - user_id
-        - start_date
-        - end_date
-        - consumption_count
-        - total_calories
-        - total_protein_g
-        - total_fat_g
-        - total_carbs_g
-        - total_fiber_g
-        - total_sodium_mg
-        - total_saturated_fat_g
-        - total_trans_fat_g
-        - total_cholesterol_mg
-        - total_sugars_g
-        - total_added_sugars_g
-        - total_vitamin_a_mcg
-        - total_vitamin_c_mg
-        - total_vitamin_d_mcg
-        - total_vitamin_e_mg
-        - total_vitamin_k_mcg
-        - total_thiamine_mg
-        - total_riboflavin_mg
-        - total_niacin_mg
-        - total_vitamin_b6_mg
-        - total_folate_mcg
-        - total_vitamin_b12_mcg
-        - total_calcium_mg
-        - total_iron_mg
-        - total_magnesium_mg
-        - total_phosphorus_mg
-        - total_potassium_mg
-        - total_zinc_mg
-        - total_copper_mg
-        - total_manganese_mg
-        - total_selenium_mcg
-        - total_biotin_mcg
-        - total_pantothenic_acid_mg
-        - total_choline_mg
-        - total_chloride_mg
-        - total_chromium_mcg
-        - total_fluoride_mg
-        - total_iodine_mcg
-        - total_molybdenum_mcg
-        - total_omega3_ala_g
-        - total_omega3_epa_g
-        - total_omega3_dha_g
-        - total_omega6_g
-        - total_creatine_mg
-        - total_caffeine_mg
-        - total_alcohol_g
-        - total_polyunsaturated_fat_g
-        - total_monounsaturated_fat_g
-        - avg_calories_per_day
-        - avg_protein_per_day
-        - avg_fat_per_day
-        - avg_carbs_per_day
-        - avg_fiber_per_day
-        - avg_sodium_per_day
-        - daily_breakdown
-      properties:
-        user_id:
-          type: string
-          description: User ID
-        start_date:
-          type: string
-          format: date-time
-          description: Start date of the summary period
-        end_date:
-          type: string
-          format: date-time
-          description: End date of the summary period
-        consumption_count:
-          type: integer
-          description: Total number of consumptions in the period
-        total_calories:
-          type: number
-          description: Total calories consumed
-        total_protein_g:
-          type: number
-          description: Total protein in grams
-        total_fat_g:
-          type: number
-          description: Total fat in grams
-        total_carbs_g:
-          type: number
-          description: Total carbohydrates in grams
-        total_fiber_g:
-          type: number
-          description: Total fiber in grams
-        total_sodium_mg:
-          type: number
-          description: Total sodium in milligrams
-        total_saturated_fat_g:
-          type: number
-          description: Total saturated fat in grams
-        total_trans_fat_g:
-          type: number
-          description: Total trans fat in grams
-        total_cholesterol_mg:
-          type: number
-          description: Total cholesterol in milligrams
-        total_sugars_g:
-          type: number
-          description: Total sugars in grams
-        total_added_sugars_g:
-          type: number
-          description: Total added sugars in grams
-        total_vitamin_a_mcg:
-          type: number
-          description: Total vitamin A in micrograms
-        total_vitamin_c_mg:
-          type: number
-          description: Total vitamin C in milligrams
-        total_vitamin_d_mcg:
-          type: number
-          description: Total vitamin D in micrograms
-        total_vitamin_e_mg:
-          type: number
-          description: Total vitamin E in milligrams
-        total_vitamin_k_mcg:
-          type: number
-          description: Total vitamin K in micrograms
-        total_thiamine_mg:
-          type: number
-          description: Total thiamine (B1) in milligrams
-        total_riboflavin_mg:
-          type: number
-          description: Total riboflavin (B2) in milligrams
-        total_niacin_mg:
-          type: number
-          description: Total niacin (B3) in milligrams
-        total_vitamin_b6_mg:
-          type: number
-          description: Total vitamin B6 in milligrams
-        total_folate_mcg:
-          type: number
-          description: Total folate in micrograms
-        total_vitamin_b12_mcg:
-          type: number
-          description: Total vitamin B12 in micrograms
-        total_calcium_mg:
-          type: number
-          description: Total calcium in milligrams
-        total_iron_mg:
-          type: number
-          description: Total iron in milligrams
-        total_magnesium_mg:
-          type: number
-          description: Total magnesium in milligrams
-        total_phosphorus_mg:
-          type: number
-          description: Total phosphorus in milligrams
-        total_potassium_mg:
-          type: number
-          description: Total potassium in milligrams
-        total_zinc_mg:
-          type: number
-          description: Total zinc in milligrams
-        total_copper_mg:
-          type: number
-          description: Total copper in milligrams
-        total_manganese_mg:
-          type: number
-          description: Total manganese in milligrams
-        total_selenium_mcg:
-          type: number
-          description: Total selenium in micrograms
-        total_biotin_mcg:
-          type: number
-          description: Total biotin in micrograms
-        total_pantothenic_acid_mg:
-          type: number
-          description: Total pantothenic acid (B5) in milligrams
-        total_choline_mg:
-          type: number
-          description: Total choline in milligrams
-        total_chloride_mg:
-          type: number
-          description: Total chloride in milligrams
-        total_chromium_mcg:
-          type: number
-          description: Total chromium in micrograms
-        total_fluoride_mg:
-          type: number
-          description: Total fluoride in milligrams
-        total_iodine_mcg:
-          type: number
-          description: Total iodine in micrograms
-        total_molybdenum_mcg:
-          type: number
-          description: Total molybdenum in micrograms
-        total_omega3_ala_g:
-          type: number
-          description: Total Omega-3 ALA (Alpha-linolenic acid) in grams
-        total_omega3_epa_g:
-          type: number
-          description: Total Omega-3 EPA (Eicosapentaenoic acid) in grams
-        total_omega3_dha_g:
-          type: number
-          description: Total Omega-3 DHA (Docosahexaenoic acid) in grams
-        total_omega6_g:
-          type: number
-          description: Total Omega-6 fatty acids in grams
-        total_creatine_mg:
-          type: number
-          description: Total creatine in milligrams
-        total_caffeine_mg:
-          type: number
-          description: Total caffeine in milligrams
-        total_alcohol_g:
-          type: number
-          description: Total alcohol in grams
-        total_polyunsaturated_fat_g:
-          type: number
-          description: Total polyunsaturated fat in grams
-        total_monounsaturated_fat_g:
-          type: number
-          description: Total monounsaturated fat in grams
-        avg_calories_per_day:
-          type: number
-          description: Average calories per day
-        avg_protein_per_day:
-          type: number
-          description: Average protein per day in grams
-        avg_fat_per_day:
-          type: number
-          description: Average fat per day in grams
-        avg_carbs_per_day:
-          type: number
-          description: Average carbs per day in grams
-        avg_fiber_per_day:
-          type: number
-          description: Average fiber per day in grams
-        avg_sodium_per_day:
-          type: number
-          description: Average sodium per day in milligrams
-        daily_breakdown:
-          type: array
-          items:
-            $ref: "#/components/schemas/DailySummary"
-          description: Daily nutrition breakdown
-
-    DailySummary:
-      type: object
-      required:
-        - date
-        - consumption_count
-        - calories
-        - protein_g
-        - total_fat_g
-        - total_carbs_g
-        - fiber_g
-        - sodium_mg
-      properties:
-        date:
-          type: string
-          format: date-time
-          description: Date for this daily summary
-        consumption_count:
-          type: integer
-          description: Number of consumptions on this date
-        calories:
-          type: number
-          description: Total calories for the day
-        protein_g:
-          type: number
-          description: Total protein in grams for the day
-        total_fat_g:
-          type: number
-          description: Total fat in grams for the day
-        total_carbs_g:
-          type: number
-          description: Total carbohydrates in grams for the day
-        fiber_g:
-          type: number
-          description: Total fiber in grams for the day
-        sodium_mg:
-          type: number
-          description: Total sodium in milligrams for the day
 
     GoalsResponse:
       type: object

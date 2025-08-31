@@ -151,6 +151,9 @@ func (m *mockStore) UnassignConsumptionItemLabel(ctx context.Context, userID, co
 func (m *mockStore) GetConsumptionsByLabels(ctx context.Context, userID string, labelNames []string, matchAll bool, limit, offset int) ([]*storage.Consumption, error) {
 	return nil, nil
 }
+func (m *mockStore) GetConsumptionsByUserDateRange(ctx context.Context, userID string, start, end time.Time, limit, offset int) ([]*storage.Consumption, error) {
+	return nil, nil
+}
 
 func (m *mockStore) Close() error { return nil }
 

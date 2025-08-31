@@ -37,6 +37,9 @@ type ServerInterface interface {
 	// Delete a consumption record
 	// (DELETE /consumption/{id})
 	DeleteConsumption(c *gin.Context, id string)
+	// Get a single consumption
+	// (GET /consumption/{id})
+	GetConsumption(c *gin.Context, id string)
 	// Update a consumption record
 	// (PUT /consumption/{id})
 	UpdateConsumption(c *gin.Context, id string)
@@ -85,9 +88,6 @@ type ServerInterface interface {
 	// Update a label
 	// (PUT /labels/{id})
 	UpdateLabel(c *gin.Context, id string)
-	// Get nutrition summary
-	// (GET /nutrition-summary)
-	GetNutritionSummary(c *gin.Context, params GetNutritionSummaryParams)
 	// Get nutrition trends
 	// (GET /trends)
 	GetTrends(c *gin.Context, params GetTrendsParams)
@@ -259,6 +259,30 @@ func (siw *ServerInterfaceWrapper) DeleteConsumption(c *gin.Context) {
 	siw.Handler.DeleteConsumption(c, id)
 }
 
+// GetConsumption operation middleware
+func (siw *ServerInterfaceWrapper) GetConsumption(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetConsumption(c, id)
+}
+
 // UpdateConsumption operation middleware
 func (siw *ServerInterfaceWrapper) UpdateConsumption(c *gin.Context) {
 
@@ -388,6 +412,30 @@ func (siw *ServerInterfaceWrapper) GetConsumptions(c *gin.Context) {
 		return
 	}
 
+	// ------------- Optional query parameter "start" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "start", c.Request.URL.Query(), &params.Start)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter start: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "end" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "end", c.Request.URL.Query(), &params.End)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter end: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "days" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "days", c.Request.URL.Query(), &params.Days)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter days: %w", err), http.StatusBadRequest)
+		return
+	}
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -468,6 +516,14 @@ func (siw *ServerInterfaceWrapper) GetGoals(c *gin.Context) {
 	err = runtime.BindQueryParameter("form", true, false, "goal_name", c.Request.URL.Query(), &params.GoalName)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter goal_name: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "source" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "source", c.Request.URL.Query(), &params.Source)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter source: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -631,48 +687,6 @@ func (siw *ServerInterfaceWrapper) UpdateLabel(c *gin.Context) {
 	siw.Handler.UpdateLabel(c, id)
 }
 
-// GetNutritionSummary operation middleware
-func (siw *ServerInterfaceWrapper) GetNutritionSummary(c *gin.Context) {
-
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetNutritionSummaryParams
-
-	// ------------- Optional query parameter "start" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "start", c.Request.URL.Query(), &params.Start)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter start: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Optional query parameter "end" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "end", c.Request.URL.Query(), &params.End)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter end: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Optional query parameter "days" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "days", c.Request.URL.Query(), &params.Days)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter days: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.GetNutritionSummary(c, params)
-}
-
 // GetTrends operation middleware
 func (siw *ServerInterfaceWrapper) GetTrends(c *gin.Context) {
 
@@ -758,6 +772,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/consumption-items/:id/labels", wrapper.AssignConsumptionItemLabels)
 	router.DELETE(options.BaseURL+"/consumption-items/:id/labels/:labelId", wrapper.UnassignConsumptionItemLabel)
 	router.DELETE(options.BaseURL+"/consumption/:id", wrapper.DeleteConsumption)
+	router.GET(options.BaseURL+"/consumption/:id", wrapper.GetConsumption)
 	router.PUT(options.BaseURL+"/consumption/:id", wrapper.UpdateConsumption)
 	router.GET(options.BaseURL+"/consumption/:id/labels", wrapper.GetConsumptionLabels)
 	router.POST(options.BaseURL+"/consumption/:id/labels", wrapper.AssignConsumptionLabels)
@@ -774,6 +789,5 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/labels", wrapper.CreateLabel)
 	router.DELETE(options.BaseURL+"/labels/:id", wrapper.DeleteLabel)
 	router.PUT(options.BaseURL+"/labels/:id", wrapper.UpdateLabel)
-	router.GET(options.BaseURL+"/nutrition-summary", wrapper.GetNutritionSummary)
 	router.GET(options.BaseURL+"/trends", wrapper.GetTrends)
 }

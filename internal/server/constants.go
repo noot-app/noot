@@ -5,8 +5,9 @@ import (
 )
 
 const (
-	// API limits
-	MaxDaysAllowed  = 7
+	// API limits - updated to match tier-based requirements
+	MaxDaysAllowed  = 365 // Pro tier maximum days
+	MaxDaysFreeTier = 7   // Free tier maximum days
 	MaxConsumptions = 50
 	DefaultDays     = 7
 

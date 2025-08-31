@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS consumptions (
     monounsaturated_fat_g REAL NOT NULL DEFAULT 0,
     -- Additional metadata fields
     note TEXT CONSTRAINT consumptions_note_length_check CHECK (LENGTH(note) <= 1000),
+    is_public BOOLEAN NOT NULL DEFAULT FALSE, -- Allow users to make consumptions publicly viewable
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE, -- When the consumption was last modified
     FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
@@ -64,19 +65,20 @@ CREATE TABLE IF NOT EXISTS consumptions (
 CREATE INDEX IF NOT EXISTS idx_consumptions_user_id ON consumptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_consumptions_created_at ON consumptions(created_at);
 CREATE INDEX IF NOT EXISTS idx_consumptions_user_created ON consumptions(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_consumptions_public ON consumptions (is_public) WHERE is_public = TRUE;
 
 -- Enable RLS for consumptions table
 ALTER TABLE consumptions ENABLE ROW LEVEL SECURITY;
 
--- RLS policies for consumptions
-CREATE POLICY "Users can view own consumptions" ON consumptions
-  FOR SELECT USING (auth.uid() = user_id);
+-- RLS policies for consumptions with public sharing support
+CREATE POLICY "Users can view own consumptions and public ones" ON consumptions
+  FOR SELECT USING (auth.uid() = user_id OR is_public = TRUE);
 
 CREATE POLICY "Users can insert own consumptions" ON consumptions  
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can update own consumptions" ON consumptions
-  FOR UPDATE USING (auth.uid() = user_id);
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own consumptions" ON consumptions
   FOR DELETE USING (auth.uid() = user_id);

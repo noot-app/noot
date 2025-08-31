@@ -8,3 +8,6 @@ count=3
 
 # Run tests for all packages except supabase/tests (which contains integration tests)
 go test -mod=vendor -race -count $count -v -cover -coverprofile=coverage.out $(go list ./... | grep -v '/supabase/tests')
+
+# Run frontend tests in subshell to ensure we return to current directory
+(cd apps/web && npm run test_run)

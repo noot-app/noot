@@ -171,8 +171,7 @@ Then run: `script/generate-nutrients` → All 20+ files automatically updated!
 
 - `GET /api/v1/health` — Health check with server status
 - `POST /api/v1/consumption` — Multipart form with `audio` field (webm/opus/mp3/wav)
-- `GET /api/v1/consumptions` — View stored consumptions (development mode only)
-- `GET /api/v1/nutrition-summary` — Get nutrition summary with date range parameters (development mode only)
+- `GET /api/v1/consumptions` — View stored consumptions with optional date range filtering. Supports tier-based limits: Free users can access up to 7 days, Pro users up to 365 days (development mode only)
 - `GET /api/v1/docs` — Interactive API documentation via Swagger UI (development mode only)
 - `GET /api/v1/openapi.yaml` — OpenAPI 3.0.3 specification (development mode only)
 
