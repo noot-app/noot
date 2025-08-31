@@ -34,7 +34,11 @@
     return isFinite(value) ? value : 0;
   }
 
+  // Simple in-instance memo to prevent duplicate network requests
+  let goalsLoaded = false;
+
   async function loadGoals() {
+    if (goalsLoaded) return;
     try {
       loading = true;
       error = "";
@@ -58,6 +62,7 @@
 
         goals = response.data.goals;
       }
+      goalsLoaded = true;
     } catch (err) {
       error = `Failed to load nutrition goals: ${err}`;
       console.error("Goals error:", err);
@@ -140,6 +145,7 @@
                   isExpandable={false}
                   title=""
                   {showMealContribution}
+                  goalsData={goals}
                 />
               </div>
             {/if}
@@ -161,6 +167,7 @@
                   title=""
                   {showMealContribution}
                   showLimitsOnly={true}
+                  goalsData={goals}
                 />
               </div>
             {/if}
