@@ -302,33 +302,6 @@ type ConsumptionsResponse struct {
 	User  User `json:"user"`
 }
 
-// DailySummary defines model for DailySummary.
-type DailySummary struct {
-	// Calories Total calories for the day
-	Calories float32 `json:"calories"`
-
-	// ConsumptionCount Number of consumptions on this date
-	ConsumptionCount int `json:"consumption_count"`
-
-	// Date Date for this daily summary
-	Date time.Time `json:"date"`
-
-	// FiberG Total fiber in grams for the day
-	FiberG float32 `json:"fiber_g"`
-
-	// ProteinG Total protein in grams for the day
-	ProteinG float32 `json:"protein_g"`
-
-	// SodiumMg Total sodium in milligrams for the day
-	SodiumMg float32 `json:"sodium_mg"`
-
-	// TotalCarbsG Total carbohydrates in grams for the day
-	TotalCarbsG float32 `json:"total_carbs_g"`
-
-	// TotalFatG Total fat in grams for the day
-	TotalFatG float32 `json:"total_fat_g"`
-}
-
 // DataPoint defines model for DataPoint.
 type DataPoint struct {
 	// Date Date for this data point
@@ -562,199 +535,6 @@ type LifeStage struct {
 // LifeStageSex User sex for DRI calculation
 type LifeStageSex string
 
-// NutritionSummary defines model for NutritionSummary.
-type NutritionSummary struct {
-	// AvgCaloriesPerDay Average calories per day
-	AvgCaloriesPerDay float32 `json:"avg_calories_per_day"`
-
-	// AvgCarbsPerDay Average carbs per day in grams
-	AvgCarbsPerDay float32 `json:"avg_carbs_per_day"`
-
-	// AvgFatPerDay Average fat per day in grams
-	AvgFatPerDay float32 `json:"avg_fat_per_day"`
-
-	// AvgFiberPerDay Average fiber per day in grams
-	AvgFiberPerDay float32 `json:"avg_fiber_per_day"`
-
-	// AvgProteinPerDay Average protein per day in grams
-	AvgProteinPerDay float32 `json:"avg_protein_per_day"`
-
-	// AvgSodiumPerDay Average sodium per day in milligrams
-	AvgSodiumPerDay float32 `json:"avg_sodium_per_day"`
-
-	// ConsumptionCount Total number of consumptions in the period
-	ConsumptionCount int `json:"consumption_count"`
-
-	// DailyBreakdown Daily nutrition breakdown
-	DailyBreakdown []DailySummary `json:"daily_breakdown"`
-
-	// EndDate End date of the summary period
-	EndDate time.Time `json:"end_date"`
-
-	// StartDate Start date of the summary period
-	StartDate time.Time `json:"start_date"`
-
-	// TotalAddedSugarsG Total added sugars in grams
-	TotalAddedSugarsG float32 `json:"total_added_sugars_g"`
-
-	// TotalAlcoholG Total alcohol in grams
-	TotalAlcoholG float32 `json:"total_alcohol_g"`
-
-	// TotalBiotinMcg Total biotin in micrograms
-	TotalBiotinMcg float32 `json:"total_biotin_mcg"`
-
-	// TotalCaffeineMg Total caffeine in milligrams
-	TotalCaffeineMg float32 `json:"total_caffeine_mg"`
-
-	// TotalCalciumMg Total calcium in milligrams
-	TotalCalciumMg float32 `json:"total_calcium_mg"`
-
-	// TotalCalories Total calories consumed
-	TotalCalories float32 `json:"total_calories"`
-
-	// TotalCarbsG Total carbohydrates in grams
-	TotalCarbsG float32 `json:"total_carbs_g"`
-
-	// TotalChlorideMg Total chloride in milligrams
-	TotalChlorideMg float32 `json:"total_chloride_mg"`
-
-	// TotalCholesterolMg Total cholesterol in milligrams
-	TotalCholesterolMg float32 `json:"total_cholesterol_mg"`
-
-	// TotalCholineMg Total choline in milligrams
-	TotalCholineMg float32 `json:"total_choline_mg"`
-
-	// TotalChromiumMcg Total chromium in micrograms
-	TotalChromiumMcg float32 `json:"total_chromium_mcg"`
-
-	// TotalCopperMg Total copper in milligrams
-	TotalCopperMg float32 `json:"total_copper_mg"`
-
-	// TotalCreatineMg Total creatine in milligrams
-	TotalCreatineMg float32 `json:"total_creatine_mg"`
-
-	// TotalFatG Total fat in grams
-	TotalFatG float32 `json:"total_fat_g"`
-
-	// TotalFiberG Total fiber in grams
-	TotalFiberG float32 `json:"total_fiber_g"`
-
-	// TotalFluorideMg Total fluoride in milligrams
-	TotalFluorideMg float32 `json:"total_fluoride_mg"`
-
-	// TotalFolateMcg Total folate in micrograms
-	TotalFolateMcg float32 `json:"total_folate_mcg"`
-
-	// TotalIodineMcg Total iodine in micrograms
-	TotalIodineMcg float32 `json:"total_iodine_mcg"`
-
-	// TotalIronMg Total iron in milligrams
-	TotalIronMg float32 `json:"total_iron_mg"`
-
-	// TotalMagnesiumMg Total magnesium in milligrams
-	TotalMagnesiumMg float32 `json:"total_magnesium_mg"`
-
-	// TotalManganeseMg Total manganese in milligrams
-	TotalManganeseMg float32 `json:"total_manganese_mg"`
-
-	// TotalMolybdenumMcg Total molybdenum in micrograms
-	TotalMolybdenumMcg float32 `json:"total_molybdenum_mcg"`
-
-	// TotalMonounsaturatedFatG Total monounsaturated fat in grams
-	TotalMonounsaturatedFatG float32 `json:"total_monounsaturated_fat_g"`
-
-	// TotalNiacinMg Total niacin (B3) in milligrams
-	TotalNiacinMg float32 `json:"total_niacin_mg"`
-
-	// TotalOmega3AlaG Total Omega-3 ALA (Alpha-linolenic acid) in grams
-	TotalOmega3AlaG float32 `json:"total_omega3_ala_g"`
-
-	// TotalOmega3DhaG Total Omega-3 DHA (Docosahexaenoic acid) in grams
-	TotalOmega3DhaG float32 `json:"total_omega3_dha_g"`
-
-	// TotalOmega3EpaG Total Omega-3 EPA (Eicosapentaenoic acid) in grams
-	TotalOmega3EpaG float32 `json:"total_omega3_epa_g"`
-
-	// TotalOmega6G Total Omega-6 fatty acids in grams
-	TotalOmega6G float32 `json:"total_omega6_g"`
-
-	// TotalPantothenicAcidMg Total pantothenic acid (B5) in milligrams
-	TotalPantothenicAcidMg float32 `json:"total_pantothenic_acid_mg"`
-
-	// TotalPhosphorusMg Total phosphorus in milligrams
-	TotalPhosphorusMg float32 `json:"total_phosphorus_mg"`
-
-	// TotalPolyunsaturatedFatG Total polyunsaturated fat in grams
-	TotalPolyunsaturatedFatG float32 `json:"total_polyunsaturated_fat_g"`
-
-	// TotalPotassiumMg Total potassium in milligrams
-	TotalPotassiumMg float32 `json:"total_potassium_mg"`
-
-	// TotalProteinG Total protein in grams
-	TotalProteinG float32 `json:"total_protein_g"`
-
-	// TotalRiboflavinMg Total riboflavin (B2) in milligrams
-	TotalRiboflavinMg float32 `json:"total_riboflavin_mg"`
-
-	// TotalSaturatedFatG Total saturated fat in grams
-	TotalSaturatedFatG float32 `json:"total_saturated_fat_g"`
-
-	// TotalSeleniumMcg Total selenium in micrograms
-	TotalSeleniumMcg float32 `json:"total_selenium_mcg"`
-
-	// TotalSodiumMg Total sodium in milligrams
-	TotalSodiumMg float32 `json:"total_sodium_mg"`
-
-	// TotalSugarsG Total sugars in grams
-	TotalSugarsG float32 `json:"total_sugars_g"`
-
-	// TotalThiamineMg Total thiamine (B1) in milligrams
-	TotalThiamineMg float32 `json:"total_thiamine_mg"`
-
-	// TotalTransFatG Total trans fat in grams
-	TotalTransFatG float32 `json:"total_trans_fat_g"`
-
-	// TotalVitaminAMcg Total vitamin A in micrograms
-	TotalVitaminAMcg float32 `json:"total_vitamin_a_mcg"`
-
-	// TotalVitaminB12Mcg Total vitamin B12 in micrograms
-	TotalVitaminB12Mcg float32 `json:"total_vitamin_b12_mcg"`
-
-	// TotalVitaminB6Mg Total vitamin B6 in milligrams
-	TotalVitaminB6Mg float32 `json:"total_vitamin_b6_mg"`
-
-	// TotalVitaminCMg Total vitamin C in milligrams
-	TotalVitaminCMg float32 `json:"total_vitamin_c_mg"`
-
-	// TotalVitaminDMcg Total vitamin D in micrograms
-	TotalVitaminDMcg float32 `json:"total_vitamin_d_mcg"`
-
-	// TotalVitaminEMg Total vitamin E in milligrams
-	TotalVitaminEMg float32 `json:"total_vitamin_e_mg"`
-
-	// TotalVitaminKMcg Total vitamin K in micrograms
-	TotalVitaminKMcg float32 `json:"total_vitamin_k_mcg"`
-
-	// TotalZincMg Total zinc in milligrams
-	TotalZincMg float32 `json:"total_zinc_mg"`
-
-	// UserId User ID
-	UserId string `json:"user_id"`
-}
-
-// NutritionSummaryResponse defines model for NutritionSummaryResponse.
-type NutritionSummaryResponse struct {
-	DateRange struct {
-		End   *time.Time `json:"end,omitempty"`
-		Start *time.Time `json:"start,omitempty"`
-	} `json:"date_range"`
-
-	// Days Number of days in the summary
-	Days    int              `json:"days"`
-	Summary NutritionSummary `json:"summary"`
-	User    User             `json:"user"`
-}
-
 // SetActiveGoalRequest defines model for SetActiveGoalRequest.
 type SetActiveGoalRequest struct {
 	// Name Name of the goal set to make active
@@ -889,6 +669,15 @@ type GetConsumptionsParams struct {
 
 	// Match Label matching strategy - 'any' matches consumptions with at least one of the labels, 'all' matches consumptions with all labels
 	Match *GetConsumptionsParamsMatch `form:"match,omitempty" json:"match,omitempty"`
+
+	// Start Start date (RFC3339 format) - cannot be used together with 'days' parameter
+	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
+
+	// End End date (RFC3339 format) - cannot be used together with 'days' parameter
+	End *time.Time `form:"end,omitempty" json:"end,omitempty"`
+
+	// Days Number of days to look back from today - cannot be used together with 'start/end' parameters. Free tier limited to 7 days, Pro tier to 365 days.
+	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
 
 // GetConsumptionsParamsMatch defines parameters for GetConsumptions.
@@ -916,18 +705,6 @@ type ExportDataParamsFormat string
 type GetGoalsParams struct {
 	// GoalName Name of the specific goal set to retrieve. If not provided, returns the active goal set.
 	GoalName *string `form:"goal_name,omitempty" json:"goal_name,omitempty"`
-}
-
-// GetNutritionSummaryParams defines parameters for GetNutritionSummary.
-type GetNutritionSummaryParams struct {
-	// Start Start date (RFC3339 format)
-	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
-
-	// End End date (RFC3339 format)
-	End *time.Time `form:"end,omitempty" json:"end,omitempty"`
-
-	// Days Number of days to look back from today
-	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
 
 // GetTrendsParams defines parameters for GetTrends.

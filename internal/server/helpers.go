@@ -82,8 +82,16 @@ func parseDateRangeParams(r *http.Request) (*DateRangeParams, error) {
 
 // validateSubscriptionAccess checks if user has access to the requested number of days
 func validateSubscriptionAccess(user *storage.User, days int) error {
-	if days > 1 && strings.ToLower(user.SubscriptionTier) != SubscriptionTierPro {
-		return NewAppError("Week view requires pro subscription", http.StatusForbidden, nil)
+	// Free tier users are limited to 7 days maximum
+	if strings.ToLower(user.SubscriptionTier) != SubscriptionTierPro {
+		if days > MaxDaysFreeTier {
+			return NewAppError("Free tier limited to 7 days maximum. Upgrade to Pro for access to up to 365 days.", http.StatusForbidden, nil)
+		}
+	} else {
+		// Pro tier users are limited to 365 days maximum
+		if days > MaxDaysAllowed {
+			return NewAppError("Maximum date range is 365 days", http.StatusForbidden, nil)
+		}
 	}
 	return nil
 }

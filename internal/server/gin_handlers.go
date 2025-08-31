@@ -365,6 +365,8 @@ func (s *APIServer) GetConsumptions(c *gin.Context, params api.GetConsumptionsPa
 		return
 	}
 
+	requestID := c.GetString("request_id")
+
 	// For now, get consumptions for the default user
 	user, err := getCurrentUser(c, s.store)
 	if err != nil {
@@ -377,6 +379,42 @@ func (s *APIServer) GetConsumptions(c *gin.Context, params api.GetConsumptionsPa
 			"user":         nil,
 		})
 		return
+	}
+
+	// Parse date range parameters if provided
+	var dateParams *DateRangeParams
+	hasDateFiltering := params.Start != nil || params.End != nil || params.Days != nil
+	
+	if hasDateFiltering {
+		dateParams, err = parseDateRangeParamsFromConsumptions(params)
+		if err != nil {
+			if appErr, ok := err.(*AppError); ok {
+				s.handleAppError(c, appErr, requestID)
+			} else {
+				errorResp := api.ErrorResponse{
+					Error:     "Invalid date parameters",
+					Code:      http.StatusBadRequest,
+					Timestamp: time.Now().UTC(),
+				}
+				c.JSON(http.StatusBadRequest, errorResp)
+			}
+			return
+		}
+
+		// Validate subscription access for date range
+		if err := validateSubscriptionAccess(user, dateParams.Days); err != nil {
+			if appErr, ok := err.(*AppError); ok {
+				s.handleAppError(c, appErr, requestID)
+			} else {
+				errorResp := api.ErrorResponse{
+					Error:     "Access denied",
+					Code:      http.StatusForbidden,
+					Timestamp: time.Now().UTC(),
+				}
+				c.JSON(http.StatusForbidden, errorResp)
+			}
+			return
+		}
 	}
 
 	// Check for label filtering parameters from params
@@ -407,6 +445,13 @@ func (s *APIServer) GetConsumptions(c *gin.Context, params api.GetConsumptionsPa
 			handleInternalServerError(c, "Failed to get consumptions by labels", err)
 			return
 		}
+	} else if hasDateFiltering {
+		// Get consumptions filtered by date range
+		consumptions, err = s.store.GetConsumptionsByUserDateRange(ctx, user.ID, dateParams.StartTime, dateParams.EndTime, MaxConsumptions, 0)
+		if err != nil {
+			handleInternalServerError(c, "Failed to get consumptions by date range", err)
+			return
+		}
 	} else {
 		// Get recent consumptions without filtering
 		consumptions, err = s.store.GetConsumptionsByUser(ctx, user.ID, MaxConsumptions, 0)
@@ -428,91 +473,19 @@ func (s *APIServer) GetConsumptions(c *gin.Context, params api.GetConsumptionsPa
 		apiConsumptions[i] = *apiConsumption
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	response := gin.H{
 		"consumptions": apiConsumptions,
 		"user":         user,
 		"count":        len(apiConsumptions),
-	})
-}
-
-// GetNutritionSummary implements ServerInterface.GetNutritionSummary
-func (s *APIServer) GetNutritionSummary(c *gin.Context, params api.GetNutritionSummaryParams) {
-	if s.store == nil {
-		handleStorageUnavailableError(c)
-		return
 	}
 
-	requestID := c.GetString("request_id")
-
-	// Get the default user
-	user, err := getCurrentUser(c, s.store)
-	if err != nil {
-		handleInternalServerError(c, "Failed to get user", err)
-		return
-	}
-	if user == nil {
-		errorResp := api.ErrorResponse{
-			Error:     "User not found",
-			Code:      http.StatusNotFound,
-			Timestamp: time.Now().UTC(),
+	// Include date range information in response if filtering was applied
+	if hasDateFiltering {
+		response["date_range"] = gin.H{
+			"start": dateParams.StartTime,
+			"end":   dateParams.EndTime,
+			"days":  dateParams.Days,
 		}
-		c.JSON(http.StatusNotFound, errorResp)
-		return
-	}
-
-	// Parse date range parameters from the generated params
-	dateParams, err := parseDateRangeParamsFromAPI(params)
-	if err != nil {
-		if appErr, ok := err.(*AppError); ok {
-			s.handleAppError(c, appErr, requestID)
-		} else {
-			errorResp := api.ErrorResponse{
-				Error:     "Invalid date parameters",
-				Code:      http.StatusBadRequest,
-				Timestamp: time.Now().UTC(),
-			}
-			c.JSON(http.StatusBadRequest, errorResp)
-		}
-		return
-	}
-
-	// Validate subscription access
-	if err := validateSubscriptionAccess(user, dateParams.Days); err != nil {
-		if appErr, ok := err.(*AppError); ok {
-			s.handleAppError(c, appErr, requestID)
-		} else {
-			errorResp := api.ErrorResponse{
-				Error:     "Access denied",
-				Code:      http.StatusForbidden,
-				Timestamp: time.Now().UTC(),
-			}
-			c.JSON(http.StatusForbidden, errorResp)
-		}
-		return
-	}
-
-	// Apply performance limit
-	dateParams.Days = applyDaysLimit(dateParams.Days)
-
-	summary, err := s.store.GetNutritionSummary(c.Request.Context(), user.ID, dateParams.StartTime, dateParams.EndTime)
-	if err != nil {
-		appErr := NewAppError("Failed to get nutrition summary", http.StatusInternalServerError, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-
-	// Convert to API response format
-	response := api.NutritionSummaryResponse{
-		Summary: convertInternalNutritionSummaryToAPI(summary),
-		User:    convertInternalUserToAPI(user),
-		Days:    dateParams.Days,
-		DateRange: struct {
-			End   *time.Time `json:"end,omitempty"`
-			Start *time.Time `json:"start,omitempty"`
-		}{
-			Start: &dateParams.StartTime,
-			End:   &dateParams.EndTime,
-		},
 	}
 
 	c.JSON(http.StatusOK, response)

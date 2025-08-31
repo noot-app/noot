@@ -55,39 +55,57 @@ func getRequestID(c *gin.Context) string {
 	return c.GetString("request_id")
 }
 
-// parseDateRangeParamsFromAPI converts generated API params to our internal DateRangeParams
-func parseDateRangeParamsFromAPI(params api.GetNutritionSummaryParams) (*DateRangeParams, error) {
-	// Convert the generated API params to our internal structure
-	// This maintains compatibility with existing helper functions
+// parseDateRangeParamsFromConsumptions converts GetConsumptionsParams to our internal DateRangeParams
+func parseDateRangeParamsFromConsumptions(params api.GetConsumptionsParams) (*DateRangeParams, error) {
+	// Check for ambiguous parameters
+	hasDateRange := params.Start != nil || params.End != nil
+	hasDays := params.Days != nil
+	
+	if hasDateRange && hasDays {
+		return nil, NewAppError("Cannot specify both start/end dates and days parameter", http.StatusBadRequest, nil)
+	}
+
 	result := &DateRangeParams{}
 
-	if params.Start != nil {
-		result.StartTime = *params.Start
-	} else {
-		// Default to 7 days ago
-		result.StartTime = time.Now().UTC().AddDate(0, 0, -7).Truncate(24 * time.Hour)
-	}
-
-	if params.End != nil {
-		result.EndTime = *params.End
-	} else {
-		// Default to now
-		result.EndTime = time.Now().UTC()
-	}
-
-	// Handle days parameter if provided
-	if params.Days != nil {
+	if hasDateRange {
+		// Direct date range provided
+		if params.Start != nil && params.End != nil {
+			result.StartTime = *params.Start
+			result.EndTime = *params.End
+			
+			// Calculate days for subscription validation
+			diff := result.EndTime.Sub(result.StartTime)
+			result.Days = int(diff.Hours()/24) + 1
+			
+			if result.Days <= 0 {
+				return nil, NewAppError("Invalid date range: end date must be after start date", http.StatusBadRequest, nil)
+			}
+		} else {
+			return nil, NewAppError("Both start and end dates must be provided when using date range", http.StatusBadRequest, nil)
+		}
+	} else if hasDays {
+		// Days parameter provided
 		result.Days = *params.Days
-		// Override start time based on days
-		result.StartTime = time.Now().UTC().AddDate(0, 0, -result.Days).Truncate(24 * time.Hour)
+		if result.Days <= 0 {
+			return nil, NewAppError("Days parameter must be greater than 0", http.StatusBadRequest, nil)
+		}
+		
+		// Calculate date range using server UTC time
+		result.EndTime = time.Now().UTC()
+		result.StartTime = result.EndTime.AddDate(0, 0, -result.Days+1)
+		
+		// Set times to beginning/end of day for proper date range queries
+		result.StartTime = time.Date(result.StartTime.Year(), result.StartTime.Month(), result.StartTime.Day(), 0, 0, 0, 0, time.UTC)
+		result.EndTime = time.Date(result.EndTime.Year(), result.EndTime.Month(), result.EndTime.Day(), 23, 59, 59, 999999999, time.UTC)
 	} else {
-		// Calculate days from start and end times
-		diff := result.EndTime.Sub(result.StartTime)
-		result.Days = int(diff.Hours()/24) + 1 // +1 to include partial days
-	}
-
-	if result.Days <= 0 {
-		return nil, NewAppError("Invalid date range: end date must be after start date", http.StatusBadRequest, nil)
+		// Default to 7 days (today view in most cases)
+		result.Days = DefaultDays
+		result.EndTime = time.Now().UTC()
+		result.StartTime = result.EndTime.AddDate(0, 0, -result.Days+1)
+		
+		// Set times to beginning/end of day for proper date range queries
+		result.StartTime = time.Date(result.StartTime.Year(), result.StartTime.Month(), result.StartTime.Day(), 0, 0, 0, 0, time.UTC)
+		result.EndTime = time.Date(result.EndTime.Year(), result.EndTime.Month(), result.EndTime.Day(), 23, 59, 59, 999999999, time.UTC)
 	}
 
 	return result, nil
