@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
   const code = url.searchParams.get('code');
-  const redirectParam = url.searchParams.get('redirect') || '/';
+  const redirectParam = url.searchParams.get('redirect') || '/summary'; // default to /summary
   
   // Validate that code parameter exists
   if (!code) {

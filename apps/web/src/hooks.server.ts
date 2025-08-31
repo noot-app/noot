@@ -59,7 +59,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   // If authenticated, avoid staying on auth pages. Respect the redirect query param when present.
   if (session && (event.url.pathname === '/login' || event.url.pathname === '/signup')) {
-    const target = event.url.searchParams.get('redirect') || '/';
+    const target = event.url.searchParams.get('redirect') || '/summary'; // default to /summary
     throw redirect(303, target);
   }
 
