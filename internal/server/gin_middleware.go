@@ -52,7 +52,7 @@ func LoggingMiddleware() gin.HandlerFunc {
 	}
 }
 
-// RecoveryMiddleware recovers from panics
+// RecoveryMiddleware recovers from panics with secure error handling
 func RecoveryMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
@@ -65,7 +65,13 @@ func RecoveryMiddleware() gin.HandlerFunc {
 					"path", c.Request.URL.Path,
 				)
 
-				if isDebugMode() || isDevMode() {
+				// In production, never expose stack traces or internal details
+				if IsProduction() {
+					c.JSON(500, gin.H{
+						"error": "Internal server error",
+					})
+				} else if isDebugMode() || isDevMode() {
+					// Only in debug/dev mode, include stack trace
 					stack := captureStackGin(4)
 					c.JSON(500, gin.H{
 						"error":      "Internal server error (panic recovered)",
@@ -73,8 +79,10 @@ func RecoveryMiddleware() gin.HandlerFunc {
 						"request_id": requestID,
 					})
 				} else {
+					// Development but not debug mode - include request ID but no stack
 					c.JSON(500, gin.H{
-						"error": "Internal server error",
+						"error":      "Internal server error",
+						"request_id": requestID,
 					})
 				}
 

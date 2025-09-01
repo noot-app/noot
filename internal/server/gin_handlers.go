@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -55,9 +56,21 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 
 	LogDebug("Processing consumption request", "request_id", requestID)
 
-	// Accept up to ~100MB form size
-	if err := c.Request.ParseMultipartForm(100 << 20); err != nil {
-		appErr := NewAppError("Invalid multipart form", http.StatusBadRequest, err)
+	// Parse multipart form with strict size limits - reduced to 50MB for security
+	maxFormSize := int64(50 << 20) // 50MB
+	if maxBytesStr := getenv("MAX_UPLOAD_BYTES", ""); maxBytesStr != "" {
+		if parsed, err := strconv.ParseInt(maxBytesStr, 10, 64); err == nil && parsed > 0 {
+			// Cap at 100MB even if environment requests more
+			if parsed > 100<<20 {
+				maxFormSize = 100 << 20
+			} else {
+				maxFormSize = parsed
+			}
+		}
+	}
+	
+	if err := c.Request.ParseMultipartForm(maxFormSize); err != nil {
+		appErr := NewAppError("Invalid multipart form or file too large", http.StatusBadRequest, err)
 		s.handleAppError(c, appErr, requestID)
 		return
 	}

@@ -45,12 +45,13 @@ func httpErrorWithDetails(w http.ResponseWriter, code int, msg string, stack []s
 		Time:  time.Now().UTC(),
 	}
 
-	// Include stack trace in debug/dev mode
-	if (isDebugMode() || isDevMode()) && len(stack) > 0 {
+	// Only include stack trace in debug/dev mode AND not in production
+	if !IsProduction() && (isDebugMode() || isDevMode()) && len(stack) > 0 {
 		resp.Stack = stack
 	}
 
-	if traceID != "" {
+	// Only include trace ID in non-production environments for debugging
+	if !IsProduction() && traceID != "" {
 		resp.TraceID = traceID
 	}
 
@@ -71,12 +72,35 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 }
 
 func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, string, error) {
-	// Get max upload size from environment, default to 100MB
-	maxBytes := int64(100 * 1024 * 1024) // 100MB default
+	// Get max upload size from environment, default to 50MB for security
+	maxBytes := int64(50 * 1024 * 1024) // 50MB default (reduced from 100MB)
 	if maxBytesStr := os.Getenv("MAX_UPLOAD_BYTES"); maxBytesStr != "" {
 		if parsed, err := strconv.ParseInt(maxBytesStr, 10, 64); err == nil && parsed > 0 {
-			maxBytes = parsed
+			// Cap at 100MB even if environment requests more
+			if parsed > 100*1024*1024 {
+				maxBytes = 100 * 1024 * 1024
+			} else {
+				maxBytes = parsed
+			}
 		}
+	}
+
+	// Validate filename for basic safety (prevent path traversal)
+	if header.Filename != "" {
+		// Check for path traversal attempts
+		if strings.Contains(header.Filename, "..") || strings.Contains(header.Filename, "/") || strings.Contains(header.Filename, "\\") {
+			return "", "", fmt.Errorf("invalid filename: contains path traversal characters")
+		}
+		// Check filename length
+		if len(header.Filename) > 255 {
+			return "", "", fmt.Errorf("filename too long: maximum 255 characters")
+		}
+	}
+
+	// Validate declared content type first
+	declaredContentType := header.Header.Get("Content-Type")
+	if declaredContentType != "" && !isAllowedAudioContentType(declaredContentType) {
+		return "", "", fmt.Errorf("unsupported content type: %s (only audio files allowed)", declaredContentType)
 	}
 
 	// Create a buffered reader to peek at the first 512 bytes for MIME detection
@@ -89,11 +113,27 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 		return "", "", fmt.Errorf("failed to read file header: %w", err)
 	}
 
-	// Determine MIME type from the peeked bytes
-	mime := http.DetectContentType(peekBytes[:n])
-	ext := guessExtension(mime)
+	// Ensure we have enough data to analyze
+	if n < 4 {
+		return "", "", fmt.Errorf("file too small to determine type")
+	}
 
-	// Create temp file with appropriate extension
+	// Determine MIME type from the peeked bytes (actual content)
+	detectedMime := http.DetectContentType(peekBytes[:n])
+	
+	// Validate detected MIME type
+	if !isAllowedAudioContentType(detectedMime) {
+		return "", "", fmt.Errorf("unsupported file type detected: %s (only audio files allowed)", detectedMime)
+	}
+
+	// If both declared and detected types are present, they should be compatible
+	if declaredContentType != "" && !areCompatibleContentTypes(declaredContentType, detectedMime) {
+		return "", "", fmt.Errorf("content type mismatch: declared %s but detected %s", declaredContentType, detectedMime)
+	}
+
+	ext := guessExtension(detectedMime)
+
+	// Create temp file with appropriate extension in secure location
 	tmpFile, err := os.CreateTemp("", "audio-*"+ext)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create temp file: %w", err)
@@ -141,13 +181,88 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 		}
 	}
 
+	// Validate minimum file size (empty files or single-byte files are suspicious)
+	if bytesWritten < 100 {
+		cleanupFile()
+		return "", "", fmt.Errorf("file too small: minimum 100 bytes required")
+	}
+
 	// Close the file (but keep it on disk)
 	if err := tmpFile.Close(); err != nil {
 		os.Remove(tmpFile.Name())
 		return "", "", fmt.Errorf("failed to close temp file: %w", err)
 	}
 
-	return tmpFile.Name(), mime, nil
+	return tmpFile.Name(), detectedMime, nil
+}
+
+// isAllowedAudioContentType checks if the content type is allowed for audio uploads
+func isAllowedAudioContentType(contentType string) bool {
+	allowedTypes := []string{
+		"audio/webm",
+		"audio/ogg", 
+		"audio/mpeg",
+		"audio/mp3",
+		"audio/wav",
+		"audio/wave",
+		"audio/x-wav",
+		"audio/opus",
+		"application/ogg", // Some browsers use this for ogg files
+	}
+	
+	lowerContentType := strings.ToLower(strings.TrimSpace(contentType))
+	// Remove any parameters (e.g., "audio/webm; codecs=opus")
+	if idx := strings.Index(lowerContentType, ";"); idx != -1 {
+		lowerContentType = strings.TrimSpace(lowerContentType[:idx])
+	}
+	
+	for _, allowed := range allowedTypes {
+		if lowerContentType == allowed {
+			return true
+		}
+	}
+	return false
+}
+
+// areCompatibleContentTypes checks if declared and detected content types are compatible
+func areCompatibleContentTypes(declared, detected string) bool {
+	// Normalize both types
+	normalizedDeclared := strings.ToLower(strings.TrimSpace(declared))
+	normalizedDetected := strings.ToLower(strings.TrimSpace(detected))
+	
+	// Remove parameters
+	if idx := strings.Index(normalizedDeclared, ";"); idx != -1 {
+		normalizedDeclared = strings.TrimSpace(normalizedDeclared[:idx])
+	}
+	if idx := strings.Index(normalizedDetected, ";"); idx != -1 {
+		normalizedDetected = strings.TrimSpace(normalizedDetected[:idx])
+	}
+	
+	// Exact match
+	if normalizedDeclared == normalizedDetected {
+		return true
+	}
+	
+	// Known compatible pairs
+	compatiblePairs := map[string][]string{
+		"audio/mpeg": {"audio/mp3"},
+		"audio/mp3":  {"audio/mpeg"},
+		"audio/wav":  {"audio/wave", "audio/x-wav"},
+		"audio/wave": {"audio/wav", "audio/x-wav"},
+		"audio/x-wav": {"audio/wav", "audio/wave"},
+		"audio/ogg":  {"application/ogg"},
+		"application/ogg": {"audio/ogg"},
+	}
+	
+	if compatible, exists := compatiblePairs[normalizedDeclared]; exists {
+		for _, compat := range compatible {
+			if compat == normalizedDetected {
+				return true
+			}
+		}
+	}
+	
+	return false
 }
 
 func guessExtension(mime string) string {
