@@ -494,31 +494,31 @@ type Event struct {
 	Category  *string    `json:"category,omitempty"`
 	StartedAt time.Time  `json:"started_at"`
 	EndedAt   *time.Time `json:"ended_at,omitempty"`
-	Level     *int       `json:"level,omitempty"`           // 0-10 scale
-	Note      *string    `json:"note,omitempty"`            // Up to 1000 chars
-	Color     *string    `json:"color,omitempty"`           // Hex color code
+	Level     *int       `json:"level,omitempty"` // 0-10 scale
+	Note      *string    `json:"note,omitempty"`  // Up to 1000 chars
+	Color     *string    `json:"color,omitempty"` // Hex color code
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 // EventLink represents a manual link between an event and a consumption/item
 type EventLink struct {
-	ID                string     `json:"id"`
-	EventID           string     `json:"event_id"`
-	ConsumptionID     *string    `json:"consumption_id,omitempty"`
-	ConsumptionItemID *string    `json:"consumption_item_id,omitempty"`
-	CreatedAt         time.Time  `json:"created_at"`
+	ID                string    `json:"id"`
+	EventID           string    `json:"event_id"`
+	ConsumptionID     *string   `json:"consumption_id,omitempty"`
+	ConsumptionItemID *string   `json:"consumption_item_id,omitempty"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 // EventListOptions contains filtering options for event queries
 type EventListOptions struct {
-	Limit      int
-	Offset     int
-	StartDate  *time.Time
-	EndDate    *time.Time
-	Category   *string
-	LevelMin   *int
-	LevelMax   *int
-	Labels     []string
-	MatchAll   bool // If true, match ALL labels; if false, match ANY label
+	Limit     int
+	Offset    int
+	StartDate *time.Time
+	EndDate   *time.Time
+	Category  *string
+	LevelMin  *int
+	LevelMax  *int
+	Labels    []string
+	MatchAll  bool // If true, match ALL labels; if false, match ANY label
 }

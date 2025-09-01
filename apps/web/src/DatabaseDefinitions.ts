@@ -458,6 +458,135 @@ export type Database = {
           },
         ]
       }
+      event_labels: {
+        Row: {
+          created_at: string
+          event_id: string
+          label_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          label_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          label_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_labels_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_links: {
+        Row: {
+          consumption_id: string | null
+          consumption_item_id: string | null
+          created_at: string
+          event_id: string
+          id: string
+        }
+        Insert: {
+          consumption_id?: string | null
+          consumption_item_id?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+        }
+        Update: {
+          consumption_id?: string | null
+          consumption_item_id?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_links_consumption_id_fkey"
+            columns: ["consumption_id"]
+            isOneToOne: false
+            referencedRelation: "consumptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_links_consumption_item_id_fkey"
+            columns: ["consumption_item_id"]
+            isOneToOne: false
+            referencedRelation: "consumption_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_links_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          category: string | null
+          color: string | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          level: number | null
+          name: string
+          note: string | null
+          started_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          level?: number | null
+          name: string
+          note?: string | null
+          started_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          color?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          level?: number | null
+          name?: string
+          note?: string | null
+          started_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_aliases: {
         Row: {
           alias_brand: string

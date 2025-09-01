@@ -1837,6 +1837,7 @@ func (s *PostgreSQLStore) GetConsumptionsByLabels(ctx context.Context, userID st
 
 	return consumptions, nil
 }
+
 // Event operations
 
 // CreateEvent creates a new event for a user
@@ -1991,7 +1992,7 @@ func (s *PostgreSQLStore) ListEvents(ctx context.Context, userID string, options
 			baseQuery += ` 
 				INNER JOIN event_labels el ON e.id = el.event_id 
 				INNER JOIN labels l ON el.label_id = l.id`
-			
+
 			placeholders := make([]string, len(options.Labels))
 			for i, label := range options.Labels {
 				placeholders[i] = fmt.Sprintf("$%d", argIndex)
@@ -1999,7 +2000,7 @@ func (s *PostgreSQLStore) ListEvents(ctx context.Context, userID string, options
 				argIndex++
 			}
 			conditions = append(conditions, fmt.Sprintf("LOWER(l.name) IN (%s)", strings.Join(placeholders, ",")))
-			
+
 			// Group by event and ensure it has all labels
 			baseQuery += fmt.Sprintf(" WHERE %s GROUP BY e.id, e.user_id, e.name, e.category, e.started_at, e.ended_at, e.level, e.note, e.color, e.created_at, e.updated_at HAVING COUNT(DISTINCT l.id) = %d", strings.Join(conditions, " AND "), len(options.Labels))
 		} else {
@@ -2007,7 +2008,7 @@ func (s *PostgreSQLStore) ListEvents(ctx context.Context, userID string, options
 			baseQuery += ` 
 				INNER JOIN event_labels el ON e.id = el.event_id 
 				INNER JOIN labels l ON el.label_id = l.id`
-			
+
 			placeholders := make([]string, len(options.Labels))
 			for i, label := range options.Labels {
 				placeholders[i] = fmt.Sprintf("$%d", argIndex)
@@ -2114,7 +2115,7 @@ func (s *PostgreSQLStore) AssignEventLabels(ctx context.Context, userID, eventID
 	placeholders := make([]string, len(labelIDs))
 	args := []interface{}{eventID}
 	argIndex := 2
-	
+
 	for i, labelID := range labelIDs {
 		placeholders[i] = fmt.Sprintf("($1, $%d, NOW())", argIndex)
 		args = append(args, labelID)
