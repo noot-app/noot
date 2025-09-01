@@ -24,7 +24,7 @@ case "${1:-}" in
     # Get git metadata for build
     export VITE_COMMIT_SHA="$(git rev-parse HEAD 2>/dev/null || echo 'unknown')"
     export VITE_BUILD_TIME="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    export VITE_TAG="$(git describe --tags --exact-match 2>/dev/null || echo 'dev')"
+    export VITE_TAG="$(git describe --tags --exact-match 2>/dev/null || echo "${VITE_COMMIT_SHA}")"
     
     echo "Build metadata:"
     echo "  Commit SHA: ${VITE_COMMIT_SHA}"
@@ -73,7 +73,7 @@ case "${1:-}" in
     # Get git metadata for frontend build
     export VITE_COMMIT_SHA="$(git rev-parse HEAD 2>/dev/null || echo 'unknown')"
     export VITE_BUILD_TIME="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    export VITE_TAG="$(git describe --tags --exact-match 2>/dev/null || echo 'dev')"
+    export VITE_TAG="$(git describe --tags --exact-match 2>/dev/null || echo "${VITE_COMMIT_SHA}")"
     
     echo "Step 2/2: Deploying frontend..."
     echo "Build metadata:"
