@@ -68,7 +68,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 			}
 		}
 	}
-	
+
 	if err := c.Request.ParseMultipartForm(maxFormSize); err != nil {
 		appErr := NewAppError("Invalid multipart form or file too large", http.StatusBadRequest, err)
 		s.handleAppError(c, appErr, requestID)
@@ -259,7 +259,7 @@ func (s *APIServer) GetConsumption(c *gin.Context, id string) {
 		handleInternalServerError(c, "Failed to get consumption", err)
 		return
 	}
-	
+
 	// If not found as owner, try as public consumption
 	if cons == nil {
 		cons, err = s.store.GetPublicConsumption(ctx, id)
@@ -268,7 +268,7 @@ func (s *APIServer) GetConsumption(c *gin.Context, id string) {
 			return
 		}
 	}
-	
+
 	if cons == nil {
 		appErr := NewAppError("Consumption not found", http.StatusNotFound, nil)
 		s.handleAppError(c, appErr, requestID)

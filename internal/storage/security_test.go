@@ -65,7 +65,7 @@ func TestSQLInjectionResilience(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Test the dynamic query building logic by examining the placeholders
 			// This validates that labelNames are properly parameterized
-			
+
 			// Build placeholders like the actual method does
 			placeholders := make([]string, len(tc.labelNames))
 			args := []interface{}{tc.userID}
@@ -76,10 +76,10 @@ func TestSQLInjectionResilience(t *testing.T) {
 
 			// Verify that no raw label content appears in the placeholder string
 			placeholderStr := strings.Join(placeholders, ",")
-			
+
 			// Check that our injection attempts don't appear in the constructed query template
 			for _, labelName := range tc.labelNames {
-				assert.NotContains(t, placeholderStr, labelName, 
+				assert.NotContains(t, placeholderStr, labelName,
 					"Label name should not appear in query template - indicates lack of parameterization")
 				assert.NotContains(t, placeholderStr, strings.ToLower(labelName),
 					"Lowercase label name should not appear in query template")
@@ -92,11 +92,11 @@ func TestSQLInjectionResilience(t *testing.T) {
 			// Verify all arguments are properly typed and don't contain SQL keywords
 			require.Equal(t, len(tc.labelNames)+1, len(args), "Should have userID + one arg per label")
 			assert.Equal(t, tc.userID, args[0], "First argument should be userID")
-			
+
 			for i, arg := range args[1:] {
 				argStr, ok := arg.(string)
 				require.True(t, ok, "Label arguments should be strings")
-				assert.Equal(t, strings.ToLower(tc.labelNames[i]), argStr, 
+				assert.Equal(t, strings.ToLower(tc.labelNames[i]), argStr,
 					"Arguments should match original labels (lowercased)")
 			}
 		})
@@ -123,7 +123,7 @@ func TestUserScopedMethods(t *testing.T) {
 		},
 		{
 			name:         "Non-owner access denied",
-			method:       "GetConsumptionForUser", 
+			method:       "GetConsumptionForUser",
 			description:  "Different user should not access consumption",
 			ownerUserID:  "user123",
 			accessUserID: "user456",
@@ -156,8 +156,8 @@ func TestUserScopedMethods(t *testing.T) {
 			// 3. Verify access is granted/denied as expected
 
 			// For now, we validate the access control logic conceptually
-			shouldHaveAccess := tc.ownerUserID == tc.accessUserID && 
-				tc.ownerUserID != "" && 
+			shouldHaveAccess := tc.ownerUserID == tc.accessUserID &&
+				tc.ownerUserID != "" &&
 				!strings.Contains(tc.accessUserID, "'") // Basic SQL injection check
 
 			assert.Equal(t, tc.expectAccess, shouldHaveAccess, tc.description)
@@ -168,12 +168,12 @@ func TestUserScopedMethods(t *testing.T) {
 // TestPublicConsumptionAccess tests the privacy model for public consumptions
 func TestPublicConsumptionAccess(t *testing.T) {
 	testCases := []struct {
-		name             string
-		isPublic         bool
-		viewerIsOwner    bool
-		expectAccess     bool
-		expectLabels     bool
-		description      string
+		name          string
+		isPublic      bool
+		viewerIsOwner bool
+		expectAccess  bool
+		expectLabels  bool
+		description   string
 	}{
 		{
 			name:          "Owner views own public consumption",
@@ -214,21 +214,21 @@ func TestPublicConsumptionAccess(t *testing.T) {
 			// Validate the privacy model logic
 			// GetPublicConsumption should only return public consumptions
 			canAccessViaPublic := tc.isPublic
-			
+
 			// GetConsumptionForUser should require ownership
 			canAccessViaUserScoped := tc.viewerIsOwner
-			
+
 			// For public access, labels should be excluded for non-owners
 			shouldIncludeLabels := tc.viewerIsOwner
-			
+
 			if tc.isPublic {
-				assert.Equal(t, tc.expectAccess, canAccessViaPublic, 
+				assert.Equal(t, tc.expectAccess, canAccessViaPublic,
 					"Public consumption access via GetPublicConsumption")
 			}
-			
+
 			assert.Equal(t, tc.expectAccess && tc.viewerIsOwner, canAccessViaUserScoped,
-				"User-scoped access via GetConsumptionForUser") 
-			
+				"User-scoped access via GetConsumptionForUser")
+
 			if tc.expectAccess {
 				assert.Equal(t, tc.expectLabels, shouldIncludeLabels,
 					"Label visibility should match expectations")
@@ -240,11 +240,11 @@ func TestPublicConsumptionAccess(t *testing.T) {
 // TestInputValidation tests various input validation scenarios
 func TestInputValidation(t *testing.T) {
 	testCases := []struct {
-		name     string
-		input    string
-		field    string 
-		isValid  bool
-		reason   string
+		name    string
+		input   string
+		field   string
+		isValid bool
+		reason  string
 	}{
 		{
 			name:    "Normal label name",
@@ -256,7 +256,7 @@ func TestInputValidation(t *testing.T) {
 		{
 			name:    "Label with SQL keywords",
 			input:   "SELECT-FROM-WHERE",
-			field:   "label_name", 
+			field:   "label_name",
 			isValid: true,
 			reason:  "SQL keywords in labels should be treated as normal text",
 		},
@@ -300,12 +300,12 @@ func TestInputValidation(t *testing.T) {
 					break
 				}
 			}
-			
+
 			isTooLong := len(tc.input) > 255
 			isEmpty := tc.input == "" && tc.field == "user_id"
-			
+
 			actuallyValid := !hasControlChars && !isTooLong && !isEmpty
-			
+
 			assert.Equal(t, tc.isValid, actuallyValid, tc.reason)
 		})
 	}

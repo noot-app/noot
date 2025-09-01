@@ -50,7 +50,7 @@ func httpErrorWithDetails(w http.ResponseWriter, code int, msg string, stack []s
 		resp.Stack = stack
 	}
 
-	// Only include trace ID in non-production environments for debugging
+	// always include trace ID if provided
 	if traceID != "" {
 		resp.TraceID = traceID
 	}
@@ -120,7 +120,7 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 
 	// Determine MIME type from the peeked bytes (actual content)
 	detectedMime := http.DetectContentType(peekBytes[:n])
-	
+
 	// Validate detected MIME type
 	if !isAllowedAudioContentType(detectedMime) {
 		return "", "", fmt.Errorf("unsupported file type detected: %s (only audio files allowed)", detectedMime)
@@ -200,7 +200,7 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 func isAllowedAudioContentType(contentType string) bool {
 	allowedTypes := []string{
 		"audio/webm",
-		"audio/ogg", 
+		"audio/ogg",
 		"audio/mpeg",
 		"audio/mp3",
 		"audio/wav",
@@ -209,13 +209,13 @@ func isAllowedAudioContentType(contentType string) bool {
 		"audio/opus",
 		"application/ogg", // Some browsers use this for ogg files
 	}
-	
+
 	lowerContentType := strings.ToLower(strings.TrimSpace(contentType))
 	// Remove any parameters (e.g., "audio/webm; codecs=opus")
 	if idx := strings.Index(lowerContentType, ";"); idx != -1 {
 		lowerContentType = strings.TrimSpace(lowerContentType[:idx])
 	}
-	
+
 	for _, allowed := range allowedTypes {
 		if lowerContentType == allowed {
 			return true
@@ -229,7 +229,7 @@ func areCompatibleContentTypes(declared, detected string) bool {
 	// Normalize both types
 	normalizedDeclared := strings.ToLower(strings.TrimSpace(declared))
 	normalizedDetected := strings.ToLower(strings.TrimSpace(detected))
-	
+
 	// Remove parameters
 	if idx := strings.Index(normalizedDeclared, ";"); idx != -1 {
 		normalizedDeclared = strings.TrimSpace(normalizedDeclared[:idx])
@@ -237,23 +237,23 @@ func areCompatibleContentTypes(declared, detected string) bool {
 	if idx := strings.Index(normalizedDetected, ";"); idx != -1 {
 		normalizedDetected = strings.TrimSpace(normalizedDetected[:idx])
 	}
-	
+
 	// Exact match
 	if normalizedDeclared == normalizedDetected {
 		return true
 	}
-	
+
 	// Known compatible pairs
 	compatiblePairs := map[string][]string{
-		"audio/mpeg": {"audio/mp3"},
-		"audio/mp3":  {"audio/mpeg"},
-		"audio/wav":  {"audio/wave", "audio/x-wav"},
-		"audio/wave": {"audio/wav", "audio/x-wav"},
-		"audio/x-wav": {"audio/wav", "audio/wave"},
-		"audio/ogg":  {"application/ogg"},
+		"audio/mpeg":      {"audio/mp3"},
+		"audio/mp3":       {"audio/mpeg"},
+		"audio/wav":       {"audio/wave", "audio/x-wav"},
+		"audio/wave":      {"audio/wav", "audio/x-wav"},
+		"audio/x-wav":     {"audio/wav", "audio/wave"},
+		"audio/ogg":       {"application/ogg"},
 		"application/ogg": {"audio/ogg"},
 	}
-	
+
 	if compatible, exists := compatiblePairs[normalizedDeclared]; exists {
 		for _, compat := range compatible {
 			if compat == normalizedDetected {
@@ -261,7 +261,7 @@ func areCompatibleContentTypes(declared, detected string) bool {
 			}
 		}
 	}
-	
+
 	return false
 }
 

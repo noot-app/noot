@@ -40,12 +40,12 @@ func newMockFile(content []byte) multipart.File {
 
 func TestUploadSecurity(t *testing.T) {
 	testCases := []struct {
-		name           string
-		filename       string
-		contentType    string
-		fileContent    []byte
-		expectError    bool
-		errorContains  string
+		name          string
+		filename      string
+		contentType   string
+		fileContent   []byte
+		expectError   bool
+		errorContains string
 	}{
 		{
 			name:        "Valid webm audio file",
@@ -65,7 +65,7 @@ func TestUploadSecurity(t *testing.T) {
 		{
 			name:          "Windows path traversal",
 			filename:      "..\\..\\windows\\system32\\cmd.exe",
-			contentType:   "audio/wav", 
+			contentType:   "audio/wav",
 			fileContent:   append([]byte("RIFF"), append([]byte{0, 0, 0, 0}, append([]byte("WAVE"), make([]byte, 100)...)...)...), // Valid WAV header
 			expectError:   true,
 			errorContains: "path traversal",
@@ -81,7 +81,7 @@ func TestUploadSecurity(t *testing.T) {
 		{
 			name:          "Unsupported content type",
 			filename:      "test.exe",
-			contentType:   "application/x-executable", 
+			contentType:   "application/x-executable",
 			fileContent:   []byte("MZ\x90\x00"),
 			expectError:   true,
 			errorContains: "unsupported content type",
@@ -97,7 +97,7 @@ func TestUploadSecurity(t *testing.T) {
 		{
 			name:          "Empty file",
 			filename:      "empty.wav",
-			contentType:   "audio/wav", 
+			contentType:   "audio/wav",
 			fileContent:   []byte{},
 			expectError:   true,
 			errorContains: "file too small",
@@ -116,7 +116,7 @@ func TestUploadSecurity(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a mock file
 			file := newMockFile(tc.fileContent)
-			
+
 			// Create a mock header
 			header := &multipart.FileHeader{
 				Filename: tc.filename,
@@ -126,14 +126,14 @@ func TestUploadSecurity(t *testing.T) {
 			if tc.contentType != "" {
 				header.Header.Set("Content-Type", tc.contentType)
 			}
-			
+
 			// Test the saveTempFile function
 			tmpPath, mimeType, err := saveTempFile(file, header)
-			
+
 			if tc.expectError {
 				assert.Error(t, err, "Expected error for test case: %s", tc.name)
 				if tc.errorContains != "" {
-					assert.Contains(t, err.Error(), tc.errorContains, 
+					assert.Contains(t, err.Error(), tc.errorContains,
 						"Error should contain expected text")
 				}
 				assert.Empty(t, tmpPath, "Should not return temp path on error")
@@ -142,7 +142,7 @@ func TestUploadSecurity(t *testing.T) {
 				assert.NoError(t, err, "Should not error for valid file")
 				assert.NotEmpty(t, tmpPath, "Should return temp path")
 				assert.NotEmpty(t, mimeType, "Should return MIME type")
-				
+
 				// Clean up
 				if tmpPath != "" {
 					removeFile(tmpPath)
@@ -154,8 +154,8 @@ func TestUploadSecurity(t *testing.T) {
 
 func TestContentTypeValidation(t *testing.T) {
 	testCases := []struct {
-		name         string
-		contentType  string
+		name          string
+		contentType   string
 		expectAllowed bool
 	}{
 		{"Valid webm", "audio/webm", true},
@@ -176,7 +176,7 @@ func TestContentTypeValidation(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := isAllowedAudioContentType(tc.contentType)
-			assert.Equal(t, tc.expectAllowed, result, 
+			assert.Equal(t, tc.expectAllowed, result,
 				"Content type %s should be allowed: %v", tc.contentType, tc.expectAllowed)
 		})
 	}
