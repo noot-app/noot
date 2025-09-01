@@ -279,7 +279,7 @@ func TestOFFClient_SearchProduct_NoResults(t *testing.T) {
 	assert.Contains(t, err.Error(), "no brand specified for OFF search")
 }
 
-func TestOFFClient_SearchProduct_GenericFood(t *testing.T) {
+func TestOFFClient_SearchProduct_NoBrand(t *testing.T) {
 	client := NewOFFClient(OFFClientConfig{
 		BaseURL:   "https://world.openfoodfacts.org",
 		UserAgent: "test-agent",
@@ -289,14 +289,14 @@ func TestOFFClient_SearchProduct_GenericFood(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Test generic food items that should be skipped
-	genericItems := []string{"smoked salmon", "whole milk", "olive oil", "fresh tomato", "organic chicken"}
+	// Test items without brands that should be skipped
+	itemsWithoutBrand := []string{"smoked salmon", "whole milk", "olive oil", "fresh tomato", "organic chicken"}
 
-	for _, item := range genericItems {
+	for _, item := range itemsWithoutBrand {
 		product, err := client.SearchProduct(ctx, item, "")
 		assert.Error(t, err)
 		assert.Nil(t, product)
-		assert.Contains(t, err.Error(), "generic food item not suitable for OFF database")
+		assert.Contains(t, err.Error(), "no brand specified for OFF search")
 	}
 }
 
