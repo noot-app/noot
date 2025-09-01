@@ -5,7 +5,7 @@ import type { RequestHandler } from './$types'
 const buildInfo = {
   commit: import.meta.env.VITE_COMMIT_SHA || 'unknown',
   buildTime: import.meta.env.VITE_BUILD_TIME || 'unknown',
-  tag: import.meta.env.VITE_TAG || 'dev'
+  tag: import.meta.env.VITE_TAG || import.meta.env.VITE_COMMIT_SHA || 'unknown'
 }
 
 export const GET: RequestHandler = async () => {
