@@ -5,6 +5,15 @@ import (
 	"time"
 )
 
+// OFFIngredient represents an ingredient from Open Food Facts
+type OFFIngredient struct {
+	ID              string   `json:"id"`                         // e.g., "en:filtered-water"
+	Text            string   `json:"text"`                       // Display name, e.g., "Purified water"
+	PercentEstimate *float64 `json:"percent_estimate,omitempty"` // e.g., 54.1666666666667
+	PercentMax      *float64 `json:"percent_max,omitempty"`      // e.g., 100
+	PercentMin      *float64 `json:"percent_min,omitempty"`      // e.g., 8.33333333333333
+}
+
 // Store defines the interface for data persistence
 type Store interface {
 	// User operations
@@ -288,6 +297,11 @@ type Item struct {
 	PolyunsaturatedFatGPer100g float64 `json:"polyunsaturated_fat_g_per_100g"`
 	MonounsaturatedFatGPer100g float64 `json:"monounsaturated_fat_g_per_100g"`
 	Note                       *string `json:"note,omitempty"`
+
+	// Ingredients and Open Food Facts metadata
+	Ingredients []OFFIngredient `json:"ingredients,omitempty"` // Ingredient list from OFF
+	OFFUrl      *string         `json:"off_url,omitempty"`     // Open Food Facts product URL
+
 	// Timestamps for 30-day refresh logic
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -355,6 +369,10 @@ type ConsumptionItem struct {
 	AlcoholG            float64 `json:"alcohol_g"`
 	PolyunsaturatedFatG float64 `json:"polyunsaturated_fat_g"`
 	MonounsaturatedFatG float64 `json:"monounsaturated_fat_g"`
+
+	// Ingredients and Open Food Facts metadata (historical snapshot)
+	Ingredients []OFFIngredient `json:"ingredients,omitempty"` // Ingredient list from OFF at time of consumption
+	OFFUrl      *string         `json:"off_url,omitempty"`     // Open Food Facts product URL at time of consumption
 
 	Labels    []*Label   `json:"labels,omitempty"`
 	CreatedAt time.Time  `json:"created_at"`

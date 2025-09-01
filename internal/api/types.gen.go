@@ -594,6 +594,9 @@ type Item struct {
 	// Grams Weight in grams (standardized internally)
 	Grams float32 `json:"grams"`
 
+	// Ingredients Ingredient list from Open Food Facts
+	Ingredients *[]OFFIngredient `json:"ingredients,omitempty"`
+
 	// Labels Labels assigned to this item
 	Labels *[]Label `json:"labels,omitempty"`
 
@@ -603,6 +606,9 @@ type Item struct {
 	// Note Additional note about the item
 	Note      *string           `json:"note"`
 	Nutrients *CompleteNutrient `json:"nutrients,omitempty"`
+
+	// OffUrl Open Food Facts product URL
+	OffUrl *string `json:"off_url"`
 
 	// UserQuantity Original user input quantity for display
 	UserQuantity *float32 `json:"user_quantity"`
@@ -707,6 +713,24 @@ type LifeStage struct {
 
 // LifeStageSex User sex for DRI calculation
 type LifeStageSex string
+
+// OFFIngredient defines model for OFFIngredient.
+type OFFIngredient struct {
+	// Id Ingredient ID from Open Food Facts (e.g., "en:filtered-water")
+	Id *string `json:"id,omitempty"`
+
+	// PercentEstimate Estimated percentage of this ingredient in the product
+	PercentEstimate *float32 `json:"percent_estimate"`
+
+	// PercentMax Maximum possible percentage of this ingredient
+	PercentMax *float32 `json:"percent_max"`
+
+	// PercentMin Minimum possible percentage of this ingredient
+	PercentMin *float32 `json:"percent_min"`
+
+	// Text Display name of the ingredient (e.g., "Purified water")
+	Text *string `json:"text,omitempty"`
+}
 
 // SetActiveGoalRequest defines model for SetActiveGoalRequest.
 type SetActiveGoalRequest struct {

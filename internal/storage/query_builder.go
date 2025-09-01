@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 )
@@ -23,14 +24,20 @@ func GetItemColumns() []string {
 		nutrientColumns[i] = field.DBColumn
 	}
 
+	// Additional metadata fields
+	additionalColumns := []string{
+		"note", "ingredients", "off_url",
+	}
+
 	metaColumns := []string{
 		"created_at", "updated_at",
 	}
 
 	// Combine all columns
-	allColumns := make([]string, 0, len(baseColumns)+len(nutrientColumns)+len(metaColumns))
+	allColumns := make([]string, 0, len(baseColumns)+len(nutrientColumns)+len(additionalColumns)+len(metaColumns))
 	allColumns = append(allColumns, baseColumns...)
 	allColumns = append(allColumns, nutrientColumns...)
+	allColumns = append(allColumns, additionalColumns...)
 	allColumns = append(allColumns, metaColumns...)
 
 	return allColumns
@@ -59,6 +66,18 @@ func extractItemValues(item *Item, includeID bool, includeCreatedAt bool) []inte
 		}
 		values = append(values, fieldValue.Interface())
 	}
+
+	// Additional metadata fields
+	// Serialize ingredients to JSON for database storage
+	var ingredientsJSON []byte
+	if len(item.Ingredients) > 0 {
+		var err error
+		ingredientsJSON, err = json.Marshal(item.Ingredients)
+		if err != nil {
+			panic(fmt.Sprintf("failed to marshal ingredients: %v", err))
+		}
+	}
+	values = append(values, item.Note, ingredientsJSON, item.OFFUrl)
 
 	// Meta columns
 	if includeCreatedAt {
@@ -97,14 +116,37 @@ func scanItemRow(row scannable, item *Item) error {
 		scanArgs[5+i] = fieldValue.Addr().Interface()
 	}
 
-	// Meta columns
-	createdAtIdx := 5 + len(nutrientFields)
+	// Meta columns - additional fields come before timestamps
+	additionalIdx := 5 + len(nutrientFields)
+
+	// Additional metadata fields (note, ingredients, off_url)
+	var ingredientsJSON []byte
+	scanArgs[additionalIdx] = &item.Note
+	scanArgs[additionalIdx+1] = &ingredientsJSON // Will be deserialized after scan
+	scanArgs[additionalIdx+2] = &item.OFFUrl
+
+	// Timestamps
+	createdAtIdx := additionalIdx + 3
 	updatedAtIdx := createdAtIdx + 1
 
 	scanArgs[createdAtIdx] = &item.CreatedAt
 	scanArgs[updatedAtIdx] = &item.UpdatedAt
 
-	return row.Scan(scanArgs...)
+	// Perform the scan
+	err := row.Scan(scanArgs...)
+	if err != nil {
+		return err
+	}
+
+	// Deserialize ingredients JSON if present
+	if len(ingredientsJSON) > 0 {
+		err = json.Unmarshal(ingredientsJSON, &item.Ingredients)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal ingredients: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // scannable interface to abstract sql.Row and sql.Rows

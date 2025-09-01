@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -726,14 +727,24 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 			copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg, 
 			chromium_mcg, fluoride_mg, chloride_mg, omega3_ala_g, omega3_epa_g, 
 			omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, alcohol_g, 
-			polyunsaturated_fat_g, monounsaturated_fat_g, created_at, updated_at
+			polyunsaturated_fat_g, monounsaturated_fat_g, ingredients, off_url, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
 			$16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, 
 			$30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, 
 			$44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, 
-			$58, $59
+			$58, $59, $60, $61
 		)`
+
+	// Serialize ingredients to JSON
+	var ingredientsJSON []byte
+	if len(item.Ingredients) > 0 {
+		var err error
+		ingredientsJSON, err = json.Marshal(item.Ingredients)
+		if err != nil {
+			return fmt.Errorf("failed to marshal ingredients: %w", err)
+		}
+	}
 
 	_, err := s.db.ExecContext(ctx, query,
 		item.ID, item.ConsumptionID, item.ItemID, item.Name, item.Brand,
@@ -747,7 +758,7 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 		item.CopperMg, item.ManganeseMg, item.SeleniumMcg, item.IodineMcg, item.MolybdenumMcg,
 		item.ChromiumMcg, item.FluorideMg, item.ChlorideMg, item.Omega3AlaG, item.Omega3EpaG,
 		item.Omega3DhaG, item.Omega6G, item.CreatineMg, item.CaffeineMg, item.AlcoholG,
-		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, item.CreatedAt, item.UpdatedAt)
+		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, ingredientsJSON, item.OFFUrl, item.CreatedAt, item.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create consumption item: %w", err)
 	}
@@ -768,7 +779,7 @@ func (s *PostgreSQLStore) GetConsumptionItems(ctx context.Context, consumptionID
 			copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg, 
 			chromium_mcg, fluoride_mg, chloride_mg, omega3_ala_g, omega3_epa_g, 
 			omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, alcohol_g, 
-			polyunsaturated_fat_g, monounsaturated_fat_g, created_at, updated_at
+			polyunsaturated_fat_g, monounsaturated_fat_g, ingredients, off_url, created_at, updated_at
 		FROM consumption_items 
 		WHERE consumption_id = $1 
 		ORDER BY created_at ASC`
@@ -782,6 +793,7 @@ func (s *PostgreSQLStore) GetConsumptionItems(ctx context.Context, consumptionID
 	var items []*ConsumptionItem
 	for rows.Next() {
 		item := &ConsumptionItem{}
+		var ingredientsJSON []byte
 		err := rows.Scan(&item.ID, &item.ConsumptionID, &item.ItemID, &item.Name, &item.Brand,
 			&item.Grams, &item.UserQuantity, &item.UserUnit, &item.Note,
 			&item.Calories, &item.ProteinG, &item.TotalFatG, &item.SaturatedFatG, &item.TransFatG,
@@ -793,9 +805,17 @@ func (s *PostgreSQLStore) GetConsumptionItems(ctx context.Context, consumptionID
 			&item.CopperMg, &item.ManganeseMg, &item.SeleniumMcg, &item.IodineMcg, &item.MolybdenumMcg,
 			&item.ChromiumMcg, &item.FluorideMg, &item.ChlorideMg, &item.Omega3AlaG, &item.Omega3EpaG,
 			&item.Omega3DhaG, &item.Omega6G, &item.CreatineMg, &item.CaffeineMg, &item.AlcoholG,
-			&item.PolyunsaturatedFatG, &item.MonounsaturatedFatG, &item.CreatedAt, &item.UpdatedAt)
+			&item.PolyunsaturatedFatG, &item.MonounsaturatedFatG, &ingredientsJSON, &item.OFFUrl, &item.CreatedAt, &item.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption item: %w", err)
+		}
+
+		// Deserialize ingredients JSON if present
+		if len(ingredientsJSON) > 0 {
+			err = json.Unmarshal(ingredientsJSON, &item.Ingredients)
+			if err != nil {
+				return nil, fmt.Errorf("failed to unmarshal ingredients: %w", err)
+			}
 		}
 		items = append(items, item)
 	}
@@ -843,8 +863,18 @@ func (s *PostgreSQLStore) UpdateConsumptionItem(ctx context.Context, item *Consu
 			iodine_mcg = $43, molybdenum_mcg = $44, chromium_mcg = $45, fluoride_mg = $46, 
 			chloride_mg = $47, omega3_ala_g = $48, omega3_epa_g = $49, omega3_dha_g = $50, 
 			omega6_g = $51, creatine_mg = $52, caffeine_mg = $53, alcohol_g = $54, 
-			polyunsaturated_fat_g = $55, monounsaturated_fat_g = $56, updated_at = $57
+			polyunsaturated_fat_g = $55, monounsaturated_fat_g = $56, ingredients = $57, off_url = $58, updated_at = $59
 		WHERE id = $1`
+
+	// Serialize ingredients to JSON
+	var ingredientsJSON []byte
+	if len(item.Ingredients) > 0 {
+		var err error
+		ingredientsJSON, err = json.Marshal(item.Ingredients)
+		if err != nil {
+			return fmt.Errorf("failed to marshal ingredients: %w", err)
+		}
+	}
 
 	result, err := s.db.ExecContext(ctx, query, item.ID, item.ItemID, item.Name, item.Brand,
 		item.Grams, item.UserQuantity, item.UserUnit, item.Note,
@@ -857,7 +887,7 @@ func (s *PostgreSQLStore) UpdateConsumptionItem(ctx context.Context, item *Consu
 		item.CopperMg, item.ManganeseMg, item.SeleniumMcg, item.IodineMcg, item.MolybdenumMcg,
 		item.ChromiumMcg, item.FluorideMg, item.ChlorideMg, item.Omega3AlaG, item.Omega3EpaG,
 		item.Omega3DhaG, item.Omega6G, item.CreatineMg, item.CaffeineMg, item.AlcoholG,
-		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, item.UpdatedAt)
+		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, ingredientsJSON, item.OFFUrl, item.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update consumption item: %w", err)
 	}

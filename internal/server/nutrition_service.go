@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -125,11 +126,13 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 			// Try to get OFF context for this item
 			var nutritionContext interface{}
 			var directNutrition *CompleteNutrient
+			var offProduct *OFFProduct // Declare here so we can use it later for ingredients
 
 			// Only query OFF if we have a brand (OFF is only good for branded items)
 			brand := getBrandOrEmpty(item.Brand)
 			if s.offClient != nil && brand != "" && strings.TrimSpace(brand) != "" {
-				offProduct, err := s.offClient.SearchProduct(ctx, item.Name, brand)
+				var err error
+				offProduct, err = s.offClient.SearchProduct(ctx, item.Name, brand)
 				if err == nil && offProduct != nil {
 					// Check if we have an exact serving size match - use direct OFF data
 					if offProduct.ServingQuantity != nil &&
@@ -210,6 +213,24 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 				LogDebug("Using AI nutrition", "item", item.Name, "calories", nutrition.Calories)
 			}
 			item.Nutrients = &nutrition
+
+			// Extract ingredients and OFF URL when OFF data is available
+			// This assumes that if OFF found a product and we're using it for nutrition context,
+			// it's likely a good match worth preserving for historical analysis
+			if offProduct != nil {
+				// Extract and convert ingredients from OFF format to our format
+				if len(offProduct.Ingredients) > 0 {
+					item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
+					LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
+				}
+
+				// Save OFF URL for historical reference
+				if offProduct.Link != "" {
+					item.OFFUrl = &offProduct.Link
+					LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
+				}
+			}
+
 			results <- result{index: index, item: item, err: nil}
 		}(i, item)
 	}
@@ -362,13 +383,15 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 	// Try Open Food Facts database to provide context for AI
 	var nutritionContext interface{}
+	var offProduct *OFFProduct // Declare here so we can use it later for ingredients
 
 	// Only query OFF if we have a brand (OFF is only good for branded items)
 	brand := getBrandOrEmpty(item.Brand)
 	if s.offClient != nil && brand != "" && strings.TrimSpace(brand) != "" {
 		LogDebug("Checking OFF database for item context", "name", item.Name, "brand", brand)
 
-		offProduct, err := s.offClient.SearchProduct(ctx, item.Name, brand)
+		var err error
+		offProduct, err = s.offClient.SearchProduct(ctx, item.Name, brand)
 		if err == nil && offProduct != nil {
 			LogDebug("Found item in OFF database for context", "name", item.Name, "product_name", offProduct.ProductName)
 
@@ -509,6 +532,23 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 	}
 
 	item.Nutrients = &nutrition
+
+	// Extract ingredients and OFF URL when OFF data is available
+	// This assumes that if OFF found a product and we're using it for nutrition context,
+	// it's likely a good match worth preserving for historical analysis
+	if offProduct != nil {
+		// Extract and convert ingredients from OFF format to our format
+		if len(offProduct.Ingredients) > 0 {
+			item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
+			LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
+		}
+
+		// Save OFF URL for historical reference
+		if offProduct.Link != "" {
+			item.OFFUrl = &offProduct.Link
+			LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
+		}
+	}
 
 	return item, nil
 }
@@ -1080,4 +1120,79 @@ func floatValue(f *float64) float64 {
 		return 0
 	}
 	return *f
+}
+
+// parseOFFIngredients converts raw OFF ingredient data to our OFFIngredient format
+func parseOFFIngredients(rawIngredients []interface{}) []storage.OFFIngredient {
+	if rawIngredients == nil || len(rawIngredients) == 0 {
+		return []storage.OFFIngredient{}
+	}
+	
+	var ingredients []storage.OFFIngredient
+
+	for _, rawIngredient := range rawIngredients {
+		// OFF ingredients come as map[string]interface{}
+		ingredientMap, ok := rawIngredient.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		ingredient := storage.OFFIngredient{}
+
+		// Extract ID
+		if id, ok := ingredientMap["id"].(string); ok {
+			ingredient.ID = id
+		}
+
+		// Extract text/display name
+		if text, ok := ingredientMap["text"].(string); ok {
+			ingredient.Text = text
+		}
+
+		// Extract percentage values (they might be numbers or strings)
+		if percentEstimate := extractFloatFromInterface(ingredientMap["percent_estimate"]); percentEstimate != nil {
+			ingredient.PercentEstimate = percentEstimate
+		}
+		if percentMax := extractFloatFromInterface(ingredientMap["percent_max"]); percentMax != nil {
+			ingredient.PercentMax = percentMax
+		}
+		if percentMin := extractFloatFromInterface(ingredientMap["percent_min"]); percentMin != nil {
+			ingredient.PercentMin = percentMin
+		}
+
+		// Only add ingredient if it has meaningful data
+		if ingredient.ID != "" || ingredient.Text != "" {
+			ingredients = append(ingredients, ingredient)
+		}
+	}
+
+	return ingredients
+}
+
+// extractFloatFromInterface safely extracts a float64 from an interface{} value
+func extractFloatFromInterface(value interface{}) *float64 {
+	if value == nil {
+		return nil
+	}
+
+	switch v := value.(type) {
+	case float64:
+		return &v
+	case float32:
+		f := float64(v)
+		return &f
+	case int:
+		f := float64(v)
+		return &f
+	case int64:
+		f := float64(v)
+		return &f
+	case string:
+		// Try to parse string as float
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return &f
+		}
+	}
+
+	return nil
 }
