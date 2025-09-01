@@ -834,7 +834,7 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 			copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg, 
 			chromium_mcg, fluoride_mg, chloride_mg, omega3_ala_g, omega3_epa_g, 
 			omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, alcohol_g, 
-			polyunsaturated_fat_g, monounsaturated_fat_g, ingredients, off_url, created_at, updated_at
+			polyunsaturated_fat_g, monounsaturated_fat_g, ingredients, url, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
 			$16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, 
@@ -865,7 +865,7 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 		item.CopperMg, item.ManganeseMg, item.SeleniumMcg, item.IodineMcg, item.MolybdenumMcg,
 		item.ChromiumMcg, item.FluorideMg, item.ChlorideMg, item.Omega3AlaG, item.Omega3EpaG,
 		item.Omega3DhaG, item.Omega6G, item.CreatineMg, item.CaffeineMg, item.AlcoholG,
-		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, ingredientsJSON, item.OFFUrl, item.CreatedAt, item.UpdatedAt)
+		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, ingredientsJSON, item.Url, item.CreatedAt, item.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create consumption item: %w", err)
 	}
@@ -886,7 +886,7 @@ func (s *PostgreSQLStore) GetConsumptionItems(ctx context.Context, consumptionID
 			copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg, 
 			chromium_mcg, fluoride_mg, chloride_mg, omega3_ala_g, omega3_epa_g, 
 			omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, alcohol_g, 
-			polyunsaturated_fat_g, monounsaturated_fat_g, ingredients, off_url, created_at, updated_at
+			polyunsaturated_fat_g, monounsaturated_fat_g, ingredients, url, created_at, updated_at
 		FROM consumption_items 
 		WHERE consumption_id = $1 
 		ORDER BY created_at ASC`
@@ -912,7 +912,7 @@ func (s *PostgreSQLStore) GetConsumptionItems(ctx context.Context, consumptionID
 			&item.CopperMg, &item.ManganeseMg, &item.SeleniumMcg, &item.IodineMcg, &item.MolybdenumMcg,
 			&item.ChromiumMcg, &item.FluorideMg, &item.ChlorideMg, &item.Omega3AlaG, &item.Omega3EpaG,
 			&item.Omega3DhaG, &item.Omega6G, &item.CreatineMg, &item.CaffeineMg, &item.AlcoholG,
-			&item.PolyunsaturatedFatG, &item.MonounsaturatedFatG, &ingredientsJSON, &item.OFFUrl, &item.CreatedAt, &item.UpdatedAt)
+			&item.PolyunsaturatedFatG, &item.MonounsaturatedFatG, &ingredientsJSON, &item.Url, &item.CreatedAt, &item.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption item: %w", err)
 		}
@@ -970,7 +970,7 @@ func (s *PostgreSQLStore) UpdateConsumptionItem(ctx context.Context, item *Consu
 			iodine_mcg = $43, molybdenum_mcg = $44, chromium_mcg = $45, fluoride_mg = $46, 
 			chloride_mg = $47, omega3_ala_g = $48, omega3_epa_g = $49, omega3_dha_g = $50, 
 			omega6_g = $51, creatine_mg = $52, caffeine_mg = $53, alcohol_g = $54, 
-			polyunsaturated_fat_g = $55, monounsaturated_fat_g = $56, ingredients = $57, off_url = $58, updated_at = $59
+			polyunsaturated_fat_g = $55, monounsaturated_fat_g = $56, ingredients = $57, url = $58, updated_at = $59
 		WHERE id = $1`
 
 	// Serialize ingredients to JSON
@@ -994,7 +994,7 @@ func (s *PostgreSQLStore) UpdateConsumptionItem(ctx context.Context, item *Consu
 		item.CopperMg, item.ManganeseMg, item.SeleniumMcg, item.IodineMcg, item.MolybdenumMcg,
 		item.ChromiumMcg, item.FluorideMg, item.ChlorideMg, item.Omega3AlaG, item.Omega3EpaG,
 		item.Omega3DhaG, item.Omega6G, item.CreatineMg, item.CaffeineMg, item.AlcoholG,
-		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, ingredientsJSON, item.OFFUrl, item.UpdatedAt)
+		item.PolyunsaturatedFatG, item.MonounsaturatedFatG, ingredientsJSON, item.Url, item.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update consumption item: %w", err)
 	}

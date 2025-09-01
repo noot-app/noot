@@ -172,7 +172,7 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 
 					// Add additional product information if available
 					if len(offProduct.Ingredients) > 0 {
-						productInfo["ingredients"] = offProduct.Ingredients
+						productInfo["ingredients"] = parseOFFIngredients(offProduct.Ingredients)
 					}
 					if offProduct.Link != "" {
 						productInfo["link"] = offProduct.Link
@@ -189,7 +189,7 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 						"products": []interface{}{
 							productInfo,
 						},
-						"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as a reference but provide complete nutrition data including nutrients not available in the context. This data could be a closely related product, the exact product, or an entirely incorrect product. Please inspect it carefully and use your best judgement.",
+						"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as a reference but provide complete nutrition data including nutrients not available in the context. This data could be a closely related product, the exact product, or an entirely incorrect product. Please inspect it carefully and use your best judgement. If ingredients/link are provided and seem to match the user's input, you may optionally include them in your response.",
 					}
 				} else {
 					LogDebug("Item not found in OFF database", "name", item.Name, "brand", brand, "error", err)
@@ -213,23 +213,6 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 				LogDebug("Using AI nutrition", "item", item.Name, "calories", nutrition.Calories)
 			}
 			item.Nutrients = &nutrition
-
-			// Extract ingredients and OFF URL when OFF data is available
-			// This assumes that if OFF found a product and we're using it for nutrition context,
-			// it's likely a good match worth preserving for historical analysis
-			if offProduct != nil {
-				// Extract and convert ingredients from OFF format to our format
-				if len(offProduct.Ingredients) > 0 {
-					item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
-					LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
-				}
-
-				// Save OFF URL for historical reference
-				if offProduct.Link != "" {
-					item.OFFUrl = &offProduct.Link
-					LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
-				}
-			}
 
 			results <- result{index: index, item: item, err: nil}
 		}(i, item)
@@ -545,7 +528,7 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 		// Save OFF URL for historical reference
 		if offProduct.Link != "" {
-			item.OFFUrl = &offProduct.Link
+			item.Url = &offProduct.Link
 			LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
 		}
 	}

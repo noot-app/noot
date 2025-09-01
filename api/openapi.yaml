@@ -1950,10 +1950,10 @@ components:
           items:
             $ref: "#/components/schemas/OFFIngredient"
           description: Ingredient list from Open Food Facts
-        off_url:
+        url:
           type: string
           nullable: true
-          description: Open Food Facts product URL
+          description: Link to the product URL (if available)
 
     OFFIngredient:
       type: object

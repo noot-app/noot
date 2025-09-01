@@ -18,7 +18,7 @@ type Item struct {
 	Note         *string                 `json:"note,omitempty"`
 	Nutrients    *CompleteNutrient       `json:"nutrients,omitempty"`
 	Ingredients  []storage.OFFIngredient `json:"ingredients,omitempty"` // Ingredient list from OFF
-	OFFUrl       *string                 `json:"off_url,omitempty"`     // Open Food Facts product URL
+	Url          *string                 `json:"url,omitempty"`         // Open Food Facts product URL
 }
 
 type ItemWithNutrition struct {

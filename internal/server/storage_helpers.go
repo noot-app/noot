@@ -241,7 +241,7 @@ func apiItemWithNutritionToConsumptionItem(consumptionID string, item api.ItemWi
 		MonounsaturatedFatG: float64(nutrients.MonounsaturatedFatG),
 		// Ingredients and OFF URL (historical snapshot)
 		Ingredients: convertAPIIngredientsToStorage(item.Item.Ingredients), // Convert and copy ingredients from API item
-		OFFUrl:      item.Item.OffUrl,                                      // Copy OFF URL from API item
+		Url:         item.Item.Url,                                         // Copy OFF URL from API item
 	}
 }
 

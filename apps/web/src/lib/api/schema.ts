@@ -822,7 +822,7 @@ export interface components {
             /** @description Ingredient list from Open Food Facts */
             ingredients?: components["schemas"]["OFFIngredient"][];
             /** @description Open Food Facts product URL */
-            off_url?: string | null;
+            url?: string | null;
         };
         OFFIngredient: {
             /** @description Ingredient ID from Open Food Facts (e.g., "en:filtered-water") */

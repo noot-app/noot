@@ -302,7 +302,7 @@ type Item struct {
 
 	// Ingredients and Open Food Facts metadata
 	Ingredients []OFFIngredient `json:"ingredients,omitempty"` // Ingredient list from OFF
-	OFFUrl      *string         `json:"off_url,omitempty"`     // Open Food Facts product URL
+	Url         *string         `json:"url,omitempty"`         // Open Food Facts product URL
 
 	// Timestamps for 30-day refresh logic
 	CreatedAt time.Time `json:"created_at"`
@@ -374,7 +374,7 @@ type ConsumptionItem struct {
 
 	// Ingredients and Open Food Facts metadata (historical snapshot)
 	Ingredients []OFFIngredient `json:"ingredients,omitempty"` // Ingredient list from OFF at time of consumption
-	OFFUrl      *string         `json:"off_url,omitempty"`     // Open Food Facts product URL at time of consumption
+	Url         *string         `json:"url,omitempty"`         // Open Food Facts product URL at time of consumption
 
 	Labels    []*Label   `json:"labels,omitempty"`
 	CreatedAt time.Time  `json:"created_at"`

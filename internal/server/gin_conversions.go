@@ -57,8 +57,8 @@ func convertInternalItemToAPI(internal Item) api.Item {
 	}
 
 	// Copy OFF URL
-	if internal.OFFUrl != nil {
-		apiItem.OffUrl = internal.OFFUrl
+	if internal.Url != nil {
+		apiItem.Url = internal.Url
 	}
 
 	return apiItem

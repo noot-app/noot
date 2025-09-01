@@ -607,8 +607,8 @@ type Item struct {
 	Note      *string           `json:"note"`
 	Nutrients *CompleteNutrient `json:"nutrients,omitempty"`
 
-	// OffUrl Open Food Facts product URL
-	OffUrl *string `json:"off_url"`
+	// Url Open Food Facts product URL
+	Url *string `json:"url"`
 
 	// UserQuantity Original user input quantity for display
 	UserQuantity *float32 `json:"user_quantity"`

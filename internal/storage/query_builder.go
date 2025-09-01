@@ -26,7 +26,7 @@ func GetItemColumns() []string {
 
 	// Additional metadata fields
 	additionalColumns := []string{
-		"note", "ingredients", "off_url",
+		"note", "ingredients", "url",
 	}
 
 	metaColumns := []string{
@@ -77,7 +77,7 @@ func extractItemValues(item *Item, includeID bool, includeCreatedAt bool) []inte
 			panic(fmt.Sprintf("failed to marshal ingredients: %v", err))
 		}
 	}
-	values = append(values, item.Note, ingredientsJSON, item.OFFUrl)
+	values = append(values, item.Note, ingredientsJSON, item.Url)
 
 	// Meta columns
 	if includeCreatedAt {
@@ -119,11 +119,11 @@ func scanItemRow(row scannable, item *Item) error {
 	// Meta columns - additional fields come before timestamps
 	additionalIdx := 5 + len(nutrientFields)
 
-	// Additional metadata fields (note, ingredients, off_url)
+	// Additional metadata fields (note, ingredients, url)
 	var ingredientsJSON []byte
 	scanArgs[additionalIdx] = &item.Note
 	scanArgs[additionalIdx+1] = &ingredientsJSON // Will be deserialized after scan
-	scanArgs[additionalIdx+2] = &item.OFFUrl
+	scanArgs[additionalIdx+2] = &item.Url
 
 	// Timestamps
 	createdAtIdx := additionalIdx + 3
