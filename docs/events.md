@@ -182,8 +182,8 @@ GET /events?labels=trigger-foods&match=any
 - **Event templates**: Common event types with pre-filled data
 - **Recurring events**: Support for regular tracking (e.g., daily symptoms)
 - **Export functionality**: CSV/JSON export for external analysis
-- **Notification system**: Reminders for regular event logging
 - **Analytics dashboard**: Visual correlation analysis and trends
+- **Quick Link to Last Consumption**: When creating an event, allow quick linking to the most recent consumption for easier manual correlation.
 
 ## Correlation Analysis Capabilities
 
