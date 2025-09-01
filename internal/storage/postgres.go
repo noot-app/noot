@@ -208,7 +208,7 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 	return nil
 }
 
-// GetConsumption retrieves a consumption by ID
+// GetConsumption retrieves a consumption by ID (no authorization checks - use GetConsumptionForUser for user-scoped access)
 func (s *PostgreSQLStore) GetConsumption(ctx context.Context, id string) (*Consumption, error) {
 	query := `
 		SELECT id, user_id, transcript, total_calories, total_protein_g, total_fat_g,
@@ -259,6 +259,113 @@ func (s *PostgreSQLStore) GetConsumption(ctx context.Context, id string) (*Consu
 		return nil, fmt.Errorf("failed to load consumption labels: %w", err)
 	}
 	consumption.Labels = labels
+
+	return &consumption, nil
+}
+
+// GetConsumptionForUser retrieves a consumption by ID with user ownership enforcement
+func (s *PostgreSQLStore) GetConsumptionForUser(ctx context.Context, userID, id string) (*Consumption, error) {
+	query := `
+		SELECT id, user_id, transcript, total_calories, total_protein_g, total_fat_g,
+			   total_carbs_g, dietary_fiber_g, total_sodium_mg, saturated_fat_g,
+			   trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
+			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
+			   thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg,
+			   vitamin_b12_mcg, biotin_mcg, pantothenic_acid_mg, choline_mg,
+			   calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
+			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg,
+			   molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg,
+			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
+			   creatine_mg, caffeine_mg, alcohol_g,
+			   polyunsaturated_fat_g, monounsaturated_fat_g,
+			   note, created_at, updated_at
+		FROM consumptions WHERE id = $1 AND user_id = $2`
+
+	var consumption Consumption
+	err := s.db.QueryRowContext(ctx, query, id, userID).Scan(
+		&consumption.ID, &consumption.UserID, &consumption.Transcript,
+		&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
+		&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
+		&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
+		&consumption.TotalSugars, &consumption.AddedSugars, &consumption.VitaminA,
+		&consumption.VitaminC, &consumption.VitaminD, &consumption.VitaminE,
+		&consumption.VitaminK, &consumption.Thiamine, &consumption.Riboflavin,
+		&consumption.Niacin, &consumption.VitaminB6, &consumption.Folate,
+		&consumption.VitaminB12, &consumption.Biotin, &consumption.PantothenicAcid,
+		&consumption.Choline, &consumption.Calcium, &consumption.Iron,
+		&consumption.Magnesium, &consumption.Phosphorus, &consumption.Potassium,
+		&consumption.Zinc, &consumption.Copper, &consumption.Manganese,
+		&consumption.Selenium, &consumption.Iodine, &consumption.Molybdenum,
+		&consumption.Chromium, &consumption.Fluoride, &consumption.Chloride,
+		&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
+		&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
+		&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
+		&consumption.Note, &consumption.CreatedAt, &consumption.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Not found or access denied
+		}
+		return nil, fmt.Errorf("failed to get consumption for user: %w", err)
+	}
+
+	// Load labels for the consumption (using requesting user's ID for proper access control)
+	labels, err := s.ListConsumptionLabels(ctx, userID, consumption.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load consumption labels: %w", err)
+	}
+	consumption.Labels = labels
+
+	return &consumption, nil
+}
+
+// GetPublicConsumption retrieves a public consumption by ID (limited data for non-owners)
+func (s *PostgreSQLStore) GetPublicConsumption(ctx context.Context, id string) (*Consumption, error) {
+	query := `
+		SELECT id, user_id, transcript, total_calories, total_protein_g, total_fat_g,
+			   total_carbs_g, dietary_fiber_g, total_sodium_mg, saturated_fat_g,
+			   trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
+			   vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
+			   thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg,
+			   vitamin_b12_mcg, biotin_mcg, pantothenic_acid_mg, choline_mg,
+			   calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
+			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg,
+			   molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg,
+			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
+			   creatine_mg, caffeine_mg, alcohol_g,
+			   polyunsaturated_fat_g, monounsaturated_fat_g,
+			   note, created_at, updated_at
+		FROM consumptions WHERE id = $1 AND is_public = true`
+
+	var consumption Consumption
+	err := s.db.QueryRowContext(ctx, query, id).Scan(
+		&consumption.ID, &consumption.UserID, &consumption.Transcript,
+		&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
+		&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
+		&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
+		&consumption.TotalSugars, &consumption.AddedSugars, &consumption.VitaminA,
+		&consumption.VitaminC, &consumption.VitaminD, &consumption.VitaminE,
+		&consumption.VitaminK, &consumption.Thiamine, &consumption.Riboflavin,
+		&consumption.Niacin, &consumption.VitaminB6, &consumption.Folate,
+		&consumption.VitaminB12, &consumption.Biotin, &consumption.PantothenicAcid,
+		&consumption.Choline, &consumption.Calcium, &consumption.Iron,
+		&consumption.Magnesium, &consumption.Phosphorus, &consumption.Potassium,
+		&consumption.Zinc, &consumption.Copper, &consumption.Manganese,
+		&consumption.Selenium, &consumption.Iodine, &consumption.Molybdenum,
+		&consumption.Chromium, &consumption.Fluoride, &consumption.Chloride,
+		&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
+		&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
+		&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
+		&consumption.Note, &consumption.CreatedAt, &consumption.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Not found or not public
+		}
+		return nil, fmt.Errorf("failed to get public consumption: %w", err)
+	}
+
+	// For public consumptions, don't include labels to protect user privacy
+	// Labels are considered private information linked to the owner's personal organization system
+	consumption.Labels = []*Label{}
 
 	return &consumption, nil
 }

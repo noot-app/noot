@@ -56,6 +56,12 @@ func (m *mockStore) CreateConsumption(ctx context.Context, consumption *storage.
 func (m *mockStore) GetConsumption(ctx context.Context, id string) (*storage.Consumption, error) {
 	return nil, nil
 }
+func (m *mockStore) GetConsumptionForUser(ctx context.Context, userID, id string) (*storage.Consumption, error) {
+	return nil, nil
+}
+func (m *mockStore) GetPublicConsumption(ctx context.Context, id string) (*storage.Consumption, error) {
+	return nil, nil
+}
 func (m *mockStore) UpdateConsumption(ctx context.Context, consumption *storage.Consumption) error {
 	return nil
 }

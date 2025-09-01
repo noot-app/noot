@@ -40,7 +40,9 @@ func TestSaveTempFile_StreamsAndDetectsMIME(t *testing.T) {
 	header := &multipart.FileHeader{
 		Filename: "test.webm",
 		Size:     int64(len(testData)),
+		Header:   make(map[string][]string),
 	}
+	header.Header.Set("Content-Type", "audio/webm")
 
 	// Call saveTempFile
 	tmpPath, mimeType, err := saveTempFile(mockFile, header)
@@ -60,8 +62,8 @@ func TestSaveTempFile_StreamsAndDetectsMIME(t *testing.T) {
 	assert.Equal(t, int64(len(testData)), fileInfo.Size())
 
 	// Verify MIME type detection
-	// WebM files are detected as "video/webm" by http.DetectContentType when they have proper headers
-	assert.Equal(t, "video/webm", mimeType)
+	// WebM files declared as audio/webm should return audio/webm even if detected as video/webm
+	assert.Equal(t, "audio/webm", mimeType)
 
 	// Verify file content
 	fileContent, err := os.ReadFile(tmpPath)
@@ -82,17 +84,23 @@ func TestSaveTempFile_EnforcesMaxBytes(t *testing.T) {
 
 	os.Setenv("MAX_UPLOAD_BYTES", "1024") // 1KB limit
 
-	// Create test data larger than the limit
-	largeData := bytes.Repeat([]byte("a"), 2048) // 2KB of data
+	// Create test data larger than the limit - use audio-like content
+	// Create a WAV header followed by large data
+	wavHeader := []byte("RIFF")
+	wavHeader = append(wavHeader, []byte{0, 0, 0, 0}...) // size placeholder
+	wavHeader = append(wavHeader, []byte("WAVE")...)
+	largeData := append(wavHeader, bytes.Repeat([]byte("a"), 2048)...) // 2KB+ of data
 
 	mockFile := &mockMultipartFile{
 		Reader: bytes.NewReader(largeData),
 	}
 
 	header := &multipart.FileHeader{
-		Filename: "large.webm",
+		Filename: "large.wav",
 		Size:     int64(len(largeData)),
+		Header:   make(map[string][]string),
 	}
+	header.Header.Set("Content-Type", "audio/wav")
 
 	// Call saveTempFile - should fail
 	tmpPath, mimeType, err := saveTempFile(mockFile, header)
@@ -110,17 +118,26 @@ func TestSaveTempFile_EnforcesMaxBytes(t *testing.T) {
 }
 
 func TestSaveTempFile_HandlesShortFiles(t *testing.T) {
-	// Create a very short file (less than 512 bytes)
-	shortData := []byte("short file content")
+	// Create a very short audio file (less than 512 bytes but more than 100 bytes)
+	// Create a proper WAV file structure
+	wavHeader := []byte("RIFF")
+	wavHeader = append(wavHeader, []byte{100, 0, 0, 0}...) // size
+	wavHeader = append(wavHeader, []byte("WAVE")...)
+	wavHeader = append(wavHeader, []byte("fmt ")...)
+	wavHeader = append(wavHeader, []byte{16, 0, 0, 0}...) // fmt chunk size
+	// Add some basic WAV format data to reach over 100 bytes
+	shortData := append(wavHeader, bytes.Repeat([]byte{0}, 100)...)
 
 	mockFile := &mockMultipartFile{
 		Reader: bytes.NewReader(shortData),
 	}
 
 	header := &multipart.FileHeader{
-		Filename: "short.txt",
+		Filename: "short.wav",
 		Size:     int64(len(shortData)),
+		Header:   make(map[string][]string),
 	}
+	header.Header.Set("Content-Type", "audio/wav")
 
 	// Call saveTempFile
 	tmpPath, mimeType, err := saveTempFile(mockFile, header)
@@ -136,8 +153,8 @@ func TestSaveTempFile_HandlesShortFiles(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(len(shortData)), fileInfo.Size())
 
-	// Verify MIME type was detected (text files should be detected as text/plain)
-	assert.Equal(t, "text/plain; charset=utf-8", mimeType)
+	// Verify MIME type - WAV files can be detected as either audio/wav or audio/wave
+	assert.Contains(t, []string{"audio/wav", "audio/wave"}, mimeType)
 
 	// Verify file content
 	fileContent, err := os.ReadFile(tmpPath)
@@ -155,8 +172,10 @@ func TestSaveTempFile_DefaultMaxBytes(t *testing.T) {
 		}
 	}()
 
-	// Create test data that's reasonable (1MB)
-	testData := bytes.Repeat([]byte("test"), 256*1024) // 1MB
+	// Create test data that's reasonable (1MB) with audio content
+	// Create a WebM-like header followed by data
+	webmHeader := []byte{0x1A, 0x45, 0xDF, 0xA3}                              // EBML signature
+	testData := append(webmHeader, bytes.Repeat([]byte("test"), 256*1024)...) // 1MB
 
 	mockFile := &mockMultipartFile{
 		Reader: bytes.NewReader(testData),
@@ -165,7 +184,9 @@ func TestSaveTempFile_DefaultMaxBytes(t *testing.T) {
 	header := &multipart.FileHeader{
 		Filename: "test.webm",
 		Size:     int64(len(testData)),
+		Header:   make(map[string][]string),
 	}
+	header.Header.Set("Content-Type", "audio/webm")
 
 	// Call saveTempFile - should succeed with default 100MB limit
 	tmpPath, mimeType, err := saveTempFile(mockFile, header)

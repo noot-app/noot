@@ -32,8 +32,10 @@ func handleAppErrorGin(c *gin.Context, appErr *AppError, requestID string) {
 			stack := []string{appErr.Err.Error()}
 			errorResp.Stack = &stack
 		}
-		errorResp.TraceId = &requestID
 	}
+
+	// Always include request ID for easier debugging of user reports
+	errorResp.TraceId = &requestID
 
 	c.JSON(appErr.StatusCode, errorResp)
 }
