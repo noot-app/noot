@@ -70,8 +70,14 @@ const (
 
 // Defines values for GetConsumptionsParamsMatch.
 const (
-	All GetConsumptionsParamsMatch = "all"
-	Any GetConsumptionsParamsMatch = "any"
+	GetConsumptionsParamsMatchAll GetConsumptionsParamsMatch = "all"
+	GetConsumptionsParamsMatchAny GetConsumptionsParamsMatch = "any"
+)
+
+// Defines values for GetEventsParamsMatch.
+const (
+	GetEventsParamsMatchAll GetEventsParamsMatch = "all"
+	GetEventsParamsMatchAny GetEventsParamsMatch = "any"
 )
 
 // Defines values for ExportDataParamsFormat.
@@ -342,6 +348,167 @@ type ErrorResponse struct {
 
 	// TraceId Request trace ID
 	TraceId *string `json:"trace_id,omitempty"`
+}
+
+// Event defines model for Event.
+type Event struct {
+	// Category Optional event category (e.g., 'symptom', 'activity', 'measurement')
+	Category *string `json:"category"`
+
+	// Color Optional hex color for visual distinction
+	Color *string `json:"color"`
+
+	// CreatedAt When the event was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// EndedAt When the event ended (optional)
+	EndedAt *time.Time `json:"ended_at"`
+
+	// Id Event ID
+	Id string `json:"id"`
+
+	// Level Event intensity/severity/performance level (0-10)
+	Level *int `json:"level"`
+
+	// Name Event name
+	Name string `json:"name"`
+
+	// Note Optional notes about the event
+	Note *string `json:"note"`
+
+	// StartedAt When the event started
+	StartedAt time.Time `json:"started_at"`
+
+	// UpdatedAt When the event was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// UserId User ID who owns this event
+	UserId string `json:"user_id"`
+}
+
+// EventCreateRequest defines model for EventCreateRequest.
+type EventCreateRequest struct {
+	// Category Optional event category
+	Category *string `json:"category,omitempty"`
+
+	// Color Optional hex color for visual distinction
+	Color *string `json:"color,omitempty"`
+
+	// DurationMinutes Alternative to ended_at - duration in minutes from started_at
+	DurationMinutes *int `json:"duration_minutes,omitempty"`
+
+	// EndedAt When the event ended (optional)
+	EndedAt *time.Time `json:"ended_at,omitempty"`
+
+	// Level Event intensity/severity/performance level (0-10)
+	Level *int `json:"level,omitempty"`
+
+	// Name Event name
+	Name string `json:"name"`
+
+	// Note Optional notes about the event
+	Note *string `json:"note,omitempty"`
+
+	// StartedAt When the event started
+	StartedAt time.Time `json:"started_at"`
+}
+
+// EventLink defines model for EventLink.
+type EventLink struct {
+	// ConsumptionId Consumption ID (if linked to a consumption)
+	ConsumptionId *string `json:"consumption_id"`
+
+	// ConsumptionItemId Consumption item ID (if linked to a consumption item)
+	ConsumptionItemId *string `json:"consumption_item_id"`
+
+	// CreatedAt When the link was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// EventId Event ID
+	EventId string `json:"event_id"`
+
+	// Id Link ID
+	Id string `json:"id"`
+}
+
+// EventLinkCreateRequest defines model for EventLinkCreateRequest.
+type EventLinkCreateRequest struct {
+	// ConsumptionId Consumption ID to link to (mutually exclusive with consumption_item_id)
+	ConsumptionId *string `json:"consumption_id,omitempty"`
+
+	// ConsumptionItemId Consumption item ID to link to (mutually exclusive with consumption_id)
+	ConsumptionItemId *string `json:"consumption_item_id,omitempty"`
+}
+
+// EventUpdateRequest defines model for EventUpdateRequest.
+type EventUpdateRequest struct {
+	// Category Optional event category
+	Category *string `json:"category"`
+
+	// Color Optional hex color for visual distinction
+	Color *string `json:"color"`
+
+	// EndedAt When the event ended
+	EndedAt *time.Time `json:"ended_at"`
+
+	// Level Event intensity/severity/performance level (0-10)
+	Level *int `json:"level"`
+
+	// Name Event name
+	Name *string `json:"name,omitempty"`
+
+	// Note Optional notes about the event
+	Note *string `json:"note"`
+
+	// StartedAt When the event started
+	StartedAt *time.Time `json:"started_at,omitempty"`
+}
+
+// EventWithDetails defines model for EventWithDetails.
+type EventWithDetails struct {
+	// Category Optional event category
+	Category *string `json:"category"`
+
+	// Color Optional hex color for visual distinction
+	Color *string `json:"color"`
+
+	// CreatedAt When the event was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// EndedAt When the event ended
+	EndedAt *time.Time `json:"ended_at"`
+
+	// Id Event ID
+	Id string `json:"id"`
+
+	// Labels Labels assigned to this event
+	Labels []Label `json:"labels"`
+
+	// Level Event intensity/severity/performance level (0-10)
+	Level *int `json:"level"`
+
+	// Links Consumption/item links for this event
+	Links []EventLink `json:"links"`
+
+	// Name Event name
+	Name string `json:"name"`
+
+	// Note Optional notes about the event
+	Note *string `json:"note"`
+
+	// StartedAt When the event started
+	StartedAt time.Time `json:"started_at"`
+
+	// UpdatedAt When the event was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// UserId User ID who owns this event
+	UserId string `json:"user_id"`
+}
+
+// EventsResponse defines model for EventsResponse.
+type EventsResponse struct {
+	Events []Event `json:"events"`
 }
 
 // ExportResponse defines model for ExportResponse.
@@ -689,6 +856,39 @@ type GetConsumptionsParams struct {
 // GetConsumptionsParamsMatch defines parameters for GetConsumptions.
 type GetConsumptionsParamsMatch string
 
+// GetEventsParams defines parameters for GetEvents.
+type GetEventsParams struct {
+	// Limit Maximum number of events to return (default 50, max 100)
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of events to skip for pagination
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// StartDate Filter events starting from this date (ISO 8601)
+	StartDate *time.Time `form:"start_date,omitempty" json:"start_date,omitempty"`
+
+	// EndDate Filter events ending before this date (ISO 8601)
+	EndDate *time.Time `form:"end_date,omitempty" json:"end_date,omitempty"`
+
+	// Category Filter by event category
+	Category *string `form:"category,omitempty" json:"category,omitempty"`
+
+	// LevelMin Filter events with level >= this value
+	LevelMin *int `form:"level_min,omitempty" json:"level_min,omitempty"`
+
+	// LevelMax Filter events with level <= this value
+	LevelMax *int `form:"level_max,omitempty" json:"level_max,omitempty"`
+
+	// Labels Comma-separated list of label names to filter by
+	Labels *string `form:"labels,omitempty" json:"labels,omitempty"`
+
+	// Match Label matching strategy - 'any' matches events with at least one of the labels, 'all' matches events with all labels
+	Match *GetEventsParamsMatch `form:"match,omitempty" json:"match,omitempty"`
+}
+
+// GetEventsParamsMatch defines parameters for GetEvents.
+type GetEventsParamsMatch string
+
 // ExportDataParams defines parameters for ExportData.
 type ExportDataParams struct {
 	// Format Export format
@@ -748,6 +948,18 @@ type UpdateConsumptionJSONRequestBody = UpdateConsumptionRequest
 
 // AssignConsumptionLabelsJSONRequestBody defines body for AssignConsumptionLabels for application/json ContentType.
 type AssignConsumptionLabelsJSONRequestBody = AssignLabelsRequest
+
+// CreateEventJSONRequestBody defines body for CreateEvent for application/json ContentType.
+type CreateEventJSONRequestBody = EventCreateRequest
+
+// UpdateEventJSONRequestBody defines body for UpdateEvent for application/json ContentType.
+type UpdateEventJSONRequestBody = EventUpdateRequest
+
+// AssignEventLabelsJSONRequestBody defines body for AssignEventLabels for application/json ContentType.
+type AssignEventLabelsJSONRequestBody = AssignLabelsRequest
+
+// CreateEventLinkJSONRequestBody defines body for CreateEventLink for application/json ContentType.
+type CreateEventLinkJSONRequestBody = EventLinkCreateRequest
 
 // UpdateGoalsJSONRequestBody defines body for UpdateGoals for application/json ContentType.
 type UpdateGoalsJSONRequestBody = UpdateGoalsRequest

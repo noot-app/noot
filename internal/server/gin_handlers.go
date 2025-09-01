@@ -1813,6 +1813,571 @@ func (s *APIServer) UnassignConsumptionItemLabel(c *gin.Context, id string, labe
 	c.Status(http.StatusNoContent)
 }
 
+// Event handlers
+
+// GetEvents retrieves events for the current user with optional filtering
+func (s *APIServer) GetEvents(c *gin.Context, params api.GetEventsParams) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Parse query parameters into EventListOptions
+	options := storage.EventListOptions{
+		Limit:  50, // Default limit
+		Offset: 0,
+	}
+
+	if params.Limit != nil {
+		options.Limit = *params.Limit
+	}
+	if params.Offset != nil {
+		options.Offset = *params.Offset
+	}
+	if params.StartDate != nil {
+		options.StartDate = params.StartDate
+	}
+	if params.EndDate != nil {
+		options.EndDate = params.EndDate
+	}
+	if params.Category != nil {
+		options.Category = params.Category
+	}
+	if params.LevelMin != nil {
+		options.LevelMin = params.LevelMin
+	}
+	if params.LevelMax != nil {
+		options.LevelMax = params.LevelMax
+	}
+	if params.Labels != nil {
+		options.Labels = strings.Split(*params.Labels, ",")
+	}
+	if params.Match != nil && *params.Match == api.GetEventsParamsMatchAll {
+		options.MatchAll = true
+	}
+
+	ctx := c.Request.Context()
+	events, err := s.store.ListEvents(ctx, user.ID, options)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve events", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiEvents := make([]api.Event, len(events))
+	for i, event := range events {
+		apiEvents[i] = api.Event{
+			Id:        event.ID,
+			UserId:    event.UserID,
+			Name:      event.Name,
+			Category:  event.Category,
+			StartedAt: event.StartedAt,
+			EndedAt:   event.EndedAt,
+			Level:     event.Level,
+			Note:      event.Note,
+			Color:     event.Color,
+			CreatedAt: event.CreatedAt,
+			UpdatedAt: event.UpdatedAt,
+		}
+	}
+
+	response := api.EventsResponse{
+		Events: apiEvents,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// CreateEvent creates a new event for the current user
+func (s *APIServer) CreateEvent(c *gin.Context) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	var req api.EventCreateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Calculate end time if duration_minutes is provided
+	var endedAt *time.Time
+	if req.EndedAt != nil {
+		endedAt = req.EndedAt
+	} else if req.DurationMinutes != nil {
+		endTime := req.StartedAt.Add(time.Duration(*req.DurationMinutes) * time.Minute)
+		endedAt = &endTime
+	}
+
+	event := &storage.Event{
+		UserID:    user.ID,
+		Name:      req.Name,
+		Category:  req.Category,
+		StartedAt: req.StartedAt,
+		EndedAt:   endedAt,
+		Level:     req.Level,
+		Note:      req.Note,
+		Color:     req.Color,
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.CreateEvent(ctx, event)
+	if err != nil {
+		if strings.Contains(err.Error(), "event_limit_exceeded") {
+			appErr := NewAppError("Event limit exceeded (1000 events per user)", http.StatusForbidden, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to create event", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	apiEvent := api.Event{
+		Id:        event.ID,
+		UserId:    event.UserID,
+		Name:      event.Name,
+		Category:  event.Category,
+		StartedAt: event.StartedAt,
+		EndedAt:   event.EndedAt,
+		Level:     event.Level,
+		Note:      event.Note,
+		Color:     event.Color,
+		CreatedAt: event.CreatedAt,
+		UpdatedAt: event.UpdatedAt,
+	}
+
+	c.JSON(http.StatusCreated, apiEvent)
+}
+
+// GetEvent retrieves a specific event by ID
+func (s *APIServer) GetEvent(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	event, err := s.store.GetEvent(ctx, user.ID, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			appErr := NewAppError("Event not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to retrieve event", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Load labels and links for the event
+	labels, err := s.store.ListEventLabels(ctx, user.ID, id)
+	if err != nil {
+		appErr := NewAppError("Failed to load event labels", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	links, err := s.store.ListEventLinks(ctx, user.ID, id)
+	if err != nil {
+		appErr := NewAppError("Failed to load event links", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiLabels := make([]api.Label, len(labels))
+	for i, label := range labels {
+		apiLabels[i] = api.Label{
+			Id:          label.ID,
+			Name:        label.Name,
+			Description: label.Description,
+			Color:       label.Color,
+			CreatedAt:   label.CreatedAt,
+			UpdatedAt:   label.UpdatedAt,
+		}
+	}
+
+	apiLinks := make([]api.EventLink, len(links))
+	for i, link := range links {
+		apiLinks[i] = api.EventLink{
+			Id:                link.ID,
+			EventId:           link.EventID,
+			ConsumptionId:     link.ConsumptionID,
+			ConsumptionItemId: link.ConsumptionItemID,
+			CreatedAt:         link.CreatedAt,
+		}
+	}
+
+	response := api.EventWithDetails{
+		Id:        event.ID,
+		UserId:    event.UserID,
+		Name:      event.Name,
+		Category:  event.Category,
+		StartedAt: event.StartedAt,
+		EndedAt:   event.EndedAt,
+		Level:     event.Level,
+		Note:      event.Note,
+		Color:     event.Color,
+		CreatedAt: event.CreatedAt,
+		UpdatedAt: event.UpdatedAt,
+		Labels:    apiLabels,
+		Links:     apiLinks,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// UpdateEvent updates an existing event
+func (s *APIServer) UpdateEvent(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	var req api.EventUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Get existing event to preserve fields not being updated
+	ctx := c.Request.Context()
+	event, err := s.store.GetEvent(ctx, user.ID, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			appErr := NewAppError("Event not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to retrieve event", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Update fields if provided
+	if req.Name != nil {
+		event.Name = *req.Name
+	}
+	if req.Category != nil {
+		event.Category = req.Category
+	}
+	if req.StartedAt != nil {
+		event.StartedAt = *req.StartedAt
+	}
+	if req.EndedAt != nil {
+		event.EndedAt = req.EndedAt
+	}
+	if req.Level != nil {
+		event.Level = req.Level
+	}
+	if req.Note != nil {
+		event.Note = req.Note
+	}
+	if req.Color != nil {
+		event.Color = req.Color
+	}
+
+	err = s.store.UpdateEvent(ctx, event)
+	if err != nil {
+		appErr := NewAppError("Failed to update event", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	apiEvent := api.Event{
+		Id:        event.ID,
+		UserId:    event.UserID,
+		Name:      event.Name,
+		Category:  event.Category,
+		StartedAt: event.StartedAt,
+		EndedAt:   event.EndedAt,
+		Level:     event.Level,
+		Note:      event.Note,
+		Color:     event.Color,
+		CreatedAt: event.CreatedAt,
+		UpdatedAt: event.UpdatedAt,
+	}
+
+	c.JSON(http.StatusOK, apiEvent)
+}
+
+// DeleteEvent deletes an event and all its associations
+func (s *APIServer) DeleteEvent(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.DeleteEvent(ctx, user.ID, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			appErr := NewAppError("Event not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to delete event", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// GetEventLabels retrieves all labels assigned to an event
+func (s *APIServer) GetEventLabels(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	labels, err := s.store.ListEventLabels(ctx, user.ID, id)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve event labels", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	apiLabels := make([]api.Label, len(labels))
+	for i, label := range labels {
+		apiLabels[i] = api.Label{
+			Id:          label.ID,
+			Name:        label.Name,
+			Description: label.Description,
+			Color:       label.Color,
+			CreatedAt:   label.CreatedAt,
+			UpdatedAt:   label.UpdatedAt,
+		}
+	}
+
+	response := struct {
+		Labels []api.Label `json:"labels"`
+	}{
+		Labels: apiLabels,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// AssignEventLabels assigns labels to an event
+func (s *APIServer) AssignEventLabels(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	var req api.AssignLabelsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.AssignEventLabels(ctx, user.ID, id, req.Ids)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			appErr := NewAppError("Event or label not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to assign labels", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Return updated labels
+	labels, err := s.store.ListEventLabels(ctx, user.ID, id)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve updated labels", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	apiLabels := make([]api.Label, len(labels))
+	for i, label := range labels {
+		apiLabels[i] = api.Label{
+			Id:          label.ID,
+			Name:        label.Name,
+			Description: label.Description,
+			Color:       label.Color,
+			CreatedAt:   label.CreatedAt,
+			UpdatedAt:   label.UpdatedAt,
+		}
+	}
+
+	response := struct {
+		Labels []api.Label `json:"labels"`
+	}{
+		Labels: apiLabels,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// UnassignEventLabel removes a label assignment from an event
+func (s *APIServer) UnassignEventLabel(c *gin.Context, id string, labelId string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.UnassignEventLabel(ctx, user.ID, id, labelId)
+	if err != nil {
+		appErr := NewAppError("Assignment not found or access denied", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// GetEventLinks retrieves consumption/item links for an event
+func (s *APIServer) GetEventLinks(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	links, err := s.store.ListEventLinks(ctx, user.ID, id)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve event links", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	apiLinks := make([]api.EventLink, len(links))
+	for i, link := range links {
+		apiLinks[i] = api.EventLink{
+			Id:                link.ID,
+			EventId:           link.EventID,
+			ConsumptionId:     link.ConsumptionID,
+			ConsumptionItemId: link.ConsumptionItemID,
+			CreatedAt:         link.CreatedAt,
+		}
+	}
+
+	response := struct {
+		Links []api.EventLink `json:"links"`
+	}{
+		Links: apiLinks,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// CreateEventLink creates a manual link between an event and consumption/item
+func (s *APIServer) CreateEventLink(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	var req api.EventLinkCreateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Validate exactly one target is specified
+	if (req.ConsumptionId == nil && req.ConsumptionItemId == nil) || (req.ConsumptionId != nil && req.ConsumptionItemId != nil) {
+		appErr := NewAppError("Exactly one of consumption_id or consumption_item_id must be specified", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	link := &storage.EventLink{
+		EventID:           id,
+		ConsumptionID:     req.ConsumptionId,
+		ConsumptionItemID: req.ConsumptionItemId,
+	}
+
+	ctx := c.Request.Context()
+	// Verify event ownership before creating link
+	_, err = s.store.GetEvent(ctx, user.ID, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			appErr := NewAppError("Event not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to verify event ownership", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	err = s.store.CreateEventLink(ctx, link)
+	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			appErr := NewAppError("Link already exists", http.StatusConflict, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to create event link", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	apiLink := api.EventLink{
+		Id:                link.ID,
+		EventId:           link.EventID,
+		ConsumptionId:     link.ConsumptionID,
+		ConsumptionItemId: link.ConsumptionItemID,
+		CreatedAt:         link.CreatedAt,
+	}
+
+	c.JSON(http.StatusCreated, apiLink)
+}
+
+// DeleteEventLink removes a link between an event and consumption/item
+func (s *APIServer) DeleteEventLink(c *gin.Context, id string, linkId string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.DeleteEventLink(ctx, user.ID, linkId)
+	if err != nil {
+		appErr := NewAppError("Link not found or access denied", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
 // OpenAPISpecHandler serves the OpenAPI specification
 func (s *APIServer) OpenAPISpecHandler(c *gin.Context) {
 	c.File("api/openapi.yaml")

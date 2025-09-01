@@ -1837,3 +1837,401 @@ func (s *PostgreSQLStore) GetConsumptionsByLabels(ctx context.Context, userID st
 
 	return consumptions, nil
 }
+// Event operations
+
+// CreateEvent creates a new event for a user
+func (s *PostgreSQLStore) CreateEvent(ctx context.Context, event *Event) error {
+	now := time.Now()
+	event.ID = generateUUID()
+	event.CreatedAt = now
+	event.UpdatedAt = now
+	if event.Color != nil && *event.Color != "" {
+		normalized := normalizeColor(*event.Color)
+		event.Color = &normalized
+	}
+
+	query := `
+		INSERT INTO events (id, user_id, name, category, started_at, ended_at, level, note, color, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+
+	_, err := s.db.ExecContext(ctx, query,
+		event.ID, event.UserID, event.Name, event.Category, event.StartedAt, event.EndedAt,
+		event.Level, event.Note, event.Color, event.CreatedAt, event.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to create event: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateEvent updates an existing event
+func (s *PostgreSQLStore) UpdateEvent(ctx context.Context, event *Event) error {
+	event.UpdatedAt = time.Now()
+	if event.Color != nil && *event.Color != "" {
+		normalized := normalizeColor(*event.Color)
+		event.Color = &normalized
+	}
+
+	query := `
+		UPDATE events 
+		SET name = $3, category = $4, started_at = $5, ended_at = $6, 
+		    level = $7, note = $8, color = $9, updated_at = $10
+		WHERE id = $1 AND user_id = $2`
+
+	result, err := s.db.ExecContext(ctx, query,
+		event.ID, event.UserID, event.Name, event.Category, event.StartedAt, event.EndedAt,
+		event.Level, event.Note, event.Color, event.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to update event: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check update result: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("event not found or access denied")
+	}
+
+	return nil
+}
+
+// DeleteEvent deletes an event and all its associations
+func (s *PostgreSQLStore) DeleteEvent(ctx context.Context, userID, id string) error {
+	query := `DELETE FROM events WHERE id = $1 AND user_id = $2`
+
+	result, err := s.db.ExecContext(ctx, query, id, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete event: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check delete result: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("event not found or access denied")
+	}
+
+	return nil
+}
+
+// GetEvent retrieves a specific event by ID
+func (s *PostgreSQLStore) GetEvent(ctx context.Context, userID, id string) (*Event, error) {
+	query := `
+		SELECT id, user_id, name, category, started_at, ended_at, level, note, color, created_at, updated_at
+		FROM events 
+		WHERE id = $1 AND user_id = $2`
+
+	event := &Event{}
+	err := s.db.QueryRowContext(ctx, query, id, userID).Scan(
+		&event.ID, &event.UserID, &event.Name, &event.Category, &event.StartedAt, &event.EndedAt,
+		&event.Level, &event.Note, &event.Color, &event.CreatedAt, &event.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("event not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get event: %w", err)
+	}
+
+	return event, nil
+}
+
+// ListEvents retrieves events for a user with filtering options
+func (s *PostgreSQLStore) ListEvents(ctx context.Context, userID string, options EventListOptions) ([]*Event, error) {
+	baseQuery := `
+		SELECT DISTINCT e.id, e.user_id, e.name, e.category, e.started_at, e.ended_at, 
+		       e.level, e.note, e.color, e.created_at, e.updated_at
+		FROM events e`
+
+	var args []interface{}
+	var conditions []string
+	argIndex := 1
+
+	// Base condition: user owns the events
+	conditions = append(conditions, fmt.Sprintf("e.user_id = $%d", argIndex))
+	args = append(args, userID)
+	argIndex++
+
+	// Date filtering
+	if options.StartDate != nil {
+		conditions = append(conditions, fmt.Sprintf("e.started_at >= $%d", argIndex))
+		args = append(args, *options.StartDate)
+		argIndex++
+	}
+	if options.EndDate != nil {
+		conditions = append(conditions, fmt.Sprintf("e.started_at <= $%d", argIndex))
+		args = append(args, *options.EndDate)
+		argIndex++
+	}
+
+	// Category filtering
+	if options.Category != nil {
+		conditions = append(conditions, fmt.Sprintf("e.category = $%d", argIndex))
+		args = append(args, *options.Category)
+		argIndex++
+	}
+
+	// Level filtering
+	if options.LevelMin != nil {
+		conditions = append(conditions, fmt.Sprintf("e.level >= $%d", argIndex))
+		args = append(args, *options.LevelMin)
+		argIndex++
+	}
+	if options.LevelMax != nil {
+		conditions = append(conditions, fmt.Sprintf("e.level <= $%d", argIndex))
+		args = append(args, *options.LevelMax)
+		argIndex++
+	}
+
+	// Label filtering
+	if len(options.Labels) > 0 {
+		if options.MatchAll {
+			// Match ALL labels (event must have all specified labels)
+			baseQuery += ` 
+				INNER JOIN event_labels el ON e.id = el.event_id 
+				INNER JOIN labels l ON el.label_id = l.id`
+			
+			placeholders := make([]string, len(options.Labels))
+			for i, label := range options.Labels {
+				placeholders[i] = fmt.Sprintf("$%d", argIndex)
+				args = append(args, strings.ToLower(label))
+				argIndex++
+			}
+			conditions = append(conditions, fmt.Sprintf("LOWER(l.name) IN (%s)", strings.Join(placeholders, ",")))
+			
+			// Group by event and ensure it has all labels
+			baseQuery += fmt.Sprintf(" WHERE %s GROUP BY e.id, e.user_id, e.name, e.category, e.started_at, e.ended_at, e.level, e.note, e.color, e.created_at, e.updated_at HAVING COUNT(DISTINCT l.id) = %d", strings.Join(conditions, " AND "), len(options.Labels))
+		} else {
+			// Match ANY labels (event has at least one of the specified labels)
+			baseQuery += ` 
+				INNER JOIN event_labels el ON e.id = el.event_id 
+				INNER JOIN labels l ON el.label_id = l.id`
+			
+			placeholders := make([]string, len(options.Labels))
+			for i, label := range options.Labels {
+				placeholders[i] = fmt.Sprintf("$%d", argIndex)
+				args = append(args, strings.ToLower(label))
+				argIndex++
+			}
+			conditions = append(conditions, fmt.Sprintf("LOWER(l.name) IN (%s)", strings.Join(placeholders, ",")))
+		}
+	}
+
+	// Add WHERE clause if we have non-label conditions or no label filtering
+	if len(options.Labels) == 0 || !options.MatchAll {
+		if len(conditions) > 0 {
+			baseQuery += " WHERE " + strings.Join(conditions, " AND ")
+		}
+	}
+
+	// Add ordering and pagination
+	baseQuery += " ORDER BY e.started_at DESC"
+	if options.Limit > 0 {
+		baseQuery += fmt.Sprintf(" LIMIT $%d", argIndex)
+		args = append(args, options.Limit)
+		argIndex++
+	}
+	if options.Offset > 0 {
+		baseQuery += fmt.Sprintf(" OFFSET $%d", argIndex)
+		args = append(args, options.Offset)
+		argIndex++
+	}
+
+	rows, err := s.db.QueryContext(ctx, baseQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query events: %w", err)
+	}
+	defer rows.Close()
+
+	var events []*Event
+	for rows.Next() {
+		event := &Event{}
+		err := rows.Scan(
+			&event.ID, &event.UserID, &event.Name, &event.Category, &event.StartedAt, &event.EndedAt,
+			&event.Level, &event.Note, &event.Color, &event.CreatedAt, &event.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan event: %w", err)
+		}
+		events = append(events, event)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over events: %w", err)
+	}
+
+	return events, nil
+}
+
+// Event label assignment operations
+
+// ListEventLabels retrieves all labels assigned to a specific event
+func (s *PostgreSQLStore) ListEventLabels(ctx context.Context, userID, eventID string) ([]*Label, error) {
+	query := `
+		SELECT l.id, l.user_id, l.name, l.description, l.color, l.created_at, l.updated_at
+		FROM labels l
+		INNER JOIN event_labels el ON l.id = el.label_id
+		INNER JOIN events e ON el.event_id = e.id
+		WHERE el.event_id = $1 AND e.user_id = $2 AND l.user_id = $2
+		ORDER BY l.name`
+
+	rows, err := s.db.QueryContext(ctx, query, eventID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query event labels: %w", err)
+	}
+	defer rows.Close()
+
+	var labels []*Label
+	for rows.Next() {
+		label := &Label{}
+		err := rows.Scan(&label.ID, &label.UserID, &label.Name, &label.Description, &label.Color, &label.CreatedAt, &label.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan label: %w", err)
+		}
+		labels = append(labels, label)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over event labels: %w", err)
+	}
+
+	return labels, nil
+}
+
+// AssignEventLabels assigns multiple labels to an event
+func (s *PostgreSQLStore) AssignEventLabels(ctx context.Context, userID, eventID string, labelIDs []string) error {
+	if len(labelIDs) == 0 {
+		return nil
+	}
+
+	// First verify the event belongs to the user
+	_, err := s.GetEvent(ctx, userID, eventID)
+	if err != nil {
+		return fmt.Errorf("failed to verify event ownership: %w", err)
+	}
+
+	// Build bulk insert query
+	placeholders := make([]string, len(labelIDs))
+	args := []interface{}{eventID}
+	argIndex := 2
+	
+	for i, labelID := range labelIDs {
+		placeholders[i] = fmt.Sprintf("($1, $%d, NOW())", argIndex)
+		args = append(args, labelID)
+		argIndex++
+	}
+
+	query := fmt.Sprintf(`
+		INSERT INTO event_labels (event_id, label_id, created_at) 
+		VALUES %s 
+		ON CONFLICT (event_id, label_id) DO NOTHING`, strings.Join(placeholders, ", "))
+
+	_, err = s.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("failed to assign labels to event: %w", err)
+	}
+
+	return nil
+}
+
+// UnassignEventLabel removes a label assignment from an event
+func (s *PostgreSQLStore) UnassignEventLabel(ctx context.Context, userID, eventID, labelID string) error {
+	query := `
+		DELETE FROM event_labels el
+		USING events e, labels l
+		WHERE el.event_id = e.id AND el.label_id = l.id 
+		AND el.event_id = $1 AND el.label_id = $2 
+		AND e.user_id = $3 AND l.user_id = $3`
+
+	result, err := s.db.ExecContext(ctx, query, eventID, labelID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to unassign event label: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check unassign result: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("event label assignment not found or access denied")
+	}
+
+	return nil
+}
+
+// Event link operations
+
+// CreateEventLink creates a manual link between an event and a consumption/item
+func (s *PostgreSQLStore) CreateEventLink(ctx context.Context, link *EventLink) error {
+	link.ID = generateUUID()
+	link.CreatedAt = time.Now()
+
+	query := `
+		INSERT INTO event_links (id, event_id, consumption_id, consumption_item_id, created_at)
+		VALUES ($1, $2, $3, $4, $5)`
+
+	_, err := s.db.ExecContext(ctx, query, link.ID, link.EventID, link.ConsumptionID, link.ConsumptionItemID, link.CreatedAt)
+	if err != nil {
+		if strings.Contains(err.Error(), "ux_event_links_") {
+			return fmt.Errorf("link already exists")
+		}
+		return fmt.Errorf("failed to create event link: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteEventLink removes a link between an event and a consumption/item
+func (s *PostgreSQLStore) DeleteEventLink(ctx context.Context, userID, linkID string) error {
+	query := `
+		DELETE FROM event_links el
+		USING events e
+		WHERE el.event_id = e.id AND el.id = $1 AND e.user_id = $2`
+
+	result, err := s.db.ExecContext(ctx, query, linkID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete event link: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check delete result: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("event link not found or access denied")
+	}
+
+	return nil
+}
+
+// ListEventLinks retrieves all consumption/item links for an event
+func (s *PostgreSQLStore) ListEventLinks(ctx context.Context, userID, eventID string) ([]*EventLink, error) {
+	query := `
+		SELECT el.id, el.event_id, el.consumption_id, el.consumption_item_id, el.created_at
+		FROM event_links el
+		INNER JOIN events e ON el.event_id = e.id
+		WHERE el.event_id = $1 AND e.user_id = $2
+		ORDER BY el.created_at DESC`
+
+	rows, err := s.db.QueryContext(ctx, query, eventID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query event links: %w", err)
+	}
+	defer rows.Close()
+
+	var links []*EventLink
+	for rows.Next() {
+		link := &EventLink{}
+		err := rows.Scan(&link.ID, &link.EventID, &link.ConsumptionID, &link.ConsumptionItemID, &link.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan event link: %w", err)
+		}
+		links = append(links, link)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over event links: %w", err)
+	}
+
+	return links, nil
+}
