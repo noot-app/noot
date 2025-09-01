@@ -1024,6 +1024,7 @@
                 result = null
                 transcript = ""
                 consumptionId = null
+                audioBlob = null
                 labelsLoaded = false
                 isEditing = false
                 availableLabels = [] // Reset labels for new recording

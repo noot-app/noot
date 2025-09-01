@@ -1016,7 +1016,11 @@
                   </div>
                 {:else}
                   <div class="alert alert-info">
-                    <InfoButton standalone={true} size="lg" />
+                    <InfoButton 
+                      standalone={true} 
+                      size="lg" 
+                      iconClassName="text-info-content"
+                    />
                     <span
                       >No biometric data yet. Add your details below for
                       personalized nutrition goals!</span
@@ -1158,7 +1162,7 @@
               <InfoButton
                 standalone={true}
                 size="lg"
-                iconClassName="stroke-current"
+                iconClassName="text-info-content"
               />
               <div>
                 <div class="text-sm">
