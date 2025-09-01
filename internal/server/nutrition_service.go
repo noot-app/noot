@@ -408,6 +408,8 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 	// If this item came from quantity extraction (e.g., "half can"), we need to reverse-scale
 	// back to the full serving size before caching
 	if s.store != nil {
+		LogDebug("Attempting to cache item nutrition data", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
+		
 		// Extract original quantity info to reverse-scale if needed
 		quantityInfo := extractQuantityFromName(item.Name)
 
@@ -509,7 +511,7 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 				"base_grams", baseGrams, "error", err.Error())
 			// Don't fail the request if caching fails
 		} else {
-			LogDebug("Successfully cached base serving nutrition data", "base_name", baseName,
+			LogInfo("Successfully cached base serving nutrition data", "base_name", baseName,
 				"base_grams", baseGrams, "cache_key", exactKey)
 		}
 	}
