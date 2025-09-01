@@ -296,62 +296,15 @@ func (c *OFFClient) formatBrandTag(brand string) string {
 	return tag
 }
 
-// isGenericFood determines if an item is likely a generic/unbranded food item
-func (c *OFFClient) isGenericFood(name, brand string) bool {
-	// If explicit brand provided, not generic
-	if brand != "" && strings.TrimSpace(brand) != "" {
-		return false
-	}
-
-	// Common generic food patterns (case-insensitive)
-	name = strings.ToLower(strings.TrimSpace(name))
-
-	// Single word items are often generic ingredients
-	if len(strings.Fields(name)) == 1 {
-		genericWords := []string{
-			"milk", "water", "bread", "rice", "flour", "sugar", "salt",
-			"pepper", "oil", "butter", "cheese", "eggs", "chicken",
-			"beef", "pork", "salmon", "tuna", "tomato", "onion",
-			"garlic", "potato", "avocado", "banana", "apple", "orange",
-		}
-		for _, generic := range genericWords {
-			if name == generic || strings.Contains(name, generic) {
-				return true
-			}
-		}
-	}
-
-	// Common generic food phrases
-	genericPhrases := []string{
-		"whole milk", "skim milk", "smoked salmon", "ground beef",
-		"olive oil", "vegetable oil", "sea salt", "black pepper",
-		"white bread", "brown rice", "fresh", "organic", "raw",
-	}
-
-	for _, phrase := range genericPhrases {
-		if strings.Contains(name, phrase) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// SearchProduct searches for a product by name and optional brand
+// SearchProduct searches for a product by name and brand
 func (c *OFFClient) SearchProduct(ctx context.Context, name, brand string) (*OFFProduct, error) {
 	if c == nil {
 		return nil, fmt.Errorf("OFF client not initialized")
 	}
 
-	// Check if this is a generic/unbranded item that OFF won't handle well
-	if c.isGenericFood(name, brand) {
-		LogDebug("Skipping OFF search for generic/unbranded food item", "name", name, "brand", brand)
-		return nil, fmt.Errorf("generic food item not suitable for OFF database: %s", name)
-	}
-
 	// For branded items, require both name and brand for better accuracy
 	if brand == "" || strings.TrimSpace(brand) == "" {
-		LogDebug("Skipping OFF search - no brand specified for processed food", "name", name)
+		LogDebug("Skipping OFF search - no brand specified", "name", name)
 		return nil, fmt.Errorf("no brand specified for OFF search: %s", name)
 	}
 

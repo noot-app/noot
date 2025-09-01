@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/grantbirki/noot/internal/storage"
@@ -124,8 +125,11 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 			// Try to get OFF context for this item
 			var nutritionContext interface{}
 			var directNutrition *CompleteNutrient
-			if s.offClient != nil {
-				offProduct, err := s.offClient.SearchProduct(ctx, item.Name, getBrandOrEmpty(item.Brand))
+
+			// Only query OFF if we have a brand (OFF is only good for branded items)
+			brand := getBrandOrEmpty(item.Brand)
+			if s.offClient != nil && brand != "" && strings.TrimSpace(brand) != "" {
+				offProduct, err := s.offClient.SearchProduct(ctx, item.Name, brand)
 				if err == nil && offProduct != nil {
 					// Check if we have an exact serving size match - use direct OFF data
 					if offProduct.ServingQuantity != nil &&
@@ -182,9 +186,13 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 						"products": []interface{}{
 							productInfo,
 						},
-						"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as reference but provide complete nutrition data including nutrients not available in the context.",
+						"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as a reference but provide complete nutrition data including nutrients not available in the context. This data could be a closely related product, the exact product, or an entirely incorrect product. Please inspect it carefully and use your best judgement.",
 					}
+				} else {
+					LogDebug("Item not found in OFF database", "name", item.Name, "brand", brand, "error", err)
 				}
+			} else {
+				LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
 			}
 
 			// Use direct OFF nutrition if available, otherwise use AI
@@ -354,10 +362,13 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 	// Try Open Food Facts database to provide context for AI
 	var nutritionContext interface{}
-	if s.offClient != nil {
-		LogDebug("Checking OFF database for item context", "name", item.Name, "brand", getBrandOrEmpty(item.Brand))
 
-		offProduct, err := s.offClient.SearchProduct(ctx, item.Name, getBrandOrEmpty(item.Brand))
+	// Only query OFF if we have a brand (OFF is only good for branded items)
+	brand := getBrandOrEmpty(item.Brand)
+	if s.offClient != nil && brand != "" && strings.TrimSpace(brand) != "" {
+		LogDebug("Checking OFF database for item context", "name", item.Name, "brand", brand)
+
+		offProduct, err := s.offClient.SearchProduct(ctx, item.Name, brand)
 		if err == nil && offProduct != nil {
 			LogDebug("Found item in OFF database for context", "name", item.Name, "product_name", offProduct.ProductName)
 
@@ -376,6 +387,8 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		} else {
 			LogDebug("Item not found in OFF database", "name", item.Name, "error", err)
 		}
+	} else {
+		LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
 	}
 
 	// Get nutrition from AI (with optional OFF context)
