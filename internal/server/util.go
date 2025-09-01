@@ -113,7 +113,7 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 		return "", "", fmt.Errorf("failed to read file header: %w", err)
 	}
 
-	// Ensure we have enough data to analyze
+	// For very small files, check size first before doing content type validation
 	if n < 4 {
 		return "", "", fmt.Errorf("file too small to determine type")
 	}
@@ -121,8 +121,63 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 	// Determine MIME type from the peeked bytes (actual content)
 	detectedMime := http.DetectContentType(peekBytes[:n])
 
-	// Validate detected MIME type
-	if !isAllowedAudioContentType(detectedMime) {
+	// For files with declared audio content type, apply different validation based on size
+	if declaredContentType != "" && isAllowedAudioContentType(declaredContentType) {
+		if n < 10 {
+			// For very small files (< 10 bytes), check size first
+			// This catches legitimate "file too small" cases like 4-byte "RIFF" files
+			remainingBytes := make([]byte, 100-n)
+			additionalRead, _ := reader.Read(remainingBytes)
+			totalRead := n + additionalRead
+
+			if totalRead < 100 {
+				return "", "", fmt.Errorf("file too small: minimum 100 bytes required")
+			}
+
+			// Update peekBytes with additional data for better MIME detection
+			allBytes := make([]byte, totalRead)
+			copy(allBytes, peekBytes[:n])
+			copy(allBytes[n:], remainingBytes[:additionalRead])
+			peekBytes = allBytes
+			n = totalRead
+
+			// Re-detect MIME type with more data
+			detectedMime = http.DetectContentType(peekBytes[:n])
+		}
+
+		// Check compatibility for all files (after size check for very small files)
+		if !areCompatibleContentTypes(declaredContentType, detectedMime) {
+			// Special case: webm compatibility
+			if !(declaredContentType == "audio/webm" && detectedMime == "video/webm") {
+				return "", "", fmt.Errorf("unsupported file type detected: %s (only audio files allowed)", detectedMime)
+			}
+		}
+
+		// For files that passed content type check but are still too small
+		if n >= 10 && n < 100 {
+			remainingBytes := make([]byte, 100-n)
+			additionalRead, _ := reader.Read(remainingBytes)
+			totalRead := n + additionalRead
+
+			if totalRead < 100 {
+				return "", "", fmt.Errorf("file too small: minimum 100 bytes required")
+			}
+
+			// Update n for further processing
+			n = totalRead
+		}
+	}
+
+	// Special handling for webm files: Go's DetectContentType often returns "video/webm"
+	// even for audio-only webm files due to the EBML container format
+	finalMimeType := detectedMime
+	if declaredContentType == "audio/webm" && detectedMime == "video/webm" {
+		// Trust the declared type for webm files since container detection is ambiguous
+		finalMimeType = declaredContentType
+	}
+
+	// Validate final MIME type (use the corrected type for webm)
+	if !isAllowedAudioContentType(finalMimeType) {
 		return "", "", fmt.Errorf("unsupported file type detected: %s (only audio files allowed)", detectedMime)
 	}
 
@@ -131,7 +186,7 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 		return "", "", fmt.Errorf("content type mismatch: declared %s but detected %s", declaredContentType, detectedMime)
 	}
 
-	ext := guessExtension(detectedMime)
+	ext := guessExtension(finalMimeType)
 
 	// Create temp file with appropriate extension in secure location
 	tmpFile, err := os.CreateTemp("", "audio-*"+ext)
@@ -193,7 +248,7 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 		return "", "", fmt.Errorf("failed to close temp file: %w", err)
 	}
 
-	return tmpFile.Name(), detectedMime, nil
+	return tmpFile.Name(), finalMimeType, nil
 }
 
 // isAllowedAudioContentType checks if the content type is allowed for audio uploads
@@ -252,6 +307,8 @@ func areCompatibleContentTypes(declared, detected string) bool {
 		"audio/x-wav":     {"audio/wav", "audio/wave"},
 		"audio/ogg":       {"application/ogg"},
 		"application/ogg": {"audio/ogg"},
+		"audio/webm":      {"video/webm"}, // webm files are often detected as video even when audio-only
+		"video/webm":      {"audio/webm"}, // reverse mapping for webm
 	}
 
 	if compatible, exists := compatiblePairs[normalizedDeclared]; exists {
