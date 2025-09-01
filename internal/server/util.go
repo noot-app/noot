@@ -13,6 +13,32 @@ import (
 	"time"
 )
 
+// allowedAudioContentTypes defines the content types allowed for audio file uploads
+var allowedAudioContentTypes = []string{
+	"audio/webm",
+	"audio/ogg",
+	"audio/mpeg",
+	"audio/mp3",
+	"audio/wav",
+	"audio/wave",
+	"audio/x-wav",
+	"audio/opus",
+	"application/ogg", // Some browsers use this for ogg files
+}
+
+// compatibleAudioContentTypes defines known compatible content type pairs for audio files
+var compatibleAudioContentTypes = map[string][]string{
+	"audio/mpeg":      {"audio/mp3"},
+	"audio/mp3":       {"audio/mpeg"},
+	"audio/wav":       {"audio/wave", "audio/x-wav"},
+	"audio/wave":      {"audio/wav", "audio/x-wav"},
+	"audio/x-wav":     {"audio/wav", "audio/wave"},
+	"audio/ogg":       {"application/ogg"},
+	"application/ogg": {"audio/ogg"},
+	"audio/webm":      {"video/webm"}, // webm files are often detected as video even when audio-only
+	"video/webm":      {"audio/webm"}, // reverse mapping for webm
+}
+
 func getenvBool(key string, def bool) bool {
 	if v := os.Getenv(key); v != "" {
 		if parsed, err := strconv.ParseBool(v); err == nil {
@@ -253,25 +279,13 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 
 // isAllowedAudioContentType checks if the content type is allowed for audio uploads
 func isAllowedAudioContentType(contentType string) bool {
-	allowedTypes := []string{
-		"audio/webm",
-		"audio/ogg",
-		"audio/mpeg",
-		"audio/mp3",
-		"audio/wav",
-		"audio/wave",
-		"audio/x-wav",
-		"audio/opus",
-		"application/ogg", // Some browsers use this for ogg files
-	}
-
 	lowerContentType := strings.ToLower(strings.TrimSpace(contentType))
 	// Remove any parameters (e.g., "audio/webm; codecs=opus")
 	if idx := strings.Index(lowerContentType, ";"); idx != -1 {
 		lowerContentType = strings.TrimSpace(lowerContentType[:idx])
 	}
 
-	for _, allowed := range allowedTypes {
+	for _, allowed := range allowedAudioContentTypes {
 		if lowerContentType == allowed {
 			return true
 		}
@@ -298,20 +312,8 @@ func areCompatibleContentTypes(declared, detected string) bool {
 		return true
 	}
 
-	// Known compatible pairs
-	compatiblePairs := map[string][]string{
-		"audio/mpeg":      {"audio/mp3"},
-		"audio/mp3":       {"audio/mpeg"},
-		"audio/wav":       {"audio/wave", "audio/x-wav"},
-		"audio/wave":      {"audio/wav", "audio/x-wav"},
-		"audio/x-wav":     {"audio/wav", "audio/wave"},
-		"audio/ogg":       {"application/ogg"},
-		"application/ogg": {"audio/ogg"},
-		"audio/webm":      {"video/webm"}, // webm files are often detected as video even when audio-only
-		"video/webm":      {"audio/webm"}, // reverse mapping for webm
-	}
-
-	if compatible, exists := compatiblePairs[normalizedDeclared]; exists {
+	// Check known compatible pairs
+	if compatible, exists := compatibleAudioContentTypes[normalizedDeclared]; exists {
 		for _, compat := range compatible {
 			if compat == normalizedDetected {
 				return true
