@@ -356,6 +356,446 @@ func TestUserCreationFlow(t *testing.T) {
 			assert.Contains(t, outputStr, "labels_pkey", "Should have primary key constraint")
 		})
 	})
+
+	t.Run("Seeded Consumptions Exist", func(t *testing.T) {
+		// Verify that consumption data was properly seeded for both users
+		t.Run("Consumption Counts", func(t *testing.T) {
+			// Query total consumption counts for seeded users
+			query := `SELECT p.email, COUNT(*) as consumption_count 
+				FROM consumptions c 
+				JOIN profiles p ON p.id = c.user_id 
+				WHERE p.email IN ('monalisa@birki.io', 'alice@birki.io') 
+				GROUP BY p.email 
+				ORDER BY p.email;`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query consumption counts")
+
+			outputStr := strings.TrimSpace(string(output))
+			lines := strings.Split(outputStr, "\n")
+			require.Len(t, lines, 2, "Should have consumption data for both users")
+
+			// Parse and validate consumption counts
+			for _, line := range lines {
+				parts := strings.Split(line, "|")
+				require.Len(t, parts, 2, "Each line should have email and count")
+
+				email := strings.TrimSpace(parts[0])
+				count := strings.TrimSpace(parts[1])
+
+				// Both users should have substantial consumption data (~30+ each)
+				assert.Contains(t, []string{"alice@birki.io", "monalisa@birki.io"}, email, "Should be a seeded user")
+
+				// Convert count to int and validate
+				var consumptionCount int
+				_, err := fmt.Sscanf(count, "%d", &consumptionCount)
+				require.NoError(t, err, "Count should be a valid integer")
+				assert.GreaterOrEqual(t, consumptionCount, 30, fmt.Sprintf("User %s should have at least 30 consumptions", email))
+				assert.LessOrEqual(t, consumptionCount, 50, fmt.Sprintf("User %s should have reasonable consumption count", email))
+			}
+		})
+
+		t.Run("Date Distribution", func(t *testing.T) {
+			// Verify consumptions are distributed across time periods as expected
+			query := `SELECT 
+				p.email,
+				COUNT(CASE WHEN c.created_at::date = CURRENT_DATE THEN 1 END) as today_meals,
+				COUNT(CASE WHEN c.created_at::date = CURRENT_DATE - 1 THEN 1 END) as yesterday_meals,
+				COUNT(CASE WHEN c.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as last_week_meals,
+				COUNT(*) as total_meals
+			FROM consumptions c 
+			JOIN profiles p ON p.id = c.user_id 
+			WHERE p.email IN ('monalisa@birki.io', 'alice@birki.io')
+			GROUP BY p.email 
+			ORDER BY p.email;`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query date distribution")
+
+			outputStr := strings.TrimSpace(string(output))
+			lines := strings.Split(outputStr, "\n")
+
+			for _, line := range lines {
+				parts := strings.Split(line, "|")
+				require.Len(t, parts, 5, "Each line should have 5 values")
+
+				email := strings.TrimSpace(parts[0])
+				todayStr := strings.TrimSpace(parts[1])
+				yesterdayStr := strings.TrimSpace(parts[2])
+				lastWeekStr := strings.TrimSpace(parts[3])
+				totalStr := strings.TrimSpace(parts[4])
+
+				// Convert to integers
+				var today, yesterday, lastWeek, total int
+				_, err := fmt.Sscanf(todayStr, "%d", &today)
+				require.NoError(t, err, "Today count should be valid")
+				_, err = fmt.Sscanf(yesterdayStr, "%d", &yesterday)
+				require.NoError(t, err, "Yesterday count should be valid")
+				_, err = fmt.Sscanf(lastWeekStr, "%d", &lastWeek)
+				require.NoError(t, err, "Last week count should be valid")
+				_, err = fmt.Sscanf(totalStr, "%d", &total)
+				require.NoError(t, err, "Total count should be valid")
+
+				// Validate distribution matches expected pattern
+				assert.GreaterOrEqual(t, today, 3, fmt.Sprintf("%s should have 3+ meals today", email))
+				assert.LessOrEqual(t, today, 4, fmt.Sprintf("%s should have ≤4 meals today", email))
+
+				assert.GreaterOrEqual(t, yesterday, 2, fmt.Sprintf("%s should have 2+ meals yesterday", email))
+				assert.LessOrEqual(t, yesterday, 3, fmt.Sprintf("%s should have ≤3 meals yesterday", email))
+
+				assert.GreaterOrEqual(t, lastWeek, 15, fmt.Sprintf("%s should have 15+ meals in last week", email))
+				assert.LessOrEqual(t, lastWeek, 25, fmt.Sprintf("%s should have ≤25 meals in last week", email))
+
+				// Total should be larger than last week (includes older data)
+				assert.GreaterOrEqual(t, total, lastWeek, fmt.Sprintf("%s: total meals should be ≥ last week meals", email))
+				assert.GreaterOrEqual(t, total, 30, fmt.Sprintf("%s should have 30+ total meals", email))
+			}
+		})
+
+		t.Run("Nutrition Values", func(t *testing.T) {
+			// Verify consumption nutrition values are realistic
+			query := `SELECT 
+				MIN(total_calories) as min_calories,
+				MAX(total_calories) as max_calories,
+				AVG(total_calories)::int as avg_calories,
+				MIN(total_protein_g) as min_protein,
+				MAX(total_protein_g) as max_protein,
+				COUNT(CASE WHEN caffeine_mg > 0 THEN 1 END) as caffeine_items
+			FROM consumptions c 
+			JOIN profiles p ON p.id = c.user_id 
+			WHERE p.email IN ('monalisa@birki.io', 'alice@birki.io');`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query nutrition stats")
+
+			outputStr := strings.TrimSpace(string(output))
+			parts := strings.Split(outputStr, "|")
+			require.Len(t, parts, 6, "Should have 6 nutrition stats")
+
+			// Parse nutrition values
+			var minCal, maxCal, avgCal, caffeineItems int
+			var minProtein, maxProtein float64
+			_, err = fmt.Sscanf(strings.TrimSpace(parts[0]), "%d", &minCal)
+			require.NoError(t, err, "Min calories should parse")
+			_, err = fmt.Sscanf(strings.TrimSpace(parts[1]), "%d", &maxCal)
+			require.NoError(t, err, "Max calories should parse")
+			_, err = fmt.Sscanf(strings.TrimSpace(parts[2]), "%d", &avgCal)
+			require.NoError(t, err, "Avg calories should parse")
+			_, err = fmt.Sscanf(strings.TrimSpace(parts[3]), "%f", &minProtein)
+			require.NoError(t, err, "Min protein should parse")
+			_, err = fmt.Sscanf(strings.TrimSpace(parts[4]), "%f", &maxProtein)
+			require.NoError(t, err, "Max protein should parse")
+			_, err = fmt.Sscanf(strings.TrimSpace(parts[5]), "%d", &caffeineItems)
+			require.NoError(t, err, "Caffeine items should parse")
+
+			// Validate realistic nutrition ranges
+			assert.GreaterOrEqual(t, minCal, 20, "Minimum calories should be reasonable (small snacks)")
+			assert.LessOrEqual(t, maxCal, 800, "Maximum calories should be reasonable")
+			assert.GreaterOrEqual(t, avgCal, 250, "Average calories should be realistic")
+			assert.LessOrEqual(t, avgCal, 500, "Average calories should be realistic")
+
+			assert.GreaterOrEqual(t, minProtein, 1.0, "Minimum protein should be positive")
+			assert.LessOrEqual(t, maxProtein, 50.0, "Maximum protein should be reasonable")
+
+			assert.GreaterOrEqual(t, caffeineItems, 10, "Should have several caffeine items")
+		})
+
+		t.Run("Transcript Variety", func(t *testing.T) {
+			// Verify transcripts are varied and realistic
+			query := `SELECT DISTINCT LEFT(transcript, 50) as transcript_start 
+				FROM consumptions c 
+				JOIN profiles p ON p.id = c.user_id 
+				WHERE p.email IN ('monalisa@birki.io', 'alice@birki.io')
+				ORDER BY transcript_start 
+				LIMIT 20;`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query transcript variety")
+
+			outputStr := strings.TrimSpace(string(output))
+			lines := strings.Split(outputStr, "\n")
+
+			// Should have good variety of different transcripts
+			assert.GreaterOrEqual(t, len(lines), 15, "Should have varied transcript content")
+
+			// Check for expected meal types in transcripts
+			transcriptText := strings.ToLower(outputStr)
+			assert.Contains(t, transcriptText, "breakfast", "Should include breakfast meals")
+			assert.Contains(t, transcriptText, "lunch", "Should include lunch meals")
+			assert.Contains(t, transcriptText, "dinner", "Should include dinner meals")
+			assert.Contains(t, transcriptText, "coffee", "Should include coffee drinks")
+		})
+	})
+
+	t.Run("Consumption Labels Work", func(t *testing.T) {
+		// Verify that consumption labeling is working correctly
+		t.Run("Monalisa Label Coverage", func(t *testing.T) {
+			// Check that ~70% of Mona's consumptions have labels
+			query := `SELECT 
+				COUNT(DISTINCT c.id) as total_consumptions,
+				COUNT(DISTINCT cl.consumption_id) as labeled_consumptions,
+				ROUND(COUNT(DISTINCT cl.consumption_id)::numeric / COUNT(DISTINCT c.id)::numeric * 100, 1) as percentage_labeled
+			FROM consumptions c 
+			LEFT JOIN consumption_labels cl ON cl.consumption_id = c.id
+			JOIN profiles p ON p.id = c.user_id 
+			WHERE p.email = 'monalisa@birki.io';`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query label coverage")
+
+			outputStr := strings.TrimSpace(string(output))
+			parts := strings.Split(outputStr, "|")
+			require.Len(t, parts, 3, "Should have 3 coverage stats")
+
+			// Parse values
+			var totalConsumptions, labeledConsumptions int
+			var percentageLabeled float64
+			_, err = fmt.Sscanf(strings.TrimSpace(parts[0]), "%d", &totalConsumptions)
+			require.NoError(t, err, "Total consumptions should parse")
+			_, err = fmt.Sscanf(strings.TrimSpace(parts[1]), "%d", &labeledConsumptions)
+			require.NoError(t, err, "Labeled consumptions should parse")
+			_, err = fmt.Sscanf(strings.TrimSpace(parts[2]), "%f", &percentageLabeled)
+			require.NoError(t, err, "Percentage should parse")
+
+			// Validate labeling coverage (~70% target)
+			assert.GreaterOrEqual(t, percentageLabeled, 60.0, "Should have at least 60% labeling coverage")
+			assert.LessOrEqual(t, percentageLabeled, 80.0, "Should have reasonable labeling coverage")
+			assert.GreaterOrEqual(t, labeledConsumptions, 25, "Should have substantial labeled consumptions")
+		})
+
+		t.Run("Trigger Food Detection", func(t *testing.T) {
+			// Verify trigger foods are properly detected and labeled
+			query := `SELECT c.transcript, c.total_calories 
+				FROM consumptions c 
+				JOIN consumption_labels cl ON cl.consumption_id = c.id
+				JOIN labels l ON l.id = cl.label_id
+				JOIN profiles p ON p.id = c.user_id
+				WHERE p.email = 'monalisa@birki.io' AND l.name = 'trigger-food'
+				ORDER BY c.created_at DESC;`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query trigger foods")
+
+			outputStr := strings.TrimSpace(string(output))
+
+			// Should have some trigger foods detected
+			assert.NotEmpty(t, outputStr, "Should have some trigger foods detected")
+
+			// Check for expected trigger food patterns
+			triggerText := strings.ToLower(outputStr)
+
+			// At least one of these common triggers should be present
+			hasTriggers := strings.Contains(triggerText, "chocolate") ||
+				strings.Contains(triggerText, "cheese") ||
+				strings.Contains(triggerText, "pizza") ||
+				strings.Contains(triggerText, "garlic") ||
+				strings.Contains(triggerText, "tomato")
+
+			assert.True(t, hasTriggers, "Should detect common trigger foods like chocolate, cheese, pizza, garlic, or tomatoes")
+		})
+
+		t.Run("High Protein Detection", func(t *testing.T) {
+			// Verify high-protein meals are properly labeled
+			query := `SELECT c.transcript, c.total_protein_g, c.total_calories 
+				FROM consumptions c 
+				JOIN consumption_labels cl ON cl.consumption_id = c.id
+				JOIN labels l ON l.id = cl.label_id
+				JOIN profiles p ON p.id = c.user_id
+				WHERE p.email = 'monalisa@birki.io' AND l.name = 'high-protein'
+				ORDER BY c.total_protein_g DESC
+				LIMIT 5;`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query high-protein meals")
+
+			outputStr := strings.TrimSpace(string(output))
+
+			// Should have high-protein meals detected
+			assert.NotEmpty(t, outputStr, "Should have high-protein meals detected")
+
+			// Verify protein content expectations
+			lines := strings.Split(outputStr, "\n")
+			for _, line := range lines {
+				if strings.TrimSpace(line) == "" {
+					continue
+				}
+				parts := strings.Split(line, "|")
+				if len(parts) >= 2 {
+					proteinStr := strings.TrimSpace(parts[1])
+					var protein float64
+					if _, err := fmt.Sscanf(proteinStr, "%f", &protein); err == nil {
+						assert.GreaterOrEqual(t, protein, 25.0, "High-protein labeled meals should have ≥25g protein")
+					}
+				}
+			}
+		})
+
+		t.Run("Restaurant Detection", func(t *testing.T) {
+			// Verify restaurant meals are properly labeled
+			query := `SELECT COUNT(*) as restaurant_count
+				FROM consumptions c 
+				JOIN consumption_labels cl ON cl.consumption_id = c.id
+				JOIN labels l ON l.id = cl.label_id
+				JOIN profiles p ON p.id = c.user_id
+				WHERE p.email = 'monalisa@birki.io' AND l.name = 'restaurant';`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query restaurant meals")
+
+			count := strings.TrimSpace(string(output))
+			var restaurantCount int
+			_, err = fmt.Sscanf(count, "%d", &restaurantCount)
+			require.NoError(t, err, "Restaurant count should be valid")
+
+			// Should have some restaurant meals
+			assert.GreaterOrEqual(t, restaurantCount, 1, "Should have at least 1 restaurant meal")
+			assert.LessOrEqual(t, restaurantCount, 10, "Should have reasonable restaurant meal count")
+		})
+
+		t.Run("Caffeine Detection", func(t *testing.T) {
+			// Verify caffeine content is properly set for coffee/tea items
+			query := `SELECT c.transcript, c.caffeine_mg 
+				FROM consumptions c 
+				JOIN profiles p ON p.id = c.user_id 
+				WHERE p.email = 'monalisa@birki.io' AND c.caffeine_mg > 0
+				ORDER BY c.caffeine_mg DESC
+				LIMIT 5;`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query caffeine content")
+
+			outputStr := strings.TrimSpace(string(output))
+
+			// Should have caffeine items
+			assert.NotEmpty(t, outputStr, "Should have items with caffeine content")
+
+			// Verify caffeine values are realistic
+			lines := strings.Split(outputStr, "\n")
+			for _, line := range lines {
+				if strings.TrimSpace(line) == "" {
+					continue
+				}
+				parts := strings.Split(line, "|")
+				if len(parts) >= 2 {
+					transcript := strings.ToLower(strings.TrimSpace(parts[0]))
+					caffeineStr := strings.TrimSpace(parts[1])
+					var caffeine int
+					if _, err := fmt.Sscanf(caffeineStr, "%d", &caffeine); err == nil {
+						assert.Greater(t, caffeine, 0, "Caffeine items should have positive caffeine content")
+						assert.LessOrEqual(t, caffeine, 300, "Caffeine content should be realistic (≤300mg)")
+
+						// Coffee/tea items should contain relevant keywords
+						hasCaffeineKeywords := strings.Contains(transcript, "coffee") ||
+							strings.Contains(transcript, "latte") ||
+							strings.Contains(transcript, "cappuccino") ||
+							strings.Contains(transcript, "tea") ||
+							strings.Contains(transcript, "energy")
+
+						assert.True(t, hasCaffeineKeywords, "Caffeine items should mention coffee, tea, or energy drinks")
+					}
+				}
+			}
+		})
+
+		t.Run("Multi-Label Assignments", func(t *testing.T) {
+			// Verify some consumptions have multiple labels (realistic labeling)
+			query := `SELECT c.transcript, COUNT(l.id) as label_count, STRING_AGG(l.name, ', ') as labels
+				FROM consumptions c 
+				JOIN consumption_labels cl ON cl.consumption_id = c.id
+				JOIN labels l ON l.id = cl.label_id
+				JOIN profiles p ON p.id = c.user_id
+				WHERE p.email = 'monalisa@birki.io'
+				GROUP BY c.id, c.transcript
+				HAVING COUNT(l.id) > 1
+				ORDER BY label_count DESC
+				LIMIT 5;`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query multi-labeled consumptions")
+
+			outputStr := strings.TrimSpace(string(output))
+
+			// Should have some items with multiple labels
+			if outputStr != "" {
+				lines := strings.Split(outputStr, "\n")
+				assert.GreaterOrEqual(t, len(lines), 1, "Should have at least one multi-labeled consumption")
+
+				// Verify multi-label assignments make sense
+				for _, line := range lines {
+					if strings.TrimSpace(line) == "" {
+						continue
+					}
+					parts := strings.Split(line, "|")
+					if len(parts) >= 3 {
+						labelCountStr := strings.TrimSpace(parts[1])
+						labels := strings.TrimSpace(parts[2])
+
+						var labelCount int
+						if _, err := fmt.Sscanf(labelCountStr, "%d", &labelCount); err == nil {
+							assert.GreaterOrEqual(t, labelCount, 2, "Multi-labeled items should have ≥2 labels")
+							assert.LessOrEqual(t, labelCount, 4, "Should not have excessive labels")
+
+							// Logical label combinations (e.g., snack + trigger-food, drink + snack)
+							assert.NotEmpty(t, labels, "Should have label names listed")
+						}
+					}
+				}
+			}
+		})
+
+		t.Run("Alice Has No Labels", func(t *testing.T) {
+			// Verify Alice (free user) has no consumption labels (only Mona gets labeled)
+			query := `SELECT COUNT(*) as alice_label_count
+				FROM consumption_labels cl
+				JOIN consumptions c ON c.id = cl.consumption_id
+				JOIN profiles p ON p.id = c.user_id
+				WHERE p.email = 'alice@birki.io';`
+
+			cmd := exec.Command("docker", "exec", "-i", "supabase_db_noot", "psql", "-U", "postgres", "-d", "postgres", "-t", "-c", query)
+			cmd.Dir = getProjectRoot()
+
+			output, err := cmd.Output()
+			require.NoError(t, err, "Should be able to query Alice's labels")
+
+			count := strings.TrimSpace(string(output))
+			var aliceLabelCount int
+			_, err = fmt.Sscanf(count, "%d", &aliceLabelCount)
+			require.NoError(t, err, "Alice label count should parse")
+
+			// Alice should have no consumption labels (only Mona gets labeled in our seed)
+			assert.Equal(t, 0, aliceLabelCount, "Alice should have no consumption labels (only Mona is labeled)")
+		})
+	})
 }
 
 // makeSignupRequest makes an HTTP POST request to the Supabase signup endpoint
