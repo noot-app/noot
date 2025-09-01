@@ -86,4 +86,7 @@ else
     echo "==> Skipping frontend type generation (apps/web directory not found)"
 fi
 
+# always run the linter after generating types
+go fmt -mod=vendor ./...
+
 echo "==> All API types (backend and frontend) generated successfully"
