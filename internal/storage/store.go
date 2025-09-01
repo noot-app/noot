@@ -73,6 +73,23 @@ type Store interface {
 	// Filtering operations
 	GetConsumptionsByLabels(ctx context.Context, userID string, labelNames []string, matchAll bool, limit, offset int) ([]*Consumption, error)
 
+	// Event operations
+	CreateEvent(ctx context.Context, event *Event) error
+	UpdateEvent(ctx context.Context, event *Event) error
+	DeleteEvent(ctx context.Context, userID, id string) error
+	GetEvent(ctx context.Context, userID, id string) (*Event, error)
+	ListEvents(ctx context.Context, userID string, options EventListOptions) ([]*Event, error)
+
+	// Event label assignment operations
+	ListEventLabels(ctx context.Context, userID, eventID string) ([]*Label, error)
+	AssignEventLabels(ctx context.Context, userID, eventID string, labelIDs []string) error
+	UnassignEventLabel(ctx context.Context, userID, eventID, labelID string) error
+
+	// Event link operations
+	CreateEventLink(ctx context.Context, link *EventLink) error
+	DeleteEventLink(ctx context.Context, userID, linkID string) error
+	ListEventLinks(ctx context.Context, userID, eventID string) ([]*EventLink, error)
+
 	// Database lifecycle
 	Close() error
 }
@@ -467,4 +484,41 @@ type LabelWithUsage struct {
 	Label
 	ConsumptionCount int `json:"consumption_count"`
 	ItemCount        int `json:"item_count"`
+}
+
+// Event represents a user-owned event for tracking symptoms, activities, etc.
+type Event struct {
+	ID        string     `json:"id"`
+	UserID    string     `json:"user_id"`
+	Name      string     `json:"name"`
+	Category  *string    `json:"category,omitempty"`
+	StartedAt time.Time  `json:"started_at"`
+	EndedAt   *time.Time `json:"ended_at,omitempty"`
+	Level     *int       `json:"level,omitempty"` // 0-10 scale
+	Note      *string    `json:"note,omitempty"`  // Up to 1000 chars
+	Color     *string    `json:"color,omitempty"` // Hex color code
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+// EventLink represents a manual link between an event and a consumption/item
+type EventLink struct {
+	ID                string    `json:"id"`
+	EventID           string    `json:"event_id"`
+	ConsumptionID     *string   `json:"consumption_id,omitempty"`
+	ConsumptionItemID *string   `json:"consumption_item_id,omitempty"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
+// EventListOptions contains filtering options for event queries
+type EventListOptions struct {
+	Limit     int
+	Offset    int
+	StartDate *time.Time
+	EndDate   *time.Time
+	Category  *string
+	LevelMin  *int
+	LevelMax  *int
+	Labels    []string
+	MatchAll  bool // If true, match ALL labels; if false, match ANY label
 }

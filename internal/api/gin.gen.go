@@ -55,6 +55,39 @@ type ServerInterface interface {
 	// List consumptions
 	// (GET /consumptions)
 	GetConsumptions(c *gin.Context, params GetConsumptionsParams)
+	// List events
+	// (GET /events)
+	GetEvents(c *gin.Context, params GetEventsParams)
+	// Create a new event
+	// (POST /events)
+	CreateEvent(c *gin.Context)
+	// Delete an event
+	// (DELETE /events/{id})
+	DeleteEvent(c *gin.Context, id string)
+	// Get a specific event
+	// (GET /events/{id})
+	GetEvent(c *gin.Context, id string)
+	// Update an event
+	// (PUT /events/{id})
+	UpdateEvent(c *gin.Context, id string)
+	// Get labels assigned to an event
+	// (GET /events/{id}/labels)
+	GetEventLabels(c *gin.Context, id string)
+	// Assign labels to an event
+	// (POST /events/{id}/labels)
+	AssignEventLabels(c *gin.Context, id string)
+	// Unassign a label from an event
+	// (DELETE /events/{id}/labels/{labelId})
+	UnassignEventLabel(c *gin.Context, id string, labelId string)
+	// Get consumption links for an event
+	// (GET /events/{id}/links)
+	GetEventLinks(c *gin.Context, id string)
+	// Create a link between an event and consumption/item
+	// (POST /events/{id}/links)
+	CreateEventLink(c *gin.Context, id string)
+	// Delete an event-consumption link
+	// (DELETE /events/{id}/links/{linkId})
+	DeleteEventLink(c *gin.Context, id string, linkId string)
 	// Export nutrition data (Pro only)
 	// (GET /export)
 	ExportData(c *gin.Context, params ExportDataParams)
@@ -446,6 +479,343 @@ func (siw *ServerInterfaceWrapper) GetConsumptions(c *gin.Context) {
 	siw.Handler.GetConsumptions(c, params)
 }
 
+// GetEvents operation middleware
+func (siw *ServerInterfaceWrapper) GetEvents(c *gin.Context) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetEventsParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "start_date" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "start_date", c.Request.URL.Query(), &params.StartDate)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter start_date: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "end_date" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "end_date", c.Request.URL.Query(), &params.EndDate)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter end_date: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "category" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "category", c.Request.URL.Query(), &params.Category)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter category: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "level_min" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "level_min", c.Request.URL.Query(), &params.LevelMin)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter level_min: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "level_max" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "level_max", c.Request.URL.Query(), &params.LevelMax)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter level_max: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "labels" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "labels", c.Request.URL.Query(), &params.Labels)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter labels: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "match" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "match", c.Request.URL.Query(), &params.Match)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter match: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetEvents(c, params)
+}
+
+// CreateEvent operation middleware
+func (siw *ServerInterfaceWrapper) CreateEvent(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CreateEvent(c)
+}
+
+// DeleteEvent operation middleware
+func (siw *ServerInterfaceWrapper) DeleteEvent(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteEvent(c, id)
+}
+
+// GetEvent operation middleware
+func (siw *ServerInterfaceWrapper) GetEvent(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetEvent(c, id)
+}
+
+// UpdateEvent operation middleware
+func (siw *ServerInterfaceWrapper) UpdateEvent(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.UpdateEvent(c, id)
+}
+
+// GetEventLabels operation middleware
+func (siw *ServerInterfaceWrapper) GetEventLabels(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetEventLabels(c, id)
+}
+
+// AssignEventLabels operation middleware
+func (siw *ServerInterfaceWrapper) AssignEventLabels(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AssignEventLabels(c, id)
+}
+
+// UnassignEventLabel operation middleware
+func (siw *ServerInterfaceWrapper) UnassignEventLabel(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "labelId" -------------
+	var labelId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "labelId", c.Param("labelId"), &labelId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter labelId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.UnassignEventLabel(c, id, labelId)
+}
+
+// GetEventLinks operation middleware
+func (siw *ServerInterfaceWrapper) GetEventLinks(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetEventLinks(c, id)
+}
+
+// CreateEventLink operation middleware
+func (siw *ServerInterfaceWrapper) CreateEventLink(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CreateEventLink(c, id)
+}
+
+// DeleteEventLink operation middleware
+func (siw *ServerInterfaceWrapper) DeleteEventLink(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Path parameter "linkId" -------------
+	var linkId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "linkId", c.Param("linkId"), &linkId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter linkId: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteEventLink(c, id, linkId)
+}
+
 // ExportData operation middleware
 func (siw *ServerInterfaceWrapper) ExportData(c *gin.Context) {
 
@@ -778,6 +1148,17 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/consumption/:id/labels", wrapper.AssignConsumptionLabels)
 	router.DELETE(options.BaseURL+"/consumption/:id/labels/:labelId", wrapper.UnassignConsumptionLabel)
 	router.GET(options.BaseURL+"/consumptions", wrapper.GetConsumptions)
+	router.GET(options.BaseURL+"/events", wrapper.GetEvents)
+	router.POST(options.BaseURL+"/events", wrapper.CreateEvent)
+	router.DELETE(options.BaseURL+"/events/:id", wrapper.DeleteEvent)
+	router.GET(options.BaseURL+"/events/:id", wrapper.GetEvent)
+	router.PUT(options.BaseURL+"/events/:id", wrapper.UpdateEvent)
+	router.GET(options.BaseURL+"/events/:id/labels", wrapper.GetEventLabels)
+	router.POST(options.BaseURL+"/events/:id/labels", wrapper.AssignEventLabels)
+	router.DELETE(options.BaseURL+"/events/:id/labels/:labelId", wrapper.UnassignEventLabel)
+	router.GET(options.BaseURL+"/events/:id/links", wrapper.GetEventLinks)
+	router.POST(options.BaseURL+"/events/:id/links", wrapper.CreateEventLink)
+	router.DELETE(options.BaseURL+"/events/:id/links/:linkId", wrapper.DeleteEventLink)
 	router.GET(options.BaseURL+"/export", wrapper.ExportData)
 	router.GET(options.BaseURL+"/goals", wrapper.GetGoals)
 	router.PUT(options.BaseURL+"/goals", wrapper.UpdateGoals)

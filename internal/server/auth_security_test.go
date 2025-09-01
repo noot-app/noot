@@ -155,6 +155,35 @@ func (m *mockStore) GetConsumptionsByUserDateRange(ctx context.Context, userID s
 	return nil, nil
 }
 
+// Event mock methods
+func (m *mockStore) CreateEvent(ctx context.Context, event *storage.Event) error { return nil }
+func (m *mockStore) UpdateEvent(ctx context.Context, event *storage.Event) error { return nil }
+func (m *mockStore) DeleteEvent(ctx context.Context, userID, id string) error    { return nil }
+func (m *mockStore) GetEvent(ctx context.Context, userID, id string) (*storage.Event, error) {
+	return nil, nil
+}
+func (m *mockStore) ListEvents(ctx context.Context, userID string, options storage.EventListOptions) ([]*storage.Event, error) {
+	return nil, nil
+}
+
+// Event label assignment mock methods
+func (m *mockStore) ListEventLabels(ctx context.Context, userID, eventID string) ([]*storage.Label, error) {
+	return nil, nil
+}
+func (m *mockStore) AssignEventLabels(ctx context.Context, userID, eventID string, labelIDs []string) error {
+	return nil
+}
+func (m *mockStore) UnassignEventLabel(ctx context.Context, userID, eventID, labelID string) error {
+	return nil
+}
+
+// Event link mock methods
+func (m *mockStore) CreateEventLink(ctx context.Context, link *storage.EventLink) error { return nil }
+func (m *mockStore) DeleteEventLink(ctx context.Context, userID, linkID string) error   { return nil }
+func (m *mockStore) ListEventLinks(ctx context.Context, userID, eventID string) ([]*storage.EventLink, error) {
+	return nil, nil
+}
+
 func (m *mockStore) Close() error { return nil }
 
 // Test JWT validation security patterns

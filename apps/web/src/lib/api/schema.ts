@@ -312,6 +312,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List events
+         * @description Get events owned by the current user with optional filtering
+         */
+        get: operations["getEvents"];
+        put?: never;
+        /**
+         * Create a new event
+         * @description Create a new event for the current user
+         */
+        post: operations["createEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a specific event
+         * @description Get details of a specific event owned by the current user
+         */
+        get: operations["getEvent"];
+        /**
+         * Update an event
+         * @description Update an existing event owned by the current user
+         */
+        put: operations["updateEvent"];
+        post?: never;
+        /**
+         * Delete an event
+         * @description Delete an event and all its associations
+         */
+        delete: operations["deleteEvent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/{id}/labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get labels assigned to an event
+         * @description Get all labels assigned to a specific event
+         */
+        get: operations["getEventLabels"];
+        put?: never;
+        /**
+         * Assign labels to an event
+         * @description Assign one or more labels to an event by label IDs
+         */
+        post: operations["assignEventLabels"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/{id}/labels/{labelId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unassign a label from an event
+         * @description Remove a label assignment from an event
+         */
+        delete: operations["unassignEventLabel"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/{id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get consumption links for an event
+         * @description Get all consumption/item links for a specific event
+         */
+        get: operations["getEventLinks"];
+        put?: never;
+        /**
+         * Create a link between an event and consumption/item
+         * @description Manually link an event to a consumption or consumption item
+         */
+        post: operations["createEventLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/{id}/links/{linkId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete an event-consumption link
+         * @description Remove a link between an event and a consumption/item
+         */
+        delete: operations["deleteEventLink"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/trends": {
         parameters: {
             query?: never;
@@ -485,6 +625,164 @@ export interface components {
         AssignLabelsRequest: {
             /** @description Array of label IDs to assign */
             ids: string[];
+        };
+        Event: {
+            /** @description Event ID */
+            id: string;
+            /** @description User ID who owns this event */
+            user_id: string;
+            /** @description Event name */
+            name: string;
+            /** @description Optional event category (e.g., 'symptom', 'activity', 'measurement') */
+            category?: string | null;
+            /**
+             * Format: date-time
+             * @description When the event started
+             */
+            started_at: string;
+            /**
+             * Format: date-time
+             * @description When the event ended (optional)
+             */
+            ended_at?: string | null;
+            /** @description Event intensity/severity/performance level (0-10) */
+            level?: number | null;
+            /** @description Optional notes about the event */
+            note?: string | null;
+            /**
+             * @description Optional hex color for visual distinction
+             * @example #FF6B6B
+             */
+            color?: string | null;
+            /**
+             * Format: date-time
+             * @description When the event was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the event was last updated
+             */
+            updated_at: string;
+        };
+        EventWithDetails: {
+            /** @description Event ID */
+            id: string;
+            /** @description User ID who owns this event */
+            user_id: string;
+            /** @description Event name */
+            name: string;
+            /** @description Optional event category */
+            category?: string | null;
+            /**
+             * Format: date-time
+             * @description When the event started
+             */
+            started_at: string;
+            /**
+             * Format: date-time
+             * @description When the event ended
+             */
+            ended_at?: string | null;
+            /** @description Event intensity/severity/performance level (0-10) */
+            level?: number | null;
+            /** @description Optional notes about the event */
+            note?: string | null;
+            /**
+             * @description Optional hex color for visual distinction
+             * @example #FF6B6B
+             */
+            color?: string | null;
+            /**
+             * Format: date-time
+             * @description When the event was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the event was last updated
+             */
+            updated_at: string;
+            /** @description Labels assigned to this event */
+            labels: components["schemas"]["Label"][];
+            /** @description Consumption/item links for this event */
+            links: components["schemas"]["EventLink"][];
+        };
+        EventCreateRequest: {
+            /** @description Event name */
+            name: string;
+            /** @description Optional event category */
+            category?: string;
+            /**
+             * Format: date-time
+             * @description When the event started
+             */
+            started_at: string;
+            /**
+             * Format: date-time
+             * @description When the event ended (optional)
+             */
+            ended_at?: string;
+            /** @description Event intensity/severity/performance level (0-10) */
+            level?: number;
+            /** @description Optional notes about the event */
+            note?: string;
+            /**
+             * @description Optional hex color for visual distinction
+             * @example #FF6B6B
+             */
+            color?: string;
+            /** @description Alternative to ended_at - duration in minutes from started_at */
+            duration_minutes?: number;
+        };
+        EventUpdateRequest: {
+            /** @description Event name */
+            name?: string;
+            /** @description Optional event category */
+            category?: string | null;
+            /**
+             * Format: date-time
+             * @description When the event started
+             */
+            started_at?: string;
+            /**
+             * Format: date-time
+             * @description When the event ended
+             */
+            ended_at?: string | null;
+            /** @description Event intensity/severity/performance level (0-10) */
+            level?: number | null;
+            /** @description Optional notes about the event */
+            note?: string | null;
+            /**
+             * @description Optional hex color for visual distinction
+             * @example #FF6B6B
+             */
+            color?: string | null;
+        };
+        EventsResponse: {
+            events: components["schemas"]["Event"][];
+        };
+        EventLink: {
+            /** @description Link ID */
+            id: string;
+            /** @description Event ID */
+            event_id: string;
+            /** @description Consumption ID (if linked to a consumption) */
+            consumption_id?: string | null;
+            /** @description Consumption item ID (if linked to a consumption item) */
+            consumption_item_id?: string | null;
+            /**
+             * Format: date-time
+             * @description When the link was created
+             */
+            created_at: string;
+        };
+        EventLinkCreateRequest: {
+            /** @description Consumption ID to link to (mutually exclusive with consumption_item_id) */
+            consumption_id?: string;
+            /** @description Consumption item ID to link to (mutually exclusive with consumption_id) */
+            consumption_item_id?: string;
         };
         ConsumptionResponse: {
             /** @description Consumption ID (for future edits/deletes) */
@@ -1914,6 +2212,526 @@ export interface operations {
                 content?: never;
             };
             /** @description Consumption item or label assignment not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getEvents: {
+        parameters: {
+            query?: {
+                /** @description Maximum number of events to return (default 50, max 100) */
+                limit?: number;
+                /** @description Number of events to skip for pagination */
+                offset?: number;
+                /** @description Filter events starting from this date (ISO 8601) */
+                start_date?: string;
+                /** @description Filter events ending before this date (ISO 8601) */
+                end_date?: string;
+                /** @description Filter by event category */
+                category?: string;
+                /** @description Filter events with level >= this value */
+                level_min?: number;
+                /** @description Filter events with level <= this value */
+                level_max?: number;
+                /** @description Comma-separated list of label names to filter by */
+                labels?: string;
+                /** @description Label matching strategy - 'any' matches events with at least one of the labels, 'all' matches events with all labels */
+                match?: "any" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of user events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsResponse"];
+                };
+            };
+            /** @description Invalid query parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Event created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Event"];
+                };
+            };
+            /** @description Bad request (invalid event data, validation error) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Event details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventWithDetails"];
+                };
+            };
+            /** @description Event not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Event updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Event"];
+                };
+            };
+            /** @description Bad request (invalid event data) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Event not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Event deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Event not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getEventLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Labels assigned to the event */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        labels?: components["schemas"]["Label"][];
+                    };
+                };
+            };
+            /** @description Event not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    assignEventLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignLabelsRequest"];
+            };
+        };
+        responses: {
+            /** @description Labels assigned successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        labels?: components["schemas"]["Label"][];
+                    };
+                };
+            };
+            /** @description Bad request (invalid label IDs) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Event or label not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    unassignEventLabel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: string;
+                /** @description Label ID */
+                labelId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Label unassigned successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Event or label assignment not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getEventLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Links for the event */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        links?: components["schemas"]["EventLink"][];
+                    };
+                };
+            };
+            /** @description Event not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createEventLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventLinkCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Link created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventLink"];
+                };
+            };
+            /** @description Bad request (invalid link data) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Event, consumption, or item not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Link already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteEventLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: string;
+                /** @description Link ID */
+                linkId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Link deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Event or link not found */
             404: {
                 headers: {
                     [name: string]: unknown;

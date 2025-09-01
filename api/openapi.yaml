@@ -806,6 +806,456 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /events:
+    get:
+      summary: List events
+      description: Get events owned by the current user with optional filtering
+      operationId: getEvents
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of events to return (default 50, max 100)
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of events to skip for pagination
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: start_date
+          in: query
+          description: Filter events starting from this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          description: Filter events ending before this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: category
+          in: query
+          description: Filter by event category
+          schema:
+            type: string
+        - name: level_min
+          in: query
+          description: Filter events with level >= this value
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10
+        - name: level_max
+          in: query
+          description: Filter events with level <= this value
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 10
+        - name: labels
+          in: query
+          description: Comma-separated list of label names to filter by
+          schema:
+            type: string
+        - name: match
+          in: query
+          description: Label matching strategy - 'any' matches events with at least one of the labels, 'all' matches events with all labels
+          schema:
+            type: string
+            enum: [any, all]
+            default: any
+      responses:
+        "200":
+          description: List of user events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Create a new event
+      description: Create a new event for the current user
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventCreateRequest"
+      responses:
+        "201":
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          description: Bad request (invalid event data, validation error)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /events/{id}:
+    get:
+      summary: Get a specific event
+      description: Get details of a specific event owned by the current user
+      operationId: getEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventWithDetails"
+        "404":
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      summary: Update an event
+      description: Update an existing event owned by the current user
+      operationId: updateEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventUpdateRequest"
+      responses:
+        "200":
+          description: Event updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          description: Bad request (invalid event data)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete an event
+      description: Delete an event and all its associations
+      operationId: deleteEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Event deleted successfully
+        "404":
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /events/{id}/labels:
+    get:
+      summary: Get labels assigned to an event
+      description: Get all labels assigned to a specific event
+      operationId: getEventLabels
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Labels assigned to the event
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  labels:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Label"
+        "404":
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Assign labels to an event
+      description: Assign one or more labels to an event by label IDs
+      operationId: assignEventLabels
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignLabelsRequest"
+      responses:
+        "200":
+          description: Labels assigned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  labels:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Label"
+        "400":
+          description: Bad request (invalid label IDs)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Event or label not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /events/{id}/labels/{labelId}:
+    delete:
+      summary: Unassign a label from an event
+      description: Remove a label assignment from an event
+      operationId: unassignEventLabel
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+        - name: labelId
+          in: path
+          required: true
+          description: Label ID
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Label unassigned successfully
+        "404":
+          description: Event or label assignment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /events/{id}/links:
+    get:
+      summary: Get consumption links for an event
+      description: Get all consumption/item links for a specific event
+      operationId: getEventLinks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Links for the event
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventLink"
+        "404":
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Create a link between an event and consumption/item
+      description: Manually link an event to a consumption or consumption item
+      operationId: createEventLink
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventLinkCreateRequest"
+      responses:
+        "201":
+          description: Link created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventLink"
+        "400":
+          description: Bad request (invalid link data)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Event, consumption, or item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Link already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /events/{id}/links/{linkId}:
+    delete:
+      summary: Delete an event-consumption link
+      description: Remove a link between an event and a consumption/item
+      operationId: deleteEventLink
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+        - name: linkId
+          in: path
+          required: true
+          description: Link ID
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Link deleted successfully
+        "404":
+          description: Event or link not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /trends:
     get:
       summary: Get nutrition trends
@@ -1176,6 +1626,240 @@ components:
           items:
             type: string
           description: Array of label IDs to assign
+
+    Event:
+      type: object
+      required: [id, user_id, name, started_at, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          description: Event ID
+        user_id:
+          type: string
+          description: User ID who owns this event
+        name:
+          type: string
+          maxLength: 100
+          description: Event name
+        category:
+          type: string
+          maxLength: 50
+          nullable: true
+          description: Optional event category (e.g., 'symptom', 'activity', 'measurement')
+        started_at:
+          type: string
+          format: date-time
+          description: When the event started
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the event ended (optional)
+        level:
+          type: integer
+          minimum: 0
+          maximum: 10
+          nullable: true
+          description: Event intensity/severity/performance level (0-10)
+        note:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Optional notes about the event
+        color:
+          type: string
+          nullable: true
+          description: Optional hex color for visual distinction
+          example: "#FF6B6B"
+        created_at:
+          type: string
+          format: date-time
+          description: When the event was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the event was last updated
+
+    EventWithDetails:
+      type: object
+      required: [id, user_id, name, started_at, created_at, updated_at, labels, links]
+      properties:
+        id:
+          type: string
+          description: Event ID
+        user_id:
+          type: string
+          description: User ID who owns this event
+        name:
+          type: string
+          maxLength: 100
+          description: Event name
+        category:
+          type: string
+          maxLength: 50
+          nullable: true
+          description: Optional event category
+        started_at:
+          type: string
+          format: date-time
+          description: When the event started
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the event ended
+        level:
+          type: integer
+          minimum: 0
+          maximum: 10
+          nullable: true
+          description: Event intensity/severity/performance level (0-10)
+        note:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Optional notes about the event
+        color:
+          type: string
+          nullable: true
+          description: Optional hex color for visual distinction
+          example: "#FF6B6B"
+        created_at:
+          type: string
+          format: date-time
+          description: When the event was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the event was last updated
+        labels:
+          type: array
+          items:
+            $ref: "#/components/schemas/Label"
+          description: Labels assigned to this event
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventLink"
+          description: Consumption/item links for this event
+
+    EventCreateRequest:
+      type: object
+      required: [name, started_at]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: Event name
+        category:
+          type: string
+          maxLength: 50
+          description: Optional event category
+        started_at:
+          type: string
+          format: date-time
+          description: When the event started
+        ended_at:
+          type: string
+          format: date-time
+          description: When the event ended (optional)
+        level:
+          type: integer
+          minimum: 0
+          maximum: 10
+          description: Event intensity/severity/performance level (0-10)
+        note:
+          type: string
+          maxLength: 1000
+          description: Optional notes about the event
+        color:
+          type: string
+          description: Optional hex color for visual distinction
+          example: "#FF6B6B"
+        duration_minutes:
+          type: integer
+          minimum: 1
+          description: Alternative to ended_at - duration in minutes from started_at
+
+    EventUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: Event name
+        category:
+          type: string
+          maxLength: 50
+          nullable: true
+          description: Optional event category
+        started_at:
+          type: string
+          format: date-time
+          description: When the event started
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the event ended
+        level:
+          type: integer
+          minimum: 0
+          maximum: 10
+          nullable: true
+          description: Event intensity/severity/performance level (0-10)
+        note:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Optional notes about the event
+        color:
+          type: string
+          nullable: true
+          description: Optional hex color for visual distinction
+          example: "#FF6B6B"
+
+    EventsResponse:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+
+    EventLink:
+      type: object
+      required: [id, event_id, created_at]
+      properties:
+        id:
+          type: string
+          description: Link ID
+        event_id:
+          type: string
+          description: Event ID
+        consumption_id:
+          type: string
+          nullable: true
+          description: Consumption ID (if linked to a consumption)
+        consumption_item_id:
+          type: string
+          nullable: true
+          description: Consumption item ID (if linked to a consumption item)
+        created_at:
+          type: string
+          format: date-time
+          description: When the link was created
+
+    EventLinkCreateRequest:
+      type: object
+      properties:
+        consumption_id:
+          type: string
+          description: Consumption ID to link to (mutually exclusive with consumption_item_id)
+        consumption_item_id:
+          type: string
+          description: Consumption item ID to link to (mutually exclusive with consumption_id)
 
     ConsumptionResponse:
       type: object

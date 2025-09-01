@@ -7,10 +7,10 @@ This is a Go based repository that is a minimal web app to log meals by voice. T
 ### Development Flow
 
 - Bootstrap: `script/bootstrap`
-- Generate types: `script/generate-types`
-- Test: `script/test`
-- Lint: `script/lint`
-- Build: `script/build`
+- Generate types: `script/generate-types` - generates types for the frontend and the backend
+- Test: `script/test` - frontend and backend tests
+- Lint: `script/lint` - only lints the backend
+- Build: `script/build` - only builds the backend
 - Frontend tests: `cd apps/web && npm run test_run && cd -`
 - Testing database schema: `script/db reset && script/db test`
 
