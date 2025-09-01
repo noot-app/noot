@@ -197,9 +197,16 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 	// Special handling for webm files: Go's DetectContentType often returns "video/webm"
 	// even for audio-only webm files due to the EBML container format
 	finalMimeType := detectedMime
-	if declaredContentType == "audio/webm" && detectedMime == "video/webm" {
+
+	// Normalize declared content type for WebM check (remove parameters)
+	normalizedDeclared := strings.ToLower(strings.TrimSpace(declaredContentType))
+	if idx := strings.Index(normalizedDeclared, ";"); idx != -1 {
+		normalizedDeclared = strings.TrimSpace(normalizedDeclared[:idx])
+	}
+
+	if normalizedDeclared == "audio/webm" && detectedMime == "video/webm" {
 		// Trust the declared type for webm files since container detection is ambiguous
-		finalMimeType = declaredContentType
+		finalMimeType = normalizedDeclared
 	}
 
 	// Validate final MIME type (use the corrected type for webm)

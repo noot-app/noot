@@ -55,6 +55,13 @@ func TestUploadSecurity(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:        "Valid webm audio file with codecs parameter",
+			filename:    "test.webm",
+			contentType: "audio/webm; codecs=opus",
+			fileContent: append([]byte{0x1A, 0x45, 0xDF, 0xA3}, make([]byte, 100)...), // EBML header for webm
+			expectError: false,
+		},
+		{
 			name:          "Path traversal in filename",
 			filename:      "../../../etc/passwd",
 			contentType:   "audio/wav",
@@ -193,6 +200,8 @@ func TestContentTypeCompatibility(t *testing.T) {
 		{"MP3 variants", "audio/mpeg", "audio/mp3", true},
 		{"WAV variants", "audio/wav", "audio/wave", true},
 		{"OGG variants", "audio/ogg", "application/ogg", true},
+		{"WebM audio declared as video detected", "audio/webm", "video/webm", true},
+		{"WebM video declared as audio detected", "video/webm", "audio/webm", true},
 		{"Incompatible types", "audio/wav", "audio/mpeg", false},
 		{"With parameters", "audio/webm; codecs=opus", "audio/webm", true},
 		{"Case insensitive", "AUDIO/WAV", "audio/wav", true},
