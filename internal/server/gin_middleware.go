@@ -65,7 +65,7 @@ func RecoveryMiddleware() gin.HandlerFunc {
 					"path", c.Request.URL.Path,
 				)
 
-				// In production, never expose stack traces or internal details
+				// In production, never expose stack traces or internal details, but always include request ID
 				if IsProduction() {
 					c.JSON(500, gin.H{
 						"error":      "Internal server error",
