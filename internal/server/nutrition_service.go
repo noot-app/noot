@@ -1124,10 +1124,10 @@ func floatValue(f *float64) float64 {
 
 // parseOFFIngredients converts raw OFF ingredient data to our OFFIngredient format
 func parseOFFIngredients(rawIngredients []interface{}) []storage.OFFIngredient {
-	if rawIngredients == nil || len(rawIngredients) == 0 {
+	if len(rawIngredients) == 0 {
 		return []storage.OFFIngredient{}
 	}
-	
+
 	var ingredients []storage.OFFIngredient
 
 	for _, rawIngredient := range rawIngredients {

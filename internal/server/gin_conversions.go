@@ -31,7 +31,7 @@ func convertInternalItemToAPI(internal Item) api.Item {
 		apiIngredients := make([]api.OFFIngredient, len(internal.Ingredients))
 		for i, storageIngredient := range internal.Ingredients {
 			apiIngredient := api.OFFIngredient{}
-			
+
 			if storageIngredient.ID != "" {
 				apiIngredient.Id = &storageIngredient.ID
 			}
@@ -50,7 +50,7 @@ func convertInternalItemToAPI(internal Item) api.Item {
 				f32 := float32(*storageIngredient.PercentMin)
 				apiIngredient.PercentMin = &f32
 			}
-			
+
 			apiIngredients[i] = apiIngredient
 		}
 		apiItem.Ingredients = &apiIngredients

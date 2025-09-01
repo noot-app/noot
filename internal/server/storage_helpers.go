@@ -241,7 +241,7 @@ func apiItemWithNutritionToConsumptionItem(consumptionID string, item api.ItemWi
 		MonounsaturatedFatG: float64(nutrients.MonounsaturatedFatG),
 		// Ingredients and OFF URL (historical snapshot)
 		Ingredients: convertAPIIngredientsToStorage(item.Item.Ingredients), // Convert and copy ingredients from API item
-		OFFUrl:      item.Item.OffUrl,                                       // Copy OFF URL from API item
+		OFFUrl:      item.Item.OffUrl,                                      // Copy OFF URL from API item
 	}
 }
 
@@ -476,11 +476,11 @@ func convertAPIIngredientsToStorage(apiIngredients *[]api.OFFIngredient) []stora
 	if apiIngredients == nil {
 		return nil
 	}
-	
+
 	storageIngredients := make([]storage.OFFIngredient, len(*apiIngredients))
 	for i, apiIngredient := range *apiIngredients {
 		storageIngredient := storage.OFFIngredient{}
-		
+
 		if apiIngredient.Id != nil {
 			storageIngredient.ID = *apiIngredient.Id
 		}
@@ -499,9 +499,9 @@ func convertAPIIngredientsToStorage(apiIngredients *[]api.OFFIngredient) []stora
 			f64 := float64(*apiIngredient.PercentMin)
 			storageIngredient.PercentMin = &f64
 		}
-		
+
 		storageIngredients[i] = storageIngredient
 	}
-	
+
 	return storageIngredients
 }
