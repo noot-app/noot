@@ -21,7 +21,7 @@ export default defineConfig({
     // Inject build-time environment variables for version info
     "import.meta.env.VITE_COMMIT_SHA": JSON.stringify(process.env.VITE_COMMIT_SHA || 'unknown'),
     "import.meta.env.VITE_BUILD_TIME": JSON.stringify(process.env.VITE_BUILD_TIME || 'unknown'),
-    "import.meta.env.VITE_TAG": JSON.stringify(process.env.VITE_TAG || 'dev'),
+    "import.meta.env.VITE_TAG": JSON.stringify(process.env.VITE_TAG || process.env.VITE_COMMIT_SHA || 'unknown'),
   },
   test: {
     include: ["src/**/*.{test,spec}.{js,ts}"],
