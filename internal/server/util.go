@@ -13,6 +13,32 @@ import (
 	"time"
 )
 
+// allowedAudioContentTypes defines the content types allowed for audio file uploads
+var allowedAudioContentTypes = []string{
+	"audio/webm",
+	"audio/ogg",
+	"audio/mpeg",
+	"audio/mp3",
+	"audio/wav",
+	"audio/wave",
+	"audio/x-wav",
+	"audio/opus",
+	"application/ogg", // Some browsers use this for ogg files
+}
+
+// compatibleAudioContentTypes defines known compatible content type pairs for audio files
+var compatibleAudioContentTypes = map[string][]string{
+	"audio/mpeg":      {"audio/mp3"},
+	"audio/mp3":       {"audio/mpeg"},
+	"audio/wav":       {"audio/wave", "audio/x-wav"},
+	"audio/wave":      {"audio/wav", "audio/x-wav"},
+	"audio/x-wav":     {"audio/wav", "audio/wave"},
+	"audio/ogg":       {"application/ogg"},
+	"application/ogg": {"audio/ogg"},
+	"audio/webm":      {"video/webm"}, // webm files are often detected as video even when audio-only
+	"video/webm":      {"audio/webm"}, // reverse mapping for webm
+}
+
 func getenvBool(key string, def bool) bool {
 	if v := os.Getenv(key); v != "" {
 		if parsed, err := strconv.ParseBool(v); err == nil {
@@ -45,11 +71,12 @@ func httpErrorWithDetails(w http.ResponseWriter, code int, msg string, stack []s
 		Time:  time.Now().UTC(),
 	}
 
-	// Include stack trace in debug/dev mode
-	if (isDebugMode() || isDevMode()) && len(stack) > 0 {
+	// Only include stack trace in debug/dev mode AND not in production
+	if !IsProduction() && (isDebugMode() || isDevMode()) && len(stack) > 0 {
 		resp.Stack = stack
 	}
 
+	// always include trace ID if provided
 	if traceID != "" {
 		resp.TraceID = traceID
 	}
@@ -71,12 +98,35 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 }
 
 func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, string, error) {
-	// Get max upload size from environment, default to 100MB
-	maxBytes := int64(100 * 1024 * 1024) // 100MB default
+	// Get max upload size from environment, default to 50MB for security
+	maxBytes := int64(50 * 1024 * 1024) // 50MB default (reduced from 100MB)
 	if maxBytesStr := os.Getenv("MAX_UPLOAD_BYTES"); maxBytesStr != "" {
 		if parsed, err := strconv.ParseInt(maxBytesStr, 10, 64); err == nil && parsed > 0 {
-			maxBytes = parsed
+			// Cap at 100MB even if environment requests more
+			if parsed > 100*1024*1024 {
+				maxBytes = 100 * 1024 * 1024
+			} else {
+				maxBytes = parsed
+			}
 		}
+	}
+
+	// Validate filename for basic safety (prevent path traversal)
+	if header.Filename != "" {
+		// Check for path traversal attempts
+		if strings.Contains(header.Filename, "..") || strings.Contains(header.Filename, "/") || strings.Contains(header.Filename, "\\") {
+			return "", "", fmt.Errorf("invalid filename: contains path traversal characters")
+		}
+		// Check filename length
+		if len(header.Filename) > 255 {
+			return "", "", fmt.Errorf("filename too long: maximum 255 characters")
+		}
+	}
+
+	// Validate declared content type first
+	declaredContentType := header.Header.Get("Content-Type")
+	if declaredContentType != "" && !isAllowedAudioContentType(declaredContentType) {
+		return "", "", fmt.Errorf("unsupported content type: %s (only audio files allowed)", declaredContentType)
 	}
 
 	// Create a buffered reader to peek at the first 512 bytes for MIME detection
@@ -89,11 +139,89 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 		return "", "", fmt.Errorf("failed to read file header: %w", err)
 	}
 
-	// Determine MIME type from the peeked bytes
-	mime := http.DetectContentType(peekBytes[:n])
-	ext := guessExtension(mime)
+	// For very small files, check size first before doing content type validation
+	if n < 4 {
+		return "", "", fmt.Errorf("file too small to determine type")
+	}
 
-	// Create temp file with appropriate extension
+	// Determine MIME type from the peeked bytes (actual content)
+	detectedMime := http.DetectContentType(peekBytes[:n])
+
+	// For files with declared audio content type, apply different validation based on size
+	if declaredContentType != "" && isAllowedAudioContentType(declaredContentType) {
+		if n < 10 {
+			// For very small files (< 10 bytes), check size first
+			// This catches legitimate "file too small" cases like 4-byte "RIFF" files
+			remainingBytes := make([]byte, 100-n)
+			additionalRead, _ := reader.Read(remainingBytes)
+			totalRead := n + additionalRead
+
+			if totalRead < 100 {
+				return "", "", fmt.Errorf("file too small: minimum 100 bytes required")
+			}
+
+			// Update peekBytes with additional data for better MIME detection
+			allBytes := make([]byte, totalRead)
+			copy(allBytes, peekBytes[:n])
+			copy(allBytes[n:], remainingBytes[:additionalRead])
+			peekBytes = allBytes
+			n = totalRead
+
+			// Re-detect MIME type with more data
+			detectedMime = http.DetectContentType(peekBytes[:n])
+		}
+
+		// Check compatibility for all files (after size check for very small files)
+		if !areCompatibleContentTypes(declaredContentType, detectedMime) {
+			// Special case: webm compatibility
+			if !(declaredContentType == "audio/webm" && detectedMime == "video/webm") {
+				return "", "", fmt.Errorf("unsupported file type detected: %s (only audio files allowed)", detectedMime)
+			}
+		}
+
+		// For files that passed content type check but are still too small
+		if n >= 10 && n < 100 {
+			remainingBytes := make([]byte, 100-n)
+			additionalRead, _ := reader.Read(remainingBytes)
+			totalRead := n + additionalRead
+
+			if totalRead < 100 {
+				return "", "", fmt.Errorf("file too small: minimum 100 bytes required")
+			}
+
+			// Update n for further processing
+			n = totalRead
+		}
+	}
+
+	// Special handling for webm files: Go's DetectContentType often returns "video/webm"
+	// even for audio-only webm files due to the EBML container format
+	finalMimeType := detectedMime
+
+	// Normalize declared content type for WebM check (remove parameters)
+	normalizedDeclared := strings.ToLower(strings.TrimSpace(declaredContentType))
+	if idx := strings.Index(normalizedDeclared, ";"); idx != -1 {
+		normalizedDeclared = strings.TrimSpace(normalizedDeclared[:idx])
+	}
+
+	if normalizedDeclared == "audio/webm" && detectedMime == "video/webm" {
+		// Trust the declared type for webm files since container detection is ambiguous
+		finalMimeType = normalizedDeclared
+	}
+
+	// Validate final MIME type (use the corrected type for webm)
+	if !isAllowedAudioContentType(finalMimeType) {
+		return "", "", fmt.Errorf("unsupported file type detected: %s (only audio files allowed)", detectedMime)
+	}
+
+	// If both declared and detected types are present, they should be compatible
+	if declaredContentType != "" && !areCompatibleContentTypes(declaredContentType, detectedMime) {
+		return "", "", fmt.Errorf("content type mismatch: declared %s but detected %s", declaredContentType, detectedMime)
+	}
+
+	ext := guessExtension(finalMimeType)
+
+	// Create temp file with appropriate extension in secure location
 	tmpFile, err := os.CreateTemp("", "audio-*"+ext)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create temp file: %w", err)
@@ -141,13 +269,66 @@ func saveTempFile(src multipart.File, header *multipart.FileHeader) (string, str
 		}
 	}
 
+	// Validate minimum file size (empty files or single-byte files are suspicious)
+	if bytesWritten < 100 {
+		cleanupFile()
+		return "", "", fmt.Errorf("file too small: minimum 100 bytes required")
+	}
+
 	// Close the file (but keep it on disk)
 	if err := tmpFile.Close(); err != nil {
 		os.Remove(tmpFile.Name())
 		return "", "", fmt.Errorf("failed to close temp file: %w", err)
 	}
 
-	return tmpFile.Name(), mime, nil
+	return tmpFile.Name(), finalMimeType, nil
+}
+
+// isAllowedAudioContentType checks if the content type is allowed for audio uploads
+func isAllowedAudioContentType(contentType string) bool {
+	lowerContentType := strings.ToLower(strings.TrimSpace(contentType))
+	// Remove any parameters (e.g., "audio/webm; codecs=opus")
+	if idx := strings.Index(lowerContentType, ";"); idx != -1 {
+		lowerContentType = strings.TrimSpace(lowerContentType[:idx])
+	}
+
+	for _, allowed := range allowedAudioContentTypes {
+		if lowerContentType == allowed {
+			return true
+		}
+	}
+	return false
+}
+
+// areCompatibleContentTypes checks if declared and detected content types are compatible
+func areCompatibleContentTypes(declared, detected string) bool {
+	// Normalize both types
+	normalizedDeclared := strings.ToLower(strings.TrimSpace(declared))
+	normalizedDetected := strings.ToLower(strings.TrimSpace(detected))
+
+	// Remove parameters
+	if idx := strings.Index(normalizedDeclared, ";"); idx != -1 {
+		normalizedDeclared = strings.TrimSpace(normalizedDeclared[:idx])
+	}
+	if idx := strings.Index(normalizedDetected, ";"); idx != -1 {
+		normalizedDetected = strings.TrimSpace(normalizedDetected[:idx])
+	}
+
+	// Exact match
+	if normalizedDeclared == normalizedDetected {
+		return true
+	}
+
+	// Check known compatible pairs
+	if compatible, exists := compatibleAudioContentTypes[normalizedDeclared]; exists {
+		for _, compat := range compatible {
+			if compat == normalizedDetected {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func guessExtension(mime string) string {
