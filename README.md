@@ -175,6 +175,10 @@ Then run: `script/generate-nutrients` → All 20+ files automatically updated!
 - `GET /api/v1/docs` — Interactive API documentation via Swagger UI (development mode only)
 - `GET /api/v1/openapi.yaml` — OpenAPI 3.0.3 specification (development mode only)
 
+### Frontend Endpoints
+
+- `GET /version` — Version and build information including commit SHA, build time, and git tag
+
 > **Note:** The embedded static frontend has been removed. The API now runs on port 3001 by default, and the SvelteKit frontend runs on port 3000.
 
 ## Development
@@ -210,6 +214,24 @@ The API follows OpenAPI `3.0.3` specification:
 - **Reset:** `script/db reset` — Drop all tables and start fresh
 - **Seed:** Handled by Supabase CLI during local development setup
 - **Dump:** `script/db dump` — View database contents in human-readable format
+
+### Deployment
+
+The application supports automated deployment with built-in version tracking:
+
+- **Deploy Frontend:** `script/deploy frontend` — Deploy SvelteKit app to Cloudflare Workers with git metadata
+- **Deploy Backend:** `script/deploy backend` — Deploy Go API to Railway
+- **Deploy Both:** `script/deploy` — Deploy both frontend and backend
+
+**Version Tracking:**
+- Each deployment automatically includes commit SHA, build time, and git tag
+- Frontend deployments inject git metadata as environment variables during build
+- Access version info at `/version` endpoint (both JSON API and UI page)
+- Git metadata is extracted automatically during deployment process
+
+**Requirements:**
+- Frontend: `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` environment variables
+- Backend: `RAILWAY_TOKEN` environment variable
 
 ## Technical Details
 
