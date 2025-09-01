@@ -1548,21 +1548,21 @@
 {#if showImperialModal}
   <div class="modal modal-open">
     <div class="modal-box max-w-2xl max-h-[90vh] overflow-y-auto">
-      <div class="text-center space-y-6">
+      <div class="text-center space-y-4 sm:space-y-6">
         <!-- Meme Header -->
-        <div class="text-6xl">🚫</div>
-        <h3 class="font-bold text-2xl" style="color: var(--color-dark);">
+        <div class="text-4xl sm:text-6xl">🚫</div>
+        <h3 class="font-bold text-xl sm:text-2xl" style="color: var(--color-dark);">
           LOL NO.
         </h3>
 
         <!-- Meme Content -->
-        <div class="space-y-4 text-lg">
+        <div class="space-y-3 sm:space-y-4 text-base sm:text-lg">
           <p>You can't use Imperial units on this site.</p>
           <p class="font-semibold text-primary">
             This site uses the METRIC SYSTEM because it is SUPERIOR! 🧑‍🔬
           </p>
 
-          <div class="bg-base-200 p-4 rounded-box space-y-2">
+          <div class="bg-base-200 p-3 sm:p-4 rounded-box space-y-1 sm:space-y-2">
             <p class="text-sm">🌍 Used by 95% of the world</p>
             <p class="text-sm">🧮 Base-10, actually makes sense</p>
             <p class="text-sm">
@@ -1573,7 +1573,7 @@
             <p class="text-sm">🏃‍♂️ Olympic records? Metric.</p>
           </div>
 
-          <div class="text-base space-y-2">
+          <div class="text-sm sm:text-base space-y-1 sm:space-y-2">
             <p>Imperial is just...</p>
             <p class="italic">
               "12 inches in a foot, 3 feet in a yard, 1760 yards in a mile"
@@ -1583,16 +1583,16 @@
             <p class="text-primary font-semibold">See the difference? 🤯</p>
           </div>
 
-          <div class="text-sm text-base-content/70">
+          <div class="text-sm text-base-content/70 space-y-1">
             <p>Even the UK switched to metric for most things.</p>
             <p>It's time to let go of the past. 📏➡️📐</p>
           </div>
         </div>
 
         <!-- Acknowledgment Button -->
-        <div class="modal-action justify-center">
+        <div class="modal-action justify-center pt-2">
           <button
-            class="btn btn-success btn-lg min-h-[44px]"
+            class="btn btn-success btn-lg min-h-[44px] w-full sm:w-auto"
             on:click={closeImperialModal}
           >
             I acknowledge that the metric system is better
