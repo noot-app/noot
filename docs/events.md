@@ -190,15 +190,18 @@ GET /events?labels=trigger-foods&match=any
 The Events system is designed to support comprehensive correlation analysis:
 
 ### Time-Window Analysis
+
 - Events can be correlated with consumptions within specified time windows
 - Support for both "trigger analysis" (events following meals) and "preparation analysis" (meals following activities)
 
 ### Statistical Analysis Ready
+
 - Level field (0-10) enables quantitative analysis
 - Timestamp precision allows for accurate temporal correlation
 - Label system enables categorical analysis
 
 ### Manual Override Support
+
 - Users can create explicit links between events and consumptions
 - Supports complex scenarios where automatic correlation might miss connections
 - Allows for user knowledge and context to enhance analysis
