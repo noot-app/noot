@@ -510,7 +510,7 @@
 </svelte:head>
 
 <div
-  class="gradient-bg {result ? 'overflow-y-auto' : 'flex flex-col'} min-h-[calc(100vh-8rem)] sm:h-[calc(100vh-8rem)]"
+  class="gradient-bg {result ? 'overflow-y-auto' : 'flex flex-col'} min-h-[calc(100vh-8rem)]"
 >
   <!-- Main content area -->
 

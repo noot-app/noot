@@ -342,10 +342,12 @@
                 <div
                   class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-base-300 rounded-lg hover:bg-base-50 transition-colors gap-3 sm:gap-0"
                 >
-                  <div class="flex items-center gap-3">
-                    <!-- Color badge -->
-                    <Label name={label.name} color={label.color} />
-                    <div class="flex flex-col">
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center gap-3">
+                      <!-- Color badge -->
+                      <Label name={label.name} color={label.color} />
+                    </div>
+                    <div class="flex flex-col gap-1 ml-0 sm:ml-12">
                       {#if label.description}
                         <span class="text-sm text-base-content/70"
                           >{label.description}</span
