@@ -68,7 +68,8 @@ func RecoveryMiddleware() gin.HandlerFunc {
 				// In production, never expose stack traces or internal details
 				if IsProduction() {
 					c.JSON(500, gin.H{
-						"error": "Internal server error",
+						"error":      "Internal server error",
+						"request_id": requestID,
 					})
 				} else if isDebugMode() || isDevMode() {
 					// Only in debug/dev mode, include stack trace

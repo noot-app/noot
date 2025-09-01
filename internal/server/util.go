@@ -51,7 +51,7 @@ func httpErrorWithDetails(w http.ResponseWriter, code int, msg string, stack []s
 	}
 
 	// Only include trace ID in non-production environments for debugging
-	if !IsProduction() && traceID != "" {
+	if traceID != "" {
 		resp.TraceID = traceID
 	}
 
