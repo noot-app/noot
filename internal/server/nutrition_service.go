@@ -1092,6 +1092,10 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 		MonounsaturatedFatGPer100g: convertAndRound(normalizedNutrients.MonounsaturatedFat, 2),
 		Note:                       item.Note,
 
+		// Include ingredients and OFF URL when caching items
+		Ingredients: item.Ingredients, // Copy ingredients from the item
+		Url:         item.Url,         // Copy OFF URL from the item
+
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	}
