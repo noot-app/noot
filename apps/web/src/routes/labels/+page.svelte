@@ -340,7 +340,7 @@
             <div class="space-y-2">
               {#each labels as label}
                 <div
-                  class="flex items-center justify-between p-4 border border-base-300 rounded-lg hover:bg-base-50 transition-colors"
+                  class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-base-300 rounded-lg hover:bg-base-50 transition-colors gap-3 sm:gap-0"
                 >
                   <div class="flex items-center gap-3">
                     <!-- Color badge -->
@@ -360,7 +360,7 @@
                     </div>
                   </div>
 
-                  <div class="flex gap-2">
+                  <div class="flex gap-2 self-start sm:self-center">
                     <button
                       class="btn btn-ghost btn-sm"
                       aria-label={`Edit label ${label.name}`}
