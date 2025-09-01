@@ -242,8 +242,8 @@ func (s *APIServer) GetConsumption(c *gin.Context, id string) {
 	requestID := c.GetString("request_id")
 	ctx := c.Request.Context()
 
-	// Ensure user is authenticated (also for ownership checks in future)
-	_, err := getCurrentUser(c, s.store)
+	// Get authenticated user for authorization
+	user, err := getCurrentUser(c, s.store)
 	if err != nil {
 		if appErr, ok := err.(*AppError); ok {
 			s.handleAppError(c, appErr, requestID)
@@ -253,12 +253,22 @@ func (s *APIServer) GetConsumption(c *gin.Context, id string) {
 		return
 	}
 
-	// Fetch consumption
-	cons, err := s.store.GetConsumption(ctx, id)
+	// First try to get as owner
+	cons, err := s.store.GetConsumptionForUser(ctx, user.ID, id)
 	if err != nil {
 		handleInternalServerError(c, "Failed to get consumption", err)
 		return
 	}
+	
+	// If not found as owner, try as public consumption
+	if cons == nil {
+		cons, err = s.store.GetPublicConsumption(ctx, id)
+		if err != nil {
+			handleInternalServerError(c, "Failed to get public consumption", err)
+			return
+		}
+	}
+	
 	if cons == nil {
 		appErr := NewAppError("Consumption not found", http.StatusNotFound, nil)
 		s.handleAppError(c, appErr, requestID)
@@ -288,6 +298,17 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 		return
 	}
 
+	// Get authenticated user for authorization
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		if appErr, ok := err.(*AppError); ok {
+			s.handleAppError(c, appErr, requestID)
+		} else {
+			handleInternalServerError(c, "Failed to get user", err)
+		}
+		return
+	}
+
 	// Parse the request body
 	var updateReq api.UpdateConsumptionRequest
 	if err := c.ShouldBindJSON(&updateReq); err != nil {
@@ -296,8 +317,8 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 		return
 	}
 
-	// Get the existing consumption
-	existingConsumption, err := s.store.GetConsumption(ctx, id)
+	// Get the existing consumption with ownership check
+	existingConsumption, err := s.store.GetConsumptionForUser(ctx, user.ID, id)
 	if err != nil {
 		appErr := NewAppError("Failed to get consumption", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -384,8 +405,19 @@ func (s *APIServer) DeleteConsumption(c *gin.Context, id string) {
 		return
 	}
 
-	// Check if consumption exists before trying to delete
-	existingConsumption, err := s.store.GetConsumption(ctx, id)
+	// Get authenticated user for authorization
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		if appErr, ok := err.(*AppError); ok {
+			s.handleAppError(c, appErr, requestID)
+		} else {
+			handleInternalServerError(c, "Failed to get user", err)
+		}
+		return
+	}
+
+	// Check if consumption exists and user owns it
+	existingConsumption, err := s.store.GetConsumptionForUser(ctx, user.ID, id)
 	if err != nil {
 		appErr := NewAppError("Failed to get consumption", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
