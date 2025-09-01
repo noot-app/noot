@@ -13,6 +13,7 @@ This document outlines the security improvements made to the Noot API backend as
 ### 1. Authentication and Authorization
 
 **✅ JWT Middleware Security**:
+
 - Validates Supabase JWTs with proper JWKS verification
 - Enforces signature validation, expiration, issuer, and audience checks
 - Centralized middleware applied to all protected routes
@@ -20,12 +21,14 @@ This document outlines the security improvements made to the Noot API backend as
 - No token contents leaked in error responses
 
 **✅ User-Scoped Storage Methods**:
+
 - `GetConsumptionForUser(userID, id)` enforces ownership at database level
 - `GetPublicConsumption(id)` only returns public consumptions with privacy controls
 - Labels excluded from public consumptions for non-owners
 - All consumption handlers updated to use authorization-enforced methods
 
 **✅ Authorization Patterns**:
+
 - User identity comes only from validated JWT tokens
 - Context-based user identity propagation to handlers
 - Ownership checks performed at storage layer
@@ -34,12 +37,14 @@ This document outlines the security improvements made to the Noot API backend as
 ### 2. SQL Injection Safety
 
 **✅ Parameterized Queries**:
+
 - All queries use proper PostgreSQL placeholders (`$1`, `$2`, etc.)
 - Dynamic query building in `GetConsumptionsByLabels` validated for safety
 - No string concatenation with user input in SQL queries
 - `buildPostgreSQLSelectQuery` only accepts hardcoded WHERE templates
 
 **✅ Injection Testing**:
+
 - Comprehensive test suite validates parameterization resilience
 - Tests include SQL injection attempts with quotes, UNION attacks, boolean injection
 - Validates that user input never appears in query templates
@@ -48,6 +53,7 @@ This document outlines the security improvements made to the Noot API backend as
 ### 3. Upload Security
 
 **✅ File Upload Hardening**:
+
 - Content-type validation restricted to audio files only (`audio/*`)
 - File size limits: 50MB default, configurable maximum 100MB
 - Filename validation prevents path traversal attacks (`../`, `..\\`)
@@ -55,6 +61,7 @@ This document outlines the security improvements made to the Noot API backend as
 - Content-type mismatch detection between declared and detected types
 
 **✅ Security Validation**:
+
 - MIME type detection from file content, not just headers
 - Compatible content-type mapping for audio format variants
 - Secure temporary file handling with proper cleanup
@@ -63,12 +70,14 @@ This document outlines the security improvements made to the Noot API backend as
 ### 4. Error Handling Security
 
 **✅ Production Security**:
+
 - Stack traces never exposed in production environments
 - Trace IDs only included in non-production for debugging
 - Recovery middleware provides minimal error information in production
 - Error responses don't leak internal application details
 
 **✅ Debug Mode Controls**:
+
 - Stack traces only in debug/dev mode AND non-production
 - Environment-based error detail controls
 - Proper panic recovery without information disclosure
@@ -76,12 +85,14 @@ This document outlines the security improvements made to the Noot API backend as
 ### 5. Gin API Security Defaults
 
 **✅ Request Processing**:
+
 - Bounded form parsing with strict size limits
 - JSON content-type headers enforced consistently
 - Request size validation at multiple layers
 - Secure multipart form handling
 
 **✅ Security Headers**:
+
 - Existing security headers middleware maintained
 - CORS validation with origin restrictions
 - Content-type sniffing protection
@@ -89,12 +100,14 @@ This document outlines the security improvements made to the Noot API backend as
 ## Testing Coverage
 
 **New Security Tests**:
+
 1. `internal/storage/security_test.go` - SQL injection resilience tests
 2. `internal/server/upload_security_test.go` - Upload validation tests
 3. Authorization logic validation tests
 4. Content-type validation test suite
 
 **Test Categories**:
+
 - SQL injection attempts with various attack vectors
 - Upload security with malicious files and path traversal
 - Content-type validation and compatibility
@@ -103,12 +116,14 @@ This document outlines the security improvements made to the Noot API backend as
 ## Security Configuration
 
 **Environment Variables**:
+
 - `MAX_UPLOAD_BYTES`: Upload size limit (default 50MB, max 100MB)
 - `ENV`: Environment detection for security controls
 - `PUBLIC_SUPABASE_URL`: JWKS endpoint for JWT validation
 - Standard Supabase JWT configuration variables
 
 **Production Hardening**:
+
 - Stack trace suppression in production
 - Error detail minimization
 - Upload size restrictions
