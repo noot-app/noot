@@ -21,6 +21,16 @@ case "${1:-}" in
       exit 1
     fi
     
+    # Get git metadata for build
+    export VITE_COMMIT_SHA="$(git rev-parse HEAD 2>/dev/null || echo 'unknown')"
+    export VITE_BUILD_TIME="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    export VITE_TAG="$(git describe --tags --exact-match 2>/dev/null || echo 'dev')"
+    
+    echo "Build metadata:"
+    echo "  Commit SHA: ${VITE_COMMIT_SHA}"
+    echo "  Build Time: ${VITE_BUILD_TIME}"
+    echo "  Tag: ${VITE_TAG}"
+    
     # Use subshell to ensure we return to original directory even on failure
     (cd apps/web && npm run deploy)
     ;;
@@ -60,8 +70,18 @@ case "${1:-}" in
     echo "Step 1/2: Deploying backend..."
     railway up --service noot-api --ci
     
-    # Then deploy frontend
+    # Get git metadata for frontend build
+    export VITE_COMMIT_SHA="$(git rev-parse HEAD 2>/dev/null || echo 'unknown')"
+    export VITE_BUILD_TIME="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    export VITE_TAG="$(git describe --tags --exact-match 2>/dev/null || echo 'dev')"
+    
     echo "Step 2/2: Deploying frontend..."
+    echo "Build metadata:"
+    echo "  Commit SHA: ${VITE_COMMIT_SHA}"
+    echo "  Build Time: ${VITE_BUILD_TIME}"
+    echo "  Tag: ${VITE_TAG}"
+    
+    # Then deploy frontend
     (cd apps/web && npm run deploy)
     
     echo "✅ Both deployments completed successfully!"
