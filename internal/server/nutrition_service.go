@@ -11,7 +11,94 @@ import (
 	"github.com/grantbirki/noot/internal/storage"
 )
 
-// NutritionService handles nutrition data processing with caching and unit conversions
+// Constants for nutrition service configuration
+const (
+	// Cache TTL for nutrition data
+	cacheTTLDays = 30
+	cacheTTL     = cacheTTLDays * 24 * time.Hour
+
+	// Common serving sizes for cache lookups (in grams)
+	servingSizes = "100,355,250,200,500,150,300,400,50,75,125"
+
+	// Decimal precision for different nutrient types
+	caloriesPrecision     = 3
+	proteinPrecision      = 2
+	fatPrecision          = 2
+	transFatPrecision     = 1
+	cholesterolPrecision  = 1
+	sodiumPrecision       = 1
+	carbsPrecision        = 1
+	fiberPrecision        = 1
+	sugarsPrecision       = 1
+	vitaminPrecision      = 1
+	vitaminBPrecision     = 3 // For B vitamins that need higher precision
+	mineralPrecision      = 1
+	tracePrecision        = 3 // For trace elements like omega-3s
+	zincPrecision         = 2
+	vitaminB12Precision   = 2
+	omegaPrecision        = 3
+	omega6Precision       = 2
+	alcoholPrecision      = 2
+)
+
+// getCommonServingSizes returns common serving sizes for cache lookups
+func getCommonServingSizes() []float64 {
+	return []float64{100, 355, 250, 200, 500, 150, 300, 400, 50, 75, 125}
+}
+
+// scaleNutritionData scales nutrition values by the given factor
+func scaleNutritionData(nutrients CompleteNutrient, factor float64) CompleteNutrient {
+	return CompleteNutrient{
+		Calories:           nutrients.Calories * factor,
+		Protein:            nutrients.Protein * factor,
+		TotalFat:           nutrients.TotalFat * factor,
+		SaturatedFat:       nutrients.SaturatedFat * factor,
+		TransFat:           nutrients.TransFat * factor,
+		Cholesterol:        nutrients.Cholesterol * factor,
+		Sodium:             nutrients.Sodium * factor,
+		TotalCarbs:         nutrients.TotalCarbs * factor,
+		DietaryFiber:       nutrients.DietaryFiber * factor,
+		TotalSugars:        nutrients.TotalSugars * factor,
+		AddedSugars:        nutrients.AddedSugars * factor,
+		VitaminA:           nutrients.VitaminA * factor,
+		VitaminC:           nutrients.VitaminC * factor,
+		VitaminD:           nutrients.VitaminD * factor,
+		VitaminE:           nutrients.VitaminE * factor,
+		VitaminK:           nutrients.VitaminK * factor,
+		Thiamine:           nutrients.Thiamine * factor,
+		Riboflavin:         nutrients.Riboflavin * factor,
+		Niacin:             nutrients.Niacin * factor,
+		VitaminB6:          nutrients.VitaminB6 * factor,
+		Folate:             nutrients.Folate * factor,
+		VitaminB12:         nutrients.VitaminB12 * factor,
+		Biotin:             nutrients.Biotin * factor,
+		PantothenicAcid:    nutrients.PantothenicAcid * factor,
+		Choline:            nutrients.Choline * factor,
+		Calcium:            nutrients.Calcium * factor,
+		Iron:               nutrients.Iron * factor,
+		Magnesium:          nutrients.Magnesium * factor,
+		Phosphorus:         nutrients.Phosphorus * factor,
+		Potassium:          nutrients.Potassium * factor,
+		Zinc:               nutrients.Zinc * factor,
+		Copper:             nutrients.Copper * factor,
+		Manganese:          nutrients.Manganese * factor,
+		Selenium:           nutrients.Selenium * factor,
+		Iodine:             nutrients.Iodine * factor,
+		Molybdenum:         nutrients.Molybdenum * factor,
+		Chromium:           nutrients.Chromium * factor,
+		Fluoride:           nutrients.Fluoride * factor,
+		Chloride:           nutrients.Chloride * factor,
+		Omega3Ala:          nutrients.Omega3Ala * factor,
+		Omega3Epa:          nutrients.Omega3Epa * factor,
+		Omega3Dha:          nutrients.Omega3Dha * factor,
+		Omega6:             nutrients.Omega6 * factor,
+		Creatine:           nutrients.Creatine * factor,
+		Caffeine:           nutrients.Caffeine * factor,
+		Alcohol:            nutrients.Alcohol * factor,
+		PolyunsaturatedFat: nutrients.PolyunsaturatedFat * factor,
+		MonounsaturatedFat: nutrients.MonounsaturatedFat * factor,
+	}
+}
 type NutritionService struct {
 	aiProvider AIProvider
 	offClient  *OFFClient
@@ -299,8 +386,8 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		exactKey := s.makeExactServingKey(normalizedNameForCache, normalizedBrand, normalizedGrams)
 		LogDebug("Checking exact serving cache", "exact_key", exactKey)
 		if cached, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && cached != nil {
-			// Check if cache is still fresh (30 days)
-			if time.Since(cached.UpdatedAt) < 30*24*time.Hour {
+			// Check if cache is still fresh
+			if time.Since(cached.UpdatedAt) < cacheTTL {
 				LogDebug("Found fresh exact serving cache match", "key", exactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
 				var nutrition CompleteNutrient
 
@@ -313,47 +400,7 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 					singleUnitNutrition := s.convertExactCachedToNutrients(cached)
 					scalingFactor := *item.BaseQuantity
 
-					nutrition = CompleteNutrient{
-						Calories:        singleUnitNutrition.Calories * scalingFactor,
-						Protein:         singleUnitNutrition.Protein * scalingFactor,
-						TotalFat:        singleUnitNutrition.TotalFat * scalingFactor,
-						SaturatedFat:    singleUnitNutrition.SaturatedFat * scalingFactor,
-						TransFat:        singleUnitNutrition.TransFat * scalingFactor,
-						Cholesterol:     singleUnitNutrition.Cholesterol * scalingFactor,
-						Sodium:          singleUnitNutrition.Sodium * scalingFactor,
-						TotalCarbs:      singleUnitNutrition.TotalCarbs * scalingFactor,
-						DietaryFiber:    singleUnitNutrition.DietaryFiber * scalingFactor,
-						TotalSugars:     singleUnitNutrition.TotalSugars * scalingFactor,
-						AddedSugars:     singleUnitNutrition.AddedSugars * scalingFactor,
-						VitaminA:        singleUnitNutrition.VitaminA * scalingFactor,
-						VitaminC:        singleUnitNutrition.VitaminC * scalingFactor,
-						VitaminD:        singleUnitNutrition.VitaminD * scalingFactor,
-						VitaminE:        singleUnitNutrition.VitaminE * scalingFactor,
-						VitaminK:        singleUnitNutrition.VitaminK * scalingFactor,
-						Thiamine:        singleUnitNutrition.Thiamine * scalingFactor,
-						Riboflavin:      singleUnitNutrition.Riboflavin * scalingFactor,
-						Niacin:          singleUnitNutrition.Niacin * scalingFactor,
-						VitaminB6:       singleUnitNutrition.VitaminB6 * scalingFactor,
-						Folate:          singleUnitNutrition.Folate * scalingFactor,
-						VitaminB12:      singleUnitNutrition.VitaminB12 * scalingFactor,
-						Biotin:          singleUnitNutrition.Biotin * scalingFactor,
-						PantothenicAcid: singleUnitNutrition.PantothenicAcid * scalingFactor,
-						Choline:         singleUnitNutrition.Choline * scalingFactor,
-						Calcium:         singleUnitNutrition.Calcium * scalingFactor,
-						Iron:            singleUnitNutrition.Iron * scalingFactor,
-						Magnesium:       singleUnitNutrition.Magnesium * scalingFactor,
-						Phosphorus:      singleUnitNutrition.Phosphorus * scalingFactor,
-						Potassium:       singleUnitNutrition.Potassium * scalingFactor,
-						Zinc:            singleUnitNutrition.Zinc * scalingFactor,
-						Copper:          singleUnitNutrition.Copper * scalingFactor,
-						Manganese:       singleUnitNutrition.Manganese * scalingFactor,
-						Selenium:        singleUnitNutrition.Selenium * scalingFactor,
-						Iodine:          singleUnitNutrition.Iodine * scalingFactor,
-						Molybdenum:      singleUnitNutrition.Molybdenum * scalingFactor,
-						Chromium:        singleUnitNutrition.Chromium * scalingFactor,
-						Fluoride:        singleUnitNutrition.Fluoride * scalingFactor,
-						Chloride:        singleUnitNutrition.Chloride * scalingFactor,
-					}
+					nutrition = scaleNutritionData(singleUnitNutrition, scalingFactor)
 				} else {
 					LogDebug("Using cached exact serving match - returning original values without scaling",
 						"name", item.Name, "grams", item.Grams)
@@ -371,8 +418,8 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		LogDebug("Checking fallback exact serving cache", "fallback_key", fallbackExactKey)
 		if fallbackExactKey != exactKey { // Only check if different from brand-aware key
 			if cached, err := s.store.GetItemByName(ctx, fallbackExactKey, ""); err == nil && cached != nil {
-				// Check if cache is still fresh (30 days)
-				if time.Since(cached.UpdatedAt) < 30*24*time.Hour {
+				// Check if cache is still fresh
+				if time.Since(cached.UpdatedAt) < cacheTTL {
 					LogDebug("Found fresh fallback exact serving cache match", "key", fallbackExactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
 					LogDebug("Using cached exact serving match from fallback key - returning original values without scaling (backward compatibility)",
 						"name", item.Name, "grams", item.Grams, "fallback_key", fallbackExactKey)
@@ -389,8 +436,8 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		cachedServings := s.getCachedServingSizes(ctx, normalizedNameForCache, normalizedBrand)
 		LogDebug("Found cached servings for scaling", "count", len(cachedServings))
 		for _, cachedServing := range cachedServings {
-			// Check if cache is still fresh (30 days)
-			if time.Since(cachedServing.item.UpdatedAt) < 30*24*time.Hour {
+			// Check if cache is still fresh
+			if time.Since(cachedServing.item.UpdatedAt) < cacheTTL {
 				LogDebug("Found fresh scalable serving cache match", "cached_grams", cachedServing.servingGrams, "age_days", int(time.Since(cachedServing.item.UpdatedAt).Hours()/24))
 				// Determine scaling method based on user input and cached data reliability
 				if s.shouldUse100gScaling(item, cachedServing.item) {
@@ -531,56 +578,7 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 			baseName = quantityInfo.CleanName
 
 			// Scale nutrition back up to full serving size
-			baseNutrition = CompleteNutrient{
-				Calories:           nutrition.Calories * reverseMultiplier,
-				Protein:            nutrition.Protein * reverseMultiplier,
-				TotalFat:           nutrition.TotalFat * reverseMultiplier,
-				SaturatedFat:       nutrition.SaturatedFat * reverseMultiplier,
-				TransFat:           nutrition.TransFat * reverseMultiplier,
-				Cholesterol:        nutrition.Cholesterol * reverseMultiplier,
-				Sodium:             nutrition.Sodium * reverseMultiplier,
-				TotalCarbs:         nutrition.TotalCarbs * reverseMultiplier,
-				DietaryFiber:       nutrition.DietaryFiber * reverseMultiplier,
-				TotalSugars:        nutrition.TotalSugars * reverseMultiplier,
-				AddedSugars:        nutrition.AddedSugars * reverseMultiplier,
-				VitaminA:           nutrition.VitaminA * reverseMultiplier,
-				VitaminC:           nutrition.VitaminC * reverseMultiplier,
-				VitaminD:           nutrition.VitaminD * reverseMultiplier,
-				VitaminE:           nutrition.VitaminE * reverseMultiplier,
-				VitaminK:           nutrition.VitaminK * reverseMultiplier,
-				Thiamine:           nutrition.Thiamine * reverseMultiplier,
-				Riboflavin:         nutrition.Riboflavin * reverseMultiplier,
-				Niacin:             nutrition.Niacin * reverseMultiplier,
-				VitaminB6:          nutrition.VitaminB6 * reverseMultiplier,
-				Folate:             nutrition.Folate * reverseMultiplier,
-				VitaminB12:         nutrition.VitaminB12 * reverseMultiplier,
-				Biotin:             nutrition.Biotin * reverseMultiplier,
-				PantothenicAcid:    nutrition.PantothenicAcid * reverseMultiplier,
-				Choline:            nutrition.Choline * reverseMultiplier,
-				Calcium:            nutrition.Calcium * reverseMultiplier,
-				Iron:               nutrition.Iron * reverseMultiplier,
-				Magnesium:          nutrition.Magnesium * reverseMultiplier,
-				Phosphorus:         nutrition.Phosphorus * reverseMultiplier,
-				Potassium:          nutrition.Potassium * reverseMultiplier,
-				Zinc:               nutrition.Zinc * reverseMultiplier,
-				Copper:             nutrition.Copper * reverseMultiplier,
-				Manganese:          nutrition.Manganese * reverseMultiplier,
-				Selenium:           nutrition.Selenium * reverseMultiplier,
-				Iodine:             nutrition.Iodine * reverseMultiplier,
-				Molybdenum:         nutrition.Molybdenum * reverseMultiplier,
-				Chromium:           nutrition.Chromium * reverseMultiplier,
-				Fluoride:           nutrition.Fluoride * reverseMultiplier,
-				Chloride:           nutrition.Chloride * reverseMultiplier,
-				Omega3Ala:          nutrition.Omega3Ala * reverseMultiplier,
-				Omega3Epa:          nutrition.Omega3Epa * reverseMultiplier,
-				Omega3Dha:          nutrition.Omega3Dha * reverseMultiplier,
-				Omega6:             nutrition.Omega6 * reverseMultiplier,
-				Creatine:           nutrition.Creatine * reverseMultiplier,
-				Caffeine:           nutrition.Caffeine * reverseMultiplier,
-				Alcohol:            nutrition.Alcohol * reverseMultiplier,
-				PolyunsaturatedFat: nutrition.PolyunsaturatedFat * reverseMultiplier,
-				MonounsaturatedFat: nutrition.MonounsaturatedFat * reverseMultiplier,
-			}
+			baseNutrition = scaleNutritionData(nutrition, reverseMultiplier)
 
 			LogDebug("Reverse-scaling nutrition for base cache storage", "original_multiplier", quantityInfo.Multiplier,
 				"reverse_multiplier", reverseMultiplier, "base_grams", baseGrams, "original_grams", item.Grams)
@@ -738,7 +736,7 @@ func (s *NutritionService) tryExactServingMatch(ctx context.Context, normalizedN
 	var results []cachedServingData
 
 	// Try some common serving sizes to see if we have them cached
-	commonGrams := []float64{100, 355, 250, 200, 500, 150, 300, 400, 50, 75, 125}
+	commonGrams := getCommonServingSizes()
 
 	for _, grams := range commonGrams {
 		exactKey := s.makeExactServingKey(normalizedName, normalizedBrand, grams)
@@ -772,7 +770,7 @@ func (s *NutritionService) tryBrandAwareServingMatch(ctx context.Context, normal
 	variations := generateBrandAwareVariations(normalizedName, brandPtr)
 
 	// Try each variation with common serving sizes
-	commonGrams := []float64{100, 355, 250, 200, 500, 150, 300, 400, 50, 75, 125}
+	commonGrams := getCommonServingSizes()
 
 	for _, variation := range variations {
 		// Skip the original exact match since we already tried that
@@ -1017,56 +1015,7 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 		divider := *item.BaseQuantity
 		normalizedGrams = actualGrams / divider
 
-		normalizedNutrients = CompleteNutrient{
-			Calories:           nutrients.Calories / divider,
-			Protein:            nutrients.Protein / divider,
-			TotalFat:           nutrients.TotalFat / divider,
-			SaturatedFat:       nutrients.SaturatedFat / divider,
-			TransFat:           nutrients.TransFat / divider,
-			Cholesterol:        nutrients.Cholesterol / divider,
-			Sodium:             nutrients.Sodium / divider,
-			TotalCarbs:         nutrients.TotalCarbs / divider,
-			DietaryFiber:       nutrients.DietaryFiber / divider,
-			TotalSugars:        nutrients.TotalSugars / divider,
-			AddedSugars:        nutrients.AddedSugars / divider,
-			VitaminA:           nutrients.VitaminA / divider,
-			VitaminC:           nutrients.VitaminC / divider,
-			VitaminD:           nutrients.VitaminD / divider,
-			VitaminE:           nutrients.VitaminE / divider,
-			VitaminK:           nutrients.VitaminK / divider,
-			Thiamine:           nutrients.Thiamine / divider,
-			Riboflavin:         nutrients.Riboflavin / divider,
-			Niacin:             nutrients.Niacin / divider,
-			VitaminB6:          nutrients.VitaminB6 / divider,
-			Folate:             nutrients.Folate / divider,
-			VitaminB12:         nutrients.VitaminB12 / divider,
-			Biotin:             nutrients.Biotin / divider,
-			PantothenicAcid:    nutrients.PantothenicAcid / divider,
-			Choline:            nutrients.Choline / divider,
-			Calcium:            nutrients.Calcium / divider,
-			Iron:               nutrients.Iron / divider,
-			Magnesium:          nutrients.Magnesium / divider,
-			Phosphorus:         nutrients.Phosphorus / divider,
-			Potassium:          nutrients.Potassium / divider,
-			Zinc:               nutrients.Zinc / divider,
-			Copper:             nutrients.Copper / divider,
-			Manganese:          nutrients.Manganese / divider,
-			Selenium:           nutrients.Selenium / divider,
-			Iodine:             nutrients.Iodine / divider,
-			Molybdenum:         nutrients.Molybdenum / divider,
-			Chromium:           nutrients.Chromium / divider,
-			Fluoride:           nutrients.Fluoride / divider,
-			Chloride:           nutrients.Chloride / divider,
-			Omega3Ala:          nutrients.Omega3Ala / divider,
-			Omega3Epa:          nutrients.Omega3Epa / divider,
-			Omega3Dha:          nutrients.Omega3Dha / divider,
-			Omega6:             nutrients.Omega6 / divider,
-			Creatine:           nutrients.Creatine / divider,
-			Caffeine:           nutrients.Caffeine / divider,
-			Alcohol:            nutrients.Alcohol / divider,
-			PolyunsaturatedFat: nutrients.PolyunsaturatedFat / divider,
-			MonounsaturatedFat: nutrients.MonounsaturatedFat / divider,
-		}
+		normalizedNutrients = scaleNutritionData(nutrients, 1.0/divider)
 	}
 
 	// Helper function to convert and round in one step for per-100g values
