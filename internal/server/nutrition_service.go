@@ -46,6 +46,14 @@ func getCommonServingSizes() []float64 {
 	return []float64{100, 355, 250, 200, 500, 150, 300, 400, 50, 75, 125}
 }
 
+// NutritionService handles nutrition data processing with caching and unit conversions
+type NutritionService struct {
+	aiProvider AIProvider
+	offClient  *OFFClient
+	converter  *UnitConverter
+	store      storage.Store
+}
+
 // scaleNutritionData scales nutrition values by the given factor
 func scaleNutritionData(nutrients CompleteNutrient, factor float64) CompleteNutrient {
 	return CompleteNutrient{
@@ -99,11 +107,268 @@ func scaleNutritionData(nutrients CompleteNutrient, factor float64) CompleteNutr
 		MonounsaturatedFat: nutrients.MonounsaturatedFat * factor,
 	}
 }
-type NutritionService struct {
-	aiProvider AIProvider
-	offClient  *OFFClient
-	converter  *UnitConverter
-	store      storage.Store
+
+// fetchNutritionFromCache attempts to fetch nutrition data from cache
+// Returns nutrition data if found, nil if not found or cache is stale
+func (s *NutritionService) fetchNutritionFromCache(ctx context.Context, item Item) (*CompleteNutrient, error) {
+	if s.store == nil {
+		return nil, nil // No cache available
+	}
+
+	// Use brand-aware normalization for cache keys to prevent fragmentation
+	normalizedNameForCache, _ := normalizeItemNameWithQuantityForCache(item.Name, item.Brand)
+	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
+	normalizedName, _ := normalizeItemNameWithQuantity(item.Name)
+	normalizedGrams := s.getNormalizedGrams(item)
+
+	LogDebug("Checking cache for item", "original_name", item.Name, "normalized_name_cache", normalizedNameForCache,
+		"normalized_name_fallback", normalizedName, "normalized_brand", normalizedBrand, "grams", item.Grams)
+
+	// Try brand-aware cache key first (new approach)
+	exactKey := s.makeExactServingKey(normalizedNameForCache, normalizedBrand, normalizedGrams)
+	LogDebug("Checking exact serving cache", "exact_key", exactKey)
+	if cached, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && cached != nil {
+		// Check if cache is still fresh
+		if time.Since(cached.UpdatedAt) < cacheTTL {
+			LogDebug("Found fresh exact serving cache match", "key", exactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
+			
+			var nutrition CompleteNutrient
+			// If item has BaseQuantity > 1, we need to scale the cached single-unit values
+			if item.BaseQuantity != nil && *item.BaseQuantity > 1.0 {
+				LogDebug("Using cached exact serving match with scaling for multi-unit quantity (brand-aware cache)",
+					"name", item.Name, "base_quantity", *item.BaseQuantity, "total_grams", item.Grams)
+
+				// Get the single-unit nutrition values and scale by BaseQuantity
+				singleUnitNutrition := s.convertExactCachedToNutrients(cached)
+				scalingFactor := *item.BaseQuantity
+				nutrition = scaleNutritionData(singleUnitNutrition, scalingFactor)
+			} else {
+				LogDebug("Using cached exact serving match - returning original values without scaling",
+					"name", item.Name, "grams", item.Grams)
+				nutrition = s.convertExactCachedToNutrients(cached)
+			}
+			
+			return &nutrition, nil
+		}
+	}
+
+	// Fallback: try traditional cache key for backward compatibility
+	fallbackExactKey := s.makeExactServingKey(normalizedName, normalizedBrand, normalizedGrams)
+	LogDebug("Checking fallback exact serving cache", "fallback_key", fallbackExactKey)
+	if fallbackExactKey != exactKey { // Only check if different from brand-aware key
+		if cached, err := s.store.GetItemByName(ctx, fallbackExactKey, ""); err == nil && cached != nil {
+			// Check if cache is still fresh
+			if time.Since(cached.UpdatedAt) < cacheTTL {
+				LogDebug("Found fresh fallback exact serving cache match", "key", fallbackExactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
+				LogDebug("Using cached exact serving match from fallback key - returning original values without scaling (backward compatibility)",
+					"name", item.Name, "grams", item.Grams, "fallback_key", fallbackExactKey)
+
+				nutrition := s.convertExactCachedToNutrients(cached)
+				return &nutrition, nil
+			}
+		}
+	}
+
+	// Try to find any cached serving size for this item to scale from
+	LogDebug("Checking scalable serving cache", "normalized_name", normalizedNameForCache, "normalized_brand", normalizedBrand)
+	cachedServings := s.getCachedServingSizes(ctx, normalizedNameForCache, normalizedBrand)
+	LogDebug("Found cached servings for scaling", "count", len(cachedServings))
+	for _, cachedServing := range cachedServings {
+		// Check if cache is still fresh
+		if time.Since(cachedServing.item.UpdatedAt) < cacheTTL {
+			LogDebug("Found fresh scalable serving cache match", "cached_grams", cachedServing.servingGrams, "age_days", int(time.Since(cachedServing.item.UpdatedAt).Hours()/24))
+			// Determine scaling method based on user input and cached data reliability
+			if s.shouldUse100gScaling(item, cachedServing.item) {
+				LogDebug("Using cached item with per-100g scaling (user provided grams or unreliable base units)",
+					"name", item.Name, "requested_grams", item.Grams)
+
+				nutrition := s.convertCachedToNutrients(cachedServing.item, item)
+				return &nutrition, nil
+			} else {
+				LogDebug("Using cached serving data - scaling from cached serving to requested serving",
+					"name", item.Name, "cached_grams", cachedServing.servingGrams, "requested_grams", item.Grams)
+
+				nutrition := s.scaleNutritionFromCachedServing(cachedServing.item, cachedServing.servingGrams, item.Grams)
+				return &nutrition, nil
+			}
+		}
+	}
+
+	LogDebug("No cache matches found", "name", item.Name, "brand", getBrandOrEmpty(item.Brand))
+	return nil, nil // No cache hit
+}
+
+// fetchNutritionContext fetches nutrition context from Open Food Facts
+// Returns context data and ingredients/URL information to be added to the item
+func (s *NutritionService) fetchNutritionContext(ctx context.Context, item *Item) (interface{}, error) {
+	// Only query OFF if we have a brand (OFF is only good for branded items)
+	brand := getBrandOrEmpty(item.Brand)
+	if s.offClient == nil || brand == "" || strings.TrimSpace(brand) == "" {
+		LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
+		return nil, nil
+	}
+
+	LogDebug("Checking OFF database for item context", "name", item.Name, "brand", brand)
+
+	offProduct, err := s.offClient.SearchProduct(ctx, item.Name, brand)
+	if err != nil || offProduct == nil {
+		LogDebug("Item not found in OFF database", "name", item.Name, "error", err)
+		return nil, nil
+	}
+
+	LogDebug("Found item in OFF database for context", "name", item.Name, "product_name", offProduct.ProductName)
+
+	// Extract ingredients and OFF URL BEFORE creating context so they get saved
+	if len(offProduct.Ingredients) > 0 {
+		item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
+		LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
+	}
+
+	if offProduct.Link != "" {
+		item.Url = &offProduct.Link
+		LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
+	}
+
+	// Create nutrition context for AI
+	nutritionContext := map[string]interface{}{
+		"source": "open_food_facts",
+		"products": []interface{}{
+			map[string]interface{}{
+				"product_name":          offProduct.ProductName,
+				"brands":                offProduct.Brands,
+				"nutrients":             offProduct.Nutriments,
+				"serving_quantity":      offProduct.ServingQuantity,
+				"serving_quantity_unit": offProduct.ServingQuantityUnit,
+				"serving_size":          offProduct.ServingSize,
+				"ingredients":           parseOFFIngredients(offProduct.Ingredients),
+				"link":                  offProduct.Link,
+				"grade":                 offProduct.Grade,
+				"is_beverage":           offProduct.IsBeverage,
+			},
+		},
+		"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as reference but provide complete nutrition data including nutrients not available in the context.",
+	}
+
+	return nutritionContext, nil
+}
+
+// fetchNutritionFromAI fetches nutrition data from AI provider with optional context
+func (s *NutritionService) fetchNutritionFromAI(ctx context.Context, item *Item, nutritionContext interface{}) (*CompleteNutrient, error) {
+	LogDebug("Fetching nutrition from AI provider", "name", item.Name, "has_context", nutritionContext != nil)
+
+	// For generic items without OFF data, use complete AI response to get ingredients
+	isGenericItem := (item.Brand == nil || (item.Brand != nil && *item.Brand == "")) && nutritionContext == nil
+	LogDebug("Checking if item is generic", "item", item.Name, "brand_nil", item.Brand == nil, 
+		"brand_empty", item.Brand != nil && *item.Brand == "", "has_context", nutritionContext != nil, "is_generic", isGenericItem)
+
+	var nutrition CompleteNutrient
+	var err error
+
+	if isGenericItem {
+		// No OFF data and no brand - use complete AI response for ingredients
+		aiResponse, aiErr := s.aiProvider.GetNutritionWithContextComplete(ctx, *item, nutritionContext)
+		if aiErr != nil {
+			return nil, aiErr
+		}
+		nutrition = aiResponse.Nutrients
+
+		// Extract ingredients from AI response for generic items
+		if len(aiResponse.Ingredients) > 0 {
+			item.Ingredients = aiResponse.Ingredients
+			LogDebug("Extracted ingredients from AI", "item", item.Name, "ingredient_count", len(item.Ingredients))
+		}
+
+		// Extract URL from AI response if available
+		if aiResponse.URL != nil && *aiResponse.URL != "" {
+			item.Url = aiResponse.URL
+			LogDebug("Saved AI URL", "item", item.Name, "url", *aiResponse.URL)
+		}
+
+		LogDebug("Using complete AI nutrition", "item", item.Name, "calories", nutrition.Calories)
+	} else {
+		// Branded items or items with OFF context - use standard nutrition only
+		nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, *item, nutritionContext)
+		if err != nil {
+			return nil, err
+		}
+		LogDebug("Using AI nutrition", "item", item.Name, "calories", nutrition.Calories)
+	}
+
+	return &nutrition, nil
+}
+
+// cacheNutritionData stores nutrition data in the cache with proper scaling
+func (s *NutritionService) cacheNutritionData(ctx context.Context, item Item, nutrition CompleteNutrient) error {
+	if s.store == nil {
+		return nil // No cache available
+	}
+
+	LogDebug("Attempting to cache item nutrition data", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
+
+	// Extract original quantity info to reverse-scale if needed
+	quantityInfo := extractQuantityFromName(item.Name)
+
+	// Calculate the nutrition data for the BASE item (full serving)
+	var baseNutrition CompleteNutrient
+	var baseGrams float64
+	var baseName string
+
+	if quantityInfo.Multiplier != 1.0 {
+		// This was a fractional quantity - reverse-scale to get base nutrition
+		reverseMultiplier := 1.0 / quantityInfo.Multiplier
+		baseGrams = item.Grams * reverseMultiplier
+		baseName = quantityInfo.CleanName
+
+		baseNutrition = scaleNutritionData(nutrition, reverseMultiplier)
+
+		LogDebug("Reverse-scaling nutrition for base cache storage", "original_multiplier", quantityInfo.Multiplier,
+			"reverse_multiplier", reverseMultiplier, "base_grams", baseGrams, "original_grams", item.Grams)
+	} else {
+		// This is already a base serving - use as-is
+		baseNutrition = nutrition
+		baseGrams = item.Grams
+		baseName = item.Name
+	}
+
+	// Create a base item for caching (using clean name and base grams)
+	baseItem := Item{
+		Name:        baseName,
+		Brand:       item.Brand,
+		Grams:       baseGrams,
+		Ingredients: item.Ingredients, // Include ingredients from OFF/AI
+		Url:         item.Url,         // Include OFF/AI URL
+	}
+
+	// Use brand-aware normalization for consistent cache keys
+	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
+	baseNormalizedName := normalizeItemNameForCache(baseName, item.Brand)
+
+	// Cache under the base serving size
+	exactKey := s.makeExactServingKey(baseNormalizedName, normalizedBrand, baseGrams)
+	exactCacheItem := s.convertNutrientsToExactCache(baseItem, baseNutrition, exactKey)
+	
+	if exactCached, _ := s.store.GetItemByName(ctx, exactKey, ""); exactCached != nil {
+		// Update existing exact cache entry
+		exactCacheItem.ID = exactCached.ID
+		err := s.store.UpdateItem(ctx, exactCacheItem)
+		if err != nil {
+			LogWarn("Failed to update cached nutrition data", "base_name", baseName,
+				"base_grams", baseGrams, "error", err.Error())
+			return err
+		}
+	} else {
+		// Create new exact cache entry
+		err := s.store.CreateItem(ctx, exactCacheItem)
+		if err != nil {
+			LogWarn("Failed to cache nutrition data", "base_name", baseName,
+				"base_grams", baseGrams, "error", err.Error())
+			return err
+		}
+	}
+
+	LogInfo("Successfully cached nutrition data", "base_name", baseName,
+		"base_grams", baseGrams, "cache_key", exactKey)
+	return nil
 }
 
 // NewNutritionService creates a new nutrition service
@@ -368,262 +633,37 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 
 // hydrateItemNutrition hydrates a single item with nutrition data from cache or AI
 func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) (Item, error) {
-	// Use brand-aware normalization for cache keys to prevent fragmentation
-	normalizedNameForCache, quantityInfo := normalizeItemNameWithQuantityForCache(item.Name, item.Brand)
-	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
+	LogDebug("Starting nutrition hydration for item", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
 
-	// Also keep traditional normalization for backward compatibility with existing cache
-	normalizedName, _ := normalizeItemNameWithQuantity(item.Name)
-
-	LogDebug("Checking cache for item", "original_name", item.Name, "normalized_name_cache", normalizedNameForCache,
-		"normalized_name_fallback", normalizedName, "normalized_brand", normalizedBrand, "quantity_multiplier", quantityInfo.Multiplier, "grams", item.Grams)
-
-	// Check cache first - try to find exact serving size match
-	if s.store != nil {
-		normalizedGrams := s.getNormalizedGrams(item)
-
-		// Try brand-aware cache key first (new approach)
-		exactKey := s.makeExactServingKey(normalizedNameForCache, normalizedBrand, normalizedGrams)
-		LogDebug("Checking exact serving cache", "exact_key", exactKey)
-		if cached, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && cached != nil {
-			// Check if cache is still fresh
-			if time.Since(cached.UpdatedAt) < cacheTTL {
-				LogDebug("Found fresh exact serving cache match", "key", exactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
-				var nutrition CompleteNutrient
-
-				// If item has BaseQuantity > 1, we need to scale the cached single-unit values
-				if item.BaseQuantity != nil && *item.BaseQuantity > 1.0 {
-					LogDebug("Using cached exact serving match with scaling for multi-unit quantity (brand-aware cache)",
-						"name", item.Name, "base_quantity", *item.BaseQuantity, "total_grams", item.Grams)
-
-					// Get the single-unit nutrition values and scale by BaseQuantity
-					singleUnitNutrition := s.convertExactCachedToNutrients(cached)
-					scalingFactor := *item.BaseQuantity
-
-					nutrition = scaleNutritionData(singleUnitNutrition, scalingFactor)
-				} else {
-					LogDebug("Using cached exact serving match - returning original values without scaling",
-						"name", item.Name, "grams", item.Grams)
-
-					nutrition = s.convertExactCachedToNutrients(cached)
-				}
-
-				item.Nutrients = &nutrition
-				return item, nil
-			}
-		}
-
-		// Fallback: try traditional cache key for backward compatibility
-		fallbackExactKey := s.makeExactServingKey(normalizedName, normalizedBrand, normalizedGrams)
-		LogDebug("Checking fallback exact serving cache", "fallback_key", fallbackExactKey)
-		if fallbackExactKey != exactKey { // Only check if different from brand-aware key
-			if cached, err := s.store.GetItemByName(ctx, fallbackExactKey, ""); err == nil && cached != nil {
-				// Check if cache is still fresh
-				if time.Since(cached.UpdatedAt) < cacheTTL {
-					LogDebug("Found fresh fallback exact serving cache match", "key", fallbackExactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
-					LogDebug("Using cached exact serving match from fallback key - returning original values without scaling (backward compatibility)",
-						"name", item.Name, "grams", item.Grams, "fallback_key", fallbackExactKey)
-
-					nutrition := s.convertExactCachedToNutrients(cached)
-					item.Nutrients = &nutrition
-					return item, nil
-				}
-			}
-		}
-
-		// Try to find any cached serving size for this item to scale from
-		LogDebug("Checking scalable serving cache", "normalized_name", normalizedNameForCache, "normalized_brand", normalizedBrand)
-		cachedServings := s.getCachedServingSizes(ctx, normalizedNameForCache, normalizedBrand)
-		LogDebug("Found cached servings for scaling", "count", len(cachedServings))
-		for _, cachedServing := range cachedServings {
-			// Check if cache is still fresh
-			if time.Since(cachedServing.item.UpdatedAt) < cacheTTL {
-				LogDebug("Found fresh scalable serving cache match", "cached_grams", cachedServing.servingGrams, "age_days", int(time.Since(cachedServing.item.UpdatedAt).Hours()/24))
-				// Determine scaling method based on user input and cached data reliability
-				if s.shouldUse100gScaling(item, cachedServing.item) {
-					LogDebug("Using cached item with per-100g scaling (user provided grams or unreliable base units)",
-						"name", item.Name, "requested_grams", item.Grams)
-
-					nutrition := s.convertCachedToNutrients(cachedServing.item, item)
-					item.Nutrients = &nutrition
-
-					return item, nil
-				} else {
-					LogDebug("Using cached serving data - scaling from cached serving to requested serving",
-						"name", item.Name, "cached_grams", cachedServing.servingGrams, "requested_grams", item.Grams)
-
-					nutrition := s.scaleNutritionFromCachedServing(cachedServing.item, cachedServing.servingGrams, item.Grams)
-					item.Nutrients = &nutrition
-
-					return item, nil
-				}
-			}
-		}
+	// Step 1: Try to fetch from cache
+	if cachedNutrition, err := s.fetchNutritionFromCache(ctx, item); err != nil {
+		LogWarn("Error fetching from cache", "error", err.Error())
+	} else if cachedNutrition != nil {
+		LogDebug("Using cached nutrition data", "name", item.Name)
+		item.Nutrients = cachedNutrition
+		return item, nil
 	}
 
-	LogDebug("No cache matches found - proceeding to AI nutrition lookup", "name", item.Name, "brand", getBrandOrEmpty(item.Brand))
-
-	// Try Open Food Facts database to provide context for AI
-	var nutritionContext interface{}
-	var offProduct *OFFProduct // Declare here so we can use it later for ingredients
-
-	// Only query OFF if we have a brand (OFF is only good for branded items)
-	brand := getBrandOrEmpty(item.Brand)
-	if s.offClient != nil && brand != "" && strings.TrimSpace(brand) != "" {
-		LogDebug("Checking OFF database for item context", "name", item.Name, "brand", brand)
-
-		var err error
-		offProduct, err = s.offClient.SearchProduct(ctx, item.Name, brand)
-		if err == nil && offProduct != nil {
-			LogDebug("Found item in OFF database for context", "name", item.Name, "product_name", offProduct.ProductName)
-
-			// Use OFF product as context for the AI call
-			nutritionContext = map[string]interface{}{
-				"source": "open_food_facts",
-				"products": []interface{}{
-					map[string]interface{}{
-						"product_name":          offProduct.ProductName,
-						"brands":                offProduct.Brands,
-						"nutrients":             offProduct.Nutriments,
-						"serving_quantity":      offProduct.ServingQuantity,
-						"serving_quantity_unit": offProduct.ServingQuantityUnit,
-						"serving_size":          offProduct.ServingSize,
-						"ingredients":           parseOFFIngredients(offProduct.Ingredients),
-						"link":                  offProduct.Link,
-						"grade":                 offProduct.Grade,
-						"is_beverage":           offProduct.IsBeverage,
-					},
-				},
-				"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as reference but provide complete nutrition data including nutrients not available in the context.",
-			}
-		} else {
-			LogDebug("Item not found in OFF database", "name", item.Name, "error", err)
-		}
-	} else {
-		LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
+	// Step 2: Fetch nutrition context from OFF and extract ingredients/URL
+	nutritionContext, err := s.fetchNutritionContext(ctx, &item)
+	if err != nil {
+		LogWarn("Error fetching OFF context", "error", err.Error())
 	}
 
-	// Extract ingredients and OFF URL BEFORE caching so they get saved to the cache
-	if offProduct != nil {
-		// Extract and convert ingredients from OFF format to our format
-		if len(offProduct.Ingredients) > 0 {
-			item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
-			LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
-		}
-
-		// Save OFF URL for historical reference
-		if offProduct.Link != "" {
-			item.Url = &offProduct.Link
-			LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
-		}
+	// Step 3: Fetch nutrition from AI with context
+	nutrition, err := s.fetchNutritionFromAI(ctx, &item, nutritionContext)
+	if err != nil {
+		return item, err
 	}
 
-	// Get nutrition from AI (with optional OFF context)
-	LogDebug("Fetching nutrition from AI provider", "name", item.Name, "has_context", nutritionContext != nil)
-
-	// For generic items without OFF data, use complete AI response to get ingredients (fallback path)
-	var nutrition CompleteNutrient
-	var err error
-	isGenericItemFallback := offProduct == nil && (item.Brand == nil || (item.Brand != nil && *item.Brand == ""))
-	LogDebug("Checking if fallback item is generic", "item", item.Name, "offProduct_nil", offProduct == nil, "brand_nil", item.Brand == nil, "brand_empty", item.Brand != nil && *item.Brand == "", "is_generic", isGenericItemFallback)
-
-	if isGenericItemFallback {
-		// No OFF data and no brand - use complete AI response for ingredients (fallback path)
-		aiResponse, aiErr := s.aiProvider.GetNutritionWithContextComplete(ctx, item, nutritionContext)
-		if aiErr != nil {
-			return item, aiErr
-		}
-		nutrition = aiResponse.Nutrients
-
-		// Extract ingredients from AI response for generic items (fallback path)
-		if len(aiResponse.Ingredients) > 0 {
-			item.Ingredients = aiResponse.Ingredients
-			LogDebug("Extracted ingredients from AI (fallback)", "item", item.Name, "ingredient_count", len(item.Ingredients))
-		}
-
-		// Extract URL from AI response if available (fallback path)
-		if aiResponse.URL != nil && *aiResponse.URL != "" {
-			item.Url = aiResponse.URL
-			LogDebug("Saved AI URL (fallback)", "item", item.Name, "url", *aiResponse.URL)
-		}
-
-		LogDebug("Using complete AI nutrition (fallback)", "item", item.Name, "calories", nutrition.Calories)
-	} else {
-		// Branded items or items with OFF context - use standard nutrition only (fallback path)
-		nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
-		if err != nil {
-			return item, err
-		}
-		LogDebug("Using AI nutrition (fallback)", "item", item.Name, "calories", nutrition.Calories)
+	// Step 4: Cache the nutrition data
+	if err := s.cacheNutritionData(ctx, item, *nutrition); err != nil {
+		LogWarn("Failed to cache nutrition data", "error", err.Error())
+		// Don't fail the request if caching fails
 	}
 
-	// CRITICAL FIX: Always cache the BASE/FULL serving nutrition data, not fractional quantities
-	// If this item came from quantity extraction (e.g., "half can"), we need to reverse-scale
-	// back to the full serving size before caching
-	if s.store != nil {
-		LogDebug("Attempting to cache item nutrition data", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
-
-		// Extract original quantity info to reverse-scale if needed
-		quantityInfo := extractQuantityFromName(item.Name)
-
-		// Calculate the nutrition data for the BASE item (full serving)
-		var baseNutrition CompleteNutrient
-		var baseGrams float64
-		var baseName string
-
-		if quantityInfo.Multiplier != 1.0 {
-			// This was a fractional quantity - reverse-scale to get base nutrition
-			reverseMultiplier := 1.0 / quantityInfo.Multiplier
-			baseGrams = item.Grams * reverseMultiplier
-			baseName = quantityInfo.CleanName
-
-			// Scale nutrition back up to full serving size
-			baseNutrition = scaleNutritionData(nutrition, reverseMultiplier)
-
-			LogDebug("Reverse-scaling nutrition for base cache storage", "original_multiplier", quantityInfo.Multiplier,
-				"reverse_multiplier", reverseMultiplier, "base_grams", baseGrams, "original_grams", item.Grams)
-		} else {
-			// This is already a base serving - use as-is
-			baseNutrition = nutrition
-			baseGrams = item.Grams
-			baseName = item.Name
-		}
-
-		// Create a base item for caching (using clean name and base grams)
-		baseItem := Item{
-			Name:        baseName,
-			Brand:       item.Brand,
-			Grams:       baseGrams,
-			Ingredients: item.Ingredients, // Include ingredients from OFF
-			Url:         item.Url,         // Include OFF URL
-		}
-
-		// Use brand-aware normalization for consistent cache keys
-		baseNormalizedName := normalizeItemNameForCache(baseName, item.Brand)
-
-		// Cache under the base serving size
-		exactKey := s.makeExactServingKey(baseNormalizedName, normalizedBrand, baseGrams)
-		exactCacheItem := s.convertNutrientsToExactCache(baseItem, baseNutrition, exactKey)
-		if exactCached, _ := s.store.GetItemByName(ctx, exactKey, ""); exactCached != nil {
-			// Update existing exact cache entry
-			exactCacheItem.ID = exactCached.ID
-			err = s.store.UpdateItem(ctx, exactCacheItem)
-		} else {
-			// Create new exact cache entry
-			err = s.store.CreateItem(ctx, exactCacheItem)
-		}
-		if err != nil {
-			LogWarn("Failed to cache base serving nutrition data", "base_name", baseName,
-				"base_grams", baseGrams, "error", err.Error())
-			// Don't fail the request if caching fails
-		} else {
-			LogInfo("Successfully cached base serving nutrition data", "base_name", baseName,
-				"base_grams", baseGrams, "cache_key", exactKey)
-		}
-	}
-
-	item.Nutrients = &nutrition
-
+	// Step 5: Set nutrition on item and return
+	item.Nutrients = nutrition
 	return item, nil
 }
 
