@@ -1,0 +1,72 @@
+{
+  "name": "food_extraction",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Indicates if parsing was successful. True if all items were parsed successfully, false if parsing failed or input was irrelevant."
+      },
+      "message": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Optional message describing why parsing failed. Always null if success is true."
+      },
+      "items": {
+        "type": "array",
+        "description": "List of extracted food and drink items, each converted to grams. Empty if success is false.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The food or drink name, including any descriptors but not brand."
+            },
+            "grams": {
+              "type": "number",
+              "description": "The equivalent weight of this item in grams."
+            },
+            "user_quantity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "The number from the user's input, if available, else null."
+            },
+            "user_unit": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The explicit unit from user input (e.g., 'cup', 'slice', 'can', 'handfull', 'grams', 'tbsp', 'bowls', etc), or null if not given."
+            },
+            "brand": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The exact brand or product name mentioned, or null if not specified."
+            }
+          },
+          "required": [
+            "name",
+            "grams",
+            "user_quantity",
+            "user_unit",
+            "brand"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "success",
+      "message",
+      "items"
+    ],
+    "additionalProperties": false
+  }
+}
