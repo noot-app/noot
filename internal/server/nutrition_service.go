@@ -409,7 +409,7 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 	// back to the full serving size before caching
 	if s.store != nil {
 		LogDebug("Attempting to cache item nutrition data", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
-		
+
 		// Extract original quantity info to reverse-scale if needed
 		quantityInfo := extractQuantityFromName(item.Name)
 
