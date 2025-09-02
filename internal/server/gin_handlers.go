@@ -199,7 +199,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 
 						// Create exact serving key to match how items are stored
 						exactKey := fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, itemWithNutrition.Item.Grams)
-						if existingItem, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && existingItem != nil {
+						if existingItem, err := s.store.GetItemByName(ctx, exactKey, normalizedBrand); err == nil && existingItem != nil {
 							itemID = &existingItem.ID
 						}
 					}
@@ -366,7 +366,7 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 
 			// Create exact serving key to match how items are stored
 			exactKey := fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, itemWithNutrition.Item.Grams)
-			if existingItem, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && existingItem != nil {
+			if existingItem, err := s.store.GetItemByName(ctx, exactKey, normalizedBrand); err == nil && existingItem != nil {
 				itemID = &existingItem.ID
 			}
 		}

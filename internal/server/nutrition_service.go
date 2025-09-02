@@ -127,7 +127,7 @@ func (s *NutritionService) fetchNutritionFromCache(ctx context.Context, item Ite
 	// Try brand-aware cache key first (new approach)
 	exactKey := s.makeExactServingKey(normalizedNameForCache, normalizedBrand, normalizedGrams)
 	LogDebug("Checking exact serving cache", "exact_key", exactKey)
-	if cached, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && cached != nil {
+	if cached, err := s.store.GetItemByName(ctx, exactKey, normalizedBrand); err == nil && cached != nil {
 		// Check if cache is still fresh
 		if time.Since(cached.UpdatedAt) < cacheTTL {
 			LogDebug("Found fresh exact serving cache match", "key", exactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
@@ -156,7 +156,7 @@ func (s *NutritionService) fetchNutritionFromCache(ctx context.Context, item Ite
 	fallbackExactKey := s.makeExactServingKey(normalizedName, normalizedBrand, normalizedGrams)
 	LogDebug("Checking fallback exact serving cache", "fallback_key", fallbackExactKey)
 	if fallbackExactKey != exactKey { // Only check if different from brand-aware key
-		if cached, err := s.store.GetItemByName(ctx, fallbackExactKey, ""); err == nil && cached != nil {
+		if cached, err := s.store.GetItemByName(ctx, fallbackExactKey, normalizedBrand); err == nil && cached != nil {
 			// Check if cache is still fresh
 			if time.Since(cached.UpdatedAt) < cacheTTL {
 				LogDebug("Found fresh fallback exact serving cache match", "key", fallbackExactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
@@ -347,7 +347,7 @@ func (s *NutritionService) cacheNutritionData(ctx context.Context, item Item, nu
 	exactKey := s.makeExactServingKey(baseNormalizedName, normalizedBrand, baseGrams)
 	exactCacheItem := s.convertNutrientsToExactCache(baseItem, baseNutrition, exactKey)
 
-	if exactCached, _ := s.store.GetItemByName(ctx, exactKey, ""); exactCached != nil {
+	if exactCached, _ := s.store.GetItemByName(ctx, exactKey, normalizedBrand); exactCached != nil {
 		// Update existing exact cache entry
 		exactCacheItem.ID = exactCached.ID
 		err := s.store.UpdateItem(ctx, exactCacheItem)
@@ -780,7 +780,7 @@ func (s *NutritionService) tryExactServingMatch(ctx context.Context, normalizedN
 
 	for _, grams := range commonGrams {
 		exactKey := s.makeExactServingKey(normalizedName, normalizedBrand, grams)
-		if cached, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && cached != nil {
+		if cached, err := s.store.GetItemByName(ctx, exactKey, normalizedBrand); err == nil && cached != nil {
 			results = append(results, cachedServingData{
 				item:         cached,
 				servingGrams: grams,
@@ -821,7 +821,7 @@ func (s *NutritionService) tryBrandAwareServingMatch(ctx context.Context, normal
 		for _, grams := range commonGrams {
 			// Maintain brand safety - only match within the same brand
 			exactKey := s.makeExactServingKey(variation, normalizedBrand, grams)
-			if cached, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && cached != nil {
+			if cached, err := s.store.GetItemByName(ctx, exactKey, normalizedBrand); err == nil && cached != nil {
 				LogDebug("Found brand-aware cache match", "variation", variation,
 					"original_name", normalizedName, "brand", normalizedBrand, "grams", grams)
 
