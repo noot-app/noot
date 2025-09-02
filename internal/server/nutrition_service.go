@@ -254,9 +254,11 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 		// Try brand-aware cache key first (new approach)
 		exactKey := s.makeExactServingKey(normalizedNameForCache, normalizedBrand, normalizedGrams)
+		LogDebug("Checking exact serving cache", "exact_key", exactKey)
 		if cached, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && cached != nil {
 			// Check if cache is still fresh (30 days)
 			if time.Since(cached.UpdatedAt) < 30*24*time.Hour {
+				LogDebug("Found fresh exact serving cache match", "key", exactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
 				var nutrition CompleteNutrient
 
 				// If item has BaseQuantity > 1, we need to scale the cached single-unit values
@@ -323,10 +325,12 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 		// Fallback: try traditional cache key for backward compatibility
 		fallbackExactKey := s.makeExactServingKey(normalizedName, normalizedBrand, normalizedGrams)
+		LogDebug("Checking fallback exact serving cache", "fallback_key", fallbackExactKey)
 		if fallbackExactKey != exactKey { // Only check if different from brand-aware key
 			if cached, err := s.store.GetItemByName(ctx, fallbackExactKey, ""); err == nil && cached != nil {
 				// Check if cache is still fresh (30 days)
 				if time.Since(cached.UpdatedAt) < 30*24*time.Hour {
+					LogDebug("Found fresh fallback exact serving cache match", "key", fallbackExactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
 					LogDebug("Using cached exact serving match from fallback key - returning original values without scaling (backward compatibility)",
 						"name", item.Name, "grams", item.Grams, "fallback_key", fallbackExactKey)
 
@@ -338,10 +342,13 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		}
 
 		// Try to find any cached serving size for this item to scale from
+		LogDebug("Checking scalable serving cache", "normalized_name", normalizedNameForCache, "normalized_brand", normalizedBrand)
 		cachedServings := s.getCachedServingSizes(ctx, normalizedNameForCache, normalizedBrand)
+		LogDebug("Found cached servings for scaling", "count", len(cachedServings))
 		for _, cachedServing := range cachedServings {
 			// Check if cache is still fresh (30 days)
 			if time.Since(cachedServing.item.UpdatedAt) < 30*24*time.Hour {
+				LogDebug("Found fresh scalable serving cache match", "cached_grams", cachedServing.servingGrams, "age_days", int(time.Since(cachedServing.item.UpdatedAt).Hours()/24))
 				// Determine scaling method based on user input and cached data reliability
 				if s.shouldUse100gScaling(item, cachedServing.item) {
 					LogDebug("Using cached item with per-100g scaling (user provided grams or unreliable base units)",
@@ -363,6 +370,8 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 			}
 		}
 	}
+
+	LogDebug("No cache matches found - proceeding to AI nutrition lookup", "name", item.Name, "brand", getBrandOrEmpty(item.Brand))
 
 	// Try Open Food Facts database to provide context for AI
 	var nutritionContext interface{}
