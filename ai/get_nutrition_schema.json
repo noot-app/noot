@@ -278,18 +278,25 @@
           "properties": {
             "id": {
               "type": "string",
-              "description": "Ingredient ID from Open Food Facts (e.g., 'en:filtered-water')"
+              "description": "Ingredient ID from Open Food Facts (e.g., 'en:filtered-water') or inferred for generic items (e.g., 'en:apple')"
             },
             "text": {
-              "type": "string", 
+              "type": "string",
               "description": "Display name of the ingredient (e.g., 'Purified water')"
             },
             "percent_estimate": {
-              "type": ["number", "null"],
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Estimated percentage of this ingredient in the product"
             }
           },
-          "required": ["id", "text", "percent_estimate"],
+          "required": [
+            "id",
+            "text",
+            "percent_estimate"
+          ],
           "additionalProperties": false
         }
       }
