@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"errors"
+
+	"github.com/grantbirki/noot/internal/storage"
 )
 
 // Mock AI provider for testing
@@ -32,4 +34,18 @@ func (m *mockAIProvider) GetNutritionWithContext(ctx context.Context, item Item,
 		return CompleteNutrient{}, errors.New("mock error")
 	}
 	return m.nutritionResponse, nil
+}
+
+func (m *mockAIProvider) GetNutritionWithContextComplete(ctx context.Context, item Item, nutritionContext interface{}) (NutritionResponse, error) {
+	// Store the context for verification in tests
+	m.contextReceived = nutritionContext
+
+	if m.shouldError {
+		return NutritionResponse{}, errors.New("mock error")
+	}
+	return NutritionResponse{
+		Nutrients:   m.nutritionResponse,
+		Ingredients: []storage.OFFIngredient{}, // Empty for tests
+		URL:         nil,
+	}, nil
 }

@@ -2,7 +2,16 @@ package server
 
 import (
 	"context"
+
+	"github.com/grantbirki/noot/internal/storage"
 )
+
+// NutritionResponse represents a complete nutrition response with ingredients and URL
+type NutritionResponse struct {
+	Nutrients   CompleteNutrient        `json:"nutrients"`
+	Ingredients []storage.OFFIngredient `json:"ingredients,omitempty"`
+	URL         *string                 `json:"url,omitempty"`
+}
 
 // AIProvider defines the interface for AI-based nutrition services
 type AIProvider interface {
@@ -17,6 +26,9 @@ type AIProvider interface {
 
 	// GetNutritionWithContext gets nutrition data for a single food item with optional context
 	GetNutritionWithContext(ctx context.Context, item Item, nutritionContext interface{}) (CompleteNutrient, error)
+
+	// GetNutritionWithContextComplete gets complete nutrition data including ingredients and URL
+	GetNutritionWithContextComplete(ctx context.Context, item Item, nutritionContext interface{}) (NutritionResponse, error)
 }
 
 // AIProviderConfig holds configuration for AI providers

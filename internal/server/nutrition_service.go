@@ -220,12 +220,41 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 				nutrition = *directNutrition
 				LogDebug("Using direct OFF nutrition", "item", item.Name, "calories", nutrition.Calories)
 			} else {
-				nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
-				if err != nil {
-					results <- result{index: index, item: item, err: err}
-					return
+				// For generic items without OFF data, use complete AI response to get ingredients
+				isGenericItem := offProduct == nil && (item.Brand == nil || (item.Brand != nil && *item.Brand == ""))
+				LogDebug("Checking if item is generic", "item", item.Name, "offProduct_nil", offProduct == nil, "brand_nil", item.Brand == nil, "brand_empty", item.Brand != nil && *item.Brand == "", "is_generic", isGenericItem)
+
+				if isGenericItem {
+					// No OFF data and no brand - use complete AI response for ingredients
+					aiResponse, aiErr := s.aiProvider.GetNutritionWithContextComplete(ctx, item, nutritionContext)
+					if aiErr != nil {
+						results <- result{index: index, item: item, err: aiErr}
+						return
+					}
+					nutrition = aiResponse.Nutrients
+
+					// Extract ingredients from AI response for generic items
+					if len(aiResponse.Ingredients) > 0 {
+						item.Ingredients = aiResponse.Ingredients
+						LogDebug("Extracted ingredients from AI", "item", item.Name, "ingredient_count", len(item.Ingredients))
+					}
+
+					// Extract URL from AI response if available
+					if aiResponse.URL != nil && *aiResponse.URL != "" {
+						item.Url = aiResponse.URL
+						LogDebug("Saved AI URL", "item", item.Name, "url", *aiResponse.URL)
+					}
+
+					LogDebug("Using complete AI nutrition", "item", item.Name, "calories", nutrition.Calories)
+				} else {
+					// Branded items or items with OFF context - use standard nutrition only
+					nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
+					if err != nil {
+						results <- result{index: index, item: item, err: err}
+						return
+					}
+					LogDebug("Using AI nutrition", "item", item.Name, "calories", nutrition.Calories)
 				}
-				LogDebug("Using AI nutrition", "item", item.Name, "calories", nutrition.Calories)
 			}
 			item.Nutrients = &nutrition
 
@@ -445,9 +474,41 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 	// Get nutrition from AI (with optional OFF context)
 	LogDebug("Fetching nutrition from AI provider", "name", item.Name, "has_context", nutritionContext != nil)
-	nutrition, err := s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
-	if err != nil {
-		return item, err
+
+	// For generic items without OFF data, use complete AI response to get ingredients (fallback path)
+	var nutrition CompleteNutrient
+	var err error
+	isGenericItemFallback := offProduct == nil && (item.Brand == nil || (item.Brand != nil && *item.Brand == ""))
+	LogDebug("Checking if fallback item is generic", "item", item.Name, "offProduct_nil", offProduct == nil, "brand_nil", item.Brand == nil, "brand_empty", item.Brand != nil && *item.Brand == "", "is_generic", isGenericItemFallback)
+
+	if isGenericItemFallback {
+		// No OFF data and no brand - use complete AI response for ingredients (fallback path)
+		aiResponse, aiErr := s.aiProvider.GetNutritionWithContextComplete(ctx, item, nutritionContext)
+		if aiErr != nil {
+			return item, aiErr
+		}
+		nutrition = aiResponse.Nutrients
+
+		// Extract ingredients from AI response for generic items (fallback path)
+		if len(aiResponse.Ingredients) > 0 {
+			item.Ingredients = aiResponse.Ingredients
+			LogDebug("Extracted ingredients from AI (fallback)", "item", item.Name, "ingredient_count", len(item.Ingredients))
+		}
+
+		// Extract URL from AI response if available (fallback path)
+		if aiResponse.URL != nil && *aiResponse.URL != "" {
+			item.Url = aiResponse.URL
+			LogDebug("Saved AI URL (fallback)", "item", item.Name, "url", *aiResponse.URL)
+		}
+
+		LogDebug("Using complete AI nutrition (fallback)", "item", item.Name, "calories", nutrition.Calories)
+	} else {
+		// Branded items or items with OFF context - use standard nutrition only (fallback path)
+		nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
+		if err != nil {
+			return item, err
+		}
+		LogDebug("Using AI nutrition (fallback)", "item", item.Name, "calories", nutrition.Calories)
 	}
 
 	// CRITICAL FIX: Always cache the BASE/FULL serving nutrition data, not fractional quantities

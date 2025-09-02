@@ -15,6 +15,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/grantbirki/noot/internal/storage"
 	"github.com/microcosm-cc/bluemonday"
 )
 
@@ -605,9 +606,11 @@ func (p *OpenAIProvider) GetNutritionWithContext(ctx context.Context, item Item,
 
 	// Parse the new schema structure with success and message fields
 	var result struct {
-		Success   bool             `json:"success"`
-		Message   *string          `json:"message"`
-		Nutrients CompleteNutrient `json:"nutrients"`
+		Success     bool                    `json:"success"`
+		Message     *string                 `json:"message"`
+		Nutrients   CompleteNutrient        `json:"nutrients"`
+		Ingredients []storage.OFFIngredient `json:"ingredients,omitempty"`
+		URL         *string                 `json:"url,omitempty"`
 	}
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
 		LogWarn("Failed to parse nutrition JSON", "content", content, "error", err.Error(), "full_response", filterResponseForLogging(responseBody))
@@ -627,4 +630,176 @@ func (p *OpenAIProvider) GetNutritionWithContext(ctx context.Context, item Item,
 	LogDebug("CompleteNutrient resolved", "item", item.Name, "nutrients", result.Nutrients)
 
 	return result.Nutrients, nil
+}
+
+// GetNutritionWithContextComplete implements AIProvider.GetNutritionWithContextComplete
+func (p *OpenAIProvider) GetNutritionWithContextComplete(ctx context.Context, item Item, nutritionContext interface{}) (NutritionResponse, error) {
+	// Security: Validate item input
+	if len(strings.TrimSpace(item.Name)) == 0 {
+		return NutritionResponse{}, NewAppError("Item name cannot be empty", http.StatusBadRequest,
+			fmt.Errorf("item name is required"))
+	}
+
+	if len(item.Name) > maxItemNameLength {
+		return NutritionResponse{}, NewAppError("Item name too long", http.StatusBadRequest,
+			fmt.Errorf("item name length %d exceeds maximum %d", len(item.Name), maxItemNameLength))
+	}
+
+	LogDebug("Starting OpenAI GetNutritionComplete request", "item_name", truncateForLog(item.Name))
+
+	// Build input message as JSON
+	inputObj := map[string]any{
+		"name":              item.Name,
+		"grams":             item.Grams,
+		"brand":             item.Brand,
+		"nutrition_context": nutritionContext, // Always present, either object or null
+	}
+	inputBytes, _ := json.Marshal(inputObj)
+	input := string(inputBytes)
+
+	LogDebug("Starting OpenAI GetNutritionComplete request", "item", item.Name, "input_message", input)
+
+	// Get prompt configuration from environment variables
+	promptID := strings.TrimSpace(os.Getenv("OPENAI_NUTRITION_PROMPT_ID"))
+	promptVersion := strings.TrimSpace(os.Getenv("OPENAI_NUTRITION_PROMPT_VERSION"))
+
+	payload := map[string]any{
+		"prompt": map[string]any{
+			"id":      promptID,
+			"version": promptVersion,
+		},
+		"input": input,
+	}
+
+	b, _ := json.Marshal(payload)
+	url := p.config.BaseURL + "/responses"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return NutritionResponse{}, NewAppError("Failed to create nutrition request", http.StatusInternalServerError, err)
+	}
+	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		return NutritionResponse{}, NewAppError("OpenAI nutrition request failed", http.StatusInternalServerError, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		LogError("OpenAI nutrition error", fmt.Errorf("status=%d body=%s", resp.StatusCode, string(body)))
+		return NutritionResponse{}, NewAppError("OpenAI nutrition failed", http.StatusInternalServerError,
+			fmt.Errorf("OpenAI API error: %d %s", resp.StatusCode, string(body)))
+	}
+
+	// Read the full response body for debugging
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return NutritionResponse{}, NewAppError("Failed to read response body", http.StatusInternalServerError, err)
+	}
+
+	LogDebug("OpenAI nutrition response received", "full_response", filterResponseForLogging(responseBody))
+
+	// Parse the new /responses endpoint structure
+	var response struct {
+		Output []struct {
+			Type    string `json:"type"`
+			Status  string `json:"status"`
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"output"`
+	}
+	if err := json.Unmarshal(responseBody, &response); err != nil {
+		return NutritionResponse{}, NewAppError("Failed to parse nutrition response", http.StatusInternalServerError, err)
+	}
+
+	// Extract the text content from the message output
+	var content string
+	var statusIssues []string
+
+	for _, output := range response.Output {
+		if output.Type == "message" {
+			if output.Status != "completed" {
+				statusIssues = append(statusIssues, fmt.Sprintf("message status: %s", output.Status))
+				LogWarn("OpenAI message output not completed", "type", output.Type, "status", output.Status)
+				continue
+			}
+
+			for _, contentItem := range output.Content {
+				if contentItem.Type == "output_text" {
+					content = contentItem.Text
+					break
+				}
+			}
+			if content != "" {
+				break
+			}
+		}
+	}
+
+	// Check if we found any non-completed statuses
+	if len(statusIssues) > 0 && content == "" {
+		errorMsg := fmt.Sprintf("OpenAI request failed with status issues: %s", strings.Join(statusIssues, ", "))
+		LogError("OpenAI nutrition request failed", errors.New(errorMsg))
+		return NutritionResponse{}, NewAppError("OpenAI nutrition request failed", http.StatusInternalServerError, errors.New(errorMsg))
+	}
+
+	if content == "" {
+		LogWarn("No content found in OpenAI response", "output_count", len(response.Output))
+		return NutritionResponse{}, NewAppError("No content found in OpenAI response", http.StatusInternalServerError, fmt.Errorf("empty content"))
+	}
+
+	LogDebug("Extracted content from OpenAI response", "content_length", len(content), "content_preview", func() string {
+		if len(content) > 100 {
+			return content[:100] + "..."
+		}
+		return content
+	}())
+
+	// Parse the JSON content directly (no markdown code blocks with json_schema format)
+	content = strings.TrimSpace(content)
+
+	// Parse the complete response structure including ingredients and URL
+	var result struct {
+		Success     bool                    `json:"success"`
+		Message     *string                 `json:"message"`
+		Nutrients   CompleteNutrient        `json:"nutrients"`
+		Ingredients []storage.OFFIngredient `json:"ingredients,omitempty"`
+		URL         *string                 `json:"url,omitempty"`
+	}
+	if err := json.Unmarshal([]byte(content), &result); err != nil {
+		LogWarn("Failed to parse nutrition JSON", "content", content, "error", err.Error(), "full_response", filterResponseForLogging(responseBody))
+		return NutritionResponse{}, NewAppError("Failed to parse nutrition data", http.StatusInternalServerError, err)
+	}
+
+	// Check if nutrition fetching was successful according to the schema
+	if !result.Success {
+		message := "Unknown nutrition fetching failure"
+		if result.Message != nil {
+			message = *result.Message
+		}
+		LogWarn("OpenAI nutrition fetching reported failure", "message", message)
+		return NutritionResponse{}, NewAppError("Failed to fetch nutrition: "+message, http.StatusBadRequest, fmt.Errorf("nutrition fetching failed: %s", message))
+	}
+
+	// Log ingredients if found
+	if len(result.Ingredients) > 0 {
+		LogDebug("Extracted ingredients from AI", "item", item.Name, "ingredient_count", len(result.Ingredients))
+	}
+
+	// Log URL if found
+	if result.URL != nil && *result.URL != "" {
+		LogDebug("Extracted URL from AI", "item", item.Name, "url", *result.URL)
+	}
+
+	LogDebug("Complete nutrition resolved", "item", item.Name, "nutrients", result.Nutrients, "has_ingredients", len(result.Ingredients) > 0, "has_url", result.URL != nil)
+
+	return NutritionResponse{
+		Nutrients:   result.Nutrients,
+		Ingredients: result.Ingredients,
+		URL:         result.URL,
+	}, nil
 }
