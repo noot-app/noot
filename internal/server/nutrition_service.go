@@ -11,12 +11,364 @@ import (
 	"github.com/grantbirki/noot/internal/storage"
 )
 
+// Constants for nutrition service configuration
+const (
+	// Cache TTL for nutrition data
+	cacheTTLDays = 30
+	cacheTTL     = cacheTTLDays * 24 * time.Hour
+
+	// Common serving sizes for cache lookups (in grams)
+	servingSizes = "100,355,250,200,500,150,300,400,50,75,125"
+
+	// Decimal precision for different nutrient types
+	caloriesPrecision    = 3
+	proteinPrecision     = 2
+	fatPrecision         = 2
+	transFatPrecision    = 1
+	cholesterolPrecision = 1
+	sodiumPrecision      = 1
+	carbsPrecision       = 1
+	fiberPrecision       = 1
+	sugarsPrecision      = 1
+	vitaminPrecision     = 1
+	vitaminBPrecision    = 3 // For B vitamins that need higher precision
+	mineralPrecision     = 1
+	tracePrecision       = 3 // For trace elements like omega-3s
+	zincPrecision        = 2
+	vitaminB12Precision  = 2
+	omegaPrecision       = 3
+	omega6Precision      = 2
+	alcoholPrecision     = 2
+)
+
+// getCommonServingSizes returns common serving sizes for cache lookups
+func getCommonServingSizes() []float64 {
+	return []float64{100, 355, 250, 200, 500, 150, 300, 400, 50, 75, 125}
+}
+
 // NutritionService handles nutrition data processing with caching and unit conversions
 type NutritionService struct {
 	aiProvider AIProvider
 	offClient  *OFFClient
 	converter  *UnitConverter
 	store      storage.Store
+}
+
+// scaleNutritionData scales nutrition values by the given factor
+func scaleNutritionData(nutrients CompleteNutrient, factor float64) CompleteNutrient {
+	return CompleteNutrient{
+		Calories:           nutrients.Calories * factor,
+		Protein:            nutrients.Protein * factor,
+		TotalFat:           nutrients.TotalFat * factor,
+		SaturatedFat:       nutrients.SaturatedFat * factor,
+		TransFat:           nutrients.TransFat * factor,
+		Cholesterol:        nutrients.Cholesterol * factor,
+		Sodium:             nutrients.Sodium * factor,
+		TotalCarbs:         nutrients.TotalCarbs * factor,
+		DietaryFiber:       nutrients.DietaryFiber * factor,
+		TotalSugars:        nutrients.TotalSugars * factor,
+		AddedSugars:        nutrients.AddedSugars * factor,
+		VitaminA:           nutrients.VitaminA * factor,
+		VitaminC:           nutrients.VitaminC * factor,
+		VitaminD:           nutrients.VitaminD * factor,
+		VitaminE:           nutrients.VitaminE * factor,
+		VitaminK:           nutrients.VitaminK * factor,
+		Thiamine:           nutrients.Thiamine * factor,
+		Riboflavin:         nutrients.Riboflavin * factor,
+		Niacin:             nutrients.Niacin * factor,
+		VitaminB6:          nutrients.VitaminB6 * factor,
+		Folate:             nutrients.Folate * factor,
+		VitaminB12:         nutrients.VitaminB12 * factor,
+		Biotin:             nutrients.Biotin * factor,
+		PantothenicAcid:    nutrients.PantothenicAcid * factor,
+		Choline:            nutrients.Choline * factor,
+		Calcium:            nutrients.Calcium * factor,
+		Iron:               nutrients.Iron * factor,
+		Magnesium:          nutrients.Magnesium * factor,
+		Phosphorus:         nutrients.Phosphorus * factor,
+		Potassium:          nutrients.Potassium * factor,
+		Zinc:               nutrients.Zinc * factor,
+		Copper:             nutrients.Copper * factor,
+		Manganese:          nutrients.Manganese * factor,
+		Selenium:           nutrients.Selenium * factor,
+		Iodine:             nutrients.Iodine * factor,
+		Molybdenum:         nutrients.Molybdenum * factor,
+		Chromium:           nutrients.Chromium * factor,
+		Fluoride:           nutrients.Fluoride * factor,
+		Chloride:           nutrients.Chloride * factor,
+		Omega3Ala:          nutrients.Omega3Ala * factor,
+		Omega3Epa:          nutrients.Omega3Epa * factor,
+		Omega3Dha:          nutrients.Omega3Dha * factor,
+		Omega6:             nutrients.Omega6 * factor,
+		Creatine:           nutrients.Creatine * factor,
+		Caffeine:           nutrients.Caffeine * factor,
+		Alcohol:            nutrients.Alcohol * factor,
+		PolyunsaturatedFat: nutrients.PolyunsaturatedFat * factor,
+		MonounsaturatedFat: nutrients.MonounsaturatedFat * factor,
+	}
+}
+
+// fetchNutritionFromCache attempts to fetch nutrition data from cache
+// Returns nutrition data if found, nil if not found or cache is stale
+func (s *NutritionService) fetchNutritionFromCache(ctx context.Context, item Item) (*CompleteNutrient, error) {
+	if s.store == nil {
+		return nil, nil // No cache available
+	}
+
+	// Use brand-aware normalization for cache keys to prevent fragmentation
+	normalizedNameForCache, _ := normalizeItemNameWithQuantityForCache(item.Name, item.Brand)
+	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
+	normalizedName, _ := normalizeItemNameWithQuantity(item.Name)
+	normalizedGrams := s.getNormalizedGrams(item)
+
+	LogDebug("Checking cache for item", "original_name", item.Name, "normalized_name_cache", normalizedNameForCache,
+		"normalized_name_fallback", normalizedName, "normalized_brand", normalizedBrand, "grams", item.Grams)
+
+	// Try brand-aware cache key first (new approach)
+	exactKey := s.makeExactServingKey(normalizedNameForCache, normalizedBrand, normalizedGrams)
+	LogDebug("Checking exact serving cache", "exact_key", exactKey)
+	if cached, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && cached != nil {
+		// Check if cache is still fresh
+		if time.Since(cached.UpdatedAt) < cacheTTL {
+			LogDebug("Found fresh exact serving cache match", "key", exactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
+
+			var nutrition CompleteNutrient
+			// If item has BaseQuantity > 1, we need to scale the cached single-unit values
+			if item.BaseQuantity != nil && *item.BaseQuantity > 1.0 {
+				LogDebug("Using cached exact serving match with scaling for multi-unit quantity (brand-aware cache)",
+					"name", item.Name, "base_quantity", *item.BaseQuantity, "total_grams", item.Grams)
+
+				// Get the single-unit nutrition values and scale by BaseQuantity
+				singleUnitNutrition := s.convertExactCachedToNutrients(cached)
+				scalingFactor := *item.BaseQuantity
+				nutrition = scaleNutritionData(singleUnitNutrition, scalingFactor)
+			} else {
+				LogDebug("Using cached exact serving match - returning original values without scaling",
+					"name", item.Name, "grams", item.Grams)
+				nutrition = s.convertExactCachedToNutrients(cached)
+			}
+
+			return &nutrition, nil
+		}
+	}
+
+	// Fallback: try traditional cache key for backward compatibility
+	fallbackExactKey := s.makeExactServingKey(normalizedName, normalizedBrand, normalizedGrams)
+	LogDebug("Checking fallback exact serving cache", "fallback_key", fallbackExactKey)
+	if fallbackExactKey != exactKey { // Only check if different from brand-aware key
+		if cached, err := s.store.GetItemByName(ctx, fallbackExactKey, ""); err == nil && cached != nil {
+			// Check if cache is still fresh
+			if time.Since(cached.UpdatedAt) < cacheTTL {
+				LogDebug("Found fresh fallback exact serving cache match", "key", fallbackExactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
+				LogDebug("Using cached exact serving match from fallback key - returning original values without scaling (backward compatibility)",
+					"name", item.Name, "grams", item.Grams, "fallback_key", fallbackExactKey)
+
+				nutrition := s.convertExactCachedToNutrients(cached)
+				return &nutrition, nil
+			}
+		}
+	}
+
+	// Try to find any cached serving size for this item to scale from
+	LogDebug("Checking scalable serving cache", "normalized_name", normalizedNameForCache, "normalized_brand", normalizedBrand)
+	cachedServings := s.getCachedServingSizes(ctx, normalizedNameForCache, normalizedBrand)
+	LogDebug("Found cached servings for scaling", "count", len(cachedServings))
+	for _, cachedServing := range cachedServings {
+		// Check if cache is still fresh
+		if time.Since(cachedServing.item.UpdatedAt) < cacheTTL {
+			LogDebug("Found fresh scalable serving cache match", "cached_grams", cachedServing.servingGrams, "age_days", int(time.Since(cachedServing.item.UpdatedAt).Hours()/24))
+			// Determine scaling method based on user input and cached data reliability
+			if s.shouldUse100gScaling(item, cachedServing.item) {
+				LogDebug("Using cached item with per-100g scaling (user provided grams or unreliable base units)",
+					"name", item.Name, "requested_grams", item.Grams)
+
+				nutrition := s.convertCachedToNutrients(cachedServing.item, item)
+				return &nutrition, nil
+			} else {
+				LogDebug("Using cached serving data - scaling from cached serving to requested serving",
+					"name", item.Name, "cached_grams", cachedServing.servingGrams, "requested_grams", item.Grams)
+
+				nutrition := s.scaleNutritionFromCachedServing(cachedServing.item, cachedServing.servingGrams, item.Grams)
+				return &nutrition, nil
+			}
+		}
+	}
+
+	LogDebug("No cache matches found", "name", item.Name, "brand", getBrandOrEmpty(item.Brand))
+	return nil, nil // No cache hit
+}
+
+// fetchNutritionContext fetches nutrition context from Open Food Facts
+// Returns context data and ingredients/URL information to be added to the item
+func (s *NutritionService) fetchNutritionContext(ctx context.Context, item *Item) (interface{}, error) {
+	// Only query OFF if we have a brand (OFF is only good for branded items)
+	brand := getBrandOrEmpty(item.Brand)
+	if s.offClient == nil || brand == "" || strings.TrimSpace(brand) == "" {
+		LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
+		return nil, nil
+	}
+
+	LogDebug("Checking OFF database for item context", "name", item.Name, "brand", brand)
+
+	offProduct, err := s.offClient.SearchProduct(ctx, item.Name, brand)
+	if err != nil || offProduct == nil {
+		LogDebug("Item not found in OFF database", "name", item.Name, "error", err)
+		return nil, nil
+	}
+
+	LogDebug("Found item in OFF database for context", "name", item.Name, "product_name", offProduct.ProductName)
+
+	// Extract ingredients and OFF URL BEFORE creating context so they get saved
+	if len(offProduct.Ingredients) > 0 {
+		item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
+		LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
+	}
+
+	if offProduct.Link != "" {
+		item.Url = &offProduct.Link
+		LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
+	}
+
+	// Create nutrition context for AI
+	nutritionContext := map[string]interface{}{
+		"source": "open_food_facts",
+		"products": []interface{}{
+			map[string]interface{}{
+				"product_name":          offProduct.ProductName,
+				"brands":                offProduct.Brands,
+				"nutrients":             offProduct.Nutriments,
+				"serving_quantity":      offProduct.ServingQuantity,
+				"serving_quantity_unit": offProduct.ServingQuantityUnit,
+				"serving_size":          offProduct.ServingSize,
+				"ingredients":           parseOFFIngredients(offProduct.Ingredients),
+				"link":                  offProduct.Link,
+				"grade":                 offProduct.Grade,
+				"is_beverage":           offProduct.IsBeverage,
+			},
+		},
+		"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as reference but provide complete nutrition data including nutrients not available in the context.",
+	}
+
+	return nutritionContext, nil
+}
+
+// fetchNutritionFromAI fetches nutrition data from AI provider with optional context
+func (s *NutritionService) fetchNutritionFromAI(ctx context.Context, item *Item, nutritionContext interface{}) (*CompleteNutrient, error) {
+	LogDebug("Fetching nutrition from AI provider", "name", item.Name, "has_context", nutritionContext != nil)
+
+	// For generic items without OFF data, use complete AI response to get ingredients
+	isGenericItem := (item.Brand == nil || (item.Brand != nil && *item.Brand == "")) && nutritionContext == nil
+	LogDebug("Checking if item is generic", "item", item.Name, "brand_nil", item.Brand == nil,
+		"brand_empty", item.Brand != nil && *item.Brand == "", "has_context", nutritionContext != nil, "is_generic", isGenericItem)
+
+	var nutrition CompleteNutrient
+	var err error
+
+	if isGenericItem {
+		// No OFF data and no brand - use complete AI response for ingredients
+		aiResponse, aiErr := s.aiProvider.GetNutritionWithContextComplete(ctx, *item, nutritionContext)
+		if aiErr != nil {
+			return nil, aiErr
+		}
+		nutrition = aiResponse.Nutrients
+
+		// Extract ingredients from AI response for generic items
+		if len(aiResponse.Ingredients) > 0 {
+			item.Ingredients = aiResponse.Ingredients
+			LogDebug("Extracted ingredients from AI", "item", item.Name, "ingredient_count", len(item.Ingredients))
+		}
+
+		// Extract URL from AI response if available
+		if aiResponse.URL != nil && *aiResponse.URL != "" {
+			item.Url = aiResponse.URL
+			LogDebug("Saved AI URL", "item", item.Name, "url", *aiResponse.URL)
+		}
+
+		LogDebug("Using complete AI nutrition", "item", item.Name, "calories", nutrition.Calories)
+	} else {
+		// Branded items or items with OFF context - use standard nutrition only
+		nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, *item, nutritionContext)
+		if err != nil {
+			return nil, err
+		}
+		LogDebug("Using AI nutrition", "item", item.Name, "calories", nutrition.Calories)
+	}
+
+	return &nutrition, nil
+}
+
+// cacheNutritionData stores nutrition data in the cache with proper scaling
+func (s *NutritionService) cacheNutritionData(ctx context.Context, item Item, nutrition CompleteNutrient) error {
+	if s.store == nil {
+		return nil // No cache available
+	}
+
+	LogDebug("Attempting to cache item nutrition data", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
+
+	// Extract original quantity info to reverse-scale if needed
+	quantityInfo := extractQuantityFromName(item.Name)
+
+	// Calculate the nutrition data for the BASE item (full serving)
+	var baseNutrition CompleteNutrient
+	var baseGrams float64
+	var baseName string
+
+	if quantityInfo.Multiplier != 1.0 {
+		// This was a fractional quantity - reverse-scale to get base nutrition
+		reverseMultiplier := 1.0 / quantityInfo.Multiplier
+		baseGrams = item.Grams * reverseMultiplier
+		baseName = quantityInfo.CleanName
+
+		baseNutrition = scaleNutritionData(nutrition, reverseMultiplier)
+
+		LogDebug("Reverse-scaling nutrition for base cache storage", "original_multiplier", quantityInfo.Multiplier,
+			"reverse_multiplier", reverseMultiplier, "base_grams", baseGrams, "original_grams", item.Grams)
+	} else {
+		// This is already a base serving - use as-is
+		baseNutrition = nutrition
+		baseGrams = item.Grams
+		baseName = item.Name
+	}
+
+	// Create a base item for caching (using clean name and base grams)
+	baseItem := Item{
+		Name:        baseName,
+		Brand:       item.Brand,
+		Grams:       baseGrams,
+		Ingredients: item.Ingredients, // Include ingredients from OFF/AI
+		Url:         item.Url,         // Include OFF/AI URL
+	}
+
+	// Use brand-aware normalization for consistent cache keys
+	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
+	baseNormalizedName := normalizeItemNameForCache(baseName, item.Brand)
+
+	// Cache under the base serving size
+	exactKey := s.makeExactServingKey(baseNormalizedName, normalizedBrand, baseGrams)
+	exactCacheItem := s.convertNutrientsToExactCache(baseItem, baseNutrition, exactKey)
+
+	if exactCached, _ := s.store.GetItemByName(ctx, exactKey, ""); exactCached != nil {
+		// Update existing exact cache entry
+		exactCacheItem.ID = exactCached.ID
+		err := s.store.UpdateItem(ctx, exactCacheItem)
+		if err != nil {
+			LogWarn("Failed to update cached nutrition data", "base_name", baseName,
+				"base_grams", baseGrams, "error", err.Error())
+			return err
+		}
+	} else {
+		// Create new exact cache entry
+		err := s.store.CreateItem(ctx, exactCacheItem)
+		if err != nil {
+			LogWarn("Failed to cache nutrition data", "base_name", baseName,
+				"base_grams", baseGrams, "error", err.Error())
+			return err
+		}
+	}
+
+	LogInfo("Successfully cached nutrition data", "base_name", baseName,
+		"base_grams", baseGrams, "cache_key", exactKey)
+	return nil
 }
 
 // NewNutritionService creates a new nutrition service
@@ -281,351 +633,37 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 
 // hydrateItemNutrition hydrates a single item with nutrition data from cache or AI
 func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) (Item, error) {
-	// Use brand-aware normalization for cache keys to prevent fragmentation
-	normalizedNameForCache, quantityInfo := normalizeItemNameWithQuantityForCache(item.Name, item.Brand)
-	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
+	LogDebug("Starting nutrition hydration for item", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
 
-	// Also keep traditional normalization for backward compatibility with existing cache
-	normalizedName, _ := normalizeItemNameWithQuantity(item.Name)
-
-	LogDebug("Checking cache for item", "original_name", item.Name, "normalized_name_cache", normalizedNameForCache,
-		"normalized_name_fallback", normalizedName, "normalized_brand", normalizedBrand, "quantity_multiplier", quantityInfo.Multiplier, "grams", item.Grams)
-
-	// Check cache first - try to find exact serving size match
-	if s.store != nil {
-		normalizedGrams := s.getNormalizedGrams(item)
-
-		// Try brand-aware cache key first (new approach)
-		exactKey := s.makeExactServingKey(normalizedNameForCache, normalizedBrand, normalizedGrams)
-		LogDebug("Checking exact serving cache", "exact_key", exactKey)
-		if cached, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && cached != nil {
-			// Check if cache is still fresh (30 days)
-			if time.Since(cached.UpdatedAt) < 30*24*time.Hour {
-				LogDebug("Found fresh exact serving cache match", "key", exactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
-				var nutrition CompleteNutrient
-
-				// If item has BaseQuantity > 1, we need to scale the cached single-unit values
-				if item.BaseQuantity != nil && *item.BaseQuantity > 1.0 {
-					LogDebug("Using cached exact serving match with scaling for multi-unit quantity (brand-aware cache)",
-						"name", item.Name, "base_quantity", *item.BaseQuantity, "total_grams", item.Grams)
-
-					// Get the single-unit nutrition values and scale by BaseQuantity
-					singleUnitNutrition := s.convertExactCachedToNutrients(cached)
-					scalingFactor := *item.BaseQuantity
-
-					nutrition = CompleteNutrient{
-						Calories:        singleUnitNutrition.Calories * scalingFactor,
-						Protein:         singleUnitNutrition.Protein * scalingFactor,
-						TotalFat:        singleUnitNutrition.TotalFat * scalingFactor,
-						SaturatedFat:    singleUnitNutrition.SaturatedFat * scalingFactor,
-						TransFat:        singleUnitNutrition.TransFat * scalingFactor,
-						Cholesterol:     singleUnitNutrition.Cholesterol * scalingFactor,
-						Sodium:          singleUnitNutrition.Sodium * scalingFactor,
-						TotalCarbs:      singleUnitNutrition.TotalCarbs * scalingFactor,
-						DietaryFiber:    singleUnitNutrition.DietaryFiber * scalingFactor,
-						TotalSugars:     singleUnitNutrition.TotalSugars * scalingFactor,
-						AddedSugars:     singleUnitNutrition.AddedSugars * scalingFactor,
-						VitaminA:        singleUnitNutrition.VitaminA * scalingFactor,
-						VitaminC:        singleUnitNutrition.VitaminC * scalingFactor,
-						VitaminD:        singleUnitNutrition.VitaminD * scalingFactor,
-						VitaminE:        singleUnitNutrition.VitaminE * scalingFactor,
-						VitaminK:        singleUnitNutrition.VitaminK * scalingFactor,
-						Thiamine:        singleUnitNutrition.Thiamine * scalingFactor,
-						Riboflavin:      singleUnitNutrition.Riboflavin * scalingFactor,
-						Niacin:          singleUnitNutrition.Niacin * scalingFactor,
-						VitaminB6:       singleUnitNutrition.VitaminB6 * scalingFactor,
-						Folate:          singleUnitNutrition.Folate * scalingFactor,
-						VitaminB12:      singleUnitNutrition.VitaminB12 * scalingFactor,
-						Biotin:          singleUnitNutrition.Biotin * scalingFactor,
-						PantothenicAcid: singleUnitNutrition.PantothenicAcid * scalingFactor,
-						Choline:         singleUnitNutrition.Choline * scalingFactor,
-						Calcium:         singleUnitNutrition.Calcium * scalingFactor,
-						Iron:            singleUnitNutrition.Iron * scalingFactor,
-						Magnesium:       singleUnitNutrition.Magnesium * scalingFactor,
-						Phosphorus:      singleUnitNutrition.Phosphorus * scalingFactor,
-						Potassium:       singleUnitNutrition.Potassium * scalingFactor,
-						Zinc:            singleUnitNutrition.Zinc * scalingFactor,
-						Copper:          singleUnitNutrition.Copper * scalingFactor,
-						Manganese:       singleUnitNutrition.Manganese * scalingFactor,
-						Selenium:        singleUnitNutrition.Selenium * scalingFactor,
-						Iodine:          singleUnitNutrition.Iodine * scalingFactor,
-						Molybdenum:      singleUnitNutrition.Molybdenum * scalingFactor,
-						Chromium:        singleUnitNutrition.Chromium * scalingFactor,
-						Fluoride:        singleUnitNutrition.Fluoride * scalingFactor,
-						Chloride:        singleUnitNutrition.Chloride * scalingFactor,
-					}
-				} else {
-					LogDebug("Using cached exact serving match - returning original values without scaling",
-						"name", item.Name, "grams", item.Grams)
-
-					nutrition = s.convertExactCachedToNutrients(cached)
-				}
-
-				item.Nutrients = &nutrition
-				return item, nil
-			}
-		}
-
-		// Fallback: try traditional cache key for backward compatibility
-		fallbackExactKey := s.makeExactServingKey(normalizedName, normalizedBrand, normalizedGrams)
-		LogDebug("Checking fallback exact serving cache", "fallback_key", fallbackExactKey)
-		if fallbackExactKey != exactKey { // Only check if different from brand-aware key
-			if cached, err := s.store.GetItemByName(ctx, fallbackExactKey, ""); err == nil && cached != nil {
-				// Check if cache is still fresh (30 days)
-				if time.Since(cached.UpdatedAt) < 30*24*time.Hour {
-					LogDebug("Found fresh fallback exact serving cache match", "key", fallbackExactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
-					LogDebug("Using cached exact serving match from fallback key - returning original values without scaling (backward compatibility)",
-						"name", item.Name, "grams", item.Grams, "fallback_key", fallbackExactKey)
-
-					nutrition := s.convertExactCachedToNutrients(cached)
-					item.Nutrients = &nutrition
-					return item, nil
-				}
-			}
-		}
-
-		// Try to find any cached serving size for this item to scale from
-		LogDebug("Checking scalable serving cache", "normalized_name", normalizedNameForCache, "normalized_brand", normalizedBrand)
-		cachedServings := s.getCachedServingSizes(ctx, normalizedNameForCache, normalizedBrand)
-		LogDebug("Found cached servings for scaling", "count", len(cachedServings))
-		for _, cachedServing := range cachedServings {
-			// Check if cache is still fresh (30 days)
-			if time.Since(cachedServing.item.UpdatedAt) < 30*24*time.Hour {
-				LogDebug("Found fresh scalable serving cache match", "cached_grams", cachedServing.servingGrams, "age_days", int(time.Since(cachedServing.item.UpdatedAt).Hours()/24))
-				// Determine scaling method based on user input and cached data reliability
-				if s.shouldUse100gScaling(item, cachedServing.item) {
-					LogDebug("Using cached item with per-100g scaling (user provided grams or unreliable base units)",
-						"name", item.Name, "requested_grams", item.Grams)
-
-					nutrition := s.convertCachedToNutrients(cachedServing.item, item)
-					item.Nutrients = &nutrition
-
-					return item, nil
-				} else {
-					LogDebug("Using cached serving data - scaling from cached serving to requested serving",
-						"name", item.Name, "cached_grams", cachedServing.servingGrams, "requested_grams", item.Grams)
-
-					nutrition := s.scaleNutritionFromCachedServing(cachedServing.item, cachedServing.servingGrams, item.Grams)
-					item.Nutrients = &nutrition
-
-					return item, nil
-				}
-			}
-		}
+	// Step 1: Try to fetch from cache
+	if cachedNutrition, err := s.fetchNutritionFromCache(ctx, item); err != nil {
+		LogWarn("Error fetching from cache", "error", err.Error())
+	} else if cachedNutrition != nil {
+		LogDebug("Using cached nutrition data", "name", item.Name)
+		item.Nutrients = cachedNutrition
+		return item, nil
 	}
 
-	LogDebug("No cache matches found - proceeding to AI nutrition lookup", "name", item.Name, "brand", getBrandOrEmpty(item.Brand))
-
-	// Try Open Food Facts database to provide context for AI
-	var nutritionContext interface{}
-	var offProduct *OFFProduct // Declare here so we can use it later for ingredients
-
-	// Only query OFF if we have a brand (OFF is only good for branded items)
-	brand := getBrandOrEmpty(item.Brand)
-	if s.offClient != nil && brand != "" && strings.TrimSpace(brand) != "" {
-		LogDebug("Checking OFF database for item context", "name", item.Name, "brand", brand)
-
-		var err error
-		offProduct, err = s.offClient.SearchProduct(ctx, item.Name, brand)
-		if err == nil && offProduct != nil {
-			LogDebug("Found item in OFF database for context", "name", item.Name, "product_name", offProduct.ProductName)
-
-			// Use OFF product as context for the AI call
-			nutritionContext = map[string]interface{}{
-				"source": "open_food_facts",
-				"products": []interface{}{
-					map[string]interface{}{
-						"product_name":          offProduct.ProductName,
-						"brands":                offProduct.Brands,
-						"nutrients":             offProduct.Nutriments,
-						"serving_quantity":      offProduct.ServingQuantity,
-						"serving_quantity_unit": offProduct.ServingQuantityUnit,
-						"serving_size":          offProduct.ServingSize,
-						"ingredients":           parseOFFIngredients(offProduct.Ingredients),
-						"link":                  offProduct.Link,
-						"grade":                 offProduct.Grade,
-						"is_beverage":           offProduct.IsBeverage,
-					},
-				},
-				"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as reference but provide complete nutrition data including nutrients not available in the context.",
-			}
-		} else {
-			LogDebug("Item not found in OFF database", "name", item.Name, "error", err)
-		}
-	} else {
-		LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
+	// Step 2: Fetch nutrition context from OFF and extract ingredients/URL
+	nutritionContext, err := s.fetchNutritionContext(ctx, &item)
+	if err != nil {
+		LogWarn("Error fetching OFF context", "error", err.Error())
 	}
 
-	// Extract ingredients and OFF URL BEFORE caching so they get saved to the cache
-	if offProduct != nil {
-		// Extract and convert ingredients from OFF format to our format
-		if len(offProduct.Ingredients) > 0 {
-			item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
-			LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
-		}
-
-		// Save OFF URL for historical reference
-		if offProduct.Link != "" {
-			item.Url = &offProduct.Link
-			LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
-		}
+	// Step 3: Fetch nutrition from AI with context
+	nutrition, err := s.fetchNutritionFromAI(ctx, &item, nutritionContext)
+	if err != nil {
+		return item, err
 	}
 
-	// Get nutrition from AI (with optional OFF context)
-	LogDebug("Fetching nutrition from AI provider", "name", item.Name, "has_context", nutritionContext != nil)
-
-	// For generic items without OFF data, use complete AI response to get ingredients (fallback path)
-	var nutrition CompleteNutrient
-	var err error
-	isGenericItemFallback := offProduct == nil && (item.Brand == nil || (item.Brand != nil && *item.Brand == ""))
-	LogDebug("Checking if fallback item is generic", "item", item.Name, "offProduct_nil", offProduct == nil, "brand_nil", item.Brand == nil, "brand_empty", item.Brand != nil && *item.Brand == "", "is_generic", isGenericItemFallback)
-
-	if isGenericItemFallback {
-		// No OFF data and no brand - use complete AI response for ingredients (fallback path)
-		aiResponse, aiErr := s.aiProvider.GetNutritionWithContextComplete(ctx, item, nutritionContext)
-		if aiErr != nil {
-			return item, aiErr
-		}
-		nutrition = aiResponse.Nutrients
-
-		// Extract ingredients from AI response for generic items (fallback path)
-		if len(aiResponse.Ingredients) > 0 {
-			item.Ingredients = aiResponse.Ingredients
-			LogDebug("Extracted ingredients from AI (fallback)", "item", item.Name, "ingredient_count", len(item.Ingredients))
-		}
-
-		// Extract URL from AI response if available (fallback path)
-		if aiResponse.URL != nil && *aiResponse.URL != "" {
-			item.Url = aiResponse.URL
-			LogDebug("Saved AI URL (fallback)", "item", item.Name, "url", *aiResponse.URL)
-		}
-
-		LogDebug("Using complete AI nutrition (fallback)", "item", item.Name, "calories", nutrition.Calories)
-	} else {
-		// Branded items or items with OFF context - use standard nutrition only (fallback path)
-		nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
-		if err != nil {
-			return item, err
-		}
-		LogDebug("Using AI nutrition (fallback)", "item", item.Name, "calories", nutrition.Calories)
+	// Step 4: Cache the nutrition data
+	if err := s.cacheNutritionData(ctx, item, *nutrition); err != nil {
+		LogWarn("Failed to cache nutrition data", "error", err.Error())
+		// Don't fail the request if caching fails
 	}
 
-	// CRITICAL FIX: Always cache the BASE/FULL serving nutrition data, not fractional quantities
-	// If this item came from quantity extraction (e.g., "half can"), we need to reverse-scale
-	// back to the full serving size before caching
-	if s.store != nil {
-		LogDebug("Attempting to cache item nutrition data", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
-
-		// Extract original quantity info to reverse-scale if needed
-		quantityInfo := extractQuantityFromName(item.Name)
-
-		// Calculate the nutrition data for the BASE item (full serving)
-		var baseNutrition CompleteNutrient
-		var baseGrams float64
-		var baseName string
-
-		if quantityInfo.Multiplier != 1.0 {
-			// This was a fractional quantity - reverse-scale to get base nutrition
-			reverseMultiplier := 1.0 / quantityInfo.Multiplier
-			baseGrams = item.Grams * reverseMultiplier
-			baseName = quantityInfo.CleanName
-
-			// Scale nutrition back up to full serving size
-			baseNutrition = CompleteNutrient{
-				Calories:           nutrition.Calories * reverseMultiplier,
-				Protein:            nutrition.Protein * reverseMultiplier,
-				TotalFat:           nutrition.TotalFat * reverseMultiplier,
-				SaturatedFat:       nutrition.SaturatedFat * reverseMultiplier,
-				TransFat:           nutrition.TransFat * reverseMultiplier,
-				Cholesterol:        nutrition.Cholesterol * reverseMultiplier,
-				Sodium:             nutrition.Sodium * reverseMultiplier,
-				TotalCarbs:         nutrition.TotalCarbs * reverseMultiplier,
-				DietaryFiber:       nutrition.DietaryFiber * reverseMultiplier,
-				TotalSugars:        nutrition.TotalSugars * reverseMultiplier,
-				AddedSugars:        nutrition.AddedSugars * reverseMultiplier,
-				VitaminA:           nutrition.VitaminA * reverseMultiplier,
-				VitaminC:           nutrition.VitaminC * reverseMultiplier,
-				VitaminD:           nutrition.VitaminD * reverseMultiplier,
-				VitaminE:           nutrition.VitaminE * reverseMultiplier,
-				VitaminK:           nutrition.VitaminK * reverseMultiplier,
-				Thiamine:           nutrition.Thiamine * reverseMultiplier,
-				Riboflavin:         nutrition.Riboflavin * reverseMultiplier,
-				Niacin:             nutrition.Niacin * reverseMultiplier,
-				VitaminB6:          nutrition.VitaminB6 * reverseMultiplier,
-				Folate:             nutrition.Folate * reverseMultiplier,
-				VitaminB12:         nutrition.VitaminB12 * reverseMultiplier,
-				Biotin:             nutrition.Biotin * reverseMultiplier,
-				PantothenicAcid:    nutrition.PantothenicAcid * reverseMultiplier,
-				Choline:            nutrition.Choline * reverseMultiplier,
-				Calcium:            nutrition.Calcium * reverseMultiplier,
-				Iron:               nutrition.Iron * reverseMultiplier,
-				Magnesium:          nutrition.Magnesium * reverseMultiplier,
-				Phosphorus:         nutrition.Phosphorus * reverseMultiplier,
-				Potassium:          nutrition.Potassium * reverseMultiplier,
-				Zinc:               nutrition.Zinc * reverseMultiplier,
-				Copper:             nutrition.Copper * reverseMultiplier,
-				Manganese:          nutrition.Manganese * reverseMultiplier,
-				Selenium:           nutrition.Selenium * reverseMultiplier,
-				Iodine:             nutrition.Iodine * reverseMultiplier,
-				Molybdenum:         nutrition.Molybdenum * reverseMultiplier,
-				Chromium:           nutrition.Chromium * reverseMultiplier,
-				Fluoride:           nutrition.Fluoride * reverseMultiplier,
-				Chloride:           nutrition.Chloride * reverseMultiplier,
-				Omega3Ala:          nutrition.Omega3Ala * reverseMultiplier,
-				Omega3Epa:          nutrition.Omega3Epa * reverseMultiplier,
-				Omega3Dha:          nutrition.Omega3Dha * reverseMultiplier,
-				Omega6:             nutrition.Omega6 * reverseMultiplier,
-				Creatine:           nutrition.Creatine * reverseMultiplier,
-				Caffeine:           nutrition.Caffeine * reverseMultiplier,
-				Alcohol:            nutrition.Alcohol * reverseMultiplier,
-				PolyunsaturatedFat: nutrition.PolyunsaturatedFat * reverseMultiplier,
-				MonounsaturatedFat: nutrition.MonounsaturatedFat * reverseMultiplier,
-			}
-
-			LogDebug("Reverse-scaling nutrition for base cache storage", "original_multiplier", quantityInfo.Multiplier,
-				"reverse_multiplier", reverseMultiplier, "base_grams", baseGrams, "original_grams", item.Grams)
-		} else {
-			// This is already a base serving - use as-is
-			baseNutrition = nutrition
-			baseGrams = item.Grams
-			baseName = item.Name
-		}
-
-		// Create a base item for caching (using clean name and base grams)
-		baseItem := Item{
-			Name:        baseName,
-			Brand:       item.Brand,
-			Grams:       baseGrams,
-			Ingredients: item.Ingredients, // Include ingredients from OFF
-			Url:         item.Url,         // Include OFF URL
-		}
-
-		// Use brand-aware normalization for consistent cache keys
-		baseNormalizedName := normalizeItemNameForCache(baseName, item.Brand)
-
-		// Cache under the base serving size
-		exactKey := s.makeExactServingKey(baseNormalizedName, normalizedBrand, baseGrams)
-		exactCacheItem := s.convertNutrientsToExactCache(baseItem, baseNutrition, exactKey)
-		if exactCached, _ := s.store.GetItemByName(ctx, exactKey, ""); exactCached != nil {
-			// Update existing exact cache entry
-			exactCacheItem.ID = exactCached.ID
-			err = s.store.UpdateItem(ctx, exactCacheItem)
-		} else {
-			// Create new exact cache entry
-			err = s.store.CreateItem(ctx, exactCacheItem)
-		}
-		if err != nil {
-			LogWarn("Failed to cache base serving nutrition data", "base_name", baseName,
-				"base_grams", baseGrams, "error", err.Error())
-			// Don't fail the request if caching fails
-		} else {
-			LogInfo("Successfully cached base serving nutrition data", "base_name", baseName,
-				"base_grams", baseGrams, "cache_key", exactKey)
-		}
-	}
-
-	item.Nutrients = &nutrition
-
+	// Step 5: Set nutrition on item and return
+	item.Nutrients = nutrition
 	return item, nil
 }
 
@@ -641,51 +679,51 @@ func (s *NutritionService) convertCachedToNutrients(cached *storage.Item, item I
 
 	// Convert from per-100g cache data to actual weight
 	return CompleteNutrient{
-		Calories:           convertAndRound(cached.CaloriesPer100g, 3), // More precision to avoid cumulative rounding errors
-		Protein:            convertAndRound(cached.ProteinGPer100g, 2),
-		TotalFat:           convertAndRound(cached.TotalFatGPer100g, 2),
-		SaturatedFat:       convertAndRound(cached.SaturatedFatGPer100g, 2),
-		TransFat:           convertAndRound(cached.TransFatGPer100g, 1),
-		Cholesterol:        convertAndRound(cached.CholesterolMgPer100g, 1),
-		Sodium:             convertAndRound(cached.SodiumMgPer100g, 1),
-		TotalCarbs:         convertAndRound(cached.TotalCarbsGPer100g, 1),
-		DietaryFiber:       convertAndRound(cached.DietaryFiberGPer100g, 1),
-		TotalSugars:        convertAndRound(cached.TotalSugarsGPer100g, 1),
-		AddedSugars:        convertAndRound(cached.AddedSugarsGPer100g, 1),
-		VitaminA:           convertAndRound(cached.VitaminAMcgPer100g, 1),
-		VitaminC:           convertAndRound(cached.VitaminCMgPer100g, 1),
-		VitaminD:           convertAndRound(cached.VitaminDMcgPer100g, 1),
-		VitaminE:           convertAndRound(cached.VitaminEMgPer100g, 1),
-		VitaminK:           convertAndRound(cached.VitaminKMcgPer100g, 1),
-		Thiamine:           convertAndRound(cached.ThiamineMgPer100g, 3),
-		Riboflavin:         convertAndRound(cached.RiboflavinMgPer100g, 3),
-		Niacin:             convertAndRound(cached.NiacinMgPer100g, 1),
-		VitaminB6:          convertAndRound(cached.VitaminB6MgPer100g, 3),
-		Folate:             convertAndRound(cached.FolateMcgPer100g, 1),
-		VitaminB12:         convertAndRound(cached.VitaminB12McgPer100g, 2),
-		Calcium:            convertAndRound(cached.CalciumMgPer100g, 1),
-		Iron:               convertAndRound(cached.IronMgPer100g, 1),
-		Magnesium:          convertAndRound(cached.MagnesiumMgPer100g, 1),
-		Phosphorus:         convertAndRound(cached.PhosphorusMgPer100g, 1),
-		Potassium:          convertAndRound(cached.PotassiumMgPer100g, 1),
-		Zinc:               convertAndRound(cached.ZincMgPer100g, 2),
-		Copper:             convertAndRound(cached.CopperMgPer100g, 3),
-		Manganese:          convertAndRound(cached.ManganeseMgPer100g, 3),
-		Selenium:           convertAndRound(cached.SeleniumMcgPer100g, 1),
-		Iodine:             convertAndRound(cached.IodineMcgPer100g, 1),
-		Molybdenum:         convertAndRound(cached.MolybdenumMcgPer100g, 1),
-		Chromium:           convertAndRound(cached.ChromiumMcgPer100g, 1),
-		Fluoride:           convertAndRound(cached.FluorideMgPer100g, 1),
-		Chloride:           convertAndRound(cached.ChlorideMgPer100g, 1),
-		Omega3Ala:          convertAndRound(cached.Omega3AlaGPer100g, 3),
-		Omega3Epa:          convertAndRound(cached.Omega3EpaGPer100g, 3),
-		Omega3Dha:          convertAndRound(cached.Omega3DhaGPer100g, 3),
-		Omega6:             convertAndRound(cached.Omega6GPer100g, 2),
-		Creatine:           convertAndRound(cached.CreatineMgPer100g, 1),
-		Caffeine:           convertAndRound(cached.CaffeineMgPer100g, 1),
-		Alcohol:            convertAndRound(cached.AlcoholGPer100g, 2),
-		PolyunsaturatedFat: convertAndRound(cached.PolyunsaturatedFatGPer100g, 2),
-		MonounsaturatedFat: convertAndRound(cached.MonounsaturatedFatGPer100g, 2),
+		Calories:           convertAndRound(cached.CaloriesPer100g, caloriesPrecision),
+		Protein:            convertAndRound(cached.ProteinGPer100g, proteinPrecision),
+		TotalFat:           convertAndRound(cached.TotalFatGPer100g, fatPrecision),
+		SaturatedFat:       convertAndRound(cached.SaturatedFatGPer100g, fatPrecision),
+		TransFat:           convertAndRound(cached.TransFatGPer100g, transFatPrecision),
+		Cholesterol:        convertAndRound(cached.CholesterolMgPer100g, cholesterolPrecision),
+		Sodium:             convertAndRound(cached.SodiumMgPer100g, sodiumPrecision),
+		TotalCarbs:         convertAndRound(cached.TotalCarbsGPer100g, carbsPrecision),
+		DietaryFiber:       convertAndRound(cached.DietaryFiberGPer100g, fiberPrecision),
+		TotalSugars:        convertAndRound(cached.TotalSugarsGPer100g, sugarsPrecision),
+		AddedSugars:        convertAndRound(cached.AddedSugarsGPer100g, sugarsPrecision),
+		VitaminA:           convertAndRound(cached.VitaminAMcgPer100g, vitaminPrecision),
+		VitaminC:           convertAndRound(cached.VitaminCMgPer100g, vitaminPrecision),
+		VitaminD:           convertAndRound(cached.VitaminDMcgPer100g, vitaminPrecision),
+		VitaminE:           convertAndRound(cached.VitaminEMgPer100g, vitaminPrecision),
+		VitaminK:           convertAndRound(cached.VitaminKMcgPer100g, vitaminPrecision),
+		Thiamine:           convertAndRound(cached.ThiamineMgPer100g, vitaminBPrecision),
+		Riboflavin:         convertAndRound(cached.RiboflavinMgPer100g, vitaminBPrecision),
+		Niacin:             convertAndRound(cached.NiacinMgPer100g, vitaminPrecision),
+		VitaminB6:          convertAndRound(cached.VitaminB6MgPer100g, vitaminBPrecision),
+		Folate:             convertAndRound(cached.FolateMcgPer100g, vitaminPrecision),
+		VitaminB12:         convertAndRound(cached.VitaminB12McgPer100g, vitaminB12Precision),
+		Calcium:            convertAndRound(cached.CalciumMgPer100g, mineralPrecision),
+		Iron:               convertAndRound(cached.IronMgPer100g, mineralPrecision),
+		Magnesium:          convertAndRound(cached.MagnesiumMgPer100g, mineralPrecision),
+		Phosphorus:         convertAndRound(cached.PhosphorusMgPer100g, mineralPrecision),
+		Potassium:          convertAndRound(cached.PotassiumMgPer100g, mineralPrecision),
+		Zinc:               convertAndRound(cached.ZincMgPer100g, zincPrecision),
+		Copper:             convertAndRound(cached.CopperMgPer100g, tracePrecision),
+		Manganese:          convertAndRound(cached.ManganeseMgPer100g, tracePrecision),
+		Selenium:           convertAndRound(cached.SeleniumMcgPer100g, mineralPrecision),
+		Iodine:             convertAndRound(cached.IodineMcgPer100g, mineralPrecision),
+		Molybdenum:         convertAndRound(cached.MolybdenumMcgPer100g, mineralPrecision),
+		Chromium:           convertAndRound(cached.ChromiumMcgPer100g, mineralPrecision),
+		Fluoride:           convertAndRound(cached.FluorideMgPer100g, mineralPrecision),
+		Chloride:           convertAndRound(cached.ChlorideMgPer100g, mineralPrecision),
+		Omega3Ala:          convertAndRound(cached.Omega3AlaGPer100g, omegaPrecision),
+		Omega3Epa:          convertAndRound(cached.Omega3EpaGPer100g, omegaPrecision),
+		Omega3Dha:          convertAndRound(cached.Omega3DhaGPer100g, omegaPrecision),
+		Omega6:             convertAndRound(cached.Omega6GPer100g, omega6Precision),
+		Creatine:           convertAndRound(cached.CreatineMgPer100g, mineralPrecision),
+		Caffeine:           convertAndRound(cached.CaffeineMgPer100g, mineralPrecision),
+		Alcohol:            convertAndRound(cached.AlcoholGPer100g, alcoholPrecision),
+		PolyunsaturatedFat: convertAndRound(cached.PolyunsaturatedFatGPer100g, fatPrecision),
+		MonounsaturatedFat: convertAndRound(cached.MonounsaturatedFatGPer100g, fatPrecision),
 	}
 }
 
@@ -738,7 +776,7 @@ func (s *NutritionService) tryExactServingMatch(ctx context.Context, normalizedN
 	var results []cachedServingData
 
 	// Try some common serving sizes to see if we have them cached
-	commonGrams := []float64{100, 355, 250, 200, 500, 150, 300, 400, 50, 75, 125}
+	commonGrams := getCommonServingSizes()
 
 	for _, grams := range commonGrams {
 		exactKey := s.makeExactServingKey(normalizedName, normalizedBrand, grams)
@@ -772,7 +810,7 @@ func (s *NutritionService) tryBrandAwareServingMatch(ctx context.Context, normal
 	variations := generateBrandAwareVariations(normalizedName, brandPtr)
 
 	// Try each variation with common serving sizes
-	commonGrams := []float64{100, 355, 250, 200, 500, 150, 300, 400, 50, 75, 125}
+	commonGrams := getCommonServingSizes()
 
 	for _, variation := range variations {
 		// Skip the original exact match since we already tried that
@@ -1017,56 +1055,7 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 		divider := *item.BaseQuantity
 		normalizedGrams = actualGrams / divider
 
-		normalizedNutrients = CompleteNutrient{
-			Calories:           nutrients.Calories / divider,
-			Protein:            nutrients.Protein / divider,
-			TotalFat:           nutrients.TotalFat / divider,
-			SaturatedFat:       nutrients.SaturatedFat / divider,
-			TransFat:           nutrients.TransFat / divider,
-			Cholesterol:        nutrients.Cholesterol / divider,
-			Sodium:             nutrients.Sodium / divider,
-			TotalCarbs:         nutrients.TotalCarbs / divider,
-			DietaryFiber:       nutrients.DietaryFiber / divider,
-			TotalSugars:        nutrients.TotalSugars / divider,
-			AddedSugars:        nutrients.AddedSugars / divider,
-			VitaminA:           nutrients.VitaminA / divider,
-			VitaminC:           nutrients.VitaminC / divider,
-			VitaminD:           nutrients.VitaminD / divider,
-			VitaminE:           nutrients.VitaminE / divider,
-			VitaminK:           nutrients.VitaminK / divider,
-			Thiamine:           nutrients.Thiamine / divider,
-			Riboflavin:         nutrients.Riboflavin / divider,
-			Niacin:             nutrients.Niacin / divider,
-			VitaminB6:          nutrients.VitaminB6 / divider,
-			Folate:             nutrients.Folate / divider,
-			VitaminB12:         nutrients.VitaminB12 / divider,
-			Biotin:             nutrients.Biotin / divider,
-			PantothenicAcid:    nutrients.PantothenicAcid / divider,
-			Choline:            nutrients.Choline / divider,
-			Calcium:            nutrients.Calcium / divider,
-			Iron:               nutrients.Iron / divider,
-			Magnesium:          nutrients.Magnesium / divider,
-			Phosphorus:         nutrients.Phosphorus / divider,
-			Potassium:          nutrients.Potassium / divider,
-			Zinc:               nutrients.Zinc / divider,
-			Copper:             nutrients.Copper / divider,
-			Manganese:          nutrients.Manganese / divider,
-			Selenium:           nutrients.Selenium / divider,
-			Iodine:             nutrients.Iodine / divider,
-			Molybdenum:         nutrients.Molybdenum / divider,
-			Chromium:           nutrients.Chromium / divider,
-			Fluoride:           nutrients.Fluoride / divider,
-			Chloride:           nutrients.Chloride / divider,
-			Omega3Ala:          nutrients.Omega3Ala / divider,
-			Omega3Epa:          nutrients.Omega3Epa / divider,
-			Omega3Dha:          nutrients.Omega3Dha / divider,
-			Omega6:             nutrients.Omega6 / divider,
-			Creatine:           nutrients.Creatine / divider,
-			Caffeine:           nutrients.Caffeine / divider,
-			Alcohol:            nutrients.Alcohol / divider,
-			PolyunsaturatedFat: nutrients.PolyunsaturatedFat / divider,
-			MonounsaturatedFat: nutrients.MonounsaturatedFat / divider,
-		}
+		normalizedNutrients = scaleNutritionData(nutrients, 1.0/divider)
 	}
 
 	// Helper function to convert and round in one step for per-100g values
@@ -1135,54 +1124,54 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 		OriginalMonounsaturatedFatG: float64Ptr(normalizedNutrients.MonounsaturatedFat),
 
 		// Also store per-100g data for scaling to other serving sizes
-		CaloriesPer100g:            convertAndRound(normalizedNutrients.Calories, 4),
-		ProteinGPer100g:            convertAndRound(normalizedNutrients.Protein, 3),
-		TotalFatGPer100g:           convertAndRound(normalizedNutrients.TotalFat, 3),
-		SaturatedFatGPer100g:       convertAndRound(normalizedNutrients.SaturatedFat, 3),
-		TransFatGPer100g:           convertAndRound(normalizedNutrients.TransFat, 3),
-		CholesterolMgPer100g:       convertAndRound(normalizedNutrients.Cholesterol, 2),
-		SodiumMgPer100g:            convertAndRound(normalizedNutrients.Sodium, 1),
-		TotalCarbsGPer100g:         convertAndRound(normalizedNutrients.TotalCarbs, 1),
-		DietaryFiberGPer100g:       convertAndRound(normalizedNutrients.DietaryFiber, 1),
-		TotalSugarsGPer100g:        convertAndRound(normalizedNutrients.TotalSugars, 1),
-		AddedSugarsGPer100g:        convertAndRound(normalizedNutrients.AddedSugars, 1),
-		VitaminAMcgPer100g:         convertAndRound(normalizedNutrients.VitaminA, 1),
-		VitaminCMgPer100g:          convertAndRound(normalizedNutrients.VitaminC, 1),
-		VitaminDMcgPer100g:         convertAndRound(normalizedNutrients.VitaminD, 1),
-		VitaminEMgPer100g:          convertAndRound(normalizedNutrients.VitaminE, 1),
-		VitaminKMcgPer100g:         convertAndRound(normalizedNutrients.VitaminK, 1),
-		ThiamineMgPer100g:          convertAndRound(normalizedNutrients.Thiamine, 3),
-		RiboflavinMgPer100g:        convertAndRound(normalizedNutrients.Riboflavin, 3),
-		NiacinMgPer100g:            convertAndRound(normalizedNutrients.Niacin, 1),
-		VitaminB6MgPer100g:         convertAndRound(normalizedNutrients.VitaminB6, 3),
-		FolateMcgPer100g:           convertAndRound(normalizedNutrients.Folate, 1),
-		VitaminB12McgPer100g:       convertAndRound(normalizedNutrients.VitaminB12, 2),
-		BiotinMcgPer100g:           convertAndRound(normalizedNutrients.Biotin, 1),
-		PantothenicAcidMgPer100g:   convertAndRound(normalizedNutrients.PantothenicAcid, 1),
-		CholineMgPer100g:           convertAndRound(normalizedNutrients.Choline, 1),
-		CalciumMgPer100g:           convertAndRound(normalizedNutrients.Calcium, 1),
-		IronMgPer100g:              convertAndRound(normalizedNutrients.Iron, 1),
-		MagnesiumMgPer100g:         convertAndRound(normalizedNutrients.Magnesium, 1),
-		PhosphorusMgPer100g:        convertAndRound(normalizedNutrients.Phosphorus, 1),
-		PotassiumMgPer100g:         convertAndRound(normalizedNutrients.Potassium, 1),
-		ZincMgPer100g:              convertAndRound(normalizedNutrients.Zinc, 2),
-		CopperMgPer100g:            convertAndRound(normalizedNutrients.Copper, 3),
-		ManganeseMgPer100g:         convertAndRound(normalizedNutrients.Manganese, 3),
-		SeleniumMcgPer100g:         convertAndRound(normalizedNutrients.Selenium, 1),
-		IodineMcgPer100g:           convertAndRound(normalizedNutrients.Iodine, 1),
-		MolybdenumMcgPer100g:       convertAndRound(normalizedNutrients.Molybdenum, 1),
-		ChromiumMcgPer100g:         convertAndRound(normalizedNutrients.Chromium, 1),
-		FluorideMgPer100g:          convertAndRound(normalizedNutrients.Fluoride, 1),
-		ChlorideMgPer100g:          convertAndRound(normalizedNutrients.Chloride, 1),
-		Omega3AlaGPer100g:          convertAndRound(normalizedNutrients.Omega3Ala, 3),
-		Omega3EpaGPer100g:          convertAndRound(normalizedNutrients.Omega3Epa, 3),
-		Omega3DhaGPer100g:          convertAndRound(normalizedNutrients.Omega3Dha, 3),
-		Omega6GPer100g:             convertAndRound(normalizedNutrients.Omega6, 2),
-		CreatineMgPer100g:          convertAndRound(normalizedNutrients.Creatine, 1),
-		CaffeineMgPer100g:          convertAndRound(normalizedNutrients.Caffeine, 1),
-		AlcoholGPer100g:            convertAndRound(normalizedNutrients.Alcohol, 2),
-		PolyunsaturatedFatGPer100g: convertAndRound(normalizedNutrients.PolyunsaturatedFat, 2),
-		MonounsaturatedFatGPer100g: convertAndRound(normalizedNutrients.MonounsaturatedFat, 2),
+		CaloriesPer100g:            convertAndRound(normalizedNutrients.Calories, 4), // Higher precision for calories
+		ProteinGPer100g:            convertAndRound(normalizedNutrients.Protein, tracePrecision),
+		TotalFatGPer100g:           convertAndRound(normalizedNutrients.TotalFat, tracePrecision),
+		SaturatedFatGPer100g:       convertAndRound(normalizedNutrients.SaturatedFat, tracePrecision),
+		TransFatGPer100g:           convertAndRound(normalizedNutrients.TransFat, tracePrecision),
+		CholesterolMgPer100g:       convertAndRound(normalizedNutrients.Cholesterol, fatPrecision),
+		SodiumMgPer100g:            convertAndRound(normalizedNutrients.Sodium, mineralPrecision),
+		TotalCarbsGPer100g:         convertAndRound(normalizedNutrients.TotalCarbs, carbsPrecision),
+		DietaryFiberGPer100g:       convertAndRound(normalizedNutrients.DietaryFiber, fiberPrecision),
+		TotalSugarsGPer100g:        convertAndRound(normalizedNutrients.TotalSugars, sugarsPrecision),
+		AddedSugarsGPer100g:        convertAndRound(normalizedNutrients.AddedSugars, sugarsPrecision),
+		VitaminAMcgPer100g:         convertAndRound(normalizedNutrients.VitaminA, vitaminPrecision),
+		VitaminCMgPer100g:          convertAndRound(normalizedNutrients.VitaminC, vitaminPrecision),
+		VitaminDMcgPer100g:         convertAndRound(normalizedNutrients.VitaminD, vitaminPrecision),
+		VitaminEMgPer100g:          convertAndRound(normalizedNutrients.VitaminE, vitaminPrecision),
+		VitaminKMcgPer100g:         convertAndRound(normalizedNutrients.VitaminK, vitaminPrecision),
+		ThiamineMgPer100g:          convertAndRound(normalizedNutrients.Thiamine, vitaminBPrecision),
+		RiboflavinMgPer100g:        convertAndRound(normalizedNutrients.Riboflavin, vitaminBPrecision),
+		NiacinMgPer100g:            convertAndRound(normalizedNutrients.Niacin, vitaminPrecision),
+		VitaminB6MgPer100g:         convertAndRound(normalizedNutrients.VitaminB6, vitaminBPrecision),
+		FolateMcgPer100g:           convertAndRound(normalizedNutrients.Folate, vitaminPrecision),
+		VitaminB12McgPer100g:       convertAndRound(normalizedNutrients.VitaminB12, vitaminB12Precision),
+		BiotinMcgPer100g:           convertAndRound(normalizedNutrients.Biotin, vitaminPrecision),
+		PantothenicAcidMgPer100g:   convertAndRound(normalizedNutrients.PantothenicAcid, vitaminPrecision),
+		CholineMgPer100g:           convertAndRound(normalizedNutrients.Choline, vitaminPrecision),
+		CalciumMgPer100g:           convertAndRound(normalizedNutrients.Calcium, mineralPrecision),
+		IronMgPer100g:              convertAndRound(normalizedNutrients.Iron, mineralPrecision),
+		MagnesiumMgPer100g:         convertAndRound(normalizedNutrients.Magnesium, mineralPrecision),
+		PhosphorusMgPer100g:        convertAndRound(normalizedNutrients.Phosphorus, mineralPrecision),
+		PotassiumMgPer100g:         convertAndRound(normalizedNutrients.Potassium, mineralPrecision),
+		ZincMgPer100g:              convertAndRound(normalizedNutrients.Zinc, zincPrecision),
+		CopperMgPer100g:            convertAndRound(normalizedNutrients.Copper, tracePrecision),
+		ManganeseMgPer100g:         convertAndRound(normalizedNutrients.Manganese, tracePrecision),
+		SeleniumMcgPer100g:         convertAndRound(normalizedNutrients.Selenium, mineralPrecision),
+		IodineMcgPer100g:           convertAndRound(normalizedNutrients.Iodine, mineralPrecision),
+		MolybdenumMcgPer100g:       convertAndRound(normalizedNutrients.Molybdenum, mineralPrecision),
+		ChromiumMcgPer100g:         convertAndRound(normalizedNutrients.Chromium, mineralPrecision),
+		FluorideMgPer100g:          convertAndRound(normalizedNutrients.Fluoride, mineralPrecision),
+		ChlorideMgPer100g:          convertAndRound(normalizedNutrients.Chloride, mineralPrecision),
+		Omega3AlaGPer100g:          convertAndRound(normalizedNutrients.Omega3Ala, omegaPrecision),
+		Omega3EpaGPer100g:          convertAndRound(normalizedNutrients.Omega3Epa, omegaPrecision),
+		Omega3DhaGPer100g:          convertAndRound(normalizedNutrients.Omega3Dha, omegaPrecision),
+		Omega6GPer100g:             convertAndRound(normalizedNutrients.Omega6, omega6Precision),
+		CreatineMgPer100g:          convertAndRound(normalizedNutrients.Creatine, mineralPrecision),
+		CaffeineMgPer100g:          convertAndRound(normalizedNutrients.Caffeine, mineralPrecision),
+		AlcoholGPer100g:            convertAndRound(normalizedNutrients.Alcohol, alcoholPrecision),
+		PolyunsaturatedFatGPer100g: convertAndRound(normalizedNutrients.PolyunsaturatedFat, fatPrecision),
+		MonounsaturatedFatGPer100g: convertAndRound(normalizedNutrients.MonounsaturatedFat, fatPrecision),
 		Note:                       item.Note,
 
 		// Include ingredients and OFF URL when caching items
