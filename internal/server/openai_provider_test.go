@@ -10,7 +10,6 @@ func TestNewOpenAIProvider(t *testing.T) {
 	config := AIProviderConfig{
 		APIKey:          "test-key",
 		TranscribeModel: "test-transcribe-model",
-		ParseModel:      "test-parse-model",
 		BaseURL:         "https://api.test.com/v1",
 		Timeout:         30,
 	}
@@ -30,7 +29,6 @@ func TestNewOpenAIProvider_DefaultTimeout(t *testing.T) {
 	config := AIProviderConfig{
 		APIKey:          "test-key",
 		TranscribeModel: "test-transcribe-model",
-		ParseModel:      "test-parse-model",
 		BaseURL:         "https://api.test.com/v1",
 		Timeout:         0, // Should default to 60 seconds
 	}
@@ -46,7 +44,6 @@ func TestOpenAIProvider_TranscriptionPrompt(t *testing.T) {
 	config := AIProviderConfig{
 		APIKey:          "test-key",
 		TranscribeModel: "test-transcribe-model",
-		ParseModel:      "test-parse-model",
 		BaseURL:         "https://api.test.com/v1",
 		Timeout:         30,
 	}

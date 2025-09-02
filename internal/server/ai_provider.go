@@ -35,7 +35,6 @@ type AIProvider interface {
 type AIProviderConfig struct {
 	APIKey          string
 	TranscribeModel string
-	ParseModel      string
 	BaseURL         string
 	Timeout         int // seconds
 }

@@ -25,7 +25,6 @@ func NewNutritionService(store storage.Store) *NutritionService {
 	config := AIProviderConfig{
 		APIKey:          os.Getenv("OPENAI_API_KEY"),
 		TranscribeModel: getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe"),
-		ParseModel:      getenv("OPENAI_PARSE_MODEL", "gpt-4o-mini"),
 		BaseURL:         getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
 		Timeout:         60,
 	}

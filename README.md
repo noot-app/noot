@@ -117,7 +117,6 @@ Then run: `script/generate-nutrients` → All 20+ files automatically updated!
 
     # OpenAI Configuration
     OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
-    OPENAI_PARSE_MODEL=gpt-4o-mini
 
     TRANSCRIBE_LANGUAGE=en
     #OPENAI_TRANSCRIBE_RESPONSE_FORMAT=
@@ -224,12 +223,14 @@ The application supports automated deployment with built-in version tracking:
 - **Deploy Both:** `script/deploy` — Deploy both frontend and backend
 
 **Version Tracking:**
+
 - Each deployment automatically includes commit SHA, build time, and git tag
 - Frontend deployments inject git metadata as environment variables during build
 - Access version info at `/version` endpoint (both JSON API and UI page)
 - Git metadata is extracted automatically during deployment process
 
 **Requirements:**
+
 - Frontend: `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` environment variables
 - Backend: `RAILWAY_TOKEN` environment variable
 
