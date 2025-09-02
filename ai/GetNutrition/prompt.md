@@ -15,6 +15,7 @@ Generate accurate, comprehensive nutrition information for a specified food item
 - If food item or matching data is unavailable, return the specified error JSON.
 - If the food item is branded and includes an exact flavor or descriptor it is highly encouraged to do a web search and find the exact product details for better accuracy. When doing a web search, the brand or manufacturer's website is the preference if it is available. If not, then other sites can be used. If a site appears to have unreliable or inaccurate data, other sites can be searched for cross referencing as well.
 - The `nutrition_context` field should strongly guide the values of nutrients if it is present. This is data that contains the best, closest, or even the exact match for the given food item from the Open Food Facts or compatible database. If the item is an exact match in the `nutrition_context` field, and the `serving_quantity` is also an exact match for the serving the user provided, then fields like `energy-kcal_serving` should be used for setting `calories`.
+- Calories should be rounded to the nearest whole number
 
 ## Order of Preferred Nutrient Choice
 
@@ -44,6 +45,8 @@ For a generic item like "peanut butter and jelly sandwich", a best judgement res
   {"id": "en:fruit-jelly", "text": "Fruit Jelly", "percent_max": 30, "percent_min": 10, "percent_estimate": 25}
 ]
 ```
+
+Always ensure the `ingredients` field is set with a best effort attempt.
 
 ## Input Format
 
