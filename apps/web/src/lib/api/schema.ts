@@ -821,7 +821,7 @@ export interface components {
             nutrients?: components["schemas"]["CompleteNutrient"];
             /** @description Ingredient list from Open Food Facts */
             ingredients?: components["schemas"]["OFFIngredient"][];
-            /** @description Open Food Facts product URL */
+            /** @description Link to the product URL (if available) */
             url?: string | null;
         };
         OFFIngredient: {

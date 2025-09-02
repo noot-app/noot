@@ -64,6 +64,7 @@ export type Database = {
           folate_mcg: number
           grams: number
           id: string
+          ingredients: Json | null
           iodine_mcg: number
           iron_mg: number
           item_id: string | null
@@ -93,6 +94,7 @@ export type Database = {
           total_sugars_g: number
           trans_fat_g: number
           updated_at: string
+          url: string | null
           user_quantity: number | null
           user_unit: string | null
           vitamin_a_mcg: number
@@ -125,6 +127,7 @@ export type Database = {
           folate_mcg?: number
           grams?: number
           id?: string
+          ingredients?: Json | null
           iodine_mcg?: number
           iron_mg?: number
           item_id?: string | null
@@ -154,6 +157,7 @@ export type Database = {
           total_sugars_g?: number
           trans_fat_g?: number
           updated_at?: string
+          url?: string | null
           user_quantity?: number | null
           user_unit?: string | null
           vitamin_a_mcg?: number
@@ -186,6 +190,7 @@ export type Database = {
           folate_mcg?: number
           grams?: number
           id?: string
+          ingredients?: Json | null
           iodine_mcg?: number
           iron_mg?: number
           item_id?: string | null
@@ -215,6 +220,7 @@ export type Database = {
           total_sugars_g?: number
           trans_fat_g?: number
           updated_at?: string
+          url?: string | null
           user_quantity?: number | null
           user_unit?: string | null
           vitamin_a_mcg?: number
@@ -635,6 +641,7 @@ export type Database = {
           fluoride_mg_per_100g: number
           folate_mcg_per_100g: number
           id: string
+          ingredients: Json | null
           iodine_mcg_per_100g: number
           iron_mg_per_100g: number
           label: string | null
@@ -714,6 +721,7 @@ export type Database = {
           total_sugars_g_per_100g: number
           trans_fat_g_per_100g: number
           updated_at: string
+          url: string | null
           vitamin_a_mcg_per_100g: number
           vitamin_b12_mcg_per_100g: number
           vitamin_b6_mg_per_100g: number
@@ -743,6 +751,7 @@ export type Database = {
           fluoride_mg_per_100g?: number
           folate_mcg_per_100g?: number
           id?: string
+          ingredients?: Json | null
           iodine_mcg_per_100g?: number
           iron_mg_per_100g?: number
           label?: string | null
@@ -822,6 +831,7 @@ export type Database = {
           total_sugars_g_per_100g?: number
           trans_fat_g_per_100g?: number
           updated_at?: string
+          url?: string | null
           vitamin_a_mcg_per_100g?: number
           vitamin_b12_mcg_per_100g?: number
           vitamin_b6_mg_per_100g?: number
@@ -851,6 +861,7 @@ export type Database = {
           fluoride_mg_per_100g?: number
           folate_mcg_per_100g?: number
           id?: string
+          ingredients?: Json | null
           iodine_mcg_per_100g?: number
           iron_mg_per_100g?: number
           label?: string | null
@@ -930,6 +941,7 @@ export type Database = {
           total_sugars_g_per_100g?: number
           trans_fat_g_per_100g?: number
           updated_at?: string
+          url?: string | null
           vitamin_a_mcg_per_100g?: number
           vitamin_b12_mcg_per_100g?: number
           vitamin_b6_mg_per_100g?: number
