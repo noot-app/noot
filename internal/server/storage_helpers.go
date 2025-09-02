@@ -239,6 +239,9 @@ func apiItemWithNutritionToConsumptionItem(consumptionID string, item api.ItemWi
 		AlcoholG:            float64(nutrients.AlcoholG),
 		PolyunsaturatedFatG: float64(nutrients.PolyunsaturatedFatG),
 		MonounsaturatedFatG: float64(nutrients.MonounsaturatedFatG),
+		// Ingredients and OFF URL (historical snapshot)
+		Ingredients: convertAPIIngredientsToStorage(item.Item.Ingredients), // Convert and copy ingredients from API item
+		Url:         item.Item.Url,                                         // Copy OFF URL from API item
 	}
 }
 
@@ -466,4 +469,39 @@ func storageConsumptionToAPI(ctx context.Context, store storage.Store, consumpti
 		Summary:    summary,
 		CreatedAt:  consumption.CreatedAt,
 	}, nil
+}
+
+// convertAPIIngredientsToStorage converts API ingredients to storage format
+func convertAPIIngredientsToStorage(apiIngredients *[]api.OFFIngredient) []storage.OFFIngredient {
+	if apiIngredients == nil {
+		return nil
+	}
+
+	storageIngredients := make([]storage.OFFIngredient, len(*apiIngredients))
+	for i, apiIngredient := range *apiIngredients {
+		storageIngredient := storage.OFFIngredient{}
+
+		if apiIngredient.Id != nil {
+			storageIngredient.ID = *apiIngredient.Id
+		}
+		if apiIngredient.Text != nil {
+			storageIngredient.Text = *apiIngredient.Text
+		}
+		if apiIngredient.PercentEstimate != nil {
+			f64 := float64(*apiIngredient.PercentEstimate)
+			storageIngredient.PercentEstimate = &f64
+		}
+		if apiIngredient.PercentMax != nil {
+			f64 := float64(*apiIngredient.PercentMax)
+			storageIngredient.PercentMax = &f64
+		}
+		if apiIngredient.PercentMin != nil {
+			f64 := float64(*apiIngredient.PercentMin)
+			storageIngredient.PercentMin = &f64
+		}
+
+		storageIngredients[i] = storageIngredient
+	}
+
+	return storageIngredients
 }

@@ -193,7 +193,8 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 					// Try to find existing item in global cache for linking (optional)
 					var itemID *string
 					if s.store != nil {
-						normalizedName := normalizeItemName(itemWithNutrition.Item.Name)
+						// Use the same normalization as the caching logic for consistent keys
+						normalizedName := normalizeItemNameForCache(itemWithNutrition.Item.Name, itemWithNutrition.Item.Brand)
 						normalizedBrand := normalizeItemName(getBrandOrEmpty(itemWithNutrition.Item.Brand))
 
 						// Create exact serving key to match how items are stored
@@ -359,7 +360,8 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 		// Try to find existing item in global cache for linking (optional)
 		var itemID *string
 		if s.store != nil {
-			normalizedName := normalizeItemName(itemWithNutrition.Item.Name)
+			// Use the same normalization as the caching logic for consistent keys
+			normalizedName := normalizeItemNameForCache(itemWithNutrition.Item.Name, itemWithNutrition.Item.Brand)
 			normalizedBrand := normalizeItemName(getBrandOrEmpty(itemWithNutrition.Item.Brand))
 
 			// Create exact serving key to match how items are stored

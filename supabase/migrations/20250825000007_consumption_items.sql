@@ -60,6 +60,9 @@ create table if not exists public.consumption_items (
   alcohol_g real not null default 0,
   polyunsaturated_fat_g real not null default 0,
   monounsaturated_fat_g real not null default 0,
+  -- Ingredient and URL data for historical tracking and correlation analysis
+  ingredients JSONB,
+  url TEXT,
   created_at timestamp with time zone not null default now(),
   updated_at timestamp with time zone not null default now()
 );
@@ -67,6 +70,8 @@ create table if not exists public.consumption_items (
 create index if not exists idx_consumption_items_consumption_id on public.consumption_items(consumption_id);
 create index if not exists idx_consumption_items_item_id on public.consumption_items(item_id);
 create index if not exists idx_consumption_items_created on public.consumption_items(consumption_id, created_at);
+create index if not exists idx_consumption_items_ingredients on public.consumption_items using gin (ingredients);
+create index if not exists idx_consumption_items_url on public.consumption_items(url) where url is not null;
 
 -- Create trigger for updated_at column (no notice if trigger doesn't exist)
 do $$ 

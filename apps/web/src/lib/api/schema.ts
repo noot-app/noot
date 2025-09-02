@@ -819,6 +819,22 @@ export interface components {
             /** @description Labels assigned to this item */
             labels?: components["schemas"]["Label"][];
             nutrients?: components["schemas"]["CompleteNutrient"];
+            /** @description Ingredient list from Open Food Facts */
+            ingredients?: components["schemas"]["OFFIngredient"][];
+            /** @description Link to the product URL (if available) */
+            url?: string | null;
+        };
+        OFFIngredient: {
+            /** @description Ingredient ID from Open Food Facts (e.g., "en:filtered-water") */
+            id?: string;
+            /** @description Display name of the ingredient (e.g., "Purified water") */
+            text?: string;
+            /** @description Estimated percentage of this ingredient in the product */
+            percent_estimate?: number | null;
+            /** @description Maximum possible percentage of this ingredient */
+            percent_max?: number | null;
+            /** @description Minimum possible percentage of this ingredient */
+            percent_min?: number | null;
         };
         ItemWithNutrition: {
             item: components["schemas"]["Item"];

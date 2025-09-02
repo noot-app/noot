@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -125,11 +126,13 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 			// Try to get OFF context for this item
 			var nutritionContext interface{}
 			var directNutrition *CompleteNutrient
+			var offProduct *OFFProduct // Declare here so we can use it later for ingredients
 
 			// Only query OFF if we have a brand (OFF is only good for branded items)
 			brand := getBrandOrEmpty(item.Brand)
 			if s.offClient != nil && brand != "" && strings.TrimSpace(brand) != "" {
-				offProduct, err := s.offClient.SearchProduct(ctx, item.Name, brand)
+				var err error
+				offProduct, err = s.offClient.SearchProduct(ctx, item.Name, brand)
 				if err == nil && offProduct != nil {
 					// Check if we have an exact serving size match - use direct OFF data
 					if offProduct.ServingQuantity != nil &&
@@ -169,7 +172,7 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 
 					// Add additional product information if available
 					if len(offProduct.Ingredients) > 0 {
-						productInfo["ingredients"] = offProduct.Ingredients
+						productInfo["ingredients"] = parseOFFIngredients(offProduct.Ingredients)
 					}
 					if offProduct.Link != "" {
 						productInfo["link"] = offProduct.Link
@@ -186,13 +189,28 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 						"products": []interface{}{
 							productInfo,
 						},
-						"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as a reference but provide complete nutrition data including nutrients not available in the context. This data could be a closely related product, the exact product, or an entirely incorrect product. Please inspect it carefully and use your best judgement.",
+						"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as a reference but provide complete nutrition data including nutrients not available in the context. This data could be a closely related product, the exact product, or an entirely incorrect product. Please inspect it carefully and use your best judgement. If ingredients/link are provided and seem to match the user's input, you may optionally include them in your response.",
 					}
 				} else {
 					LogDebug("Item not found in OFF database", "name", item.Name, "brand", brand, "error", err)
 				}
 			} else {
 				LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
+			}
+
+			// Extract ingredients and OFF URL from OFF product data
+			if offProduct != nil {
+				// Extract and convert ingredients from OFF format to our format
+				if len(offProduct.Ingredients) > 0 {
+					item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
+					LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
+				}
+
+				// Save OFF URL for historical reference
+				if offProduct.Link != "" {
+					item.Url = &offProduct.Link
+					LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
+				}
 			}
 
 			// Use direct OFF nutrition if available, otherwise use AI
@@ -210,6 +228,7 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 				LogDebug("Using AI nutrition", "item", item.Name, "calories", nutrition.Calories)
 			}
 			item.Nutrients = &nutrition
+
 			results <- result{index: index, item: item, err: nil}
 		}(i, item)
 	}
@@ -250,9 +269,11 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 		// Try brand-aware cache key first (new approach)
 		exactKey := s.makeExactServingKey(normalizedNameForCache, normalizedBrand, normalizedGrams)
+		LogDebug("Checking exact serving cache", "exact_key", exactKey)
 		if cached, err := s.store.GetItemByName(ctx, exactKey, ""); err == nil && cached != nil {
 			// Check if cache is still fresh (30 days)
 			if time.Since(cached.UpdatedAt) < 30*24*time.Hour {
+				LogDebug("Found fresh exact serving cache match", "key", exactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
 				var nutrition CompleteNutrient
 
 				// If item has BaseQuantity > 1, we need to scale the cached single-unit values
@@ -319,10 +340,12 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 		// Fallback: try traditional cache key for backward compatibility
 		fallbackExactKey := s.makeExactServingKey(normalizedName, normalizedBrand, normalizedGrams)
+		LogDebug("Checking fallback exact serving cache", "fallback_key", fallbackExactKey)
 		if fallbackExactKey != exactKey { // Only check if different from brand-aware key
 			if cached, err := s.store.GetItemByName(ctx, fallbackExactKey, ""); err == nil && cached != nil {
 				// Check if cache is still fresh (30 days)
 				if time.Since(cached.UpdatedAt) < 30*24*time.Hour {
+					LogDebug("Found fresh fallback exact serving cache match", "key", fallbackExactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
 					LogDebug("Using cached exact serving match from fallback key - returning original values without scaling (backward compatibility)",
 						"name", item.Name, "grams", item.Grams, "fallback_key", fallbackExactKey)
 
@@ -334,10 +357,13 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		}
 
 		// Try to find any cached serving size for this item to scale from
+		LogDebug("Checking scalable serving cache", "normalized_name", normalizedNameForCache, "normalized_brand", normalizedBrand)
 		cachedServings := s.getCachedServingSizes(ctx, normalizedNameForCache, normalizedBrand)
+		LogDebug("Found cached servings for scaling", "count", len(cachedServings))
 		for _, cachedServing := range cachedServings {
 			// Check if cache is still fresh (30 days)
 			if time.Since(cachedServing.item.UpdatedAt) < 30*24*time.Hour {
+				LogDebug("Found fresh scalable serving cache match", "cached_grams", cachedServing.servingGrams, "age_days", int(time.Since(cachedServing.item.UpdatedAt).Hours()/24))
 				// Determine scaling method based on user input and cached data reliability
 				if s.shouldUse100gScaling(item, cachedServing.item) {
 					LogDebug("Using cached item with per-100g scaling (user provided grams or unreliable base units)",
@@ -360,15 +386,19 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		}
 	}
 
+	LogDebug("No cache matches found - proceeding to AI nutrition lookup", "name", item.Name, "brand", getBrandOrEmpty(item.Brand))
+
 	// Try Open Food Facts database to provide context for AI
 	var nutritionContext interface{}
+	var offProduct *OFFProduct // Declare here so we can use it later for ingredients
 
 	// Only query OFF if we have a brand (OFF is only good for branded items)
 	brand := getBrandOrEmpty(item.Brand)
 	if s.offClient != nil && brand != "" && strings.TrimSpace(brand) != "" {
 		LogDebug("Checking OFF database for item context", "name", item.Name, "brand", brand)
 
-		offProduct, err := s.offClient.SearchProduct(ctx, item.Name, brand)
+		var err error
+		offProduct, err = s.offClient.SearchProduct(ctx, item.Name, brand)
 		if err == nil && offProduct != nil {
 			LogDebug("Found item in OFF database for context", "name", item.Name, "product_name", offProduct.ProductName)
 
@@ -391,6 +421,21 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
 	}
 
+	// Extract ingredients and OFF URL BEFORE caching so they get saved to the cache
+	if offProduct != nil {
+		// Extract and convert ingredients from OFF format to our format
+		if len(offProduct.Ingredients) > 0 {
+			item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
+			LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
+		}
+
+		// Save OFF URL for historical reference
+		if offProduct.Link != "" {
+			item.Url = &offProduct.Link
+			LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
+		}
+	}
+
 	// Get nutrition from AI (with optional OFF context)
 	LogDebug("Fetching nutrition from AI provider", "name", item.Name, "has_context", nutritionContext != nil)
 	nutrition, err := s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
@@ -402,6 +447,8 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 	// If this item came from quantity extraction (e.g., "half can"), we need to reverse-scale
 	// back to the full serving size before caching
 	if s.store != nil {
+		LogDebug("Attempting to cache item nutrition data", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
+
 		// Extract original quantity info to reverse-scale if needed
 		quantityInfo := extractQuantityFromName(item.Name)
 
@@ -479,9 +526,11 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 		// Create a base item for caching (using clean name and base grams)
 		baseItem := Item{
-			Name:  baseName,
-			Brand: item.Brand,
-			Grams: baseGrams,
+			Name:        baseName,
+			Brand:       item.Brand,
+			Grams:       baseGrams,
+			Ingredients: item.Ingredients, // Include ingredients from OFF
+			Url:         item.Url,         // Include OFF URL
 		}
 
 		// Use brand-aware normalization for consistent cache keys
@@ -503,7 +552,7 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 				"base_grams", baseGrams, "error", err.Error())
 			// Don't fail the request if caching fails
 		} else {
-			LogDebug("Successfully cached base serving nutrition data", "base_name", baseName,
+			LogInfo("Successfully cached base serving nutrition data", "base_name", baseName,
 				"base_grams", baseGrams, "cache_key", exactKey)
 		}
 	}
@@ -1069,6 +1118,10 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 		MonounsaturatedFatGPer100g: convertAndRound(normalizedNutrients.MonounsaturatedFat, 2),
 		Note:                       item.Note,
 
+		// Include ingredients and OFF URL when caching items
+		Ingredients: item.Ingredients, // Copy ingredients from the item
+		Url:         item.Url,         // Copy OFF URL from the item
+
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	}
@@ -1080,4 +1133,79 @@ func floatValue(f *float64) float64 {
 		return 0
 	}
 	return *f
+}
+
+// parseOFFIngredients converts raw OFF ingredient data to our OFFIngredient format
+func parseOFFIngredients(rawIngredients []interface{}) []storage.OFFIngredient {
+	if len(rawIngredients) == 0 {
+		return []storage.OFFIngredient{}
+	}
+
+	var ingredients []storage.OFFIngredient
+
+	for _, rawIngredient := range rawIngredients {
+		// OFF ingredients come as map[string]interface{}
+		ingredientMap, ok := rawIngredient.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		ingredient := storage.OFFIngredient{}
+
+		// Extract ID
+		if id, ok := ingredientMap["id"].(string); ok {
+			ingredient.ID = id
+		}
+
+		// Extract text/display name
+		if text, ok := ingredientMap["text"].(string); ok {
+			ingredient.Text = text
+		}
+
+		// Extract percentage values (they might be numbers or strings)
+		if percentEstimate := extractFloatFromInterface(ingredientMap["percent_estimate"]); percentEstimate != nil {
+			ingredient.PercentEstimate = percentEstimate
+		}
+		if percentMax := extractFloatFromInterface(ingredientMap["percent_max"]); percentMax != nil {
+			ingredient.PercentMax = percentMax
+		}
+		if percentMin := extractFloatFromInterface(ingredientMap["percent_min"]); percentMin != nil {
+			ingredient.PercentMin = percentMin
+		}
+
+		// Only add ingredient if it has meaningful data
+		if ingredient.ID != "" || ingredient.Text != "" {
+			ingredients = append(ingredients, ingredient)
+		}
+	}
+
+	return ingredients
+}
+
+// extractFloatFromInterface safely extracts a float64 from an interface{} value
+func extractFloatFromInterface(value interface{}) *float64 {
+	if value == nil {
+		return nil
+	}
+
+	switch v := value.(type) {
+	case float64:
+		return &v
+	case float32:
+		f := float64(v)
+		return &f
+	case int:
+		f := float64(v)
+		return &f
+	case int64:
+		f := float64(v)
+		return &f
+	case string:
+		// Try to parse string as float
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return &f
+		}
+	}
+
+	return nil
 }

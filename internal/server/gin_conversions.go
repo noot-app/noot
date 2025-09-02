@@ -26,6 +26,41 @@ func convertInternalItemToAPI(internal Item) api.Item {
 		apiItem.Nutrients = convertInternalCompleteNutrientToAPI(*internal.Nutrients)
 	}
 
+	// Convert ingredients from storage format to API format
+	if len(internal.Ingredients) > 0 {
+		apiIngredients := make([]api.OFFIngredient, len(internal.Ingredients))
+		for i, storageIngredient := range internal.Ingredients {
+			apiIngredient := api.OFFIngredient{}
+
+			if storageIngredient.ID != "" {
+				apiIngredient.Id = &storageIngredient.ID
+			}
+			if storageIngredient.Text != "" {
+				apiIngredient.Text = &storageIngredient.Text
+			}
+			if storageIngredient.PercentEstimate != nil {
+				f32 := float32(*storageIngredient.PercentEstimate)
+				apiIngredient.PercentEstimate = &f32
+			}
+			if storageIngredient.PercentMax != nil {
+				f32 := float32(*storageIngredient.PercentMax)
+				apiIngredient.PercentMax = &f32
+			}
+			if storageIngredient.PercentMin != nil {
+				f32 := float32(*storageIngredient.PercentMin)
+				apiIngredient.PercentMin = &f32
+			}
+
+			apiIngredients[i] = apiIngredient
+		}
+		apiItem.Ingredients = &apiIngredients
+	}
+
+	// Copy OFF URL
+	if internal.Url != nil {
+		apiItem.Url = internal.Url
+	}
+
 	return apiItem
 }
 

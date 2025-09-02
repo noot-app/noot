@@ -148,6 +148,12 @@ func extractQuantityFromName(name string) QuantityInfo {
 		{"xl", 1.6},
 		{"jumbo", 1.8},
 
+		// Portion descriptors
+		{"handful", 0.6},  // Roughly a small portion
+		{"pinch", 0.05},   // Very small amount
+		{"dash", 0.08},    // Small amount
+		{"sprinkle", 0.1}, // Small amount
+
 		// Numeric quantities
 		{"two", 2.0},
 		{"three", 3.0},

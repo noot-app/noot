@@ -110,6 +110,20 @@ func TestExtractQuantityFromName(t *testing.T) {
 			expectedMult:  0.5,
 			description:   "Mini should use 0.5 multiplier",
 		},
+		{
+			name:          "HandfulStrawberries",
+			input:         "handful of strawberries",
+			expectedClean: "strawberries",
+			expectedMult:  0.6,
+			description:   "Handful should use 0.6 multiplier",
+		},
+		{
+			name:          "PinchSalt",
+			input:         "pinch of salt",
+			expectedClean: "salt",
+			expectedMult:  0.05,
+			description:   "Pinch should use 0.05 multiplier",
+		},
 
 		// Container removal
 		{

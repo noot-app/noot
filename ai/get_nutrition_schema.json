@@ -1,0 +1,313 @@
+{
+  "name": "nutrition_info_grams",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Indicates if fetching nutrition info was successful. True if at least one nutrient could be found, false if no nutrients could be found or input was irrelevant."
+      },
+      "message": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Optional message describing why fetching nutrition info failed. Always null if success is true."
+      },
+      "nutrients": {
+        "type": "object",
+        "properties": {
+          "calories": {
+            "type": "number",
+            "description": "Total energy content (kcal) for the specified weight"
+          },
+          "protein_g": {
+            "type": "number",
+            "description": "Total protein (g) for the specified weight"
+          },
+          "total_fat_g": {
+            "type": "number",
+            "description": "Total fat (g) for the specified weight"
+          },
+          "saturated_fat_g": {
+            "type": "number",
+            "description": "Saturated fat (g) for the specified weight"
+          },
+          "trans_fat_g": {
+            "type": "number",
+            "description": "Trans fat (g) for the specified weight"
+          },
+          "cholesterol_mg": {
+            "type": "number",
+            "description": "Cholesterol (mg) for the specified weight"
+          },
+          "sodium_mg": {
+            "type": "number",
+            "description": "Sodium (mg) for the specified weight"
+          },
+          "total_carbs_g": {
+            "type": "number",
+            "description": "Total carbohydrate (g) for the specified weight"
+          },
+          "dietary_fiber_g": {
+            "type": "number",
+            "description": "Total dietary fiber (g) for the specified weight"
+          },
+          "total_sugars_g": {
+            "type": "number",
+            "description": "Total sugars (g) for the specified weight"
+          },
+          "added_sugars_g": {
+            "type": "number",
+            "description": "Added sugars (g) for the specified weight"
+          },
+          "vitamin_a_mcg": {
+            "type": "number",
+            "description": "Vitamin A (mcg RAE) for the specified weight"
+          },
+          "vitamin_c_mg": {
+            "type": "number",
+            "description": "Vitamin C (mg) for the specified weight"
+          },
+          "vitamin_d_mcg": {
+            "type": "number",
+            "description": "Vitamin D (mcg) for the specified weight"
+          },
+          "vitamin_e_mg": {
+            "type": "number",
+            "description": "Vitamin E (mg alpha-tocopherol) for the specified weight"
+          },
+          "vitamin_k_mcg": {
+            "type": "number",
+            "description": "Vitamin K (mcg) for the specified weight"
+          },
+          "thiamine_mg": {
+            "type": "number",
+            "description": "Thiamine (vitamin B1, mg) for the specified weight"
+          },
+          "riboflavin_mg": {
+            "type": "number",
+            "description": "Riboflavin (vitamin B2, mg) for the specified weight"
+          },
+          "niacin_mg": {
+            "type": "number",
+            "description": "Niacin (mg) for the specified weight"
+          },
+          "vitamin_b6_mg": {
+            "type": "number",
+            "description": "Vitamin B6 (mg) for the specified weight"
+          },
+          "folate_mcg": {
+            "type": "number",
+            "description": "Folate (mcg DFE) for the specified weight"
+          },
+          "vitamin_b12_mcg": {
+            "type": "number",
+            "description": "Vitamin B12 (mcg) for the specified weight"
+          },
+          "biotin_mcg": {
+            "type": "number",
+            "description": "Biotin (mcg) for the specified weight"
+          },
+          "pantothenic_acid_mg": {
+            "type": "number",
+            "description": "Pantothenic acid (mg) for the specified weight"
+          },
+          "choline_mg": {
+            "type": "number",
+            "description": "Choline (mg) for the specified weight"
+          },
+          "calcium_mg": {
+            "type": "number",
+            "description": "Calcium (mg) for the specified weight"
+          },
+          "iron_mg": {
+            "type": "number",
+            "description": "Iron (mg) for the specified weight"
+          },
+          "magnesium_mg": {
+            "type": "number",
+            "description": "Magnesium (mg) for the specified weight"
+          },
+          "phosphorus_mg": {
+            "type": "number",
+            "description": "Phosphorus (mg) for the specified weight"
+          },
+          "potassium_mg": {
+            "type": "number",
+            "description": "Potassium (mg) for the specified weight"
+          },
+          "zinc_mg": {
+            "type": "number",
+            "description": "Zinc (mg) for the specified weight"
+          },
+          "copper_mg": {
+            "type": "number",
+            "description": "Copper (mg) for the specified weight"
+          },
+          "manganese_mg": {
+            "type": "number",
+            "description": "Manganese (mg) for the specified weight"
+          },
+          "selenium_mcg": {
+            "type": "number",
+            "description": "Selenium (mcg) for the specified weight"
+          },
+          "iodine_mcg": {
+            "type": "number",
+            "description": "Iodine (mcg) for the specified weight"
+          },
+          "molybdenum_mcg": {
+            "type": "number",
+            "description": "Molybdenum (mcg) for the specified weight"
+          },
+          "chromium_mcg": {
+            "type": "number",
+            "description": "Chromium (mcg) for the specified weight"
+          },
+          "fluoride_mg": {
+            "type": "number",
+            "description": "Fluoride (mg) for the specified weight"
+          },
+          "chloride_mg": {
+            "type": "number",
+            "description": "Chloride (mg) for the specified weight"
+          },
+          "omega3_ala_g": {
+            "type": "number",
+            "description": "Omega3 ALA (g) for the specified weight"
+          },
+          "omega3_epa_g": {
+            "type": "number",
+            "description": "Omega3 EPA (g) for the specified weight"
+          },
+          "omega3_dha_g": {
+            "type": "number",
+            "description": "Omega3 DHA (g) for the specified weight"
+          },
+          "omega6_g": {
+            "type": "number",
+            "description": "Omega6 (g) for the specified weight"
+          },
+          "creatine_mg": {
+            "type": "number",
+            "description": "Creatine (mg) for the specified weight"
+          },
+          "caffeine_mg": {
+            "type": "number",
+            "description": "Caffeine (mg) for the specified weight"
+          },
+          "alcohol_g": {
+            "type": "number",
+            "description": "Alcohol (g) for the specified weight"
+          },
+          "polyunsaturated_fat_g": {
+            "type": "number",
+            "description": "Polyunsaturated fat (g) for the specified weight"
+          },
+          "monounsaturated_fat_g": {
+            "type": "number",
+            "description": "Monounsaturated fat (g) for the specified weight"
+          }
+        },
+        "required": [
+          "calories",
+          "protein_g",
+          "total_fat_g",
+          "saturated_fat_g",
+          "trans_fat_g",
+          "cholesterol_mg",
+          "sodium_mg",
+          "total_carbs_g",
+          "dietary_fiber_g",
+          "total_sugars_g",
+          "added_sugars_g",
+          "vitamin_a_mcg",
+          "vitamin_c_mg",
+          "vitamin_d_mcg",
+          "vitamin_e_mg",
+          "vitamin_k_mcg",
+          "thiamine_mg",
+          "riboflavin_mg",
+          "niacin_mg",
+          "vitamin_b6_mg",
+          "folate_mcg",
+          "vitamin_b12_mcg",
+          "biotin_mcg",
+          "pantothenic_acid_mg",
+          "choline_mg",
+          "calcium_mg",
+          "iron_mg",
+          "magnesium_mg",
+          "phosphorus_mg",
+          "potassium_mg",
+          "zinc_mg",
+          "copper_mg",
+          "manganese_mg",
+          "selenium_mcg",
+          "iodine_mcg",
+          "molybdenum_mcg",
+          "chromium_mcg",
+          "fluoride_mg",
+          "chloride_mg",
+          "omega3_ala_g",
+          "omega3_epa_g",
+          "omega3_dha_g",
+          "omega6_g",
+          "creatine_mg",
+          "caffeine_mg",
+          "alcohol_g",
+          "polyunsaturated_fat_g",
+          "monounsaturated_fat_g"
+        ],
+        "additionalProperties": false
+      },
+      "url": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "URL of the product page on Open Food Facts (or other nutrition provider), if available"
+      },
+      "ingredients": {
+        "type": "array",
+        "description": "Array of ingredients with their properties from Open Food Facts (top-level only) or inferred ingredients from best judgment. Ordered by estimated percentage (highest to lowest).",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Ingredient ID from Open Food Facts (e.g., 'en:filtered-water') or inferred for generic items (e.g., 'en:apple')"
+            },
+            "text": {
+              "type": "string",
+              "description": "Display name of the ingredient (e.g., 'Purified water')"
+            },
+            "percent_estimate": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Estimated percentage of this ingredient in the product"
+            }
+          },
+          "required": [
+            "id",
+            "text",
+            "percent_estimate"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "success",
+      "message",
+      "nutrients",
+      "ingredients",
+      "url"
+    ],
+    "additionalProperties": false
+  }
+}

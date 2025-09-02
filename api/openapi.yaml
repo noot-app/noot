@@ -1945,6 +1945,37 @@ components:
           description: Labels assigned to this item
         nutrients:
           $ref: "#/components/schemas/CompleteNutrient"
+        ingredients:
+          type: array
+          items:
+            $ref: "#/components/schemas/OFFIngredient"
+          description: Ingredient list from Open Food Facts
+        url:
+          type: string
+          nullable: true
+          description: Link to the product URL (if available)
+
+    OFFIngredient:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Ingredient ID from Open Food Facts (e.g., "en:filtered-water")
+        text:
+          type: string
+          description: Display name of the ingredient (e.g., "Purified water")
+        percent_estimate:
+          type: number
+          nullable: true
+          description: Estimated percentage of this ingredient in the product
+        percent_max:
+          type: number
+          nullable: true
+          description: Maximum possible percentage of this ingredient
+        percent_min:
+          type: number
+          nullable: true
+          description: Minimum possible percentage of this ingredient
 
     ItemWithNutrition:
       type: object

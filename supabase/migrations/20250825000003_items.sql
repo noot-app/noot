@@ -108,6 +108,9 @@ CREATE TABLE IF NOT EXISTS items (
     -- Additional metadata fields
     note TEXT CONSTRAINT items_note_length_check CHECK (LENGTH(note) <= 1000),
     label TEXT CONSTRAINT items_label_length_check CHECK (LENGTH(label) <= 63),
+    -- Ingredient and URL data for historical tracking and correlation analysis
+    ingredients JSONB,
+    url TEXT,
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -116,6 +119,8 @@ CREATE TABLE IF NOT EXISTS items (
 
 CREATE INDEX IF NOT EXISTS idx_items_normalized ON items(normalized_name, normalized_brand);
 CREATE INDEX IF NOT EXISTS idx_items_display_name ON items(display_name);
+CREATE INDEX IF NOT EXISTS idx_items_ingredients ON items USING GIN (ingredients);
+CREATE INDEX IF NOT EXISTS idx_items_url ON items(url) WHERE url IS NOT NULL;
 
 -- Enable RLS to restrict public access
 ALTER TABLE items ENABLE ROW LEVEL SECURITY;
