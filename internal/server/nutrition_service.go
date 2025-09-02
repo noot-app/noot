@@ -21,24 +21,24 @@ const (
 	servingSizes = "100,355,250,200,500,150,300,400,50,75,125"
 
 	// Decimal precision for different nutrient types
-	caloriesPrecision     = 3
-	proteinPrecision      = 2
-	fatPrecision          = 2
-	transFatPrecision     = 1
-	cholesterolPrecision  = 1
-	sodiumPrecision       = 1
-	carbsPrecision        = 1
-	fiberPrecision        = 1
-	sugarsPrecision       = 1
-	vitaminPrecision      = 1
-	vitaminBPrecision     = 3 // For B vitamins that need higher precision
-	mineralPrecision      = 1
-	tracePrecision        = 3 // For trace elements like omega-3s
-	zincPrecision         = 2
-	vitaminB12Precision   = 2
-	omegaPrecision        = 3
-	omega6Precision       = 2
-	alcoholPrecision      = 2
+	caloriesPrecision    = 3
+	proteinPrecision     = 2
+	fatPrecision         = 2
+	transFatPrecision    = 1
+	cholesterolPrecision = 1
+	sodiumPrecision      = 1
+	carbsPrecision       = 1
+	fiberPrecision       = 1
+	sugarsPrecision      = 1
+	vitaminPrecision     = 1
+	vitaminBPrecision    = 3 // For B vitamins that need higher precision
+	mineralPrecision     = 1
+	tracePrecision       = 3 // For trace elements like omega-3s
+	zincPrecision        = 2
+	vitaminB12Precision  = 2
+	omegaPrecision       = 3
+	omega6Precision      = 2
+	alcoholPrecision     = 2
 )
 
 // getCommonServingSizes returns common serving sizes for cache lookups
@@ -131,7 +131,7 @@ func (s *NutritionService) fetchNutritionFromCache(ctx context.Context, item Ite
 		// Check if cache is still fresh
 		if time.Since(cached.UpdatedAt) < cacheTTL {
 			LogDebug("Found fresh exact serving cache match", "key", exactKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
-			
+
 			var nutrition CompleteNutrient
 			// If item has BaseQuantity > 1, we need to scale the cached single-unit values
 			if item.BaseQuantity != nil && *item.BaseQuantity > 1.0 {
@@ -147,7 +147,7 @@ func (s *NutritionService) fetchNutritionFromCache(ctx context.Context, item Ite
 					"name", item.Name, "grams", item.Grams)
 				nutrition = s.convertExactCachedToNutrients(cached)
 			}
-			
+
 			return &nutrition, nil
 		}
 	}
@@ -258,7 +258,7 @@ func (s *NutritionService) fetchNutritionFromAI(ctx context.Context, item *Item,
 
 	// For generic items without OFF data, use complete AI response to get ingredients
 	isGenericItem := (item.Brand == nil || (item.Brand != nil && *item.Brand == "")) && nutritionContext == nil
-	LogDebug("Checking if item is generic", "item", item.Name, "brand_nil", item.Brand == nil, 
+	LogDebug("Checking if item is generic", "item", item.Name, "brand_nil", item.Brand == nil,
 		"brand_empty", item.Brand != nil && *item.Brand == "", "has_context", nutritionContext != nil, "is_generic", isGenericItem)
 
 	var nutrition CompleteNutrient
@@ -346,7 +346,7 @@ func (s *NutritionService) cacheNutritionData(ctx context.Context, item Item, nu
 	// Cache under the base serving size
 	exactKey := s.makeExactServingKey(baseNormalizedName, normalizedBrand, baseGrams)
 	exactCacheItem := s.convertNutrientsToExactCache(baseItem, baseNutrition, exactKey)
-	
+
 	if exactCached, _ := s.store.GetItemByName(ctx, exactKey, ""); exactCached != nil {
 		// Update existing exact cache entry
 		exactCacheItem.ID = exactCached.ID
