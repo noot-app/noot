@@ -1080,7 +1080,7 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 
 	return &storage.Item{
 		NormalizedName:  exactKey, // Use the special key as the normalized name
-		NormalizedBrand: "",       // Empty brand for exact matches
+		NormalizedBrand: normalizeItemName(getBrandOrEmpty(item.Brand)),
 		DisplayName:     item.Name,
 		DisplayBrand:    getBrandOrEmpty(item.Brand),
 

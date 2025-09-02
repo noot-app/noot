@@ -99,8 +99,8 @@ func TestNutritionService_ConvertNutrientsToCache(t *testing.T) {
 	result := service.convertNutrientsToExactCache(item, nutrients, "test_key")
 
 	// Check that values were converted to per-100g (should be halved)
-	assert.Equal(t, "test_key", result.NormalizedName) // Uses the exact cache key
-	assert.Equal(t, "", result.NormalizedBrand)        // Empty for exact matches
+	assert.Equal(t, "test_key", result.NormalizedName)    // Uses the exact cache key
+	assert.Equal(t, "test brand", result.NormalizedBrand) // Normalized brand from "Test Brand"
 	assert.Equal(t, "Test Food", result.DisplayName)
 	assert.Equal(t, "Test Brand", result.DisplayBrand)
 
