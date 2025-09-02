@@ -198,6 +198,21 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 				LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
 			}
 
+			// Extract ingredients and OFF URL from OFF product data
+			if offProduct != nil {
+				// Extract and convert ingredients from OFF format to our format
+				if len(offProduct.Ingredients) > 0 {
+					item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
+					LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
+				}
+
+				// Save OFF URL for historical reference
+				if offProduct.Link != "" {
+					item.Url = &offProduct.Link
+					LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
+				}
+			}
+
 			// Use direct OFF nutrition if available, otherwise use AI
 			var nutrition CompleteNutrient
 			var err error
@@ -406,6 +421,21 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
 	}
 
+	// Extract ingredients and OFF URL BEFORE caching so they get saved to the cache
+	if offProduct != nil {
+		// Extract and convert ingredients from OFF format to our format
+		if len(offProduct.Ingredients) > 0 {
+			item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
+			LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
+		}
+
+		// Save OFF URL for historical reference
+		if offProduct.Link != "" {
+			item.Url = &offProduct.Link
+			LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
+		}
+	}
+
 	// Get nutrition from AI (with optional OFF context)
 	LogDebug("Fetching nutrition from AI provider", "name", item.Name, "has_context", nutritionContext != nil)
 	nutrition, err := s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
@@ -496,9 +526,11 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 
 		// Create a base item for caching (using clean name and base grams)
 		baseItem := Item{
-			Name:  baseName,
-			Brand: item.Brand,
-			Grams: baseGrams,
+			Name:        baseName,
+			Brand:       item.Brand,
+			Grams:       baseGrams,
+			Ingredients: item.Ingredients, // Include ingredients from OFF
+			Url:         item.Url,         // Include OFF URL
 		}
 
 		// Use brand-aware normalization for consistent cache keys
@@ -526,23 +558,6 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 	}
 
 	item.Nutrients = &nutrition
-
-	// Extract ingredients and OFF URL when OFF data is available
-	// This assumes that if OFF found a product and we're using it for nutrition context,
-	// it's likely a good match worth preserving for historical analysis
-	if offProduct != nil {
-		// Extract and convert ingredients from OFF format to our format
-		if len(offProduct.Ingredients) > 0 {
-			item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
-			LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
-		}
-
-		// Save OFF URL for historical reference
-		if offProduct.Link != "" {
-			item.Url = &offProduct.Link
-			LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
-		}
-	}
 
 	return item, nil
 }
