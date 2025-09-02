@@ -69,13 +69,17 @@ func extractItemValues(item *Item, includeID bool, includeCreatedAt bool) []inte
 
 	// Additional metadata fields
 	// Serialize ingredients to JSON for database storage
-	var ingredientsJSON []byte
-	if len(item.Ingredients) > 0 {
-		var err error
-		ingredientsJSON, err = json.Marshal(item.Ingredients)
+	var ingredientsJSON interface{}
+	if item.Ingredients == nil {
+		ingredientsJSON = nil // Explicitly pass NULL for nil slices
+	} else if len(item.Ingredients) == 0 {
+		ingredientsJSON = []byte("[]") // Empty JSON array for empty slices
+	} else {
+		jsonBytes, err := json.Marshal(item.Ingredients)
 		if err != nil {
 			panic(fmt.Sprintf("failed to marshal ingredients: %v", err))
 		}
+		ingredientsJSON = jsonBytes
 	}
 	values = append(values, item.Note, ingredientsJSON, item.Url)
 

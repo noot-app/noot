@@ -844,13 +844,17 @@ func (s *PostgreSQLStore) CreateConsumptionItem(ctx context.Context, item *Consu
 		)`
 
 	// Serialize ingredients to JSON
-	var ingredientsJSON []byte
-	if len(item.Ingredients) > 0 {
-		var err error
-		ingredientsJSON, err = json.Marshal(item.Ingredients)
+	var ingredientsJSON interface{}
+	if item.Ingredients == nil {
+		ingredientsJSON = nil // Explicitly pass NULL for nil slices
+	} else if len(item.Ingredients) == 0 {
+		ingredientsJSON = []byte("[]") // Empty JSON array for empty slices
+	} else {
+		jsonBytes, err := json.Marshal(item.Ingredients)
 		if err != nil {
 			return fmt.Errorf("failed to marshal ingredients: %w", err)
 		}
+		ingredientsJSON = jsonBytes
 	}
 
 	_, err := s.db.ExecContext(ctx, query,
@@ -974,13 +978,17 @@ func (s *PostgreSQLStore) UpdateConsumptionItem(ctx context.Context, item *Consu
 		WHERE id = $1`
 
 	// Serialize ingredients to JSON
-	var ingredientsJSON []byte
-	if len(item.Ingredients) > 0 {
-		var err error
-		ingredientsJSON, err = json.Marshal(item.Ingredients)
+	var ingredientsJSON interface{}
+	if item.Ingredients == nil {
+		ingredientsJSON = nil // Explicitly pass NULL for nil slices
+	} else if len(item.Ingredients) == 0 {
+		ingredientsJSON = []byte("[]") // Empty JSON array for empty slices
+	} else {
+		jsonBytes, err := json.Marshal(item.Ingredients)
 		if err != nil {
 			return fmt.Errorf("failed to marshal ingredients: %w", err)
 		}
+		ingredientsJSON = jsonBytes
 	}
 
 	result, err := s.db.ExecContext(ctx, query, item.ID, item.ItemID, item.Name, item.Brand,
