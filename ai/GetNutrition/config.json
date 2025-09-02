@@ -3,7 +3,7 @@
     "text.format": "json_schema",
     "tool_choice": "auto",
     "temp": 0.09,
-    "tokens": 2048,
+    "tokens": 5000,
     "top_p": 1.00,
     "tools": [
         "web_search"
