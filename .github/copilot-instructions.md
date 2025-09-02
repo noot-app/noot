@@ -25,6 +25,7 @@ This is a Go based repository that is a minimal web app to log meals by voice. T
 - `api/`: The openapi spec for the REST API backend
 - `.github/`: GitHub Actions workflows for CI/CD
 - `vendor/`: Vendor directory for Go modules (committed to the repository for reproducibility)
+- `ai/`: Prompts, configs, and return response schemas for OpenAI
 
 ## Key Guidelines
 
