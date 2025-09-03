@@ -13,6 +13,7 @@
   export let showMealContribution = false // New prop to indicate meal-specific view
   export let isSharedView = false // New prop for shareable link context (non-logged-in users)
   export let title = "Nutrition Goals" // Customizable title
+  export let hideGoalsMet = false // Hide the "Goals Met" section when true
   // Optional: preloaded goals for 'auto' and 'dri' sources; if provided, component will use them
   export let preloadGoalsAuto: Goals | null = null
   export let preloadGoalsDri: Goals | null = null
@@ -386,14 +387,16 @@
           <div
             class="stats stats-vertical lg:stats-horizontal bg-base-100 shadow-sm mt-6"
           >
-            <div class="stat">
-              <div class="stat-title">Goals Met</div>
-              <div class="stat-value text-lg">
-                {metGoals}
-                <span class="text-sm">/{availableNutrients.length}</span>
+            {#if !hideGoalsMet}
+              <div class="stat">
+                <div class="stat-title">Goals Met</div>
+                <div class="stat-value text-lg">
+                  {metGoals}
+                  <span class="text-sm">/{availableNutrients.length}</span>
+                </div>
+                <div class="stat-desc">≥80% of target</div>
               </div>
-              <div class="stat-desc">≥80% of target</div>
-            </div>
+            {/if}
             <div class="stat">
               <div class="stat-title">Source</div>
               <div class="stat-value text-lg flex items-center gap-2">

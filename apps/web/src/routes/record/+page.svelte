@@ -1,11 +1,6 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client"
-  import NutritionStats from "$lib/components/NutritionStats.svelte"
-  import Goals from "$lib/components/Goals.svelte"
-  import NutrientComposition from "$lib/components/NutrientComposition.svelte"
-  import Card from "$lib/components/Card.svelte"
-  import Label from "$lib/components/Label.svelte"
-  import TagIcon from "$lib/components/icons/Tag.svelte"
+  import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
   import { getAppName } from "$lib/utils/app-info"
 
   // Get app name from runtime environment
@@ -19,187 +14,6 @@
   let result: any = null
   let error: string = ""
   let consumptionId: string | null = null
-  let isEditing = false
-  let isSubmitting = false
-  let availableLabels: any[] = []
-  let isLoadingLabels = false
-  let isAddingLabel = false
-  // Prevent repeated fetches when the list is empty or after first successful/failed attempt
-  let labelsLoaded = false
-  let pendingLabels: Set<string> = new Set() // Labels to be applied
-  let currentLabels: Set<string> = new Set() // Currently applied labels
-  let isEditingLabels = false
-
-  function retryLoadLabels() {
-    if (!consumptionId) return
-    labelsLoaded = false
-    loadLabels()
-  }
-
-  // Load user's available labels
-  async function loadLabels() {
-    if (isLoadingLabels || labelsLoaded) return
-
-    try {
-      isLoadingLabels = true
-      console.log("Loading labels...")
-      const response = await apiClient.GET("/labels")
-
-      console.log("Labels response:", response)
-
-      if (response.error) {
-        console.error("Failed to load labels:", response.error)
-        return
-      }
-
-      availableLabels = response.data?.labels || []
-      console.log("Loaded labels:", availableLabels)
-
-      // Initialize current labels from result
-      if (result?.labels) {
-        currentLabels = new Set(result.labels.map((l: any) => l.name))
-        pendingLabels = new Set(currentLabels)
-      } else if (consumptionId) {
-        // If result doesn't include labels, fetch labels assigned to this consumption
-        try {
-          const assigned = await apiClient.GET("/consumption/{id}/labels", {
-            params: { path: { id: consumptionId } },
-          })
-          if (!assigned.error) {
-            const assignedLabels = assigned.data?.labels || []
-            currentLabels = new Set(assignedLabels.map((l: any) => l.name))
-            pendingLabels = new Set(currentLabels)
-          } else {
-            console.warn("Failed to load consumption labels:", assigned.error)
-          }
-        } catch (e) {
-          console.warn("Error loading consumption labels:", e)
-        }
-      }
-    } catch (err) {
-      console.error("Error loading labels:", err)
-    } finally {
-      isLoadingLabels = false
-      // Mark as loaded even if empty or on error to avoid tight reactive loops
-      labelsLoaded = true
-    }
-  }
-
-  // Toggle label in pending selection (GitHub-style)
-  function toggleLabelSelection(labelName: string) {
-    if (pendingLabels.has(labelName)) {
-      pendingLabels.delete(labelName)
-    } else {
-      pendingLabels.add(labelName)
-    }
-    pendingLabels = new Set(pendingLabels) // Trigger reactivity
-  }
-
-  // Apply all pending label changes (GitHub-style batch operation)
-  async function applyLabelChanges() {
-    if (!consumptionId || isAddingLabel) return
-
-    console.log("Applying label changes...")
-    console.log("Current labels:", Array.from(currentLabels))
-    console.log("Pending labels:", Array.from(pendingLabels))
-
-    try {
-      isAddingLabel = true
-      error = ""
-
-      // Calculate what needs to be added and removed
-      const toAdd = Array.from(pendingLabels).filter(
-        (name) => !currentLabels.has(name),
-      )
-      const toRemove = Array.from(currentLabels).filter(
-        (name) => !pendingLabels.has(name),
-      )
-
-      console.log("Labels to add:", toAdd)
-      console.log("Labels to remove:", toRemove)
-
-      // Add new labels
-      if (toAdd.length > 0) {
-        const labelIds = toAdd
-          .map((name) => {
-            const label = availableLabels.find((l) => l.name === name)
-            return label?.id
-          })
-          .filter(Boolean)
-
-        if (labelIds.length > 0) {
-          const addResponse = await apiClient.POST("/consumption/{id}/labels", {
-            params: { path: { id: consumptionId } },
-            body: { ids: labelIds },
-          })
-
-          console.log("Add labels response:", addResponse)
-
-          if (addResponse.error) {
-            throw new Error(`Failed to add labels: ${addResponse.error}`)
-          }
-        }
-      }
-
-      // Remove labels
-      for (const labelName of toRemove) {
-        const labelData = availableLabels.find((l) => l.name === labelName)
-        if (labelData?.id) {
-          const removeResponse = await apiClient.DELETE(
-            "/consumption/{id}/labels/{labelId}",
-            {
-              params: { path: { id: consumptionId, labelId: labelData.id } },
-            },
-          )
-
-          console.log("Remove label response:", removeResponse)
-
-          if (removeResponse.error) {
-            throw new Error(
-              `Failed to remove label ${labelName}: ${removeResponse.error}`,
-            )
-          }
-        }
-      }
-
-      // Update local state
-      currentLabels = new Set(pendingLabels)
-
-      // Update result object
-      if (result) {
-        result.labels = Array.from(currentLabels)
-          .map((name) => availableLabels.find((l) => l.name === name))
-          .filter(Boolean)
-        result = { ...result } // Trigger reactivity
-      }
-
-      isEditingLabels = false
-      console.log("Label changes applied successfully")
-    } catch (err) {
-      error = `Error applying label changes: ${err}`
-      console.error("Apply label changes error:", err)
-      // Reset pending to current on error
-      pendingLabels = new Set(currentLabels)
-    } finally {
-      isAddingLabel = false
-    }
-  }
-
-  // Cancel label editing
-  function cancelLabelChanges() {
-    pendingLabels = new Set(currentLabels)
-    isEditingLabels = false
-    error = ""
-  }
-
-  // Start label editing mode
-  function startLabelEditing() {
-    isEditingLabels = true
-    pendingLabels = new Set(currentLabels)
-  } // Load labels when we have a consumption ID (guarded to only load once)
-  $: if (consumptionId && !labelsLoaded) {
-    loadLabels()
-  }
 
   async function startRecording() {
     try {
@@ -271,7 +85,6 @@
       transcript = ""
       result = null
       consumptionId = null
-      labelsLoaded = false // new recording cycle
 
       const formData = new FormData()
       formData.append("audio", audioBlob, "audio.webm")
@@ -301,44 +114,7 @@
     uploadAudio()
   }
 
-  // Functions for editing and deleting consumption records
-  function startEdit() {
-    isEditing = true
-  }
-
-  function cancelEdit() {
-    isEditing = false
-  }
-
-  async function saveEdit() {
-    if (!consumptionId || !result?.items) return
-
-    try {
-      isSubmitting = true
-      error = ""
-
-      const updateResponse = await apiClient.PUT("/consumption/{id}", {
-        params: { path: { id: consumptionId } },
-        body: { items: result.items },
-      })
-
-      if (updateResponse.error) {
-        throw new Error(`Update failed: ${updateResponse.error}`)
-      }
-
-      // Update the local result with the response
-      result = updateResponse.data
-      isEditing = false
-      status = "✅ Updated"
-    } catch (err) {
-      error = `Error updating consumption: ${err}`
-      console.error("Update error:", err)
-    } finally {
-      isSubmitting = false
-    }
-  }
-
-  async function redoRecording() {
+  async function handleRedo() {
     if (!consumptionId) return
 
     const confirmed = confirm(
@@ -360,8 +136,6 @@
       result = null
       transcript = ""
       consumptionId = null
-      labelsLoaded = false
-      isEditing = false
       status = "Ready to record"
     } catch (err) {
       error = `Error deleting consumption: ${err}`
@@ -369,30 +143,10 @@
     }
   }
 
-  // Function to update quantity and recalculate nutrition
-  function updateItemQuantity(itemIndex: number, newQuantity: number) {
-    if (!result?.items || !result.items[itemIndex]) return
-
-    const item = result.items[itemIndex]
-    const currentQuantity = item.item.user_quantity || 1
-    const scalingFactor = newQuantity / currentQuantity
-
-    // Scale all nutrition values
-    if (item.item.nutrients) {
-      const nutrients = item.item.nutrients
-      Object.keys(nutrients).forEach((key) => {
-        if (typeof nutrients[key] === "number") {
-          nutrients[key] *= scalingFactor
-        }
-      })
-    }
-
-    // Update user quantity and grams
-    item.item.user_quantity = newQuantity
-    item.item.grams = item.item.grams * scalingFactor
-
-    // Trigger reactivity
-    result = { ...result, items: [...result.items] }
+  function handleSave(event: CustomEvent) {
+    // Update result with saved consumption data
+    result = event.detail.consumption
+    status = "✅ Updated"
   }
 
   // Sound effects
@@ -478,31 +232,6 @@
       await startRecording()
     }
   }
-
-  // Function to aggregate nutrition from current meal for goals comparison
-  function getMealNutrition(): Record<string, number> {
-    if (!result?.items) {
-      return {}
-    }
-
-    const aggregated: Record<string, number> = {}
-
-    result.items.forEach((item: any) => {
-      if (item.item?.nutrients) {
-        Object.keys(item.item.nutrients).forEach((key) => {
-          const value = item.item.nutrients[key]
-          if (typeof value === "number") {
-            aggregated[key] = (aggregated[key] || 0) + value
-          }
-        })
-      }
-    })
-
-    return aggregated
-  }
-
-  // Reactive statement to get current meal nutrition for Goals component
-  $: currentMealNutrition = result?.items ? getMealNutrition() : {}
 </script>
 
 <svelte:head>
@@ -596,6 +325,68 @@
 
   <!-- Results section (only shown when there are results) -->
   {#if transcript || result}
+    <div class="bg-base-100 p-6 fade-in">
+      <div class="container mx-auto max-w-4xl space-y-6">
+        <ConsumptionDisplay
+          consumption={result}
+          {transcript}
+          showRedoButton={true}
+          autoShowLabelEdit={true}
+          editable={true}
+          on:redo={handleRedo}
+          on:save={handleSave}
+        />
+
+        <!-- Navigation buttons -->
+        {#if status === "✅ Complete" || status === "✅ Updated"}
+          <div class="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+            <a href="/summary" class="btn btn-outline min-h-[44px]">
+              <svg
+                class="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2 2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+              View Summary
+            </a>
+            <button
+              class="btn btn-primary min-h-[44px]"
+              on:click={() => {
+                result = null
+                transcript = ""
+                consumptionId = null
+                audioBlob = null
+                status = "Ready to record"
+                error = ""
+              }}
+            >
+              <svg
+                class="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
+              Record Another
+            </button>
+          </div>
+        {/if}
+      </div>
+    </div>
+  {/if}
     <div class="bg-base-100 p-6 fade-in">
       <div class="container mx-auto max-w-4xl space-y-6">
         <!-- Action buttons (Edit/Redo) - only show if we have a consumption ID -->
