@@ -91,6 +91,14 @@ type Store interface {
 	GetEvent(ctx context.Context, userID, id string) (*Event, error)
 	ListEvents(ctx context.Context, userID string, options EventListOptions) ([]*Event, error)
 
+	// Event type operations
+	CreateEventType(ctx context.Context, eventType *EventType) error
+	UpdateEventType(ctx context.Context, eventType *EventType) error
+	DeleteEventType(ctx context.Context, userID, id string) error
+	GetEventType(ctx context.Context, userID, id string) (*EventType, error)
+	ListEventTypes(ctx context.Context, userID string) ([]*EventType, error)
+	GetEventTypeCounts(ctx context.Context, userID string) (map[string]int, error)
+
 	// Event label assignment operations
 	ListEventLabels(ctx context.Context, userID, eventID string) ([]*Label, error)
 	AssignEventLabels(ctx context.Context, userID, eventID string, labelIDs []string) error
@@ -100,6 +108,15 @@ type Store interface {
 	CreateEventLink(ctx context.Context, link *EventLink) error
 	DeleteEventLink(ctx context.Context, userID, linkID string) error
 	ListEventLinks(ctx context.Context, userID, eventID string) ([]*EventLink, error)
+
+	// API key operations (Pro users only)
+	CreateAPIKey(ctx context.Context, apiKey *APIKey) error
+	GetAPIKey(ctx context.Context, userID, id string) (*APIKey, error)
+	GetAPIKeyByPrefix(ctx context.Context, prefix string) (*APIKey, error)
+	ListAPIKeys(ctx context.Context, userID string) ([]*APIKey, error)
+	UpdateAPIKey(ctx context.Context, apiKey *APIKey) error
+	RevokeAPIKey(ctx context.Context, userID, id string) error
+	UpdateAPIKeyLastUsed(ctx context.Context, id string, lastUsed time.Time) error
 
 	// Database lifecycle
 	Close() error
@@ -508,17 +525,29 @@ type LabelWithUsage struct {
 
 // Event represents a user-owned event for tracking symptoms, activities, etc.
 type Event struct {
-	ID        string     `json:"id"`
-	UserID    string     `json:"user_id"`
-	Name      string     `json:"name"`
-	Category  *string    `json:"category,omitempty"`
-	StartedAt time.Time  `json:"started_at"`
-	EndedAt   *time.Time `json:"ended_at,omitempty"`
-	Level     *int       `json:"level,omitempty"` // 0-10 scale
-	Note      *string    `json:"note,omitempty"`  // Up to 1000 chars
-	Color     *string    `json:"color,omitempty"` // Hex color code
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID          string     `json:"id"`
+	UserID      string     `json:"user_id"`
+	Name        string     `json:"name"`
+	EventTypeID *string    `json:"event_type_id,omitempty"`
+	StartedAt   time.Time  `json:"started_at"`
+	EndedAt     *time.Time `json:"ended_at,omitempty"`
+	Level       *int       `json:"level,omitempty"` // 0-10 scale
+	Note        *string    `json:"note,omitempty"`  // Up to 1000 chars
+	Color       *string    `json:"color,omitempty"` // Hex color code
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+// EventType represents a user-defined event category with defaults
+type EventType struct {
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	Name        string    `json:"name"`                   // Display name for the category
+	Description *string   `json:"description,omitempty"`  // Optional description
+	DefaultName *string   `json:"default_name,omitempty"` // Default event name when creating from this type
+	Color       string    `json:"color"`                  // Hex color code (required)
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // EventLink represents a manual link between an event and a consumption/item
@@ -532,13 +561,33 @@ type EventLink struct {
 
 // EventListOptions contains filtering options for event queries
 type EventListOptions struct {
-	Limit     int
-	Offset    int
-	StartDate *time.Time
-	EndDate   *time.Time
-	Category  *string
-	LevelMin  *int
-	LevelMax  *int
-	Labels    []string
-	MatchAll  bool // If true, match ALL labels; if false, match ANY label
+	Limit       int
+	Offset      int
+	StartDate   *time.Time
+	EndDate     *time.Time
+	EventTypeID *string
+	LevelMin    *int
+	LevelMax    *int
+	Labels      []string
+	MatchAll    bool // If true, match ALL labels; if false, match ANY label
+}
+
+// APIKey represents an API key for Pro users
+type APIKey struct {
+	ID         string     `json:"id"`
+	UserID     string     `json:"user_id"`
+	Name       string     `json:"name"`
+	Prefix     string     `json:"prefix"` // Visible prefix for identification (e.g., "noot_xxx")
+	Hash       string     `json:"-"`      // Bcrypt hash of the full key (never exposed in JSON)
+	Scope      string     `json:"scope"`  // "read" or "read_write"
+	CreatedAt  time.Time  `json:"created_at"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
+	RevokedAt  *time.Time `json:"revoked_at,omitempty"`
+}
+
+// APIKeyWithSecret is used only when creating a new key to return the secret once
+type APIKeyWithSecret struct {
+	APIKey
+	Secret string `json:"secret"` // Full key secret, only available at creation
 }

@@ -20,26 +20,26 @@ func TestEventOperations(t *testing.T) {
 		level := 7
 		note := "Test event note"
 		color := "#FF6B6B"
-		category := "symptom"
+		eventTypeID := "event-type-123"
 
 		event := &Event{
-			ID:        "test-id",
-			UserID:    "user-123",
-			Name:      "Headache",
-			Category:  &category,
-			StartedAt: startTime,
-			EndedAt:   &endTime,
-			Level:     &level,
-			Note:      &note,
-			Color:     &color,
-			CreatedAt: now,
-			UpdatedAt: now,
+			ID:          "test-id",
+			UserID:      "user-123",
+			Name:        "Headache",
+			EventTypeID: &eventTypeID,
+			StartedAt:   startTime,
+			EndedAt:     &endTime,
+			Level:       &level,
+			Note:        &note,
+			Color:       &color,
+			CreatedAt:   now,
+			UpdatedAt:   now,
 		}
 
 		assert.Equal(t, "test-id", event.ID)
 		assert.Equal(t, "user-123", event.UserID)
 		assert.Equal(t, "Headache", event.Name)
-		assert.Equal(t, "symptom", *event.Category)
+		assert.Equal(t, "event-type-123", *event.EventTypeID)
 		assert.Equal(t, startTime, event.StartedAt)
 		assert.Equal(t, endTime, *event.EndedAt)
 		assert.Equal(t, 7, *event.Level)
@@ -68,27 +68,27 @@ func TestEventOperations(t *testing.T) {
 	t.Run("EventListOptions creation", func(t *testing.T) {
 		startDate := time.Now().Add(-24 * time.Hour)
 		endDate := time.Now()
-		category := "activity"
+		eventTypeID := "activity-type-123"
 		levelMin := 3
 		levelMax := 8
 
 		options := EventListOptions{
-			Limit:     100,
-			Offset:    0,
-			StartDate: &startDate,
-			EndDate:   &endDate,
-			Category:  &category,
-			LevelMin:  &levelMin,
-			LevelMax:  &levelMax,
-			Labels:    []string{"exercise", "cardio"},
-			MatchAll:  true,
+			Limit:       100,
+			Offset:      0,
+			StartDate:   &startDate,
+			EndDate:     &endDate,
+			EventTypeID: &eventTypeID,
+			LevelMin:    &levelMin,
+			LevelMax:    &levelMax,
+			Labels:      []string{"exercise", "cardio"},
+			MatchAll:    true,
 		}
 
 		assert.Equal(t, 100, options.Limit)
 		assert.Equal(t, 0, options.Offset)
 		assert.Equal(t, startDate, *options.StartDate)
 		assert.Equal(t, endDate, *options.EndDate)
-		assert.Equal(t, "activity", *options.Category)
+		assert.Equal(t, "activity-type-123", *options.EventTypeID)
 		assert.Equal(t, 3, *options.LevelMin)
 		assert.Equal(t, 8, *options.LevelMax)
 		assert.Len(t, options.Labels, 2)

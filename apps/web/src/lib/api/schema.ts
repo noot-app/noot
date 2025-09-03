@@ -452,6 +452,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/event-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List event types
+         * @description Get all event types owned by the current user, including usage counts
+         */
+        get: operations["getEventTypes"];
+        put?: never;
+        /**
+         * Create a new event type
+         * @description Create a new event type for the current user
+         */
+        post: operations["createEventType"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/event-types/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update an event type
+         * @description Update an existing event type owned by the current user
+         */
+        put: operations["updateEventType"];
+        post?: never;
+        /**
+         * Delete an event type
+         * @description Delete an event type owned by the current user. Events using this type will have their event_type_id set to null.
+         */
+        delete: operations["deleteEventType"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/trends": {
         parameters: {
             query?: never;
@@ -515,6 +563,70 @@ export interface paths {
          * @description Delete all biometric data for the authenticated user
          */
         delete: operations["deleteUserBiometrics"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List API keys (Pro only)
+         * @description List all API keys for the authenticated Pro user
+         */
+        get: operations["listAPIKeys"];
+        put?: never;
+        /**
+         * Create API key (Pro only)
+         * @description Create a new API key for the authenticated Pro user. The secret is only returned once at creation.
+         */
+        post: operations["createAPIKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api-keys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke API key (Pro only)
+         * @description Revoke (soft delete) an API key for the authenticated Pro user
+         */
+        delete: operations["revokeAPIKey"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api-keys/{id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate API key (Pro only)
+         * @description Generate a new secret for an existing API key, revoking the old one. Returns the new secret once.
+         */
+        post: operations["rotateAPIKey"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -626,6 +738,91 @@ export interface components {
             /** @description Array of label IDs to assign */
             ids: string[];
         };
+        EventType: {
+            /** @description Event type ID */
+            id: string;
+            /** @description User ID who owns this event type */
+            user_id: string;
+            /** @description Event type name */
+            name: string;
+            /** @description Optional description of the event type */
+            description?: string | null;
+            /** @description Default name suggestion when creating events of this type */
+            default_name?: string | null;
+            /**
+             * @description Hex color for visual distinction (#RRGGBB)
+             * @example #FF6B6B
+             */
+            color: string;
+            /**
+             * Format: date-time
+             * @description When the event type was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the event type was last updated
+             */
+            updated_at: string;
+        };
+        EventTypeCreateRequest: {
+            /** @description Event type name (unique per user, case-insensitive) */
+            name: string;
+            /** @description Optional description of the event type */
+            description?: string;
+            /** @description Default name suggestion when creating events of this type */
+            default_name?: string;
+            /**
+             * @description Hex color for visual distinction (#RRGGBB)
+             * @example #FF6B6B
+             */
+            color: string;
+        };
+        EventTypeUpdateRequest: {
+            /** @description Event type name (unique per user, case-insensitive) */
+            name?: string;
+            /** @description Optional description of the event type */
+            description?: string | null;
+            /** @description Default name suggestion when creating events of this type */
+            default_name?: string | null;
+            /**
+             * @description Hex color for visual distinction (#RRGGBB)
+             * @example #FF6B6B
+             */
+            color?: string | null;
+        };
+        EventTypeWithUsage: {
+            /** @description Event type ID */
+            id: string;
+            /** @description User ID who owns this event type */
+            user_id: string;
+            /** @description Event type name */
+            name: string;
+            /** @description Optional description of the event type */
+            description?: string | null;
+            /** @description Default name suggestion when creating events of this type */
+            default_name?: string | null;
+            /**
+             * @description Hex color for visual distinction (#RRGGBB)
+             * @example #FF6B6B
+             */
+            color: string;
+            /**
+             * Format: date-time
+             * @description When the event type was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the event type was last updated
+             */
+            updated_at: string;
+            /** @description Number of events using this event type */
+            event_count: number;
+        };
+        EventTypesResponse: {
+            event_types: components["schemas"]["EventTypeWithUsage"][];
+        };
         Event: {
             /** @description Event ID */
             id: string;
@@ -633,8 +830,8 @@ export interface components {
             user_id: string;
             /** @description Event name */
             name: string;
-            /** @description Optional event category (e.g., 'symptom', 'activity', 'measurement') */
-            category?: string | null;
+            /** @description Optional event type ID reference */
+            event_type_id?: string | null;
             /**
              * Format: date-time
              * @description When the event started
@@ -672,8 +869,8 @@ export interface components {
             user_id: string;
             /** @description Event name */
             name: string;
-            /** @description Optional event category */
-            category?: string | null;
+            /** @description Reference to the event type */
+            event_type_id?: string | null;
             /**
              * Format: date-time
              * @description When the event started
@@ -711,8 +908,8 @@ export interface components {
         EventCreateRequest: {
             /** @description Event name */
             name: string;
-            /** @description Optional event category */
-            category?: string;
+            /** @description Optional event type ID reference */
+            event_type_id?: string;
             /**
              * Format: date-time
              * @description When the event started
@@ -738,8 +935,8 @@ export interface components {
         EventUpdateRequest: {
             /** @description Event name */
             name?: string;
-            /** @description Optional event category */
-            category?: string | null;
+            /** @description Optional event type ID reference */
+            event_type_id?: string | null;
             /**
              * Format: date-time
              * @description When the event started
@@ -1228,6 +1425,76 @@ export interface components {
              * @enum {string}
              */
             activity_level?: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active";
+        };
+        APIKey: {
+            /** @description Unique identifier for the API key */
+            id: string;
+            /** @description ID of the user who owns this key */
+            user_id: string;
+            /**
+             * @description User-defined name for the key
+             * @example Production API Key
+             */
+            name: string;
+            /**
+             * @description Visible prefix for identification (e.g., noot_abc123)
+             * @example noot_abc123
+             */
+            prefix: string;
+            /**
+             * @description Permissions scope for the API key
+             * @enum {string}
+             */
+            scope: "read" | "read_write";
+            /**
+             * Format: date-time
+             * @description When the API key was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the API key was last used
+             */
+            last_used_at?: string | null;
+            /**
+             * Format: date-time
+             * @description When the API key expires (null for no expiration)
+             */
+            expires_at?: string | null;
+            /**
+             * Format: date-time
+             * @description When the API key was revoked (null if active)
+             */
+            revoked_at?: string | null;
+        };
+        CreateAPIKeyRequest: {
+            /**
+             * @description User-defined name for the API key
+             * @example Production API Key
+             */
+            name: string;
+            /**
+             * @description Permissions scope - 'read' for GET requests only, 'read_write' for all operations
+             * @enum {string}
+             */
+            scope: "read" | "read_write";
+            /**
+             * Format: date-time
+             * @description Optional expiration date (null for no expiration)
+             */
+            expires_at?: string | null;
+        };
+        CreateAPIKeyResponse: {
+            api_key: components["schemas"]["APIKey"];
+            /**
+             * @description Full API key secret (only returned once at creation or rotation)
+             * @example noot_abc123_def456ghi789jkl012mno345pqr678stu901vwx234yz
+             */
+            secret: string;
+        };
+        APIKeysResponse: {
+            /** @description List of API keys (secrets not included) */
+            api_keys: components["schemas"]["APIKey"][];
         };
     };
     responses: never;
@@ -2258,8 +2525,8 @@ export interface operations {
                 start_date?: string;
                 /** @description Filter events ending before this date (ISO 8601) */
                 end_date?: string;
-                /** @description Filter by event category */
-                category?: string;
+                /** @description Filter by event type ID */
+                event_type_id?: string;
                 /** @description Filter events with level >= this value */
                 level_min?: number;
                 /** @description Filter events with level <= this value */
@@ -2767,6 +3034,197 @@ export interface operations {
             };
         };
     };
+    getEventTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of user event types with usage counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventTypesResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createEventType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventTypeCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Event type created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventType"];
+                };
+            };
+            /** @description Bad request (invalid name/color, validation errors) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Event type limit exceeded (50 event types per user) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Event type name already exists for user */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateEventType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event type ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventTypeUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Event type updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventType"];
+                };
+            };
+            /** @description Bad request (validation errors) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Event type not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Event type name already exists for user */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteEventType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event type ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Event type deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Event type not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     getTrends: {
         parameters: {
             query?: {
@@ -2997,6 +3455,195 @@ export interface operations {
                 };
             };
             /** @description Biometrics not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listAPIKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of API keys (without secrets) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeysResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createAPIKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAPIKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description API key created successfully (secret returned once) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAPIKeyResponse"];
+                };
+            };
+            /** @description Bad request (invalid name, scope, or duplicate name) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revokeAPIKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description API key ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API key revoked successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description API key not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    rotateAPIKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description API key ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API key rotated successfully (new secret returned once) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAPIKeyResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description API key not found */
             404: {
                 headers: {
                     [name: string]: unknown;

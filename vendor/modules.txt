@@ -5,8 +5,11 @@ github.com/apapsch/go-jsonmerge/v2
 ## explicit
 github.com/aymerick/douceur/css
 github.com/aymerick/douceur/parser
-# github.com/bytedance/sonic v1.14.0
-## explicit; go 1.17
+# github.com/bytedance/gopkg v0.1.3
+## explicit; go 1.18
+github.com/bytedance/gopkg/lang/dirtmake
+# github.com/bytedance/sonic v1.14.1
+## explicit; go 1.18
 github.com/bytedance/sonic
 github.com/bytedance/sonic/ast
 github.com/bytedance/sonic/decoder
@@ -22,6 +25,7 @@ github.com/bytedance/sonic/internal/decoder/optdec
 github.com/bytedance/sonic/internal/encoder
 github.com/bytedance/sonic/internal/encoder/alg
 github.com/bytedance/sonic/internal/encoder/ir
+github.com/bytedance/sonic/internal/encoder/prim
 github.com/bytedance/sonic/internal/encoder/vars
 github.com/bytedance/sonic/internal/encoder/vm
 github.com/bytedance/sonic/internal/encoder/x86
@@ -239,6 +243,8 @@ github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath
 golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.41.0
 ## explicit; go 1.23.0
+golang.org/x/crypto/bcrypt
+golang.org/x/crypto/blowfish
 golang.org/x/crypto/sha3
 # golang.org/x/mod v0.27.0
 ## explicit; go 1.23.0

@@ -13,6 +13,7 @@
   export let maxlength: number | undefined = undefined
   export let helpText: string = ""
   export let error: string = ""
+  export let multiline: boolean = false
 
   // Additional CSS classes
   export let className: string = ""
@@ -31,21 +32,36 @@
     {/if}
   </label>
 
-  <input
-    {id}
-    {type}
-    {placeholder}
-    {required}
-    {disabled}
-    {min}
-    {max}
-    {step}
-    {maxlength}
-    class="input input-bordered {sizeClass} {inputClass} {hasError
-      ? 'input-error'
-      : ''}"
-    bind:value
-  />
+  {#if multiline}
+    <textarea
+      {id}
+      {placeholder}
+      {required}
+      {disabled}
+      {maxlength}
+      class="textarea textarea-bordered {sizeClass} {inputClass} {hasError
+        ? 'textarea-error'
+        : ''}"
+      bind:value
+      rows="3"
+    ></textarea>
+  {:else}
+    <input
+      {id}
+      {type}
+      {placeholder}
+      {required}
+      {disabled}
+      {min}
+      {max}
+      {step}
+      {maxlength}
+      class="input input-bordered {sizeClass} {inputClass} {hasError
+        ? 'input-error'
+        : ''}"
+      bind:value
+    />
+  {/if}
 
   {#if helpText}
     <div class="label">

@@ -9,6 +9,23 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+const (
+	ApiKeyAuthScopes = "ApiKeyAuth.Scopes"
+	BearerAuthScopes = "BearerAuth.Scopes"
+)
+
+// Defines values for APIKeyScope.
+const (
+	APIKeyScopeRead      APIKeyScope = "read"
+	APIKeyScopeReadWrite APIKeyScope = "read_write"
+)
+
+// Defines values for CreateAPIKeyRequestScope.
+const (
+	CreateAPIKeyRequestScopeRead      CreateAPIKeyRequestScope = "read"
+	CreateAPIKeyRequestScopeReadWrite CreateAPIKeyRequestScope = "read_write"
+)
+
 // Defines values for ExportResponseFormat.
 const (
 	ExportResponseFormatCsv  ExportResponseFormat = "csv"
@@ -91,6 +108,45 @@ const (
 	GetGoalsParamsSourceAuto GetGoalsParamsSource = "auto"
 	GetGoalsParamsSourceDri  GetGoalsParamsSource = "dri"
 )
+
+// APIKey defines model for APIKey.
+type APIKey struct {
+	// CreatedAt When the API key was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// ExpiresAt When the API key expires (null for no expiration)
+	ExpiresAt *time.Time `json:"expires_at"`
+
+	// Id Unique identifier for the API key
+	Id string `json:"id"`
+
+	// LastUsedAt When the API key was last used
+	LastUsedAt *time.Time `json:"last_used_at"`
+
+	// Name User-defined name for the key
+	Name string `json:"name"`
+
+	// Prefix Visible prefix for identification (e.g., noot_abc123)
+	Prefix string `json:"prefix"`
+
+	// RevokedAt When the API key was revoked (null if active)
+	RevokedAt *time.Time `json:"revoked_at"`
+
+	// Scope Permissions scope for the API key
+	Scope APIKeyScope `json:"scope"`
+
+	// UserId ID of the user who owns this key
+	UserId string `json:"user_id"`
+}
+
+// APIKeyScope Permissions scope for the API key
+type APIKeyScope string
+
+// APIKeysResponse defines model for APIKeysResponse.
+type APIKeysResponse struct {
+	// ApiKeys List of API keys (secrets not included)
+	ApiKeys []APIKey `json:"api_keys"`
+}
 
 // AssignLabelsRequest defines model for AssignLabelsRequest.
 type AssignLabelsRequest struct {
@@ -314,6 +370,29 @@ type ConsumptionsResponse struct {
 	User  User `json:"user"`
 }
 
+// CreateAPIKeyRequest defines model for CreateAPIKeyRequest.
+type CreateAPIKeyRequest struct {
+	// ExpiresAt Optional expiration date (null for no expiration)
+	ExpiresAt *time.Time `json:"expires_at"`
+
+	// Name User-defined name for the API key
+	Name string `json:"name"`
+
+	// Scope Permissions scope - 'read' for GET requests only, 'read_write' for all operations
+	Scope CreateAPIKeyRequestScope `json:"scope"`
+}
+
+// CreateAPIKeyRequestScope Permissions scope - 'read' for GET requests only, 'read_write' for all operations
+type CreateAPIKeyRequestScope string
+
+// CreateAPIKeyResponse defines model for CreateAPIKeyResponse.
+type CreateAPIKeyResponse struct {
+	ApiKey APIKey `json:"api_key"`
+
+	// Secret Full API key secret (only returned once at creation or rotation)
+	Secret string `json:"secret"`
+}
+
 // DataPoint defines model for DataPoint.
 type DataPoint struct {
 	// Date Date for this data point
@@ -352,9 +431,6 @@ type ErrorResponse struct {
 
 // Event defines model for Event.
 type Event struct {
-	// Category Optional event category (e.g., 'symptom', 'activity', 'measurement')
-	Category *string `json:"category"`
-
 	// Color Optional hex color for visual distinction
 	Color *string `json:"color"`
 
@@ -363,6 +439,9 @@ type Event struct {
 
 	// EndedAt When the event ended (optional)
 	EndedAt *time.Time `json:"ended_at"`
+
+	// EventTypeId Optional event type ID reference
+	EventTypeId *string `json:"event_type_id"`
 
 	// Id Event ID
 	Id string `json:"id"`
@@ -388,9 +467,6 @@ type Event struct {
 
 // EventCreateRequest defines model for EventCreateRequest.
 type EventCreateRequest struct {
-	// Category Optional event category
-	Category *string `json:"category,omitempty"`
-
 	// Color Optional hex color for visual distinction
 	Color *string `json:"color,omitempty"`
 
@@ -399,6 +475,9 @@ type EventCreateRequest struct {
 
 	// EndedAt When the event ended (optional)
 	EndedAt *time.Time `json:"ended_at,omitempty"`
+
+	// EventTypeId Optional event type ID reference
+	EventTypeId *string `json:"event_type_id,omitempty"`
 
 	// Level Event intensity/severity/performance level (0-10)
 	Level *int `json:"level,omitempty"`
@@ -440,16 +519,108 @@ type EventLinkCreateRequest struct {
 	ConsumptionItemId *string `json:"consumption_item_id,omitempty"`
 }
 
+// EventType defines model for EventType.
+type EventType struct {
+	// Color Hex color for visual distinction (#RRGGBB)
+	Color string `json:"color"`
+
+	// CreatedAt When the event type was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// DefaultName Default name suggestion when creating events of this type
+	DefaultName *string `json:"default_name"`
+
+	// Description Optional description of the event type
+	Description *string `json:"description"`
+
+	// Id Event type ID
+	Id string `json:"id"`
+
+	// Name Event type name
+	Name string `json:"name"`
+
+	// UpdatedAt When the event type was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// UserId User ID who owns this event type
+	UserId string `json:"user_id"`
+}
+
+// EventTypeCreateRequest defines model for EventTypeCreateRequest.
+type EventTypeCreateRequest struct {
+	// Color Hex color for visual distinction (#RRGGBB)
+	Color string `json:"color"`
+
+	// DefaultName Default name suggestion when creating events of this type
+	DefaultName *string `json:"default_name,omitempty"`
+
+	// Description Optional description of the event type
+	Description *string `json:"description,omitempty"`
+
+	// Name Event type name (unique per user, case-insensitive)
+	Name string `json:"name"`
+}
+
+// EventTypeUpdateRequest defines model for EventTypeUpdateRequest.
+type EventTypeUpdateRequest struct {
+	// Color Hex color for visual distinction (#RRGGBB)
+	Color *string `json:"color"`
+
+	// DefaultName Default name suggestion when creating events of this type
+	DefaultName *string `json:"default_name"`
+
+	// Description Optional description of the event type
+	Description *string `json:"description"`
+
+	// Name Event type name (unique per user, case-insensitive)
+	Name *string `json:"name,omitempty"`
+}
+
+// EventTypeWithUsage defines model for EventTypeWithUsage.
+type EventTypeWithUsage struct {
+	// Color Hex color for visual distinction (#RRGGBB)
+	Color string `json:"color"`
+
+	// CreatedAt When the event type was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// DefaultName Default name suggestion when creating events of this type
+	DefaultName *string `json:"default_name"`
+
+	// Description Optional description of the event type
+	Description *string `json:"description"`
+
+	// EventCount Number of events using this event type
+	EventCount int `json:"event_count"`
+
+	// Id Event type ID
+	Id string `json:"id"`
+
+	// Name Event type name
+	Name string `json:"name"`
+
+	// UpdatedAt When the event type was last updated
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// UserId User ID who owns this event type
+	UserId string `json:"user_id"`
+}
+
+// EventTypesResponse defines model for EventTypesResponse.
+type EventTypesResponse struct {
+	EventTypes []EventTypeWithUsage `json:"event_types"`
+}
+
 // EventUpdateRequest defines model for EventUpdateRequest.
 type EventUpdateRequest struct {
-	// Category Optional event category
-	Category *string `json:"category"`
-
 	// Color Optional hex color for visual distinction
 	Color *string `json:"color"`
 
 	// EndedAt When the event ended
 	EndedAt *time.Time `json:"ended_at"`
+
+	// EventTypeId Optional event type ID reference
+	EventTypeId *string `json:"event_type_id"`
 
 	// Level Event intensity/severity/performance level (0-10)
 	Level *int `json:"level"`
@@ -466,9 +637,6 @@ type EventUpdateRequest struct {
 
 // EventWithDetails defines model for EventWithDetails.
 type EventWithDetails struct {
-	// Category Optional event category
-	Category *string `json:"category"`
-
 	// Color Optional hex color for visual distinction
 	Color *string `json:"color"`
 
@@ -477,6 +645,9 @@ type EventWithDetails struct {
 
 	// EndedAt When the event ended
 	EndedAt *time.Time `json:"ended_at"`
+
+	// EventTypeId Reference to the event type
+	EventTypeId *string `json:"event_type_id"`
 
 	// Id Event ID
 	Id string `json:"id"`
@@ -894,8 +1065,8 @@ type GetEventsParams struct {
 	// EndDate Filter events ending before this date (ISO 8601)
 	EndDate *time.Time `form:"end_date,omitempty" json:"end_date,omitempty"`
 
-	// Category Filter by event category
-	Category *string `form:"category,omitempty" json:"category,omitempty"`
+	// EventTypeId Filter by event type ID
+	EventTypeId *string `form:"event_type_id,omitempty" json:"event_type_id,omitempty"`
 
 	// LevelMin Filter events with level >= this value
 	LevelMin *int `form:"level_min,omitempty" json:"level_min,omitempty"`
@@ -958,6 +1129,9 @@ type GetTrendsParams struct {
 	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
 
+// CreateAPIKeyJSONRequestBody defines body for CreateAPIKey for application/json ContentType.
+type CreateAPIKeyJSONRequestBody = CreateAPIKeyRequest
+
 // UpdateUserBiometricsJSONRequestBody defines body for UpdateUserBiometrics for application/json ContentType.
 type UpdateUserBiometricsJSONRequestBody = UpdateBiometricsRequest
 
@@ -972,6 +1146,12 @@ type UpdateConsumptionJSONRequestBody = UpdateConsumptionRequest
 
 // AssignConsumptionLabelsJSONRequestBody defines body for AssignConsumptionLabels for application/json ContentType.
 type AssignConsumptionLabelsJSONRequestBody = AssignLabelsRequest
+
+// CreateEventTypeJSONRequestBody defines body for CreateEventType for application/json ContentType.
+type CreateEventTypeJSONRequestBody = EventTypeCreateRequest
+
+// UpdateEventTypeJSONRequestBody defines body for UpdateEventType for application/json ContentType.
+type UpdateEventTypeJSONRequestBody = EventTypeUpdateRequest
 
 // CreateEventJSONRequestBody defines body for CreateEvent for application/json ContentType.
 type CreateEventJSONRequestBody = EventCreateRequest

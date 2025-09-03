@@ -1997,11 +1997,11 @@ func (s *PostgreSQLStore) CreateEvent(ctx context.Context, event *Event) error {
 	}
 
 	query := `
-		INSERT INTO events (id, user_id, name, category, started_at, ended_at, level, note, color, created_at, updated_at)
+		INSERT INTO events (id, user_id, name, event_type_id, started_at, ended_at, level, note, color, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 
 	_, err := s.db.ExecContext(ctx, query,
-		event.ID, event.UserID, event.Name, event.Category, event.StartedAt, event.EndedAt,
+		event.ID, event.UserID, event.Name, event.EventTypeID, event.StartedAt, event.EndedAt,
 		event.Level, event.Note, event.Color, event.CreatedAt, event.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create event: %w", err)
@@ -2020,12 +2020,12 @@ func (s *PostgreSQLStore) UpdateEvent(ctx context.Context, event *Event) error {
 
 	query := `
 		UPDATE events 
-		SET name = $3, category = $4, started_at = $5, ended_at = $6, 
+		SET name = $3, event_type_id = $4, started_at = $5, ended_at = $6, 
 		    level = $7, note = $8, color = $9, updated_at = $10
 		WHERE id = $1 AND user_id = $2`
 
 	result, err := s.db.ExecContext(ctx, query,
-		event.ID, event.UserID, event.Name, event.Category, event.StartedAt, event.EndedAt,
+		event.ID, event.UserID, event.Name, event.EventTypeID, event.StartedAt, event.EndedAt,
 		event.Level, event.Note, event.Color, event.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update event: %w", err)
@@ -2065,13 +2065,13 @@ func (s *PostgreSQLStore) DeleteEvent(ctx context.Context, userID, id string) er
 // GetEvent retrieves a specific event by ID
 func (s *PostgreSQLStore) GetEvent(ctx context.Context, userID, id string) (*Event, error) {
 	query := `
-		SELECT id, user_id, name, category, started_at, ended_at, level, note, color, created_at, updated_at
+		SELECT id, user_id, name, event_type_id, started_at, ended_at, level, note, color, created_at, updated_at
 		FROM events 
 		WHERE id = $1 AND user_id = $2`
 
 	event := &Event{}
 	err := s.db.QueryRowContext(ctx, query, id, userID).Scan(
-		&event.ID, &event.UserID, &event.Name, &event.Category, &event.StartedAt, &event.EndedAt,
+		&event.ID, &event.UserID, &event.Name, &event.EventTypeID, &event.StartedAt, &event.EndedAt,
 		&event.Level, &event.Note, &event.Color, &event.CreatedAt, &event.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("event not found")
@@ -2086,7 +2086,7 @@ func (s *PostgreSQLStore) GetEvent(ctx context.Context, userID, id string) (*Eve
 // ListEvents retrieves events for a user with filtering options
 func (s *PostgreSQLStore) ListEvents(ctx context.Context, userID string, options EventListOptions) ([]*Event, error) {
 	baseQuery := `
-		SELECT DISTINCT e.id, e.user_id, e.name, e.category, e.started_at, e.ended_at, 
+		SELECT DISTINCT e.id, e.user_id, e.name, e.event_type_id, e.started_at, e.ended_at, 
 		       e.level, e.note, e.color, e.created_at, e.updated_at
 		FROM events e`
 
@@ -2111,10 +2111,10 @@ func (s *PostgreSQLStore) ListEvents(ctx context.Context, userID string, options
 		argIndex++
 	}
 
-	// Category filtering
-	if options.Category != nil {
-		conditions = append(conditions, fmt.Sprintf("e.category = $%d", argIndex))
-		args = append(args, *options.Category)
+	// EventType filtering
+	if options.EventTypeID != nil {
+		conditions = append(conditions, fmt.Sprintf("e.event_type_id = $%d", argIndex))
+		args = append(args, *options.EventTypeID)
 		argIndex++
 	}
 
@@ -2147,7 +2147,7 @@ func (s *PostgreSQLStore) ListEvents(ctx context.Context, userID string, options
 			conditions = append(conditions, fmt.Sprintf("LOWER(l.name) IN (%s)", strings.Join(placeholders, ",")))
 
 			// Group by event and ensure it has all labels
-			baseQuery += fmt.Sprintf(" WHERE %s GROUP BY e.id, e.user_id, e.name, e.category, e.started_at, e.ended_at, e.level, e.note, e.color, e.created_at, e.updated_at HAVING COUNT(DISTINCT l.id) = %d", strings.Join(conditions, " AND "), len(options.Labels))
+			baseQuery += fmt.Sprintf(" WHERE %s GROUP BY e.id, e.user_id, e.name, e.event_type_id, e.started_at, e.ended_at, e.level, e.note, e.color, e.created_at, e.updated_at HAVING COUNT(DISTINCT l.id) = %d", strings.Join(conditions, " AND "), len(options.Labels))
 		} else {
 			// Match ANY labels (event has at least one of the specified labels)
 			baseQuery += ` 
@@ -2194,7 +2194,7 @@ func (s *PostgreSQLStore) ListEvents(ctx context.Context, userID string, options
 	for rows.Next() {
 		event := &Event{}
 		err := rows.Scan(
-			&event.ID, &event.UserID, &event.Name, &event.Category, &event.StartedAt, &event.EndedAt,
+			&event.ID, &event.UserID, &event.Name, &event.EventTypeID, &event.StartedAt, &event.EndedAt,
 			&event.Level, &event.Note, &event.Color, &event.CreatedAt, &event.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan event: %w", err)
@@ -2380,4 +2380,163 @@ func (s *PostgreSQLStore) ListEventLinks(ctx context.Context, userID, eventID st
 	}
 
 	return links, nil
+}
+
+// CreateEventType creates a new event type for a user
+func (s *PostgreSQLStore) CreateEventType(ctx context.Context, eventType *EventType) error {
+	if eventType.ID == "" {
+		eventType.ID = generateUUID()
+	}
+
+	eventType.CreatedAt = time.Now().UTC()
+	eventType.UpdatedAt = eventType.CreatedAt
+
+	query := `
+		INSERT INTO event_types (id, user_id, name, description, default_name, color, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+
+	_, err := s.db.ExecContext(ctx, query,
+		eventType.ID, eventType.UserID, eventType.Name, eventType.Description, eventType.DefaultName,
+		eventType.Color, eventType.CreatedAt, eventType.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to create event type: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateEventType updates an existing event type
+func (s *PostgreSQLStore) UpdateEventType(ctx context.Context, eventType *EventType) error {
+	eventType.UpdatedAt = time.Now().UTC()
+
+	query := `
+		UPDATE event_types 
+		SET name = $3, description = $4, default_name = $5, color = $6, updated_at = $7
+		WHERE id = $1 AND user_id = $2`
+
+	result, err := s.db.ExecContext(ctx, query,
+		eventType.ID, eventType.UserID, eventType.Name, eventType.Description, eventType.DefaultName,
+		eventType.Color, eventType.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to update event type: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("event type not found or not owned by user")
+	}
+
+	return nil
+}
+
+// DeleteEventType deletes an event type
+func (s *PostgreSQLStore) DeleteEventType(ctx context.Context, userID, id string) error {
+	query := `DELETE FROM event_types WHERE id = $1 AND user_id = $2`
+
+	result, err := s.db.ExecContext(ctx, query, id, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete event type: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("event type not found or not owned by user")
+	}
+
+	return nil
+}
+
+// GetEventType retrieves a specific event type by ID
+func (s *PostgreSQLStore) GetEventType(ctx context.Context, userID, id string) (*EventType, error) {
+	query := `
+		SELECT id, user_id, name, description, default_name, color, created_at, updated_at
+		FROM event_types 
+		WHERE id = $1 AND user_id = $2`
+
+	eventType := &EventType{}
+	err := s.db.QueryRowContext(ctx, query, id, userID).Scan(
+		&eventType.ID, &eventType.UserID, &eventType.Name, &eventType.Description, &eventType.DefaultName,
+		&eventType.Color, &eventType.CreatedAt, &eventType.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("event type not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get event type: %w", err)
+	}
+
+	return eventType, nil
+}
+
+// ListEventTypes retrieves all event types for a user
+func (s *PostgreSQLStore) ListEventTypes(ctx context.Context, userID string) ([]*EventType, error) {
+	query := `
+		SELECT id, user_id, name, description, default_name, color, created_at, updated_at
+		FROM event_types 
+		WHERE user_id = $1 
+		ORDER BY name ASC`
+
+	rows, err := s.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query event types: %w", err)
+	}
+	defer rows.Close()
+
+	var eventTypes []*EventType
+	for rows.Next() {
+		eventType := &EventType{}
+		err := rows.Scan(
+			&eventType.ID, &eventType.UserID, &eventType.Name, &eventType.Description, &eventType.DefaultName,
+			&eventType.Color, &eventType.CreatedAt, &eventType.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan event type: %w", err)
+		}
+		eventTypes = append(eventTypes, eventType)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over event types: %w", err)
+	}
+
+	return eventTypes, nil
+}
+
+// GetEventTypeCounts returns a map of event type ID to count of events for that type
+func (s *PostgreSQLStore) GetEventTypeCounts(ctx context.Context, userID string) (map[string]int, error) {
+	query := `
+		SELECT et.id, COUNT(e.id) as event_count
+		FROM event_types et
+		LEFT JOIN events e ON et.id = e.event_type_id AND e.user_id = $1
+		WHERE et.user_id = $1
+		GROUP BY et.id`
+
+	rows, err := s.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query event type counts: %w", err)
+	}
+	defer rows.Close()
+
+	counts := make(map[string]int)
+	for rows.Next() {
+		var eventTypeID string
+		var count int
+		err := rows.Scan(&eventTypeID, &count)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan event type count: %w", err)
+		}
+		counts[eventTypeID] = count
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over event type counts: %w", err)
+	}
+
+	return counts, nil
 }

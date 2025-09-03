@@ -190,6 +190,41 @@ func (m *mockStore) ListEventLinks(ctx context.Context, userID, eventID string) 
 	return nil, nil
 }
 
+// Event type mock methods
+func (m *mockStore) CreateEventType(ctx context.Context, eventType *storage.EventType) error {
+	return nil
+}
+func (m *mockStore) UpdateEventType(ctx context.Context, eventType *storage.EventType) error {
+	return nil
+}
+func (m *mockStore) DeleteEventType(ctx context.Context, userID, id string) error { return nil }
+func (m *mockStore) GetEventType(ctx context.Context, userID, id string) (*storage.EventType, error) {
+	return nil, nil
+}
+func (m *mockStore) ListEventTypes(ctx context.Context, userID string) ([]*storage.EventType, error) {
+	return nil, nil
+}
+func (m *mockStore) GetEventTypeCounts(ctx context.Context, userID string) (map[string]int, error) {
+	return nil, nil
+}
+
+// API key mock methods
+func (m *mockStore) CreateAPIKey(ctx context.Context, apiKey *storage.APIKey) error { return nil }
+func (m *mockStore) GetAPIKey(ctx context.Context, userID, id string) (*storage.APIKey, error) {
+	return nil, nil
+}
+func (m *mockStore) GetAPIKeyByPrefix(ctx context.Context, prefix string) (*storage.APIKey, error) {
+	return nil, nil
+}
+func (m *mockStore) ListAPIKeys(ctx context.Context, userID string) ([]*storage.APIKey, error) {
+	return nil, nil
+}
+func (m *mockStore) UpdateAPIKey(ctx context.Context, apiKey *storage.APIKey) error { return nil }
+func (m *mockStore) RevokeAPIKey(ctx context.Context, userID, id string) error      { return nil }
+func (m *mockStore) UpdateAPIKeyLastUsed(ctx context.Context, id string, lastUsed time.Time) error {
+	return nil
+}
+
 func (m *mockStore) Close() error { return nil }
 
 // Test JWT validation security patterns

@@ -9,6 +9,53 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          hash: string
+          id: string
+          last_used_at: string | null
+          name: string
+          prefix: string
+          revoked_at: string | null
+          scope: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          hash: string
+          id?: string
+          last_used_at?: string | null
+          name: string
+          prefix: string
+          revoked_at?: string | null
+          scope: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          hash?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          prefix?: string
+          revoked_at?: string | null
+          scope?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consumption_item_labels: {
         Row: {
           consumption_item_id: string
@@ -543,12 +590,53 @@ export type Database = {
           },
         ]
       }
+      event_types: {
+        Row: {
+          color: string
+          created_at: string
+          default_name: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          default_name?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          default_name?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_types_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
-          category: string | null
           color: string | null
           created_at: string
           ended_at: string | null
+          event_type_id: string | null
           id: string
           level: number | null
           name: string
@@ -558,10 +646,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          category?: string | null
           color?: string | null
           created_at?: string
           ended_at?: string | null
+          event_type_id?: string | null
           id?: string
           level?: number | null
           name: string
@@ -571,10 +659,10 @@ export type Database = {
           user_id: string
         }
         Update: {
-          category?: string | null
           color?: string | null
           created_at?: string
           ended_at?: string | null
+          event_type_id?: string | null
           id?: string
           level?: number | null
           name?: string
@@ -584,6 +672,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "events_event_type_id_fkey"
+            columns: ["event_type_id"]
+            isOneToOne: false
+            referencedRelation: "event_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_user_id_fkey"
             columns: ["user_id"]

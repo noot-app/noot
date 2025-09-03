@@ -13,6 +13,18 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// List API keys (Pro only)
+	// (GET /api-keys)
+	ListAPIKeys(c *gin.Context)
+	// Create API key (Pro only)
+	// (POST /api-keys)
+	CreateAPIKey(c *gin.Context)
+	// Revoke API key (Pro only)
+	// (DELETE /api-keys/{id})
+	RevokeAPIKey(c *gin.Context, id string)
+	// Rotate API key (Pro only)
+	// (POST /api-keys/{id}/rotate)
+	RotateAPIKey(c *gin.Context, id string)
 	// Delete user biometrics
 	// (DELETE /biometrics)
 	DeleteUserBiometrics(c *gin.Context)
@@ -55,6 +67,18 @@ type ServerInterface interface {
 	// List consumptions
 	// (GET /consumptions)
 	GetConsumptions(c *gin.Context, params GetConsumptionsParams)
+	// List event types
+	// (GET /event-types)
+	GetEventTypes(c *gin.Context)
+	// Create a new event type
+	// (POST /event-types)
+	CreateEventType(c *gin.Context)
+	// Delete an event type
+	// (DELETE /event-types/{id})
+	DeleteEventType(c *gin.Context, id string)
+	// Update an event type
+	// (PUT /event-types/{id})
+	UpdateEventType(c *gin.Context, id string)
 	// List events
 	// (GET /events)
 	GetEvents(c *gin.Context, params GetEventsParams)
@@ -135,8 +159,102 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(c *gin.Context)
 
+// ListAPIKeys operation middleware
+func (siw *ServerInterfaceWrapper) ListAPIKeys(c *gin.Context) {
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.ListAPIKeys(c)
+}
+
+// CreateAPIKey operation middleware
+func (siw *ServerInterfaceWrapper) CreateAPIKey(c *gin.Context) {
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CreateAPIKey(c)
+}
+
+// RevokeAPIKey operation middleware
+func (siw *ServerInterfaceWrapper) RevokeAPIKey(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.RevokeAPIKey(c, id)
+}
+
+// RotateAPIKey operation middleware
+func (siw *ServerInterfaceWrapper) RotateAPIKey(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.RotateAPIKey(c, id)
+}
+
 // DeleteUserBiometrics operation middleware
 func (siw *ServerInterfaceWrapper) DeleteUserBiometrics(c *gin.Context) {
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -151,6 +269,10 @@ func (siw *ServerInterfaceWrapper) DeleteUserBiometrics(c *gin.Context) {
 // GetUserBiometrics operation middleware
 func (siw *ServerInterfaceWrapper) GetUserBiometrics(c *gin.Context) {
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -164,6 +286,10 @@ func (siw *ServerInterfaceWrapper) GetUserBiometrics(c *gin.Context) {
 // UpdateUserBiometrics operation middleware
 func (siw *ServerInterfaceWrapper) UpdateUserBiometrics(c *gin.Context) {
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -176,6 +302,10 @@ func (siw *ServerInterfaceWrapper) UpdateUserBiometrics(c *gin.Context) {
 
 // CreateConsumption operation middleware
 func (siw *ServerInterfaceWrapper) CreateConsumption(c *gin.Context) {
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -201,6 +331,10 @@ func (siw *ServerInterfaceWrapper) GetConsumptionItemLabels(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -224,6 +358,10 @@ func (siw *ServerInterfaceWrapper) AssignConsumptionItemLabels(c *gin.Context) {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -258,6 +396,10 @@ func (siw *ServerInterfaceWrapper) UnassignConsumptionItemLabel(c *gin.Context) 
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -281,6 +423,10 @@ func (siw *ServerInterfaceWrapper) DeleteConsumption(c *gin.Context) {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -306,6 +452,10 @@ func (siw *ServerInterfaceWrapper) GetConsumption(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -329,6 +479,10 @@ func (siw *ServerInterfaceWrapper) UpdateConsumption(c *gin.Context) {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -354,6 +508,10 @@ func (siw *ServerInterfaceWrapper) GetConsumptionLabels(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -377,6 +535,10 @@ func (siw *ServerInterfaceWrapper) AssignConsumptionLabels(c *gin.Context) {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -411,6 +573,10 @@ func (siw *ServerInterfaceWrapper) UnassignConsumptionLabel(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -425,6 +591,10 @@ func (siw *ServerInterfaceWrapper) UnassignConsumptionLabel(c *gin.Context) {
 func (siw *ServerInterfaceWrapper) GetConsumptions(c *gin.Context) {
 
 	var err error
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetConsumptionsParams
@@ -479,10 +649,104 @@ func (siw *ServerInterfaceWrapper) GetConsumptions(c *gin.Context) {
 	siw.Handler.GetConsumptions(c, params)
 }
 
+// GetEventTypes operation middleware
+func (siw *ServerInterfaceWrapper) GetEventTypes(c *gin.Context) {
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetEventTypes(c)
+}
+
+// CreateEventType operation middleware
+func (siw *ServerInterfaceWrapper) CreateEventType(c *gin.Context) {
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.CreateEventType(c)
+}
+
+// DeleteEventType operation middleware
+func (siw *ServerInterfaceWrapper) DeleteEventType(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.DeleteEventType(c, id)
+}
+
+// UpdateEventType operation middleware
+func (siw *ServerInterfaceWrapper) UpdateEventType(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.UpdateEventType(c, id)
+}
+
 // GetEvents operation middleware
 func (siw *ServerInterfaceWrapper) GetEvents(c *gin.Context) {
 
 	var err error
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetEventsParams
@@ -519,11 +783,11 @@ func (siw *ServerInterfaceWrapper) GetEvents(c *gin.Context) {
 		return
 	}
 
-	// ------------- Optional query parameter "category" -------------
+	// ------------- Optional query parameter "event_type_id" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "category", c.Request.URL.Query(), &params.Category)
+	err = runtime.BindQueryParameter("form", true, false, "event_type_id", c.Request.URL.Query(), &params.EventTypeId)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter category: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter event_type_id: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -572,6 +836,10 @@ func (siw *ServerInterfaceWrapper) GetEvents(c *gin.Context) {
 // CreateEvent operation middleware
 func (siw *ServerInterfaceWrapper) CreateEvent(c *gin.Context) {
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -595,6 +863,10 @@ func (siw *ServerInterfaceWrapper) DeleteEvent(c *gin.Context) {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -620,6 +892,10 @@ func (siw *ServerInterfaceWrapper) GetEvent(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -643,6 +919,10 @@ func (siw *ServerInterfaceWrapper) UpdateEvent(c *gin.Context) {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -668,6 +948,10 @@ func (siw *ServerInterfaceWrapper) GetEventLabels(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -691,6 +975,10 @@ func (siw *ServerInterfaceWrapper) AssignEventLabels(c *gin.Context) {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -725,6 +1013,10 @@ func (siw *ServerInterfaceWrapper) UnassignEventLabel(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -749,6 +1041,10 @@ func (siw *ServerInterfaceWrapper) GetEventLinks(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -772,6 +1068,10 @@ func (siw *ServerInterfaceWrapper) CreateEventLink(c *gin.Context) {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
 		return
 	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -806,6 +1106,10 @@ func (siw *ServerInterfaceWrapper) DeleteEventLink(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -820,6 +1124,10 @@ func (siw *ServerInterfaceWrapper) DeleteEventLink(c *gin.Context) {
 func (siw *ServerInterfaceWrapper) ExportData(c *gin.Context) {
 
 	var err error
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ExportDataParams
@@ -878,6 +1186,10 @@ func (siw *ServerInterfaceWrapper) GetGoals(c *gin.Context) {
 
 	var err error
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetGoalsParams
 
@@ -910,6 +1222,10 @@ func (siw *ServerInterfaceWrapper) GetGoals(c *gin.Context) {
 // UpdateGoals operation middleware
 func (siw *ServerInterfaceWrapper) UpdateGoals(c *gin.Context) {
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -923,6 +1239,10 @@ func (siw *ServerInterfaceWrapper) UpdateGoals(c *gin.Context) {
 // SetActiveGoalSet operation middleware
 func (siw *ServerInterfaceWrapper) SetActiveGoalSet(c *gin.Context) {
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -935,6 +1255,10 @@ func (siw *ServerInterfaceWrapper) SetActiveGoalSet(c *gin.Context) {
 
 // GetGoalSets operation middleware
 func (siw *ServerInterfaceWrapper) GetGoalSets(c *gin.Context) {
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -960,6 +1284,10 @@ func (siw *ServerInterfaceWrapper) DeleteGoalSet(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -972,6 +1300,10 @@ func (siw *ServerInterfaceWrapper) DeleteGoalSet(c *gin.Context) {
 
 // GetHealth operation middleware
 func (siw *ServerInterfaceWrapper) GetHealth(c *gin.Context) {
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -986,6 +1318,10 @@ func (siw *ServerInterfaceWrapper) GetHealth(c *gin.Context) {
 // GetLabels operation middleware
 func (siw *ServerInterfaceWrapper) GetLabels(c *gin.Context) {
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -998,6 +1334,10 @@ func (siw *ServerInterfaceWrapper) GetLabels(c *gin.Context) {
 
 // CreateLabel operation middleware
 func (siw *ServerInterfaceWrapper) CreateLabel(c *gin.Context) {
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
@@ -1023,6 +1363,10 @@ func (siw *ServerInterfaceWrapper) DeleteLabel(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -1047,6 +1391,10 @@ func (siw *ServerInterfaceWrapper) UpdateLabel(c *gin.Context) {
 		return
 	}
 
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {
@@ -1061,6 +1409,10 @@ func (siw *ServerInterfaceWrapper) UpdateLabel(c *gin.Context) {
 func (siw *ServerInterfaceWrapper) GetTrends(c *gin.Context) {
 
 	var err error
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetTrendsParams
@@ -1134,6 +1486,10 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
+	router.GET(options.BaseURL+"/api-keys", wrapper.ListAPIKeys)
+	router.POST(options.BaseURL+"/api-keys", wrapper.CreateAPIKey)
+	router.DELETE(options.BaseURL+"/api-keys/:id", wrapper.RevokeAPIKey)
+	router.POST(options.BaseURL+"/api-keys/:id/rotate", wrapper.RotateAPIKey)
 	router.DELETE(options.BaseURL+"/biometrics", wrapper.DeleteUserBiometrics)
 	router.GET(options.BaseURL+"/biometrics", wrapper.GetUserBiometrics)
 	router.PUT(options.BaseURL+"/biometrics", wrapper.UpdateUserBiometrics)
@@ -1148,6 +1504,10 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/consumption/:id/labels", wrapper.AssignConsumptionLabels)
 	router.DELETE(options.BaseURL+"/consumption/:id/labels/:labelId", wrapper.UnassignConsumptionLabel)
 	router.GET(options.BaseURL+"/consumptions", wrapper.GetConsumptions)
+	router.GET(options.BaseURL+"/event-types", wrapper.GetEventTypes)
+	router.POST(options.BaseURL+"/event-types", wrapper.CreateEventType)
+	router.DELETE(options.BaseURL+"/event-types/:id", wrapper.DeleteEventType)
+	router.PUT(options.BaseURL+"/event-types/:id", wrapper.UpdateEventType)
 	router.GET(options.BaseURL+"/events", wrapper.GetEvents)
 	router.POST(options.BaseURL+"/events", wrapper.CreateEvent)
 	router.DELETE(options.BaseURL+"/events/:id", wrapper.DeleteEvent)
