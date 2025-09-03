@@ -102,6 +102,44 @@ WHERE email = 'monalisa@birki.io';
 -- when these auth.users are inserted, so they should now appear in public.profiles table.
 
 -- ================================================================================================
+-- Dev seed: API keys
+-- Create a test API key for the pro user (monalisa)
+-- ================================================================================================
+-- $ curl -H "X-API-Key: noot_3eb35a4c_36cd5f4d802c8ab41d3d7e4f6b7302a09c61067c" http://localhost:3001/api/v1/consumptions
+-- Insert API key for monalisa (pro user) with read_write permissions and no expiration
+INSERT INTO api_keys (
+    id,
+    user_id,
+    name,
+    prefix,
+    hash,
+    scope,
+    expires_at,
+    created_at
+) VALUES (
+    '550e8400-e29b-41d4-a716-446655440001'::uuid,
+    'a1b2c3d4-e5f6-7890-abcd-ef1234567890'::uuid, -- monalisa's user_id
+    'dev-key',
+    'noot_3eb35a4c',
+    '$2a$12$/NUFGftTB7DAY6I2hPIIjufqbbj9vEn7PRK3ELLcQjDoJ.wtS9YTO',
+    'read_write',
+    NULL, -- no expiration
+    NOW()
+);
+
+-- Show API key creation result
+SELECT 
+    'API Key Created' as status,
+    ak.name,
+    ak.prefix,
+    ak.scope,
+    CASE WHEN ak.expires_at IS NULL THEN 'Never' ELSE ak.expires_at::text END as expires,
+    p.email as user_email
+FROM api_keys ak
+JOIN profiles p ON p.id = ak.user_id
+WHERE p.email = 'monalisa@birki.io';
+
+-- ================================================================================================
 -- Dev seed: consumptions
 -- Generate realistic consumption data for both test users with varied meal patterns across time
 -- ================================================================================================
