@@ -1,0 +1,638 @@
+<script lang="ts">
+  import { onMount } from "svelte"
+  import { apiClient } from "$lib/api/client"
+  import { toast } from "$lib/stores/toast"
+  import Toast from "$lib/components/Toast.svelte"
+  import FormField from "$lib/components/FormField.svelte"
+  import FormSelect from "$lib/components/FormSelect.svelte"
+  import ConfirmModal from "$lib/components/ConfirmModal.svelte"
+  import CalendarIcon from "$lib/components/icons/Calendar.svelte"
+  import { formatErrorForUser } from "$lib/utils/error-handling"
+  import type { paths } from "$lib/api/schema"
+
+  type EventsResponse =
+    paths["/events"]["get"]["responses"]["200"]["content"]["application/json"]
+  type Event = EventsResponse["events"][0]
+  type CreateEventRequest =
+    paths["/events"]["post"]["requestBody"]["content"]["application/json"]
+
+  let events: Event[] = []
+  let loading = true
+  let error = ""
+
+  // Filtering and sorting
+  let filterCategory = ""
+  let filterStartDate = ""
+  let filterEndDate = ""
+  let sortBy = "started_at"
+  let sortOrder = "desc"
+
+  // New/Edit event modal state
+  let showModal = false
+  let editingEvent: Event | null = null
+  let modalTitle = ""
+  let eventName = ""
+  let eventCategory = ""
+  let eventStartedAt = ""
+  let eventEndedAt = ""
+  let eventLevel: number | null = null
+  let eventNote = ""
+  let eventColor = ""
+
+  // Delete confirmation modal
+  let showDeleteModal = false
+  let eventToDelete: Event | null = null
+
+  // Event categories
+  const categories = [
+    { value: "", label: "All Categories" },
+    { value: "symptom", label: "Symptom" },
+    { value: "activity", label: "Activity" },
+    { value: "measurement", label: "Measurement" },
+    { value: "medication", label: "Medication" },
+    { value: "sleep", label: "Sleep" },
+    { value: "mood", label: "Mood" },
+    { value: "other", label: "Other" },
+  ]
+
+  const createCategories = categories.slice(1) // Remove "All Categories" option
+
+  // Color palette for events
+  const colorPalette = [
+    "FF0000", // Red - symptoms, urgent
+    "FF8C00", // Orange - activities, medium priority
+    "FFD700", // Gold - measurements, important
+    "74B986", // Green - positive activities
+    "1E90FF", // Blue - medications, medical
+    "9B59B6", // Purple - sleep, rest
+    "2DD4BF", // Teal - mood, mental health
+    "9CA3AF", // Gray - other/neutral
+  ]
+
+  // Form validation
+  $: isValidName = eventName.trim().length > 0 && eventName.length <= 100
+  $: isValidStartDate = eventStartedAt.length > 0
+  $: isValidEndDate = !eventEndedAt || eventEndedAt >= eventStartedAt
+  $: isValidLevel = eventLevel === null || (eventLevel >= 0 && eventLevel <= 10)
+  $: isValidNote = eventNote.length <= 1000
+  $: isValidColor = !eventColor || /^#?[0-9a-f]{6}$/i.test(eventColor)
+  $: canSave =
+    isValidName &&
+    isValidStartDate &&
+    isValidEndDate &&
+    isValidLevel &&
+    isValidNote &&
+    isValidColor
+
+  async function loadEvents() {
+    try {
+      loading = true
+      const params: Record<string, string> = {}
+
+      if (filterCategory) params.category = filterCategory
+      if (filterStartDate) params.start_date = filterStartDate
+      if (filterEndDate) params.end_date = filterEndDate
+
+      const response = await apiClient.GET("/events", {
+        params: { query: params },
+      })
+
+      if (response.error) {
+        error = formatErrorForUser(response.error)
+        return
+      }
+
+      let eventList = response.data?.events || []
+
+      // Client-side sorting since API might not support all sorting options
+      eventList.sort((a, b) => {
+        let aVal: string | number = a[sortBy as keyof Event] as string | number
+        let bVal: string | number = b[sortBy as keyof Event] as string | number
+
+        if (sortBy === "started_at" || sortBy === "created_at" || sortBy === "updated_at") {
+          aVal = new Date(aVal as string).getTime()
+          bVal = new Date(bVal as string).getTime()
+        }
+
+        if (sortOrder === "desc") {
+          return aVal > bVal ? -1 : aVal < bVal ? 1 : 0
+        } else {
+          return aVal > bVal ? 1 : aVal < bVal ? -1 : 0
+        }
+      })
+
+      events = eventList
+      error = ""
+    } catch (err) {
+      console.error("Error loading events:", err)
+      error = "Failed to load events. Please try again."
+    } finally {
+      loading = false
+    }
+  }
+
+  function openCreateModal() {
+    editingEvent = null
+    modalTitle = "Create Event"
+    eventName = ""
+    eventCategory = ""
+    eventStartedAt = new Date().toISOString().slice(0, 16) // Current datetime
+    eventEndedAt = ""
+    eventLevel = null
+    eventNote = ""
+    eventColor = "#FFD700" // Default to gold
+    showModal = true
+  }
+
+  function openEditModal(event: Event) {
+    editingEvent = event
+    modalTitle = "Edit Event"
+    eventName = event.name
+    eventCategory = event.category || ""
+    eventStartedAt = new Date(event.started_at).toISOString().slice(0, 16)
+    eventEndedAt = event.ended_at ? new Date(event.ended_at).toISOString().slice(0, 16) : ""
+    eventLevel = event.level
+    eventNote = event.note || ""
+    eventColor = event.color ? (event.color.startsWith("#") ? event.color : `#${event.color}`) : ""
+    showModal = true
+  }
+
+  function closeModal() {
+    showModal = false
+    editingEvent = null
+    resetForm()
+  }
+
+  function resetForm() {
+    eventName = ""
+    eventCategory = ""
+    eventStartedAt = ""
+    eventEndedAt = ""
+    eventLevel = null
+    eventNote = ""
+    eventColor = ""
+  }
+
+  function selectColor(color: string) {
+    eventColor = `#${color}`
+  }
+
+  async function saveEvent() {
+    if (!canSave) return
+
+    try {
+      const eventData: CreateEventRequest = {
+        name: eventName.trim(),
+        category: eventCategory || null,
+        started_at: new Date(eventStartedAt).toISOString(),
+        ended_at: eventEndedAt ? new Date(eventEndedAt).toISOString() : null,
+        level: eventLevel,
+        note: eventNote.trim() || null,
+        color: eventColor ? eventColor.replace("#", "") : null,
+      }
+
+      if (editingEvent) {
+        // Update existing event
+        const response = await apiClient.PUT("/events/{id}", {
+          params: { path: { id: editingEvent.id } },
+          body: eventData,
+        })
+
+        if (response.error) {
+          toast.error(formatErrorForUser(response.error))
+          return
+        }
+
+        toast.success("Event updated successfully")
+      } else {
+        // Create new event
+        const response = await apiClient.POST("/events", {
+          body: eventData,
+        })
+
+        if (response.error) {
+          toast.error(formatErrorForUser(response.error))
+          return
+        }
+
+        toast.success("Event created successfully")
+      }
+
+      closeModal()
+      loadEvents() // Reload the events list
+    } catch (err) {
+      console.error("Error saving event:", err)
+      toast.error("Failed to save event. Please try again.")
+    }
+  }
+
+  function openDeleteModal(event: Event) {
+    eventToDelete = event
+    showDeleteModal = true
+  }
+
+  function closeDeleteModal() {
+    showDeleteModal = false
+    eventToDelete = null
+  }
+
+  async function deleteEvent() {
+    if (!eventToDelete) return
+
+    try {
+      const response = await apiClient.DELETE("/events/{id}", {
+        params: { path: { id: eventToDelete.id } },
+      })
+
+      if (response.error) {
+        toast.error(formatErrorForUser(response.error))
+        return
+      }
+
+      toast.success("Event deleted successfully")
+      closeDeleteModal()
+      loadEvents() // Reload the events list
+    } catch (err) {
+      console.error("Error deleting event:", err)
+      toast.error("Failed to delete event. Please try again.")
+    }
+  }
+
+  function formatDateTime(dateStr: string) {
+    return new Date(dateStr).toLocaleString()
+  }
+
+  function formatDate(dateStr: string) {
+    return new Date(dateStr).toLocaleDateString()
+  }
+
+  function getCategoryColor(category: string | null) {
+    const categoryColors: Record<string, string> = {
+      symptom: "#FF0000",
+      activity: "#FF8C00", 
+      measurement: "#FFD700",
+      medication: "#1E90FF",
+      sleep: "#9B59B6",
+      mood: "#2DD4BF",
+      other: "#9CA3AF",
+    }
+    return category ? categoryColors[category] || "#9CA3AF" : "#9CA3AF"
+  }
+
+  // Watch for filter changes and reload
+  $: filterCategory, filterStartDate, filterEndDate, sortBy, sortOrder, loadEvents()
+
+  onMount(() => {
+    loadEvents()
+  })
+</script>
+
+<svelte:head>
+  <title>Events - Noot</title>
+  <meta
+    name="description"
+    content="Track your symptoms, activities, measurements, and other health events."
+  />
+</svelte:head>
+
+<div class="min-h-screen bg-base-100">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <div>
+          <h1 class="text-3xl font-bold text-base-content">Events</h1>
+          <p class="text-base-content/70 mt-2">
+            Track symptoms, activities, measurements, and other health events.
+          </p>
+        </div>
+        <button
+          class="btn btn-primary min-h-[44px] shrink-0"
+          on:click={openCreateModal}
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
+          </svg>
+          New Event
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-base-200 rounded-lg">
+        <FormSelect
+          id="categoryFilter"
+          label="Category"
+          bind:value={filterCategory}
+          options={categories}
+        />
+        
+        <FormField
+          id="startDate"
+          label="Start Date"
+          type="date"
+          bind:value={filterStartDate}
+        />
+        
+        <FormField
+          id="endDate"  
+          label="End Date"
+          type="date"
+          bind:value={filterEndDate}
+        />
+
+        <FormSelect
+          id="sortBy"
+          label="Sort By"
+          bind:value={sortBy}
+          options={[
+            { value: "started_at", label: "Start Date" },
+            { value: "created_at", label: "Created" },
+            { value: "name", label: "Name" },
+            { value: "category", label: "Category" },
+          ]}
+        />
+
+        <FormSelect
+          id="sortOrder"
+          label="Order"
+          bind:value={sortOrder}
+          options={[
+            { value: "desc", label: "Newest First" },
+            { value: "asc", label: "Oldest First" },
+          ]}
+        />
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    {#if loading}
+      <div class="flex justify-center items-center py-12">
+        <span class="loading loading-spinner loading-lg"></span>
+      </div>
+    {:else if error}
+      <!-- Error state -->
+      <div class="alert alert-error">
+        <svg class="stroke-current shrink-0 w-6 h-6" fill="none" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <span>{error}</span>
+        <div>
+          <button class="btn btn-sm btn-ghost" on:click={loadEvents}>Try Again</button>
+        </div>
+      </div>
+    {:else}
+      <!-- Events list -->
+      <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+          {#if events.length === 0}
+            <div class="text-center py-12">
+              <CalendarIcon className="w-16 h-16 mx-auto text-base-content/50 mb-4" />
+              <h3 class="text-lg font-medium text-base-content/70 mb-2">No events yet</h3>
+              <p class="text-base-content/50 mb-4">
+                Create your first event to start tracking symptoms, activities, and more.
+              </p>
+              <button class="btn btn-primary" on:click={openCreateModal}>Create Event</button>
+            </div>
+          {:else}
+            <div class="space-y-4">
+              {#each events as event}
+                <div
+                  class="flex flex-col lg:flex-row lg:items-center lg:justify-between p-4 border border-base-300 rounded-lg hover:bg-base-50 transition-colors gap-4 lg:gap-0"
+                >
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      <!-- Event color indicator -->
+                      {#if event.color}
+                        <div
+                          class="w-4 h-4 rounded-full border border-base-300"
+                          style="background-color: #{event.color}"
+                        ></div>
+                      {:else}
+                        <div
+                          class="w-4 h-4 rounded-full border border-base-300"
+                          style="background-color: {getCategoryColor(event.category)}"
+                        ></div>
+                      {/if}
+                      
+                      <h3 class="font-semibold text-lg">{event.name}</h3>
+                      
+                      {#if event.category}
+                        <span class="badge badge-outline text-xs capitalize">{event.category}</span>
+                      {/if}
+                      
+                      {#if event.level !== null}
+                        <span class="badge badge-primary text-xs">Level: {event.level}/10</span>
+                      {/if}
+                    </div>
+
+                    <div class="text-sm text-base-content/70 space-y-1">
+                      <div>
+                        <strong>Started:</strong> {formatDateTime(event.started_at)}
+                        {#if event.ended_at}
+                          <span class="mx-2">•</span>
+                          <strong>Ended:</strong> {formatDateTime(event.ended_at)}
+                        {/if}
+                      </div>
+                      
+                      {#if event.note}
+                        <div><strong>Note:</strong> {event.note}</div>
+                      {/if}
+                    </div>
+                  </div>
+
+                  <div class="flex gap-2 self-start lg:self-center">
+                    <button
+                      class="btn btn-ghost btn-sm"
+                      aria-label={`Edit event ${event.name}`}
+                      title={`Edit event ${event.name}`}
+                      on:click={() => openEditModal(event)}
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      class="btn btn-ghost btn-sm text-error hover:bg-error hover:text-error-content"
+                      aria-label={`Delete event ${event.name}`}
+                      title={`Delete event ${event.name}`}
+                      on:click={() => openDeleteModal(event)}
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      </div>
+    {/if}
+  </div>
+</div>
+
+<!-- Create/Edit Event Modal -->
+{#if showModal}
+  <div class="modal modal-open">
+    <div class="modal-box max-w-2xl">
+      <h3 class="font-bold text-lg">{modalTitle}</h3>
+
+      <form on:submit|preventDefault={saveEvent} class="space-y-4 mt-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Event Name -->
+          <FormField
+            id="eventName"
+            label="Event Name"
+            bind:value={eventName}
+            required
+            maxlength={100}
+            placeholder="e.g. Headache, Morning run, Blood pressure"
+            error={!isValidName && eventName.length > 0
+              ? "Name must be 1-100 characters"
+              : ""}
+          />
+
+          <!-- Category -->
+          <FormSelect
+            id="eventCategory"
+            label="Category (Optional)"
+            bind:value={eventCategory}
+            options={createCategories}
+            placeholder="Select a category"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Start Date/Time -->
+          <FormField
+            id="eventStartedAt"
+            label="Start Date & Time"
+            type="datetime-local"
+            bind:value={eventStartedAt}
+            required
+            error={!isValidStartDate ? "Start date is required" : ""}
+          />
+
+          <!-- End Date/Time -->
+          <FormField
+            id="eventEndedAt"
+            label="End Date & Time (Optional)"
+            type="datetime-local"
+            bind:value={eventEndedAt}
+            error={!isValidEndDate ? "End date must be after start date" : ""}
+          />
+        </div>
+
+        <!-- Level -->
+        <FormField
+          id="eventLevel"
+          label="Level (0-10, Optional)"
+          type="number"
+          bind:value={eventLevel}
+          min="0"
+          max="10"
+          placeholder="Intensity, severity, or performance level"
+          error={!isValidLevel ? "Level must be between 0 and 10" : ""}
+        />
+
+        <!-- Note -->
+        <FormField
+          id="eventNote"
+          label="Note (Optional)"
+          bind:value={eventNote}
+          maxlength={1000}
+          placeholder="Additional details about this event"
+          multiline
+          error={!isValidNote ? "Note must be 1000 characters or less" : ""}
+        />
+
+        <!-- Color Selection -->
+        <div class="form-control">
+          <label class="label" for="eventColor">
+            <span class="label-text">Color (Optional)</span>
+          </label>
+
+          <!-- Color palette -->
+          <div class="grid grid-cols-8 gap-2 mb-4">
+            {#each colorPalette as color}
+              <button
+                type="button"
+                class="w-8 h-8 rounded border-2 transition-all hover:scale-110"
+                class:border-primary={eventColor === `#${color}`}
+                class:border-base-300={eventColor !== `#${color}`}
+                style="background-color: #{color}"
+                aria-label={`Select color #${color}`}
+                title={`Select color #${color}`}
+                on:click={() => selectColor(color)}
+              ></button>
+            {/each}
+          </div>
+
+          <!-- Manual color input -->
+          <div class="flex gap-2">
+            <input
+              type="text"
+              class="input input-bordered input-sm flex-1"
+              bind:value={eventColor}
+              placeholder="#FFFFFF"
+              maxlength={7}
+            />
+            <div
+              class="w-8 h-8 rounded border border-base-300"
+              style="background-color: {eventColor || '#9CA3AF'}"
+            ></div>
+          </div>
+
+          {#if !isValidColor && eventColor.length > 0}
+            <div class="label">
+              <span class="label-text-alt text-error"
+                >Please enter a valid hex color (e.g. #FF0000)</span
+              >
+            </div>
+          {/if}
+        </div>
+      </form>
+
+      <div class="modal-action">
+        <button class="btn btn-ghost" on:click={closeModal}>Cancel</button>
+        <button class="btn btn-primary" disabled={!canSave} on:click={saveEvent}>
+          {editingEvent ? "Update" : "Create"}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Delete Confirmation Modal -->
+<ConfirmModal
+  show={showDeleteModal}
+  title="Delete Event"
+  message="Are you sure you want to delete the event '{eventToDelete?.name}'? This action cannot be undone."
+  confirmText="Delete"
+  confirmVariant="error"
+  onConfirm={deleteEvent}
+  onCancel={closeDeleteModal}
+/>
+
+<Toast />
