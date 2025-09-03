@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
-	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -15,8 +14,8 @@ import (
 const (
 	// APIKeyPrefix is the prefix for all API keys
 	APIKeyPrefix = "noot_"
-	// APIKeySecretLength is the length of the secret part of the key
-	APIKeySecretLength = 32
+	// APIKeySecretLength is the length of the secret part of the key (in bytes before hex encoding)
+	APIKeySecretLength = 20  // Reduced to keep hex length reasonable 
 	// APIKeyPrefixLength is the length of the visible prefix (not including noot_)
 	APIKeyPrefixLength = 8
 	// bcrypt cost for hashing API keys
@@ -37,9 +36,9 @@ func GenerateAPIKey() (fullKey, prefix, hash string, err error) {
 		return "", "", "", fmt.Errorf("failed to generate secret: %w", err)
 	}
 
-	// Encode to base64 for safe handling
-	prefixPart := strings.ToLower(base64.URLEncoding.EncodeToString(prefixBytes))[:APIKeyPrefixLength]
-	secretPart := base64.URLEncoding.EncodeToString(secretBytes)
+	// Encode to hex for safe handling (no special characters)
+	prefixPart := strings.ToLower(fmt.Sprintf("%x", prefixBytes))[:APIKeyPrefixLength]
+	secretPart := fmt.Sprintf("%x", secretBytes)
 
 	// Build full key and visible prefix
 	prefix = APIKeyPrefix + prefixPart
@@ -64,7 +63,7 @@ func VerifyAPIKey(providedKey, storedHash string) bool {
 // ExtractPrefix extracts the prefix from a full API key for lookup
 func ExtractPrefix(fullKey string) (string, error) {
 	parts := strings.SplitN(fullKey, "_", 3)
-	if len(parts) < 2 || !strings.HasPrefix(fullKey, APIKeyPrefix) {
+	if len(parts) != 3 || !strings.HasPrefix(fullKey, APIKeyPrefix) {
 		return "", fmt.Errorf("invalid API key format")
 	}
 	return parts[0] + "_" + parts[1], nil

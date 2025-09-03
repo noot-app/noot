@@ -208,6 +208,23 @@ func (m *mockStore) GetEventTypeCounts(ctx context.Context, userID string) (map[
 	return nil, nil
 }
 
+// API key mock methods
+func (m *mockStore) CreateAPIKey(ctx context.Context, apiKey *storage.APIKey) error { return nil }
+func (m *mockStore) GetAPIKey(ctx context.Context, userID, id string) (*storage.APIKey, error) {
+	return nil, nil
+}
+func (m *mockStore) GetAPIKeyByPrefix(ctx context.Context, prefix string) (*storage.APIKey, error) {
+	return nil, nil
+}
+func (m *mockStore) ListAPIKeys(ctx context.Context, userID string) ([]*storage.APIKey, error) {
+	return nil, nil
+}
+func (m *mockStore) UpdateAPIKey(ctx context.Context, apiKey *storage.APIKey) error { return nil }
+func (m *mockStore) RevokeAPIKey(ctx context.Context, userID, id string) error     { return nil }
+func (m *mockStore) UpdateAPIKeyLastUsed(ctx context.Context, id string, lastUsed time.Time) error {
+	return nil
+}
+
 func (m *mockStore) Close() error { return nil }
 
 // Test JWT validation security patterns
