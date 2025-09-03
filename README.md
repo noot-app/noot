@@ -94,7 +94,7 @@ graph TB
     %% Authentication - simplified
     Auth -->|✅ Authenticated User| AuthOK[User Verified]
     Auth -->|❌ Not Logged In| AuthFail[Login Required]
-    AuthFail --> End([End - User Must Login])
+    AuthFail --> End([End])
     
     %% Core processing flow
     AuthOK --> Upload[Audio File Upload<br/>Max 50MB]
@@ -116,7 +116,7 @@ graph TB
     
     %% Different data sources - simplified
     NutritionLookup --> Cache[Check Our Database<br/>for Previously Calculated Foods]
-    NutritionLookup --> ProductDB[Search Product Database<br/>for Branded Items]
+    NutritionLookup --> ProductDB[Search External Product Databases<br/>for Branded Items]
     NutritionLookup --> AI[Ask AI for Nutrition<br/>Analysis and Estimates]
     
     Cache -->|Found| UseCache[✅ Use Cached Data<br/>Fast Response]
