@@ -23,18 +23,21 @@
   let error = ""
   let availableLabels: any[] = []
   let isLoadingLabels = false
-  let isAddingLabel = false
+  let isUpdatingLabels = false
   let labelsLoaded = false
-  let pendingLabels: Set<string> = new Set()
-  let currentLabels: Set<string> = new Set()
+  let selectedLabels: string[] = [] // Simple array of label names - what we want the final state to be
+  let currentLabels: string[] = [] // What's currently on the server
   let isEditingLabels = false
+
+  // Reactive variables - much simpler now
+  $: hasChanges = JSON.stringify([...selectedLabels].sort()) !== JSON.stringify([...currentLabels].sort())
 
   // Event dispatcher
   const dispatch = createEventDispatcher()
 
   // Initialize edit state based on autoShowLabelEdit
   $: if (autoShowLabelEdit && !isEditingLabels && consumption?.id) {
-    startLabelEditing()
+    isEditingLabels = true
   }
 
   // Load labels when consumption is available
@@ -42,10 +45,13 @@
     loadLabels()
   }
 
-  // Initialize current labels from consumption
-  $: if (consumption?.labels && !currentLabels.size) {
-    currentLabels = new Set(consumption.labels.map((l: any) => l.name))
-    pendingLabels = new Set(currentLabels)
+  // Sync currentLabels from server state whenever consumption changes
+  $: if (consumption?.labels) {
+    currentLabels = consumption.labels.map((l: any) => l.name as string).filter(Boolean)
+    // Initialize selectedLabels from currentLabels if not editing yet
+    if (!isEditingLabels) {
+      selectedLabels = [...currentLabels]
+    }
   }
 
   // Load user's available labels
@@ -71,8 +77,12 @@
           })
           if (!assigned.error) {
             const assignedLabels = assigned.data?.labels || []
-            currentLabels = new Set(assignedLabels.map((l: any) => l.name))
-            pendingLabels = new Set(currentLabels)
+            // Update currentLabels from server
+            currentLabels = assignedLabels.map((l: any) => l.name as string)
+            // Initialize selectedLabels if not editing
+            if (!isEditingLabels) {
+              selectedLabels = [...currentLabels]
+            }
           }
         } catch (e) {
           console.warn("Error loading consumption labels:", e)
@@ -92,101 +102,78 @@
     loadLabels()
   }
 
-  // Toggle label in pending selection
+  // Toggle label in selection (GitHub Issues style)
   function toggleLabelSelection(labelName: string) {
-    if (pendingLabels.has(labelName)) {
-      pendingLabels.delete(labelName)
+    if (selectedLabels.includes(labelName)) {
+      selectedLabels = selectedLabels.filter(name => name !== labelName)
     } else {
-      pendingLabels.add(labelName)
+      selectedLabels = [...selectedLabels, labelName]
     }
-    pendingLabels = new Set(pendingLabels) // Trigger reactivity
   }
 
-  // Apply label changes
+  // Apply label changes - send the complete desired state to server
   async function applyLabelChanges() {
-    if (!consumption?.id || isAddingLabel) return
+    if (!consumption?.id || isUpdatingLabels || !hasChanges) return
 
     try {
-      isAddingLabel = true
+      isUpdatingLabels = true
       error = ""
 
-      const toAdd = Array.from(pendingLabels).filter(
-        (name) => !currentLabels.has(name),
-      )
-      const toRemove = Array.from(currentLabels).filter(
-        (name) => !pendingLabels.has(name),
-      )
+      // Get the label IDs for the desired final state
+      const labelIds = selectedLabels
+        .map((name: string) => {
+          const label = availableLabels.find((l) => l.name === name)
+          return label?.id
+        })
+        .filter(Boolean)
 
-      // Add new labels
-      if (toAdd.length > 0) {
-        const labelIds = toAdd
-          .map((name) => {
-            const label = availableLabels.find((l) => l.name === name)
-            return label?.id
-          })
-          .filter(Boolean)
+      // Send complete desired state - like GitHub Issues does with PUT/PATCH
+      const response = await apiClient.POST("/consumption/{id}/labels", {
+        params: { path: { id: consumption.id } },
+        body: { ids: labelIds },
+      })
 
-        if (labelIds.length > 0) {
-          const addResponse = await apiClient.POST("/consumption/{id}/labels", {
-            params: { path: { id: consumption.id } },
-            body: { ids: labelIds },
-          })
-
-          if (addResponse.error) {
-            throw new Error(`Failed to add labels: ${addResponse.error}`)
-          }
-        }
+      if (response.error) {
+        throw new Error(`Failed to update labels: ${response.error}`)
       }
 
-      // Remove labels
-      for (const labelName of toRemove) {
-        const labelData = availableLabels.find((l) => l.name === labelName)
-        if (labelData?.id) {
-          const removeResponse = await apiClient.DELETE(
-            "/consumption/{id}/labels/{labelId}",
-            {
-              params: { path: { id: consumption.id, labelId: labelData.id } },
-            },
-          )
-
-          if (removeResponse.error) {
-            throw new Error(
-              `Failed to remove label ${labelName}: ${removeResponse.error}`,
-            )
-          }
-        }
-      }
-
-      // Update local state
-      currentLabels = new Set(pendingLabels)
+      // Update from server response
+      const updatedLabels = response.data?.labels || []
+      currentLabels = updatedLabels.map((l: any) => l.name as string)
       
       // Update consumption object
       if (consumption) {
-        consumption.labels = Array.from(currentLabels)
-          .map((name) => availableLabels.find((l) => l.name === name))
-          .filter(Boolean)
-        consumption = { ...consumption } // Trigger reactivity
+        consumption.labels = updatedLabels
+        consumption = { ...consumption }
       }
 
-      isEditingLabels = false
+      // Keep selectedLabels as is - user's current selection stays active
+      
+      // Only close editor if not in auto-show mode
+      if (!autoShowLabelEdit) {
+        isEditingLabels = false
+      }
     } catch (err) {
       error = `Error applying label changes: ${err}`
       console.error("Apply label changes error:", err)
-      pendingLabels = new Set(currentLabels)
+      // Reset selectedLabels to current server state on error
+      selectedLabels = [...currentLabels]
     } finally {
-      isAddingLabel = false
+      isUpdatingLabels = false
     }
   }
 
   function cancelLabelChanges() {
-    pendingLabels = new Set(currentLabels)
+    // Reset to current server state
+    selectedLabels = [...currentLabels]
     isEditingLabels = false
     error = ""
   }
 
   function startLabelEditing() {
     isEditingLabels = true
-    pendingLabels = new Set(currentLabels)
+    // Initialize selectedLabels from current server state when starting to edit
+    selectedLabels = [...currentLabels]
   }
 
   // Editing functions
@@ -396,7 +383,7 @@
             <button
               class="btn btn-outline btn-sm"
               on:click={startLabelEditing}
-              disabled={isAddingLabel}
+              disabled={isUpdatingLabels}
             >
               <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -406,12 +393,23 @@
           {/if}
         </div>
 
-        <!-- Applied Labels Display (when not editing) -->
+        {#if autoShowLabelEdit && isEditingLabels}
+          <div class="alert alert-info mb-4 text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Select labels to apply to this meal. Click "Apply" to save changes, or "Done" when finished.
+          </div>
+        {/if}
+
+                <!-- Applied Labels Display (when not editing) -->
         {#if !isEditingLabels}
-          {#if currentLabels.size > 0}
+          {#if currentLabels.length > 0}
             <div class="flex flex-wrap gap-2">
-              {#each Array.from(currentLabels) as labelName}
-                {@const labelData = availableLabels.find((l) => l.name === labelName)}
+              {#each currentLabels as labelName}
+                {@const labelData = availableLabels.find(
+                  (l) => l.name === labelName,
+                )}
                 {#if labelData}
                   <Label name={labelData.name} color={labelData.color} />
                 {/if}
@@ -438,13 +436,16 @@
             {/if}
             <div class="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
               {#each availableLabels as label}
-                {@const isSelected = pendingLabels.has(label.name)}
+                {@const isSelected = selectedLabels.includes(label.name)}
+                {@const isCurrentlyApplied = currentLabels.includes(label.name)}
+                {@const isNewSelection = isSelected && !isCurrentlyApplied}
+                {@const willBeRemoved = isCurrentlyApplied && !isSelected}
                 <button
                   class="flex items-center justify-between p-3 rounded-lg border transition-all hover:bg-base-300 {isSelected
                     ? 'bg-base-300 border-primary'
                     : 'bg-base-100 border-base-300'}"
                   on:click={() => toggleLabelSelection(label.name)}
-                  disabled={isAddingLabel}
+                  disabled={isUpdatingLabels}
                 >
                   <div class="flex items-center gap-3">
                     <div class="checkbox-wrapper">
@@ -463,6 +464,13 @@
                           : `#${label.color}`};"
                       ></div>
                       <span class="font-medium">{label.name}</span>
+                      {#if isCurrentlyApplied && isSelected}
+                        <span class="badge badge-xs badge-success">Applied</span>
+                      {:else if isNewSelection}
+                        <span class="badge badge-xs badge-warning">+Add</span>
+                      {:else if willBeRemoved}
+                        <span class="badge badge-xs badge-error">-Remove</span>
+                      {/if}
                     </div>
                   </div>
                   {#if label.description}
@@ -474,30 +482,69 @@
               {/each}
             </div>
 
+            {#if hasChanges}
+              <div class="bg-base-200 p-3 rounded-lg text-sm">
+                <div class="font-medium mb-1">Pending changes:</div>
+                <div class="flex flex-wrap gap-2">
+                  {#each selectedLabels.filter(name => !currentLabels.includes(name)) as labelName}
+                    <span class="badge badge-warning badge-sm">+{labelName}</span>
+                  {/each}
+                  {#each currentLabels.filter(name => !selectedLabels.includes(name)) as labelName}
+                    <span class="badge badge-error badge-sm">-{labelName}</span>
+                  {/each}
+                </div>
+              </div>
+            {:else if currentLabels.length > 0}
+              <div class="bg-success/10 p-3 rounded-lg text-sm text-success-content">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  All selected labels are already applied
+                </div>
+              </div>
+            {/if}
+
             <!-- Action Buttons -->
             <div class="flex justify-end gap-2 pt-2 border-t border-base-300">
-              <button
-                class="btn btn-ghost btn-sm"
-                on:click={cancelLabelChanges}
-                disabled={isAddingLabel}
-              >
-                Cancel
-              </button>
+              {#if !autoShowLabelEdit}
+                <button
+                  class="btn btn-ghost btn-sm"
+                  on:click={cancelLabelChanges}
+                  disabled={isUpdatingLabels}
+                >
+                  Cancel
+                </button>
+              {/if}
               <button
                 class="btn btn-primary btn-sm"
                 on:click={applyLabelChanges}
-                disabled={isAddingLabel}
+                disabled={isUpdatingLabels || !hasChanges}
               >
-                {#if isAddingLabel}
+                {#if isUpdatingLabels}
                   <span class="loading loading-spinner loading-sm mr-1"></span>
                   Applying...
+                {:else if !hasChanges}
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  No Changes
                 {:else}
                   <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                   </svg>
-                  Apply Changes
+                  {autoShowLabelEdit ? `Apply Changes` : 'Apply Changes'}
                 {/if}
               </button>
+              {#if autoShowLabelEdit}
+                <button
+                  class="btn btn-outline btn-sm"
+                  on:click={() => { isEditingLabels = false; }}
+                  disabled={isUpdatingLabels}
+                >
+                  Done
+                </button>
+              {/if}
             </div>
           </div>
         {/if}
