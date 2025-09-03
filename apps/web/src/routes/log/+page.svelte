@@ -11,6 +11,8 @@
   type EventsResponse = paths["/events"]["get"]["responses"]["200"]["content"]["application/json"]
   type Consumption = ConsumptionsResponse["consumptions"][0]
   type Event = EventsResponse["events"][0]
+  type EventLinksResponse = paths["/events/{id}/links"]["get"]["responses"]["200"]["content"]["application/json"]
+  type EventLink = NonNullable<EventLinksResponse["links"]>[0]
 
   // Timeline entry type combining consumptions and events
   interface TimelineEntry {
@@ -22,11 +24,65 @@
 
   // State
   let timelineEntries: TimelineEntry[] = []
+  let eventLinks: Map<string, EventLink[]> = new Map()
   let isLoading = false
   let error = ""
   let hasMore = true
   let currentPage = 0
   const pageSize = 20
+
+  // Load event links for events
+  async function loadEventLinks(events: Event[]) {
+    try {
+      const eventIds = events.map(event => event.id)
+      
+      const linkPromises = eventIds.map(async (eventId) => {
+        const response = await apiClient.GET("/events/{id}/links", {
+          params: { path: { id: eventId } }
+        })
+        
+        if (!response.error && response.data) {
+          return { eventId, links: response.data.links }
+        }
+        return { eventId, links: [] }
+      })
+
+      const results = await Promise.all(linkPromises)
+      
+      // Update the existing eventLinks map
+      results.forEach(({ eventId, links }) => {
+        eventLinks.set(eventId, links || [])
+      })
+      eventLinks = eventLinks // Trigger reactivity
+    } catch (err) {
+      console.error("Error loading event links:", err)
+    }
+  }
+
+  // Helper functions for event links
+  function getEventLinks(eventId: string): EventLink[] {
+    return eventLinks.get(eventId) || []
+  }
+
+  function hasConsumptionLinks(eventId: string): boolean {
+    const links = getEventLinks(eventId)
+    return links.some(link => link.consumption_id)
+  }
+
+  function getConsumptionLinks(eventId: string): EventLink[] {
+    const links = getEventLinks(eventId)
+    return links.filter(link => link.consumption_id)
+  }
+
+  // Check if a consumption is linked to any events
+  function isConsumptionLinked(consumptionId: string): boolean {
+    for (const [eventId, links] of eventLinks) {
+      if (links.some(link => link.consumption_id === consumptionId)) {
+        return true
+      }
+    }
+    return false
+  }
 
   // Load timeline data
   async function loadTimelineData(offset = 0, append = false) {
@@ -90,6 +146,12 @@
         timelineEntries = [...timelineEntries, ...newEntries]
       } else {
         timelineEntries = newEntries
+      }
+
+      // Load event links for the new events
+      const events = eventsResponse.data?.events || []
+      if (events.length > 0) {
+        await loadEventLinks(events)
       }
 
       // Check if there's more data to load
@@ -212,7 +274,15 @@
                 <div class="flex items-start gap-2">
                   <div class="w-2 h-2 bg-success rounded-full mt-2 shrink-0"></div>
                   <div class="flex-1">
-                    <h3 class="font-semibold text-success mb-1">Meal Logged</h3>
+                    <div class="flex items-center gap-2 mb-1">
+                      <h3 class="font-semibold text-success">Meal Logged</h3>
+                      <!-- Show lock icon for linked consumptions -->
+                      {#if isConsumptionLinked(consumption.id)}
+                        <svg class="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Linked to event">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                      {/if}
+                    </div>
                     <p class="text-sm italic mb-2">"{consumption.transcript}"</p>
                     
                     <!-- Nutrition highlights -->
@@ -249,6 +319,12 @@
                       {#if event.level !== null && event.level !== undefined}
                         <span class="badge badge-xs badge-outline">Level {event.level}</span>
                       {/if}
+                      <!-- Show lock icon for linked events -->
+                      {#if hasConsumptionLinks(event.id)}
+                        <svg class="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Linked to consumption">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                      {/if}
                     </div>
                     
                     <p class="text-sm text-base-content/60 mb-2">{event.event_type?.name || "Event"}</p>
@@ -257,8 +333,21 @@
                       <p class="text-sm mb-2">{event.note}</p>
                     {/if}
                     
+                    <!-- Show consumption links -->
+                    {#if hasConsumptionLinks(event.id)}
+                      {@const consumptionLinks = getConsumptionLinks(event.id)}
+                      <div class="flex items-center gap-2 mt-2">
+                        <svg class="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
+                        <span class="text-primary font-medium text-xs">
+                          Linked to {consumptionLinks.length === 1 ? 'consumption' : `${consumptionLinks.length} consumptions`}
+                        </span>
+                      </div>
+                    {/if}
+                    
                     <!-- Event timing -->
-                    <div class="text-xs text-base-content/50">
+                    <div class="text-xs text-base-content/50 mt-2">
                       {#if event.ended_at}
                         Duration: {formatDate(event.started_at)} → {formatDate(event.ended_at)}
                       {:else}
