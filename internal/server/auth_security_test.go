@@ -190,6 +190,24 @@ func (m *mockStore) ListEventLinks(ctx context.Context, userID, eventID string) 
 	return nil, nil
 }
 
+// Event type mock methods
+func (m *mockStore) CreateEventType(ctx context.Context, eventType *storage.EventType) error {
+	return nil
+}
+func (m *mockStore) UpdateEventType(ctx context.Context, eventType *storage.EventType) error {
+	return nil
+}
+func (m *mockStore) DeleteEventType(ctx context.Context, userID, id string) error { return nil }
+func (m *mockStore) GetEventType(ctx context.Context, userID, id string) (*storage.EventType, error) {
+	return nil, nil
+}
+func (m *mockStore) ListEventTypes(ctx context.Context, userID string) ([]*storage.EventType, error) {
+	return nil, nil
+}
+func (m *mockStore) GetEventTypeCounts(ctx context.Context, userID string) (map[string]int, error) {
+	return nil, nil
+}
+
 func (m *mockStore) Close() error { return nil }
 
 // Test JWT validation security patterns

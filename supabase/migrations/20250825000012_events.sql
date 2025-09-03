@@ -1,10 +1,10 @@
--- Migration 011: Create events table for manual health/symptom/activity tracking (PostgreSQL)
+-- Migration 012: Create events table for manual health/symptom/activity tracking (PostgreSQL)
 -- Events are user-owned objects that can be linked to consumptions/items for correlation analysis
 CREATE TABLE IF NOT EXISTS public.events (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name text NOT NULL,
-    category text,
+    event_type_id uuid REFERENCES public.event_types(id) ON DELETE SET NULL,
     started_at timestamptz NOT NULL,
     ended_at timestamptz,
     level smallint,
@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS public.events (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT events_name_length CHECK (length(name) <= 100),
-    CONSTRAINT events_category_length CHECK (category IS NULL OR length(category) <= 50),
     CONSTRAINT events_level_range CHECK (level IS NULL OR (level >= 0 AND level <= 10)),
     CONSTRAINT events_note_length CHECK (note IS NULL OR length(note) <= 1000),
     CONSTRAINT events_color_hex CHECK (color IS NULL OR color ~* '^#?[0-9a-f]{6}$'),
@@ -23,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.events (
 -- Indexes for efficient lookups
 CREATE INDEX IF NOT EXISTS idx_events_user_id ON public.events(user_id);
 CREATE INDEX IF NOT EXISTS idx_events_user_started ON public.events(user_id, started_at);
-CREATE INDEX IF NOT EXISTS idx_events_user_category ON public.events(user_id, category) WHERE category IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_events_user_event_type ON public.events(user_id, event_type_id) WHERE event_type_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_events_user_level ON public.events(user_id, level) WHERE level IS NOT NULL;
 
 -- Updated_at trigger (reuse existing function)

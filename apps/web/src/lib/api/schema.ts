@@ -452,6 +452,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/event-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List event types
+         * @description Get all event types owned by the current user, including usage counts
+         */
+        get: operations["getEventTypes"];
+        put?: never;
+        /**
+         * Create a new event type
+         * @description Create a new event type for the current user
+         */
+        post: operations["createEventType"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/event-types/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update an event type
+         * @description Update an existing event type owned by the current user
+         */
+        put: operations["updateEventType"];
+        post?: never;
+        /**
+         * Delete an event type
+         * @description Delete an event type owned by the current user. Events using this type will have their event_type_id set to null.
+         */
+        delete: operations["deleteEventType"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/trends": {
         parameters: {
             query?: never;
@@ -626,6 +674,111 @@ export interface components {
             /** @description Array of label IDs to assign */
             ids: string[];
         };
+        EventType: {
+            /** @description Event type ID */
+            id: string;
+            /** @description User ID who owns this event type */
+            user_id: string;
+            /** @description Event type name */
+            name: string;
+            /** @description Optional description of the event type */
+            description?: string | null;
+            /** @description Default name suggestion when creating events of this type */
+            default_name?: string | null;
+            /**
+             * @description Hex color for visual distinction (#RRGGBB)
+             * @example #FF6B6B
+             */
+            color: string;
+            /**
+             * @description Icon name or emoji for visual distinction
+             * @example 🏃
+             */
+            icon?: string | null;
+            /**
+             * Format: date-time
+             * @description When the event type was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the event type was last updated
+             */
+            updated_at: string;
+        };
+        EventTypeCreateRequest: {
+            /** @description Event type name (unique per user, case-insensitive) */
+            name: string;
+            /** @description Optional description of the event type */
+            description?: string;
+            /** @description Default name suggestion when creating events of this type */
+            default_name?: string;
+            /**
+             * @description Hex color for visual distinction (#RRGGBB)
+             * @example #FF6B6B
+             */
+            color: string;
+            /**
+             * @description Icon name or emoji for visual distinction
+             * @example 🏃
+             */
+            icon?: string;
+        };
+        EventTypeUpdateRequest: {
+            /** @description Event type name (unique per user, case-insensitive) */
+            name?: string;
+            /** @description Optional description of the event type */
+            description?: string | null;
+            /** @description Default name suggestion when creating events of this type */
+            default_name?: string | null;
+            /**
+             * @description Hex color for visual distinction (#RRGGBB)
+             * @example #FF6B6B
+             */
+            color?: string | null;
+            /**
+             * @description Icon name or emoji for visual distinction
+             * @example 🏃
+             */
+            icon?: string | null;
+        };
+        EventTypeWithUsage: {
+            /** @description Event type ID */
+            id: string;
+            /** @description User ID who owns this event type */
+            user_id: string;
+            /** @description Event type name */
+            name: string;
+            /** @description Optional description of the event type */
+            description?: string | null;
+            /** @description Default name suggestion when creating events of this type */
+            default_name?: string | null;
+            /**
+             * @description Hex color for visual distinction (#RRGGBB)
+             * @example #FF6B6B
+             */
+            color: string;
+            /**
+             * @description Icon name or emoji for visual distinction
+             * @example 🏃
+             */
+            icon?: string | null;
+            /**
+             * Format: date-time
+             * @description When the event type was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the event type was last updated
+             */
+            updated_at: string;
+            /** @description Number of events using this event type */
+            event_count: number;
+        };
+        EventTypesResponse: {
+            event_types: components["schemas"]["EventTypeWithUsage"][];
+        };
         Event: {
             /** @description Event ID */
             id: string;
@@ -633,8 +786,8 @@ export interface components {
             user_id: string;
             /** @description Event name */
             name: string;
-            /** @description Optional event category (e.g., 'symptom', 'activity', 'measurement') */
-            category?: string | null;
+            /** @description Optional event type ID reference */
+            event_type_id?: string | null;
             /**
              * Format: date-time
              * @description When the event started
@@ -672,8 +825,8 @@ export interface components {
             user_id: string;
             /** @description Event name */
             name: string;
-            /** @description Optional event category */
-            category?: string | null;
+            /** @description Reference to the event type */
+            event_type_id?: string | null;
             /**
              * Format: date-time
              * @description When the event started
@@ -711,8 +864,8 @@ export interface components {
         EventCreateRequest: {
             /** @description Event name */
             name: string;
-            /** @description Optional event category */
-            category?: string;
+            /** @description Optional event type ID reference */
+            event_type_id?: string;
             /**
              * Format: date-time
              * @description When the event started
@@ -738,8 +891,8 @@ export interface components {
         EventUpdateRequest: {
             /** @description Event name */
             name?: string;
-            /** @description Optional event category */
-            category?: string | null;
+            /** @description Optional event type ID reference */
+            event_type_id?: string | null;
             /**
              * Format: date-time
              * @description When the event started
@@ -2258,8 +2411,8 @@ export interface operations {
                 start_date?: string;
                 /** @description Filter events ending before this date (ISO 8601) */
                 end_date?: string;
-                /** @description Filter by event category */
-                category?: string;
+                /** @description Filter by event type ID */
+                event_type_id?: string;
                 /** @description Filter events with level >= this value */
                 level_min?: number;
                 /** @description Filter events with level <= this value */
@@ -2748,6 +2901,197 @@ export interface operations {
                 content?: never;
             };
             /** @description Event or link not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getEventTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of user event types with usage counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventTypesResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createEventType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventTypeCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Event type created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventType"];
+                };
+            };
+            /** @description Bad request (invalid name/color, validation errors) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Event type limit exceeded (50 event types per user) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Event type name already exists for user */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateEventType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event type ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventTypeUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Event type updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventType"];
+                };
+            };
+            /** @description Bad request (validation errors) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Event type not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Event type name already exists for user */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteEventType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event type ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Event type deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Event type not found */
             404: {
                 headers: {
                     [name: string]: unknown;

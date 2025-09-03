@@ -15,13 +15,20 @@
   type Event = EventsResponse["events"][0]
   type CreateEventRequest =
     paths["/events"]["post"]["requestBody"]["content"]["application/json"]
+  type EventTypesResponse = 
+    paths["/event-types"]["get"]["responses"]["200"]["content"]["application/json"]
+  type EventType = EventTypesResponse["event_types"][0]
+  type CreateEventTypeRequest =
+    paths["/event-types"]["post"]["requestBody"]["content"]["application/json"]
 
   let events: Event[] = []
+  let eventTypes: EventType[] = []
   let loading = true
+  let loadingEventTypes = false
   let error = ""
 
   // Filtering and sorting
-  let filterCategory = ""
+  let filterEventType = ""
   let filterStartDate = ""
   let filterEndDate = ""
   let sortBy = "started_at"
@@ -32,30 +39,35 @@
   let editingEvent: Event | null = null
   let modalTitle = ""
   let eventName = ""
-  let eventCategory = ""
+  let eventTypeId = ""
   let eventStartedAt = ""
   let eventEndedAt = ""
   let eventLevel: string | number | undefined = undefined
   let eventNote = ""
   let eventColor = ""
 
+  // New event type modal state
+  let showEventTypeModal = false
+  let newEventTypeName = ""
+  let newEventTypeDescription = ""
+  let newEventTypeColor = "#FFD700"
+  let newEventTypeDefaultName = ""
+  let newEventTypeIcon = ""
+
   // Delete confirmation modal
   let showDeleteModal = false
   let eventToDelete: Event | null = null
 
-  // Event categories
-  const categories = [
-    { value: "", label: "All Categories" },
-    { value: "symptom", label: "Symptom" },
-    { value: "activity", label: "Activity" },
-    { value: "measurement", label: "Measurement" },
-    { value: "medication", label: "Medication" },
-    { value: "sleep", label: "Sleep" },
-    { value: "mood", label: "Mood" },
-    { value: "other", label: "Other" },
+  // Derived event type options for dropdowns
+  $: eventTypeOptions = [
+    { value: "", label: "All Event Types" },
+    ...eventTypes.map(type => ({ value: type.id, label: type.name }))
   ]
 
-  const createCategories = categories.slice(1) // Remove "All Categories" option
+  $: createEventTypeOptions = eventTypes.map(type => ({ 
+    value: type.id, 
+    label: `${type.name}${type.event_count ? ` (${type.event_count} events)` : ''}` 
+  }))
 
   // Color palette for events
   const colorPalette = [
@@ -114,12 +126,44 @@
     isValidColor &&
     isValidFutureDate
 
+  // Event Type form validation
+  $: isValidEventTypeName = newEventTypeName.trim().length > 0 && newEventTypeName.length <= 63
+  $: isValidEventTypeDescription = newEventTypeDescription.length <= 250
+  $: isValidEventTypeColor = /^#?[0-9a-f]{6}$/i.test(newEventTypeColor)
+  $: isValidEventTypeDefaultName = newEventTypeDefaultName.length <= 100
+  $: isValidEventTypeIcon = newEventTypeIcon.length <= 50
+  
+  $: canSaveEventType = 
+    isValidEventTypeName &&
+    isValidEventTypeDescription &&
+    isValidEventTypeColor &&
+    isValidEventTypeDefaultName &&
+    isValidEventTypeIcon
+
+  async function loadEventTypes() {
+    try {
+      loadingEventTypes = true
+      const response = await apiClient.GET("/event-types")
+
+      if (response.error) {
+        console.error("Error loading event types:", response.error)
+        return
+      }
+
+      eventTypes = response.data?.event_types || []
+    } catch (err) {
+      console.error("Error loading event types:", err)
+    } finally {
+      loadingEventTypes = false
+    }
+  }
+
   async function loadEvents() {
     try {
       loading = true
       const params: Record<string, string> = {}
 
-      if (filterCategory) params.category = filterCategory
+      if (filterEventType) params.event_type_id = filterEventType
       if (filterStartDate) params.start_date = filterStartDate
       if (filterEndDate) params.end_date = filterEndDate
 
@@ -165,7 +209,7 @@
     editingEvent = null
     modalTitle = "Create Event"
     eventName = ""
-    eventCategory = ""
+    eventTypeId = ""
     eventStartedAt = toLocalDateTimeString(new Date()) // Current local time
     eventEndedAt = ""
     eventLevel = undefined
@@ -178,7 +222,7 @@
     editingEvent = event
     modalTitle = "Edit Event"
     eventName = event.name
-    eventCategory = event.category || ""
+    eventTypeId = event.event_type_id || ""
     // Convert UTC times to local time for editing
     eventStartedAt = toLocalDateTimeString(new Date(event.started_at))
     eventEndedAt = event.ended_at ? toLocalDateTimeString(new Date(event.ended_at)) : ""
@@ -196,7 +240,7 @@
 
   function resetForm() {
     eventName = ""
-    eventCategory = ""
+    eventTypeId = ""
     eventStartedAt = ""
     eventEndedAt = ""
     eventLevel = undefined
@@ -214,7 +258,7 @@
     try {
       const eventData: CreateEventRequest = {
         name: eventName.trim(),
-        category: eventCategory || undefined,
+        event_type_id: eventTypeId || undefined,
         // Convert local times to UTC for server storage
         started_at: fromLocalDateTimeString(eventStartedAt).toISOString(),
         ended_at: eventEndedAt ? fromLocalDateTimeString(eventEndedAt).toISOString() : undefined,
@@ -258,6 +302,54 @@
     }
   }
 
+  function openEventTypeModal() {
+    newEventTypeName = ""
+    newEventTypeDescription = ""
+    newEventTypeColor = "#FFD700"
+    newEventTypeDefaultName = ""
+    newEventTypeIcon = ""
+    showEventTypeModal = true
+  }
+
+  function closeEventTypeModal() {
+    showEventTypeModal = false
+    newEventTypeName = ""
+    newEventTypeDescription = ""
+    newEventTypeColor = "#FFD700"
+    newEventTypeDefaultName = ""
+    newEventTypeIcon = ""
+  }
+
+  async function saveEventType() {
+    if (!canSaveEventType) return
+
+    try {
+      const eventTypeData: CreateEventTypeRequest = {
+        name: newEventTypeName.trim(),
+        description: newEventTypeDescription.trim() || undefined,
+        color: newEventTypeColor.replace("#", ""),
+        default_name: newEventTypeDefaultName.trim() || undefined,
+        icon: newEventTypeIcon.trim() || undefined,
+      }
+
+      const response = await apiClient.POST("/event-types", {
+        body: eventTypeData,
+      })
+
+      if (response.error) {
+        toast.error(formatErrorForUser(response.error))
+        return
+      }
+
+      toast.success("Event type created successfully")
+      closeEventTypeModal()
+      loadEventTypes() // Reload event types
+    } catch (err) {
+      console.error("Error saving event type:", err)
+      toast.error("Failed to create event type. Please try again.")
+    }
+  }
+
   function openDeleteModal(event: Event) {
     eventToDelete = event
     showDeleteModal = true
@@ -298,24 +390,25 @@
     return new Date(dateStr).toLocaleDateString()
   }
 
-  function getCategoryColor(category: string | null | undefined) {
-    const categoryColors: Record<string, string> = {
-      symptom: "#FF0000",
-      activity: "#FF8C00", 
-      measurement: "#FFD700",
-      medication: "#1E90FF",
-      sleep: "#9B59B6",
-      mood: "#2DD4BF",
-      other: "#9CA3AF",
-    }
-    return category ? categoryColors[category] || "#9CA3AF" : "#9CA3AF"
+  function getEventTypeName(eventTypeId: string | null | undefined) {
+    if (!eventTypeId) return null
+    const eventType = eventTypes.find(type => type.id === eventTypeId)
+    return eventType?.name || null
+  }
+
+  function getEventTypeColor(eventTypeId: string | null | undefined) {
+    if (!eventTypeId) return "#9CA3AF"
+    const eventType = eventTypes.find(type => type.id === eventTypeId)
+    return eventType?.color ? `#${eventType.color}` : "#9CA3AF"
   }
 
   // Watch for filter changes and reload
-  $: filterCategory, filterStartDate, filterEndDate, sortBy, sortOrder, loadEvents()
+  $: filterEventType, filterStartDate, filterEndDate, sortBy, sortOrder, loadEvents()
 
   onMount(() => {
-    loadEvents()
+    loadEventTypes().then(() => {
+      loadEvents()
+    })
   })
 </script>
 
@@ -338,29 +431,46 @@
             Track symptoms, activities, measurements, and other health events.
           </p>
         </div>
-        <button
-          class="btn btn-primary min-h-[44px] shrink-0"
-          on:click={openCreateModal}
-        >
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            />
-          </svg>
-          New Event
-        </button>
+        <div class="flex gap-2 shrink-0">
+          <button
+            class="btn btn-outline min-h-[44px]"
+            on:click={openEventTypeModal}
+            disabled={loadingEventTypes}
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+              />
+            </svg>
+            New Event Type
+          </button>
+          <button
+            class="btn btn-primary min-h-[44px]"
+            on:click={openCreateModal}
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+            New Event
+          </button>
+        </div>
       </div>
 
       <!-- Filters -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-base-200 rounded-lg">
         <FormSelect
-          id="categoryFilter"
-          label="Category"
-          bind:value={filterCategory}
-          options={categories}
+          id="eventTypeFilter"
+          label="Event Type"
+          bind:value={filterEventType}
+          options={eventTypeOptions}
         />
         
         <FormField
@@ -385,7 +495,6 @@
             { value: "started_at", label: "Start Date" },
             { value: "created_at", label: "Created" },
             { value: "name", label: "Name" },
-            { value: "category", label: "Category" },
           ]}
         />
 
@@ -452,14 +561,14 @@
                       {:else}
                         <div
                           class="w-4 h-4 rounded-full border border-base-300"
-                          style="background-color: {getCategoryColor(event.category)}"
+                          style="background-color: {getEventTypeColor(event.event_type_id)}"
                         ></div>
                       {/if}
                       
                       <h3 class="font-semibold text-lg">{event.name}</h3>
                       
-                      {#if event.category}
-                        <span class="badge badge-outline text-xs capitalize">{event.category}</span>
+                      {#if getEventTypeName(event.event_type_id)}
+                        <span class="badge badge-outline text-xs capitalize">{getEventTypeName(event.event_type_id)}</span>
                       {/if}
                       
                       {#if event.level !== null}
@@ -545,13 +654,37 @@
               : ""}
           />
 
-          <!-- Category -->
-          <FormSelect
-            id="eventCategory"
-            label="Category (Optional)"
-            bind:value={eventCategory}
-            options={createCategories}
-          />
+          <!-- Event Type -->
+          <div class="form-control">
+            <label class="label" for="eventTypeId">
+              <span class="label-text">Event Type (Optional)</span>
+            </label>
+            <div class="flex gap-2">
+              <FormSelect
+                id="eventTypeId"
+                label=""
+                bind:value={eventTypeId}
+                options={createEventTypeOptions}
+                className="flex-1"
+              />
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                title="Create new event type"
+                aria-label="Create new event type"
+                on:click={openEventTypeModal}
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -716,5 +849,112 @@
   onConfirm={deleteEvent}
   onCancel={closeDeleteModal}
 />
+
+<!-- Create Event Type Modal -->
+{#if showEventTypeModal}
+  <div class="modal modal-open">
+    <div class="modal-box max-w-lg">
+      <h3 class="font-bold text-lg">Create Event Type</h3>
+
+      <form on:submit|preventDefault={saveEventType} class="space-y-4 mt-4">
+        <!-- Event Type Name -->
+        <FormField
+          id="eventTypeName"
+          label="Name"
+          bind:value={newEventTypeName}
+          required
+          maxlength={63}
+          placeholder="e.g. Symptom, Activity, Measurement"
+          error={!isValidEventTypeName && newEventTypeName.length > 0
+            ? "Name must be 1-63 characters"
+            : ""}
+        />
+
+        <!-- Description -->
+        <FormField
+          id="eventTypeDescription"
+          label="Description (Optional)"
+          bind:value={newEventTypeDescription}
+          maxlength={250}
+          placeholder="Brief description of this event type"
+          error={!isValidEventTypeDescription ? "Description must be 250 characters or less" : ""}
+        />
+
+        <!-- Default Name -->
+        <FormField
+          id="eventTypeDefaultName"
+          label="Default Event Name (Optional)"
+          bind:value={newEventTypeDefaultName}
+          maxlength={100}
+          placeholder="Default name when creating events of this type"
+          error={!isValidEventTypeDefaultName ? "Default name must be 100 characters or less" : ""}
+        />
+
+        <!-- Icon -->
+        <FormField
+          id="eventTypeIcon"
+          label="Icon (Optional)"
+          bind:value={newEventTypeIcon}
+          maxlength={50}
+          placeholder="e.g. 🏃, 💊, 📊"
+          error={!isValidEventTypeIcon ? "Icon must be 50 characters or less" : ""}
+        />
+
+        <!-- Color Selection -->
+        <div class="form-control">
+          <label class="label" for="eventTypeColor">
+            <span class="label-text">Color <span class="text-error">*</span></span>
+          </label>
+
+          <!-- Color palette -->
+          <div class="grid grid-cols-8 gap-2 mb-4">
+            {#each colorPalette as color}
+              <button
+                type="button"
+                class="w-8 h-8 rounded border-2 transition-all hover:scale-110"
+                class:border-primary={newEventTypeColor === `#${color}`}
+                class:border-base-300={newEventTypeColor !== `#${color}`}
+                style="background-color: #{color}"
+                aria-label={`Select color #${color}`}
+                title={`Select color #${color}`}
+                on:click={() => newEventTypeColor = `#${color}`}
+              ></button>
+            {/each}
+          </div>
+
+          <!-- Manual color input -->
+          <div class="flex gap-2">
+            <input
+              type="text"
+              class="input input-bordered input-sm flex-1"
+              bind:value={newEventTypeColor}
+              placeholder="#FFFFFF"
+              maxlength={7}
+            />
+            <div
+              class="w-8 h-8 rounded border border-base-300"
+              style="background-color: {newEventTypeColor || '#9CA3AF'}"
+            ></div>
+          </div>
+
+          {#if !isValidEventTypeColor && newEventTypeColor.length > 0}
+            <div class="label">
+              <span class="label-text-alt text-error"
+                >Please enter a valid hex color (e.g. #FF0000)</span
+              >
+            </div>
+          {/if}
+        </div>
+      </form>
+
+      <div class="modal-action">
+        <button class="btn btn-ghost" on:click={closeEventTypeModal}>Cancel</button>
+        <button class="btn btn-primary" disabled={!canSaveEventType} on:click={saveEventType}>
+          Create Event Type
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <Toast />
