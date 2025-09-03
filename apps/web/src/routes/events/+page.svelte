@@ -820,16 +820,18 @@
               <span class="label-text">Event Type (Optional)</span>
             </label>
             <div class="flex gap-2">
-              <FormSelect
+              <select
                 id="eventTypeId"
-                label=""
+                class="select select-bordered flex-1"
                 bind:value={eventTypeId}
-                options={createEventTypeOptions}
-                className="flex-1"
-              />
+              >
+                {#each createEventTypeOptions as option}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </select>
               <button
                 type="button"
-                class="btn btn-outline btn-sm"
+                class="btn btn-outline"
                 title="Create new event type"
                 aria-label="Create new event type"
                 on:click={openEventTypeModal}
@@ -853,18 +855,18 @@
             <label class="label" for="eventStartedAt">
               <span class="label-text">Start Date & Time <span class="text-error">*</span></span>
             </label>
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-start">
               <input
                 id="eventStartedAt"
                 type="datetime-local"
-                class="input input-bordered flex-1"
+                class="input input-bordered flex-1 min-h-[48px]"
                 class:input-error={!isValidStartDate || isStartDateInFuture}
                 bind:value={eventStartedAt}
                 required
               />
               <button
                 type="button"
-                class="btn btn-outline btn-sm"
+                class="btn btn-outline min-h-[48px]"
                 title="Set to current time"
                 on:click={() => setCurrentTime(false)}
               >
@@ -890,17 +892,17 @@
             <label class="label" for="eventEndedAt">
               <span class="label-text">End Date & Time (Optional)</span>
             </label>
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-start">
               <input
                 id="eventEndedAt"
                 type="datetime-local"
-                class="input input-bordered flex-1"
+                class="input input-bordered flex-1 min-h-[48px]"
                 class:input-error={!isValidEndDate || isEndDateInFuture}
                 bind:value={eventEndedAt}
               />
               <button
                 type="button"
-                class="btn btn-outline btn-sm"
+                class="btn btn-outline min-h-[48px]"
                 title="Set to current time"
                 on:click={() => setCurrentTime(true)}
               >
@@ -920,27 +922,82 @@
         </div>
 
         <!-- Level -->
-        <FormField
-          id="eventLevel"
-          label="Level (0-10, Optional)"
-          type="number"
-          bind:value={eventLevel}
-          min="0"
-          max="10"
-          placeholder="Intensity, severity, or performance level"
-          error={!isValidLevel ? "Level must be between 0 and 10" : ""}
-        />
+        <div class="form-control">
+          <label class="label" for="eventLevel">
+            <span class="label-text">Level (0-10, Optional)</span>
+          </label>
+          <div class="flex gap-2 items-center">
+            <div class="flex items-center">
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                aria-label="Decrease level"
+                title="Decrease level"
+                disabled={eventLevel !== undefined && Number(eventLevel) <= 0}
+                on:click={() => {
+                  const current = eventLevel === undefined || eventLevel === "" ? 0 : Number(eventLevel);
+                  eventLevel = Math.max(0, current - 1);
+                }}
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                </svg>
+              </button>
+              <input
+                id="eventLevel"
+                type="number"
+                class="input input-bordered w-20 text-center mx-2"
+                class:input-error={!isValidLevel}
+                bind:value={eventLevel}
+                min="0"
+                max="10"
+                placeholder="0"
+              />
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                aria-label="Increase level"
+                title="Increase level"
+                disabled={eventLevel !== undefined && Number(eventLevel) >= 10}
+                on:click={() => {
+                  const current = eventLevel === undefined || eventLevel === "" ? 0 : Number(eventLevel);
+                  eventLevel = Math.min(10, current + 1);
+                }}
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+              </button>
+            </div>
+            <span class="text-sm text-base-content/60 ml-2">Intensity, severity, or performance level</span>
+          </div>
+          {#if !isValidLevel}
+            <div class="label">
+              <span class="label-text-alt text-error">Level must be between 0 and 10</span>
+            </div>
+          {/if}
+        </div>
 
         <!-- Note -->
-        <FormField
-          id="eventNote"
-          label="Note (Optional)"
-          bind:value={eventNote}
-          maxlength={1000}
-          placeholder="Additional details about this event"
-          multiline
-          error={!isValidNote ? "Note must be 1000 characters or less" : ""}
-        />
+        <div class="form-control w-full">
+          <label class="label" for="eventNote">
+            <span class="label-text">Note (Optional)</span>
+          </label>
+          <textarea
+            id="eventNote"
+            class="textarea textarea-bordered w-full"
+            class:textarea-error={!isValidNote}
+            bind:value={eventNote}
+            maxlength={1000}
+            placeholder="Additional details about this event"
+            rows="3"
+          ></textarea>
+          {#if !isValidNote}
+            <div class="label">
+              <span class="label-text-alt text-error">Note must be 1000 characters or less</span>
+            </div>
+          {/if}
+        </div>
 
         <!-- Color Selection -->
         <div class="form-control">
