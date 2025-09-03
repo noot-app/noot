@@ -529,6 +529,17 @@ func (s *APIServer) GetConsumptions(c *gin.Context, params api.GetConsumptionsPa
 	var consumptions []*storage.Consumption
 	ctx := c.Request.Context()
 
+	// Get pagination parameters
+	limit := MaxConsumptions // default
+	offset := 0              // default
+
+	if params.Limit != nil {
+		limit = int(*params.Limit)
+	}
+	if params.Offset != nil {
+		offset = int(*params.Offset)
+	}
+
 	if labelsParam != "" {
 		// Filter by labels
 		labelNames := strings.Split(labelsParam, ",")
@@ -538,21 +549,21 @@ func (s *APIServer) GetConsumptions(c *gin.Context, params api.GetConsumptionsPa
 		}
 
 		matchAll := matchParam == "all"
-		consumptions, err = s.store.GetConsumptionsByLabels(ctx, user.ID, labelNames, matchAll, MaxConsumptions, 0)
+		consumptions, err = s.store.GetConsumptionsByLabels(ctx, user.ID, labelNames, matchAll, limit, offset)
 		if err != nil {
 			handleInternalServerError(c, "Failed to get consumptions by labels", err)
 			return
 		}
 	} else if hasDateFiltering {
 		// Get consumptions filtered by date range
-		consumptions, err = s.store.GetConsumptionsByUserDateRange(ctx, user.ID, dateParams.StartTime, dateParams.EndTime, MaxConsumptions, 0)
+		consumptions, err = s.store.GetConsumptionsByUserDateRange(ctx, user.ID, dateParams.StartTime, dateParams.EndTime, limit, offset)
 		if err != nil {
 			handleInternalServerError(c, "Failed to get consumptions by date range", err)
 			return
 		}
 	} else {
 		// Get recent consumptions without filtering
-		consumptions, err = s.store.GetConsumptionsByUser(ctx, user.ID, MaxConsumptions, 0)
+		consumptions, err = s.store.GetConsumptionsByUser(ctx, user.ID, limit, offset)
 		if err != nil {
 			handleInternalServerError(c, "Failed to get consumptions", err)
 			return

@@ -1734,6 +1734,10 @@ export interface operations {
     getConsumptions: {
         parameters: {
             query?: {
+                /** @description Maximum number of consumptions to return (default 50, max 100) */
+                limit?: number;
+                /** @description Number of consumptions to skip for pagination */
+                offset?: number;
                 /** @description Comma-separated list of label names to filter by */
                 labels?: string;
                 /** @description Label matching strategy - 'any' matches consumptions with at least one of the labels, 'all' matches consumptions with all labels */
