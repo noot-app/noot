@@ -174,12 +174,12 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 			omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 			creatine_mg, caffeine_mg, alcohol_g,
 			polyunsaturated_fat_g, monounsaturated_fat_g,
-			created_at, updated_at
+			note, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
 			$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
 			$31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44,
-			$45, $46, $47, $48, $49, $50, $51, $52, $53
+			$45, $46, $47, $48, $49, $50, $51, $52, $53, $54
 		)`
 
 	_, err := s.db.ExecContext(ctx, query,
@@ -200,7 +200,7 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 		consumption.Omega3Ala, consumption.Omega3Epa, consumption.Omega3Dha,
 		consumption.Omega6, consumption.Creatine, consumption.Caffeine, consumption.Alcohol,
 		consumption.PolyunsaturatedFat, consumption.MonounsaturatedFat,
-		consumption.CreatedAt, consumption.UpdatedAt)
+		consumption.Note, consumption.CreatedAt, consumption.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create consumption: %w", err)
 	}
@@ -387,7 +387,7 @@ func (s *PostgreSQLStore) UpdateConsumption(ctx context.Context, consumption *Co
 			choline_mg = $27, calcium_mg = $28, iron_mg = $29, magnesium_mg = $30,
 			phosphorus_mg = $31, potassium_mg = $32, zinc_mg = $33, copper_mg = $34,
 			manganese_mg = $35, selenium_mcg = $36, iodine_mcg = $37, molybdenum_mcg = $38,
-			chromium_mcg = $39, fluoride_mg = $40, chloride_mg = $41, updated_at = $42
+			chromium_mcg = $39, fluoride_mg = $40, chloride_mg = $41, note = $42, updated_at = $43
 		WHERE id = $1`
 
 	_, err := s.db.ExecContext(ctx, query, consumption.ID, consumption.Transcript,
@@ -404,7 +404,7 @@ func (s *PostgreSQLStore) UpdateConsumption(ctx context.Context, consumption *Co
 		consumption.Zinc, consumption.Copper, consumption.Manganese,
 		consumption.Selenium, consumption.Iodine, consumption.Molybdenum,
 		consumption.Chromium, consumption.Fluoride, consumption.Chloride,
-		consumption.UpdatedAt)
+		consumption.Note, consumption.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update consumption: %w", err)
 	}

@@ -353,6 +353,9 @@ type ConsumptionResponse struct {
 	// Labels Labels assigned to this consumption
 	Labels *[]Label `json:"labels,omitempty"`
 
+	// Note Additional note about the consumption
+	Note *string `json:"note"`
+
 	// RequestId Request identifier for tracking
 	RequestId string  `json:"request_id"`
 	Summary   Summary `json:"summary"`
@@ -962,6 +965,9 @@ type UpdateBiometricsRequestSex string
 type UpdateConsumptionRequest struct {
 	// Items Updated items with nutrition information
 	Items []ItemWithNutrition `json:"items"`
+
+	// Note Additional note about the consumption
+	Note *string `json:"note"`
 }
 
 // UpdateGoalsRequest defines model for UpdateGoalsRequest.

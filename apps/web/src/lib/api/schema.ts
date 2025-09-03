@@ -986,6 +986,8 @@ export interface components {
             id: string;
             /** @description Transcribed text from audio */
             transcript: string;
+            /** @description Additional note about the consumption */
+            note?: string | null;
             /** @description Labels assigned to this consumption */
             labels?: components["schemas"]["Label"][];
             /** @description Items with complete nutrition information */
@@ -1361,6 +1363,8 @@ export interface components {
         UpdateConsumptionRequest: {
             /** @description Updated items with nutrition information */
             items: components["schemas"]["ItemWithNutrition"][];
+            /** @description Additional note about the consumption */
+            note?: string | null;
         };
         DeleteResponse: {
             /**
