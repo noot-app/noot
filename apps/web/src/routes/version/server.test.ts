@@ -1,9 +1,21 @@
 import { describe, it, expect } from 'vitest'
 import { GET } from './+server'
 
+// Helper function to create a mock event for testing
+function createMockEvent() {
+  return {
+    url: new URL('http://localhost/version'),
+    cookies: { getAll: () => [], set: () => {}, delete: () => {} },
+    locals: {},
+    request: new Request('http://localhost/version'),
+    params: {},
+    route: { id: '/version' }
+  } as any
+}
+
 describe('/version API endpoint', () => {
   it('should return version information with correct structure', async () => {
-    const response = await GET()
+    const response = await GET(createMockEvent())
     const body = await response.json()
 
     expect(response.status).toBe(200)
@@ -21,7 +33,7 @@ describe('/version API endpoint', () => {
   })
 
   it('should handle commit SHA shortening correctly', async () => {
-    const response = await GET()
+    const response = await GET(createMockEvent())
     const body = await response.json()
     
     // If commit is 'unknown', commitShort should also be 'unknown'
@@ -37,7 +49,7 @@ describe('/version API endpoint', () => {
   })
 
   it('should handle unknown values gracefully', async () => {
-    const response = await GET()
+    const response = await GET(createMockEvent())
     const body = await response.json()
 
     // Should not throw and should have all required fields
