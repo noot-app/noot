@@ -18,7 +18,10 @@ const (
 	APIKeySecretLength = 20 // Reduced to keep hex length reasonable
 	// APIKeyPrefixLength is the length of the visible prefix (not including noot_)
 	APIKeyPrefixLength = 8
-	// bcrypt cost for hashing API keys
+)
+
+var (
+	// bcrypt cost for hashing API keys - variable so tests can override
 	bcryptCost = 12
 )
 
@@ -291,4 +294,9 @@ func (s *PostgreSQLStore) UpdateAPIKeyLastUsed(ctx context.Context, id string, l
 	}
 
 	return nil
+}
+
+// SetBcryptCostForTesting allows tests to use a lower bcrypt cost for performance
+func SetBcryptCostForTesting(cost int) {
+	bcryptCost = cost
 }

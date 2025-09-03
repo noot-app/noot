@@ -9,6 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func init() {
+	// Use lower bcrypt cost for faster tests
+	SetBcryptCostForTesting(4)
+}
+
 func TestGenerateAPIKey(t *testing.T) {
 	t.Run("GeneratesValidKey", func(t *testing.T) {
 		fullKey, prefix, hash, err := GenerateAPIKey()
@@ -148,7 +153,7 @@ func TestAPIKeyConstants(t *testing.T) {
 		assert.Equal(t, "noot_", APIKeyPrefix)
 		assert.Equal(t, 20, APIKeySecretLength)
 		assert.Equal(t, 8, APIKeyPrefixLength)
-		assert.Equal(t, 12, bcryptCost)
+		assert.Equal(t, 4, bcryptCost) // Lower cost for faster tests
 	})
 }
 
