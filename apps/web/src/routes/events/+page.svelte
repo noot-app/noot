@@ -69,6 +69,29 @@
     "9CA3AF", // Gray - other/neutral
   ]
 
+  // Helper functions for local time handling
+  function toLocalDateTimeString(utcDate: Date): string {
+    // Convert UTC date to local datetime-local input format
+    const localDate = new Date(utcDate.getTime() - (utcDate.getTimezoneOffset() * 60000))
+    return localDate.toISOString().slice(0, 16)
+  }
+
+  function fromLocalDateTimeString(localDateTimeString: string): Date {
+    // Convert local datetime-local input to UTC Date
+    return new Date(localDateTimeString)
+  }
+
+  function setCurrentTime(isEndTime = false) {
+    const now = new Date()
+    const localTimeString = toLocalDateTimeString(now)
+    
+    if (isEndTime) {
+      eventEndedAt = localTimeString
+    } else {
+      eventStartedAt = localTimeString
+    }
+  }
+
   // Form validation
   $: isValidName = eventName.trim().length > 0 && eventName.length <= 100
   $: isValidStartDate = eventStartedAt.length > 0
@@ -76,13 +99,20 @@
   $: isValidLevel = eventLevel === undefined || eventLevel === "" || (Number(eventLevel) >= 0 && Number(eventLevel) <= 10)
   $: isValidNote = eventNote.length <= 1000
   $: isValidColor = !eventColor || /^#?[0-9a-f]{6}$/i.test(eventColor)
+  
+  // Validate that events are not in the future
+  $: isStartDateInFuture = eventStartedAt && fromLocalDateTimeString(eventStartedAt) > new Date()
+  $: isEndDateInFuture = eventEndedAt && fromLocalDateTimeString(eventEndedAt) > new Date()
+  $: isValidFutureDate = !isStartDateInFuture && !isEndDateInFuture
+  
   $: canSave =
     isValidName &&
     isValidStartDate &&
     isValidEndDate &&
     isValidLevel &&
     isValidNote &&
-    isValidColor
+    isValidColor &&
+    isValidFutureDate
 
   async function loadEvents() {
     try {
@@ -136,7 +166,7 @@
     modalTitle = "Create Event"
     eventName = ""
     eventCategory = ""
-    eventStartedAt = new Date().toISOString().slice(0, 16) // Current datetime
+    eventStartedAt = toLocalDateTimeString(new Date()) // Current local time
     eventEndedAt = ""
     eventLevel = undefined
     eventNote = ""
@@ -149,8 +179,9 @@
     modalTitle = "Edit Event"
     eventName = event.name
     eventCategory = event.category || ""
-    eventStartedAt = new Date(event.started_at).toISOString().slice(0, 16)
-    eventEndedAt = event.ended_at ? new Date(event.ended_at).toISOString().slice(0, 16) : ""
+    // Convert UTC times to local time for editing
+    eventStartedAt = toLocalDateTimeString(new Date(event.started_at))
+    eventEndedAt = event.ended_at ? toLocalDateTimeString(new Date(event.ended_at)) : ""
     eventLevel = event.level ?? undefined
     eventNote = event.note || ""
     eventColor = event.color ? (event.color.startsWith("#") ? event.color : `#${event.color}`) : ""
@@ -184,8 +215,9 @@
       const eventData: CreateEventRequest = {
         name: eventName.trim(),
         category: eventCategory || undefined,
-        started_at: new Date(eventStartedAt).toISOString(),
-        ended_at: eventEndedAt ? new Date(eventEndedAt).toISOString() : undefined,
+        // Convert local times to UTC for server storage
+        started_at: fromLocalDateTimeString(eventStartedAt).toISOString(),
+        ended_at: eventEndedAt ? fromLocalDateTimeString(eventEndedAt).toISOString() : undefined,
         level: eventLevel ? Number(eventLevel) : undefined,
         note: eventNote.trim() || undefined,
         color: eventColor ? eventColor.replace("#", "") : undefined,
@@ -524,23 +556,74 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Start Date/Time -->
-          <FormField
-            id="eventStartedAt"
-            label="Start Date & Time"
-            type="datetime-local"
-            bind:value={eventStartedAt}
-            required
-            error={!isValidStartDate ? "Start date is required" : ""}
-          />
+          <div class="form-control">
+            <label class="label" for="eventStartedAt">
+              <span class="label-text">Start Date & Time <span class="text-error">*</span></span>
+            </label>
+            <div class="flex gap-2">
+              <input
+                id="eventStartedAt"
+                type="datetime-local"
+                class="input input-bordered flex-1"
+                class:input-error={!isValidStartDate || isStartDateInFuture}
+                bind:value={eventStartedAt}
+                required
+              />
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                title="Set to current time"
+                on:click={() => setCurrentTime(false)}
+              >
+                Now
+              </button>
+            </div>
+            {#if !isValidStartDate}
+              <div class="label">
+                <span class="label-text-alt text-error">Start date is required</span>
+              </div>
+            {:else if isStartDateInFuture}
+              <div class="label">
+                <span class="label-text-alt text-error">Start time cannot be in the future</span>
+              </div>
+            {/if}
+            <div class="label">
+              <span class="label-text-alt text-base-content/60">Times shown in your local timezone</span>
+            </div>
+          </div>
 
           <!-- End Date/Time -->
-          <FormField
-            id="eventEndedAt"
-            label="End Date & Time (Optional)"
-            type="datetime-local"
-            bind:value={eventEndedAt}
-            error={!isValidEndDate ? "End date must be after start date" : ""}
-          />
+          <div class="form-control">
+            <label class="label" for="eventEndedAt">
+              <span class="label-text">End Date & Time (Optional)</span>
+            </label>
+            <div class="flex gap-2">
+              <input
+                id="eventEndedAt"
+                type="datetime-local"
+                class="input input-bordered flex-1"
+                class:input-error={!isValidEndDate || isEndDateInFuture}
+                bind:value={eventEndedAt}
+              />
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                title="Set to current time"
+                on:click={() => setCurrentTime(true)}
+              >
+                Now
+              </button>
+            </div>
+            {#if !isValidEndDate}
+              <div class="label">
+                <span class="label-text-alt text-error">End date must be after start date</span>
+              </div>
+            {:else if isEndDateInFuture}
+              <div class="label">
+                <span class="label-text-alt text-error">End time cannot be in the future</span>
+              </div>
+            {/if}
+          </div>
         </div>
 
         <!-- Level -->

@@ -1954,12 +1954,30 @@ func (s *APIServer) CreateEvent(c *gin.Context) {
 		return
 	}
 
+	// Validate that event dates are not in the future
+	now := time.Now().UTC()
+	if req.StartedAt.After(now) {
+		appErr := NewAppError("Event start time cannot be in the future", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
 	// Calculate end time if duration_minutes is provided
 	var endedAt *time.Time
 	if req.EndedAt != nil {
+		if req.EndedAt.After(now) {
+			appErr := NewAppError("Event end time cannot be in the future", http.StatusBadRequest, nil)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
 		endedAt = req.EndedAt
 	} else if req.DurationMinutes != nil {
 		endTime := req.StartedAt.Add(time.Duration(*req.DurationMinutes) * time.Minute)
+		if endTime.After(now) {
+			appErr := NewAppError("Event end time cannot be in the future", http.StatusBadRequest, nil)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
 		endedAt = &endTime
 	}
 
@@ -2115,6 +2133,8 @@ func (s *APIServer) UpdateEvent(c *gin.Context, id string) {
 	}
 
 	// Update fields if provided
+	now := time.Now().UTC()
+
 	if req.Name != nil {
 		event.Name = *req.Name
 	}
@@ -2122,9 +2142,19 @@ func (s *APIServer) UpdateEvent(c *gin.Context, id string) {
 		event.Category = req.Category
 	}
 	if req.StartedAt != nil {
+		if req.StartedAt.After(now) {
+			appErr := NewAppError("Event start time cannot be in the future", http.StatusBadRequest, nil)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
 		event.StartedAt = *req.StartedAt
 	}
 	if req.EndedAt != nil {
+		if req.EndedAt.After(now) {
+			appErr := NewAppError("Event end time cannot be in the future", http.StatusBadRequest, nil)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
 		event.EndedAt = req.EndedAt
 	}
 	if req.Level != nil {
