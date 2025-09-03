@@ -6,6 +6,7 @@
   import Card from "$lib/components/Card.svelte"
   import Label from "$lib/components/Label.svelte"
   import TagIcon from "$lib/components/icons/Tag.svelte"
+  import AudioReactiveMicButton from "$lib/components/AudioReactiveMicButton.svelte"
   import { getAppName } from "$lib/utils/app-info"
 
   // Get app name from runtime environment
@@ -520,51 +521,13 @@
       <div class="text-center max-w-md w-full space-y-8">
         <!-- Main recording button -->
         <div class="flex justify-center">
-          <button
-            class="record-button {isRecording
-              ? 'recording'
-              : ''} {status.includes('Processing') ? 'processing' : ''}"
-            on:click={toggleRecordingWithSound}
+          <AudioReactiveMicButton
+            isRecording={isRecording}
+            isProcessing={status.includes("Processing")}
             disabled={status.includes("Processing")}
-            aria-label={isRecording ? "Stop recording" : "Start recording"}
-          >
-            {#if status.includes("Processing")}
-              <!-- Processing spinner -->
-              <svg
-                class="w-16 h-16"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-            {:else if isRecording}
-              <!-- Stop icon (square) -->
-              <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="6" width="12" height="12" rx="2" />
-              </svg>
-            {:else}
-              <!-- Microphone icon -->
-              <svg
-                class="w-20 h-20"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2.5"
-                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                />
-              </svg>
-            {/if}
-          </button>
+            onClick={toggleRecordingWithSound}
+            ariaLabel={isRecording ? "Stop recording" : "Start recording"}
+          />
         </div>
 
         <!-- Status message -->
@@ -1058,76 +1021,6 @@
 </div>
 
 <style>
-  .record-button {
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    border: 4px solid;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-  }
-
-  .record-button:not(.recording):not(.processing) {
-    border-color: hsl(var(--p));
-    background-color: hsl(var(--p));
-    color: hsl(var(--pc));
-    transform: scale(1);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  }
-
-  .record-button:not(.recording):not(.processing):hover {
-    transform: scale(1.05);
-    box-shadow:
-      0 25px 50px -12px rgba(0, 0, 0, 0.25),
-      0 0 0 4px hsla(var(--p), 0.25);
-  }
-
-  .record-button:not(.recording):not(.processing):active {
-    transform: scale(0.95);
-  }
-
-  .record-button.recording {
-    border-color: var(--color-dark);
-    background-color: var(--color-dark);
-    color: var(--color-dark-content);
-    animation: pulse-recording 1.5s ease-in-out infinite;
-  }
-
-  .record-button.processing {
-    border-color: hsl(var(--wa));
-    background-color: hsl(var(--wa));
-    color: hsl(var(--wac));
-    animation: spin 2s linear infinite;
-  }
-
-  @keyframes pulse-recording {
-    0%,
-    100% {
-      transform: scale(1);
-      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-dark) 70%, transparent);
-    }
-    50% {
-      transform: scale(1.05);
-      box-shadow: 0 0 0 20px
-        color-mix(in srgb, var(--color-dark) 0%, transparent);
-    }
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(-360deg);
-    }
-  }
-
   .status-text {
     transition: all 0.3s ease;
   }
