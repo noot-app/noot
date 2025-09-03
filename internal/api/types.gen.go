@@ -454,9 +454,6 @@ type EventType struct {
 	// Description Optional description of the event type
 	Description *string `json:"description"`
 
-	// Icon Icon name or emoji for visual distinction
-	Icon *string `json:"icon"`
-
 	// Id Event type ID
 	Id string `json:"id"`
 
@@ -481,9 +478,6 @@ type EventTypeCreateRequest struct {
 	// Description Optional description of the event type
 	Description *string `json:"description,omitempty"`
 
-	// Icon Icon name or emoji for visual distinction
-	Icon *string `json:"icon,omitempty"`
-
 	// Name Event type name (unique per user, case-insensitive)
 	Name string `json:"name"`
 }
@@ -498,9 +492,6 @@ type EventTypeUpdateRequest struct {
 
 	// Description Optional description of the event type
 	Description *string `json:"description"`
-
-	// Icon Icon name or emoji for visual distinction
-	Icon *string `json:"icon"`
 
 	// Name Event type name (unique per user, case-insensitive)
 	Name *string `json:"name,omitempty"`
@@ -522,9 +513,6 @@ type EventTypeWithUsage struct {
 
 	// EventCount Number of events using this event type
 	EventCount int `json:"event_count"`
-
-	// Icon Icon name or emoji for visual distinction
-	Icon *string `json:"icon"`
 
 	// Id Event type ID
 	Id string `json:"id"`

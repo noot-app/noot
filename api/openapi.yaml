@@ -1791,12 +1791,6 @@ components:
           type: string
           description: Hex color for visual distinction (#RRGGBB)
           example: "#FF6B6B"
-        icon:
-          type: string
-          maxLength: 50
-          nullable: true
-          description: Icon name or emoji for visual distinction
-          example: "🏃"
         created_at:
           type: string
           format: date-time
@@ -1826,11 +1820,6 @@ components:
           type: string
           description: Hex color for visual distinction (#RRGGBB)
           example: "#FF6B6B"
-        icon:
-          type: string
-          maxLength: 50
-          description: Icon name or emoji for visual distinction
-          example: "🏃"
 
     EventTypeUpdateRequest:
       type: object
@@ -1854,12 +1843,6 @@ components:
           nullable: true
           description: Hex color for visual distinction (#RRGGBB)
           example: "#FF6B6B"
-        icon:
-          type: string
-          maxLength: 50
-          nullable: true
-          description: Icon name or emoji for visual distinction
-          example: "🏃"
 
     EventTypeWithUsage:
       type: object
@@ -1889,12 +1872,6 @@ components:
           type: string
           description: Hex color for visual distinction (#RRGGBB)
           example: "#FF6B6B"
-        icon:
-          type: string
-          maxLength: 50
-          nullable: true
-          description: Icon name or emoji for visual distinction
-          example: "🏃"
         created_at:
           type: string
           format: date-time

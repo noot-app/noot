@@ -2392,12 +2392,12 @@ func (s *PostgreSQLStore) CreateEventType(ctx context.Context, eventType *EventT
 	eventType.UpdatedAt = eventType.CreatedAt
 
 	query := `
-		INSERT INTO event_types (id, user_id, name, description, default_name, color, icon, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+		INSERT INTO event_types (id, user_id, name, description, default_name, color, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	_, err := s.db.ExecContext(ctx, query,
 		eventType.ID, eventType.UserID, eventType.Name, eventType.Description, eventType.DefaultName,
-		eventType.Color, eventType.Icon, eventType.CreatedAt, eventType.UpdatedAt)
+		eventType.Color, eventType.CreatedAt, eventType.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create event type: %w", err)
 	}
@@ -2411,12 +2411,12 @@ func (s *PostgreSQLStore) UpdateEventType(ctx context.Context, eventType *EventT
 
 	query := `
 		UPDATE event_types 
-		SET name = $3, description = $4, default_name = $5, color = $6, icon = $7, updated_at = $8
+		SET name = $3, description = $4, default_name = $5, color = $6, updated_at = $7
 		WHERE id = $1 AND user_id = $2`
 
 	result, err := s.db.ExecContext(ctx, query,
 		eventType.ID, eventType.UserID, eventType.Name, eventType.Description, eventType.DefaultName,
-		eventType.Color, eventType.Icon, eventType.UpdatedAt)
+		eventType.Color, eventType.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update event type: %w", err)
 	}
@@ -2457,14 +2457,14 @@ func (s *PostgreSQLStore) DeleteEventType(ctx context.Context, userID, id string
 // GetEventType retrieves a specific event type by ID
 func (s *PostgreSQLStore) GetEventType(ctx context.Context, userID, id string) (*EventType, error) {
 	query := `
-		SELECT id, user_id, name, description, default_name, color, icon, created_at, updated_at
+		SELECT id, user_id, name, description, default_name, color, created_at, updated_at
 		FROM event_types 
 		WHERE id = $1 AND user_id = $2`
 
 	eventType := &EventType{}
 	err := s.db.QueryRowContext(ctx, query, id, userID).Scan(
 		&eventType.ID, &eventType.UserID, &eventType.Name, &eventType.Description, &eventType.DefaultName,
-		&eventType.Color, &eventType.Icon, &eventType.CreatedAt, &eventType.UpdatedAt)
+		&eventType.Color, &eventType.CreatedAt, &eventType.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("event type not found")
 	}
@@ -2478,7 +2478,7 @@ func (s *PostgreSQLStore) GetEventType(ctx context.Context, userID, id string) (
 // ListEventTypes retrieves all event types for a user
 func (s *PostgreSQLStore) ListEventTypes(ctx context.Context, userID string) ([]*EventType, error) {
 	query := `
-		SELECT id, user_id, name, description, default_name, color, icon, created_at, updated_at
+		SELECT id, user_id, name, description, default_name, color, created_at, updated_at
 		FROM event_types 
 		WHERE user_id = $1 
 		ORDER BY name ASC`
@@ -2494,7 +2494,7 @@ func (s *PostgreSQLStore) ListEventTypes(ctx context.Context, userID string) ([]
 		eventType := &EventType{}
 		err := rows.Scan(
 			&eventType.ID, &eventType.UserID, &eventType.Name, &eventType.Description, &eventType.DefaultName,
-			&eventType.Color, &eventType.Icon, &eventType.CreatedAt, &eventType.UpdatedAt)
+			&eventType.Color, &eventType.CreatedAt, &eventType.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan event type: %w", err)
 		}

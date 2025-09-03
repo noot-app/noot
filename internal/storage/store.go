@@ -537,7 +537,6 @@ type EventType struct {
 	Description *string   `json:"description,omitempty"`  // Optional description
 	DefaultName *string   `json:"default_name,omitempty"` // Default event name when creating from this type
 	Color       string    `json:"color"`                  // Hex color code (required)
-	Icon        *string   `json:"icon,omitempty"`         // Optional emoji or icon identifier
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

@@ -2493,7 +2493,6 @@ func (s *APIServer) GetEventTypes(c *gin.Context) {
 			Description: eventType.Description,
 			DefaultName: eventType.DefaultName,
 			Color:       eventType.Color,
-			Icon:        eventType.Icon,
 			CreatedAt:   eventType.CreatedAt,
 			UpdatedAt:   eventType.UpdatedAt,
 			EventCount:  eventCount,
@@ -2543,7 +2542,6 @@ func (s *APIServer) CreateEventType(c *gin.Context) {
 		Description: req.Description,
 		DefaultName: req.DefaultName,
 		Color:       req.Color,
-		Icon:        req.Icon,
 	}
 
 	ctx := c.Request.Context()
@@ -2571,7 +2569,6 @@ func (s *APIServer) CreateEventType(c *gin.Context) {
 		Description: eventType.Description,
 		DefaultName: eventType.DefaultName,
 		Color:       eventType.Color,
-		Icon:        eventType.Icon,
 		CreatedAt:   eventType.CreatedAt,
 		UpdatedAt:   eventType.UpdatedAt,
 	}
@@ -2623,9 +2620,6 @@ func (s *APIServer) UpdateEventType(c *gin.Context, id string) {
 	if req.Color != nil {
 		existingEventType.Color = *req.Color
 	}
-	if req.Icon != nil {
-		existingEventType.Icon = req.Icon
-	}
 
 	err = s.store.UpdateEventType(ctx, existingEventType)
 	if err != nil {
@@ -2646,7 +2640,6 @@ func (s *APIServer) UpdateEventType(c *gin.Context, id string) {
 		Description: existingEventType.Description,
 		DefaultName: existingEventType.DefaultName,
 		Color:       existingEventType.Color,
-		Icon:        existingEventType.Icon,
 		CreatedAt:   existingEventType.CreatedAt,
 		UpdatedAt:   existingEventType.UpdatedAt,
 	}

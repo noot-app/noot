@@ -52,7 +52,6 @@
   let newEventTypeDescription = ""
   let newEventTypeColor = "#FFD700"
   let newEventTypeDefaultName = ""
-  let newEventTypeIcon = ""
 
   // Delete confirmation modal
   let showDeleteModal = false
@@ -131,14 +130,12 @@
   $: isValidEventTypeDescription = newEventTypeDescription.length <= 250
   $: isValidEventTypeColor = /^#?[0-9a-f]{6}$/i.test(newEventTypeColor)
   $: isValidEventTypeDefaultName = newEventTypeDefaultName.length <= 100
-  $: isValidEventTypeIcon = newEventTypeIcon.length <= 50
   
   $: canSaveEventType = 
     isValidEventTypeName &&
     isValidEventTypeDescription &&
     isValidEventTypeColor &&
-    isValidEventTypeDefaultName &&
-    isValidEventTypeIcon
+    isValidEventTypeDefaultName
 
   async function loadEventTypes() {
     try {
@@ -307,7 +304,6 @@
     newEventTypeDescription = ""
     newEventTypeColor = "#FFD700"
     newEventTypeDefaultName = ""
-    newEventTypeIcon = ""
     showEventTypeModal = true
   }
 
@@ -317,7 +313,6 @@
     newEventTypeDescription = ""
     newEventTypeColor = "#FFD700"
     newEventTypeDefaultName = ""
-    newEventTypeIcon = ""
   }
 
   async function saveEventType() {
@@ -329,7 +324,6 @@
         description: newEventTypeDescription.trim() || undefined,
         color: newEventTypeColor.replace("#", ""),
         default_name: newEventTypeDefaultName.trim() || undefined,
-        icon: newEventTypeIcon.trim() || undefined,
       }
 
       const response = await apiClient.POST("/event-types", {
@@ -888,16 +882,6 @@
           maxlength={100}
           placeholder="Default name when creating events of this type"
           error={!isValidEventTypeDefaultName ? "Default name must be 100 characters or less" : ""}
-        />
-
-        <!-- Icon -->
-        <FormField
-          id="eventTypeIcon"
-          label="Icon (Optional)"
-          bind:value={newEventTypeIcon}
-          maxlength={50}
-          placeholder="e.g. 🏃, 💊, 📊"
-          error={!isValidEventTypeIcon ? "Icon must be 50 characters or less" : ""}
         />
 
         <!-- Color Selection -->

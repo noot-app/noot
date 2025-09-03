@@ -691,11 +691,6 @@ export interface components {
              */
             color: string;
             /**
-             * @description Icon name or emoji for visual distinction
-             * @example 🏃
-             */
-            icon?: string | null;
-            /**
              * Format: date-time
              * @description When the event type was created
              */
@@ -718,11 +713,6 @@ export interface components {
              * @example #FF6B6B
              */
             color: string;
-            /**
-             * @description Icon name or emoji for visual distinction
-             * @example 🏃
-             */
-            icon?: string;
         };
         EventTypeUpdateRequest: {
             /** @description Event type name (unique per user, case-insensitive) */
@@ -736,11 +726,6 @@ export interface components {
              * @example #FF6B6B
              */
             color?: string | null;
-            /**
-             * @description Icon name or emoji for visual distinction
-             * @example 🏃
-             */
-            icon?: string | null;
         };
         EventTypeWithUsage: {
             /** @description Event type ID */
@@ -758,11 +743,6 @@ export interface components {
              * @example #FF6B6B
              */
             color: string;
-            /**
-             * @description Icon name or emoji for visual distinction
-             * @example 🏃
-             */
-            icon?: string | null;
             /**
              * Format: date-time
              * @description When the event type was created
