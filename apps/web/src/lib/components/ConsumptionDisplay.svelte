@@ -23,6 +23,7 @@
   let isEditing = false
   let isSubmitting = false
   let error = ""
+  let editableNote = ""
 
     // Event dispatcher
   const dispatch = createEventDispatcher()
@@ -43,6 +44,7 @@
   // Editing functions
   function startEdit() {
     isEditing = true
+    editableNote = consumption?.note || ""
     dispatch('edit')
   }
 
@@ -59,7 +61,10 @@
 
       const updateResponse = await apiClient.PUT("/consumption/{id}", {
         params: { path: { id: consumption.id } },
-        body: { items: consumption.items },
+        body: { 
+          items: consumption.items,
+          note: editableNote.trim() || null
+        },
       })
 
       if (updateResponse.error) {
@@ -219,6 +224,29 @@
   {#if transcript}
     <Card title="What you said:" compact>
       <p class="text-lg italic">"{transcript}"</p>
+    </Card>
+  {/if}
+
+  <!-- Note -->
+  {#if consumption?.note || (editable && isEditing)}
+    <Card title="Note:" compact>
+      {#if isEditing && editable}
+        <div class="space-y-2">
+          <textarea
+            class="textarea textarea-bordered w-full"
+            placeholder="Add a note about this meal..."
+            maxlength="1000"
+            bind:value={editableNote}
+          ></textarea>
+          <div class="text-xs text-base-content/60">
+            {editableNote.length}/1000 characters
+          </div>
+        </div>
+      {:else if consumption?.note}
+        <p class="text-lg">{consumption.note}</p>
+      {:else}
+        <p class="text-base-content/60 italic">No note added</p>
+      {/if}
     </Card>
   {/if}
 
