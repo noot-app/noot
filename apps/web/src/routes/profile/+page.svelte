@@ -15,6 +15,7 @@
   import StarIcon from "$lib/components/icons/Star.svelte"
   import TrophyIcon from "$lib/components/icons/Trophy.svelte"
   import IdentificationIcon from "$lib/components/icons/Identification.svelte"
+  import CalendarDaysIcon from "$lib/components/icons/calendar-days.svelte"
   import { getStorageJSON, setStorageJSON } from "$lib/utils/secure-storage"
   import {
     parseErrorMessage,
@@ -39,13 +40,18 @@
   type LabelsResponse =
     paths["/labels"]["get"]["responses"]["200"]["content"]["application/json"]
   type Label = LabelsResponse["labels"][0]
+  type EventTypesResponse =
+    paths["/event-types"]["get"]["responses"]["200"]["content"]["application/json"]
+  type EventType = EventTypesResponse["event_types"][0]
 
   let goals: Goals | null = null
   let user: User | null = null
   let biometrics: UserBiometrics | null = null
   let calculatedMetrics: BiometricsResponse["calculated_metrics"] | null = null
   let labels: Label[] = []
+  let eventTypes: EventType[] = []
   let labelsLoading = false
+  let eventTypesLoading = false
   let loading = true
   let biometricsLoading = false
   let error = ""
@@ -127,6 +133,7 @@
       loadBiometrics(),
       loadGoalSets(),
       loadLabels(),
+      loadEventTypes(),
     ])
   })
 
@@ -450,6 +457,26 @@
       labels = []
     } finally {
       labelsLoading = false
+    }
+  }
+
+  async function loadEventTypes() {
+    try {
+      eventTypesLoading = true
+
+      const response = await apiClient.GET("/event-types")
+
+      if (response.error) {
+        throw new Error(`API Error: ${response.error}`)
+      }
+
+      eventTypes = response.data?.event_types || []
+    } catch (err) {
+      // Don't show error for event types - they're not critical
+      console.warn("Failed to load event types:", err)
+      eventTypes = []
+    } finally {
+      eventTypesLoading = false
     }
   }
 
@@ -1365,6 +1392,73 @@
                 <div class="text-center pt-2">
                   <a href="/labels" class="btn btn-ghost btn-sm">
                     View All {labels.length} Labels →
+                  </a>
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Events Section -->
+      <div class="card bg-base-200 shadow-lg mt-8">
+        <div class="card-body p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="card-title flex items-center gap-2">
+              <CalendarDaysIcon className="w-5 h-5" />
+              Your Events
+            </h2>
+            <a href="/events" class="btn btn-primary btn-sm"> Manage Events </a>
+          </div>
+
+          {#if eventTypesLoading}
+            <div class="flex justify-center py-6">
+              <span class="loading loading-spinner loading-sm"></span>
+              <span class="ml-2 text-sm text-base-content/70"
+                >Loading event types...</span
+              >
+            </div>
+          {:else if eventTypes.length === 0}
+            <div class="text-center py-8">
+              <CalendarDaysIcon
+                className="w-12 h-12 mx-auto text-base-content/30 mb-3"
+              />
+              <p class="text-base-content/50 text-sm mb-3">No event types found</p>
+              <a href="/events" class="btn btn-primary btn-sm">
+                Create Your First Event Type
+              </a>
+            </div>
+          {:else}
+            <div class="space-y-3">
+              <p class="text-sm text-base-content/70">
+                Track different types of events you've created:
+              </p>
+
+              <!-- Event Types Grid -->
+              <div class="flex flex-wrap gap-2">
+                {#each eventTypes as eventType}
+                  <div
+                    class="tooltip"
+                    data-tip={eventType.description ||
+                      `${eventType.event_count} ${eventType.event_count === 1 ? "event" : "events"}`}
+                  >
+                    <Label
+                      name={eventType.name}
+                      color={eventType.color}
+                      className="cursor-help px-3 py-2"
+                    >
+                      <span class="ml-1 text-xs opacity-80"
+                        >{eventType.event_count}</span
+                      >
+                    </Label>
+                  </div>
+                {/each}
+              </div>
+
+              {#if eventTypes.length > 6}
+                <div class="text-center pt-2">
+                  <a href="/events" class="btn btn-ghost btn-sm">
+                    View All {eventTypes.length} Event Types →
                   </a>
                 </div>
               {/if}

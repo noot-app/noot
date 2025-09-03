@@ -6,6 +6,8 @@
   import FormField from "$lib/components/FormField.svelte"
   import FormSelect from "$lib/components/FormSelect.svelte"
   import ConfirmModal from "$lib/components/ConfirmModal.svelte"
+  import ColorPicker from "$lib/components/ColorPicker.svelte"
+  import QuickAddEvent from "$lib/components/QuickAddEvent.svelte"
   import CalendarIcon from "$lib/components/icons/calendar-days.svelte"
   import { formatErrorForUser } from "$lib/utils/error-handling"
   import type { paths } from "$lib/api/schema"
@@ -68,18 +70,6 @@
     label: `${type.name}${type.event_count ? ` (${type.event_count} events)` : ''}` 
   }))
 
-  // Color palette for events
-  const colorPalette = [
-    "FF0000", // Red - symptoms, urgent
-    "FF8C00", // Orange - activities, medium priority
-    "FFD700", // Gold - measurements, important
-    "74B986", // Green - positive activities
-    "1E90FF", // Blue - medications, medical
-    "9B59B6", // Purple - sleep, rest
-    "2DD4BF", // Teal - mood, mental health
-    "9CA3AF", // Gray - other/neutral
-  ]
-
   // Helper functions for local time handling
   function toLocalDateTimeString(utcDate: Date): string {
     // Convert UTC date to local datetime-local input format
@@ -126,7 +116,10 @@
     isValidFutureDate
 
   // Event Type form validation
-  $: isValidEventTypeName = newEventTypeName.trim().length > 0 && newEventTypeName.length <= 63
+  $: isValidEventTypeName = 
+    newEventTypeName.trim().length > 0 && 
+    newEventTypeName.length <= 39 &&
+    /^[a-zA-Z0-9]([a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/.test(newEventTypeName.trim())
   $: isValidEventTypeDescription = newEventTypeDescription.length <= 250
   $: isValidEventTypeColor = /^#?[0-9a-f]{6}$/i.test(newEventTypeColor)
   $: isValidEventTypeDefaultName = newEventTypeDefaultName.length <= 100
@@ -243,10 +236,6 @@
     eventLevel = undefined
     eventNote = ""
     eventColor = ""
-  }
-
-  function selectColor(color: string) {
-    eventColor = `#${color}`
   }
 
   async function saveEvent() {
@@ -457,6 +446,16 @@
           </button>
         </div>
       </div>
+
+      <!-- Quick Add Events -->
+      {#if eventTypes.length > 0}
+        <div class="mb-6">
+          <QuickAddEvent 
+            {eventTypes} 
+            onEventCreated={loadEvents}
+          />
+        </div>
+      {/if}
 
       <!-- Filters -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-base-200 rounded-lg">
@@ -782,36 +781,10 @@
             <span class="label-text">Color (Optional)</span>
           </label>
 
-          <!-- Color palette -->
-          <div class="grid grid-cols-8 gap-2 mb-4">
-            {#each colorPalette as color}
-              <button
-                type="button"
-                class="w-8 h-8 rounded border-2 transition-all hover:scale-110"
-                class:border-primary={eventColor === `#${color}`}
-                class:border-base-300={eventColor !== `#${color}`}
-                style="background-color: #{color}"
-                aria-label={`Select color #${color}`}
-                title={`Select color #${color}`}
-                on:click={() => selectColor(color)}
-              ></button>
-            {/each}
-          </div>
-
-          <!-- Manual color input -->
-          <div class="flex gap-2">
-            <input
-              type="text"
-              class="input input-bordered input-sm flex-1"
-              bind:value={eventColor}
-              placeholder="#FFFFFF"
-              maxlength={7}
-            />
-            <div
-              class="w-8 h-8 rounded border border-base-300"
-              style="background-color: {eventColor || '#9CA3AF'}"
-            ></div>
-          </div>
+          <ColorPicker 
+            bind:selectedColor={eventColor} 
+            previewName={eventName || "Event"} 
+          />
 
           {#if !isValidColor && eventColor.length > 0}
             <div class="label">
@@ -850,76 +823,68 @@
     <div class="modal-box max-w-lg">
       <h3 class="font-bold text-lg">Create Event Type</h3>
 
-      <form on:submit|preventDefault={saveEventType} class="space-y-4 mt-4">
-        <!-- Event Type Name -->
-        <FormField
-          id="eventTypeName"
-          label="Name"
-          bind:value={newEventTypeName}
-          required
-          maxlength={63}
-          placeholder="e.g. Symptom, Activity, Measurement"
-          error={!isValidEventTypeName && newEventTypeName.length > 0
-            ? "Name must be 1-63 characters"
-            : ""}
-        />
+      <form on:submit|preventDefault={saveEventType} class="space-y-6 mt-4">
+        <!-- 1. Event Type Name -->
+        <div>
+          <FormField
+            id="eventTypeName"
+            label="Event Type Name"
+            bind:value={newEventTypeName}
+            required
+            maxlength={39}
+            placeholder="e.g. symptom, activity, measurement"
+            error={!isValidEventTypeName && newEventTypeName.length > 0
+              ? "Name must be 1-39 characters and contain only letters, numbers, and hyphens"
+              : ""}
+          />
+          <p class="text-sm text-base-content/60 mt-1">
+            The category name for this type of event (e.g., "Symptoms", "Medications", "Activities").
+          </p>
+        </div>
 
-        <!-- Description -->
-        <FormField
-          id="eventTypeDescription"
-          label="Description (Optional)"
-          bind:value={newEventTypeDescription}
-          maxlength={250}
-          placeholder="Brief description of this event type"
-          error={!isValidEventTypeDescription ? "Description must be 250 characters or less" : ""}
-        />
+        <!-- 2. Default Event Name -->
+        <div>
+          <FormField
+            id="eventTypeDefaultName"
+            label="Default Event Name"
+            bind:value={newEventTypeDefaultName}
+            maxlength={100}
+            placeholder="e.g. Headache, Morning walk, Blood pressure"
+            error={!isValidEventTypeDefaultName ? "Default name must be 100 characters or less" : ""}
+          />
+          <p class="text-sm text-base-content/60 mt-1">
+            The default event name when using quick-add. Can be overridden when creating individual events.
+          </p>
+        </div>
 
-        <!-- Default Name -->
-        <FormField
-          id="eventTypeDefaultName"
-          label="Default Event Name (Optional)"
-          bind:value={newEventTypeDefaultName}
-          maxlength={100}
-          placeholder="Default name when creating events of this type"
-          error={!isValidEventTypeDefaultName ? "Default name must be 100 characters or less" : ""}
-        />
+        <!-- 3. Default Description -->
+        <div>
+          <FormField
+            id="eventTypeDescription"
+            label="Default Description"
+            bind:value={newEventTypeDescription}
+            maxlength={250}
+            placeholder="Default description for events of this type"
+            error={!isValidEventTypeDescription ? "Description must be 250 characters or less" : ""}
+          />
+          <p class="text-sm text-base-content/60 mt-1">
+            The default description when using quick-add. Can be overridden when creating individual events.
+          </p>
+        </div>
 
-        <!-- Color Selection -->
-        <div class="form-control">
+        <!-- 4. Color -->
+        <div>
           <label class="label" for="eventTypeColor">
             <span class="label-text">Color <span class="text-error">*</span></span>
           </label>
-
-          <!-- Color palette -->
-          <div class="grid grid-cols-8 gap-2 mb-4">
-            {#each colorPalette as color}
-              <button
-                type="button"
-                class="w-8 h-8 rounded border-2 transition-all hover:scale-110"
-                class:border-primary={newEventTypeColor === `#${color}`}
-                class:border-base-300={newEventTypeColor !== `#${color}`}
-                style="background-color: #{color}"
-                aria-label={`Select color #${color}`}
-                title={`Select color #${color}`}
-                on:click={() => newEventTypeColor = `#${color}`}
-              ></button>
-            {/each}
-          </div>
-
-          <!-- Manual color input -->
-          <div class="flex gap-2">
-            <input
-              type="text"
-              class="input input-bordered input-sm flex-1"
-              bind:value={newEventTypeColor}
-              placeholder="#FFFFFF"
-              maxlength={7}
-            />
-            <div
-              class="w-8 h-8 rounded border border-base-300"
-              style="background-color: {newEventTypeColor || '#9CA3AF'}"
-            ></div>
-          </div>
+          <p class="text-sm text-base-content/60 mb-3">
+            The color used to identify this event type throughout the app.
+          </p>
+          
+          <ColorPicker 
+            bind:selectedColor={newEventTypeColor} 
+            previewName={newEventTypeName || "Event Type"} 
+          />
 
           {#if !isValidEventTypeColor && newEventTypeColor.length > 0}
             <div class="label">

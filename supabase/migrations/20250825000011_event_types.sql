@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS public.event_types (
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT event_types_name_format CHECK (
         length(name) <= 39 AND
-        name ~ '^[a-zA-Z0-9]([a-zA-Z0-9 ]|-(?=[a-zA-Z0-9]))*$'
+        name ~ '^[a-zA-Z0-9]([a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$'
     ),
     CONSTRAINT event_types_description_len CHECK (description IS NULL OR length(description) <= 250),
     CONSTRAINT event_types_default_name_len CHECK (default_name IS NULL OR length(default_name) <= 100),
@@ -66,9 +66,9 @@ CREATE TRIGGER event_types_limit_before_insert
 INSERT INTO public.event_types (user_id, name, description, default_name, color)
 SELECT 
     p.id,
-    'Symptom',
-    'Physical symptoms and discomfort',
-    'Symptom',
+    'symptom',
+    'General symptoms and discomfort',
+    'General Symptom',
     'FF0000'
 FROM public.profiles p
 WHERE NOT EXISTS (
@@ -78,7 +78,7 @@ WHERE NOT EXISTS (
 INSERT INTO public.event_types (user_id, name, description, default_name, color)
 SELECT 
     p.id,
-    'Activity',
+    'activity',
     'Physical activities and exercise',
     'Activity',
     'FF8C00'
@@ -90,7 +90,7 @@ WHERE NOT EXISTS (
 INSERT INTO public.event_types (user_id, name, description, default_name, color)
 SELECT 
     p.id,
-    'Measurement',
+    'measurement',
     'Health measurements and vitals',
     'Measurement',
     'FFD700'
@@ -102,7 +102,7 @@ WHERE NOT EXISTS (
 INSERT INTO public.event_types (user_id, name, description, default_name, color)
 SELECT 
     p.id,
-    'Medication',
+    'medication',
     'Medications and supplements',
     'Medication',
     '1E90FF'
@@ -114,7 +114,7 @@ WHERE NOT EXISTS (
 INSERT INTO public.event_types (user_id, name, description, default_name, color)
 SELECT 
     p.id,
-    'Sleep',
+    'sleep',
     'Sleep patterns and quality',
     'Sleep',
     '9B59B6'
@@ -126,7 +126,7 @@ WHERE NOT EXISTS (
 INSERT INTO public.event_types (user_id, name, description, default_name, color)
 SELECT 
     p.id,
-    'Mood',
+    'mood',
     'Emotional state and mental health',
     'Mood',
     '2DD4BF'
@@ -138,7 +138,7 @@ WHERE NOT EXISTS (
 INSERT INTO public.event_types (user_id, name, description, default_name, color)
 SELECT 
     p.id,
-    'Other',
+    'other',
     'Miscellaneous health events',
     'Other',
     '9CA3AF'
@@ -153,13 +153,13 @@ RETURNS trigger AS $$
 BEGIN
     -- Insert default event types for the new user
     INSERT INTO public.event_types (user_id, name, description, default_name, color) VALUES
-        (NEW.id, 'Symptom', 'Physical symptoms and discomfort', 'Symptom', 'FF0000'),
-        (NEW.id, 'Activity', 'Physical activities and exercise', 'Activity', 'FF8C00'),
-        (NEW.id, 'Measurement', 'Health measurements and vitals', 'Measurement', 'FFD700'),
-        (NEW.id, 'Medication', 'Medications and supplements', 'Medication', '1E90FF'),
-        (NEW.id, 'Sleep', 'Sleep patterns and quality', 'Sleep', '9B59B6'),
-        (NEW.id, 'Mood', 'Emotional state and mental health', 'Mood', '2DD4BF'),
-        (NEW.id, 'Other', 'Miscellaneous health events', 'Other', '9CA3AF');
+        (NEW.id, 'symptom', 'General symptoms and discomfort', 'General Symptom', 'FF0000'),
+        (NEW.id, 'activity', 'Physical activities and exercise', 'Activity', 'FF8C00'),
+        (NEW.id, 'measurement', 'Health measurements and vitals', 'Measurement', 'FFD700'),
+        (NEW.id, 'medication', 'Medications and supplements', 'Medication', '1E90FF'),
+        (NEW.id, 'sleep', 'Sleep patterns and quality', 'Sleep', '9B59B6'),
+        (NEW.id, 'mood', 'Emotional state and mental health', 'Mood', '2DD4BF'),
+        (NEW.id, 'other', 'Miscellaneous health events', 'Other', '9CA3AF');
     
     RETURN NEW;
 END;
