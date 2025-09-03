@@ -109,6 +109,15 @@ type Store interface {
 	DeleteEventLink(ctx context.Context, userID, linkID string) error
 	ListEventLinks(ctx context.Context, userID, eventID string) ([]*EventLink, error)
 
+	// API key operations (Pro users only)
+	CreateAPIKey(ctx context.Context, apiKey *APIKey) error
+	GetAPIKey(ctx context.Context, userID, id string) (*APIKey, error)
+	GetAPIKeyByPrefix(ctx context.Context, prefix string) (*APIKey, error)
+	ListAPIKeys(ctx context.Context, userID string) ([]*APIKey, error)
+	UpdateAPIKey(ctx context.Context, apiKey *APIKey) error
+	RevokeAPIKey(ctx context.Context, userID, id string) error
+	UpdateAPIKeyLastUsed(ctx context.Context, id string, lastUsed time.Time) error
+
 	// Database lifecycle
 	Close() error
 }
@@ -561,4 +570,24 @@ type EventListOptions struct {
 	LevelMax    *int
 	Labels      []string
 	MatchAll    bool // If true, match ALL labels; if false, match ANY label
+}
+
+// APIKey represents an API key for Pro users
+type APIKey struct {
+	ID         string     `json:"id"`
+	UserID     string     `json:"user_id"`
+	Name       string     `json:"name"`
+	Prefix     string     `json:"prefix"` // Visible prefix for identification (e.g., "noot_xxx")
+	Hash       string     `json:"-"`      // Bcrypt hash of the full key (never exposed in JSON)
+	Scope      string     `json:"scope"`  // "read" or "read_write"
+	CreatedAt  time.Time  `json:"created_at"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
+	RevokedAt  *time.Time `json:"revoked_at,omitempty"`
+}
+
+// APIKeyWithSecret is used only when creating a new key to return the secret once
+type APIKeyWithSecret struct {
+	APIKey
+	Secret string `json:"secret"` // Full key secret, only available at creation
 }

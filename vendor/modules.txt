@@ -239,6 +239,8 @@ github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath
 golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.41.0
 ## explicit; go 1.23.0
+golang.org/x/crypto/bcrypt
+golang.org/x/crypto/blowfish
 golang.org/x/crypto/sha3
 # golang.org/x/mod v0.27.0
 ## explicit; go 1.23.0

@@ -568,6 +568,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List API keys (Pro only)
+         * @description List all API keys for the authenticated Pro user
+         */
+        get: operations["listAPIKeys"];
+        put?: never;
+        /**
+         * Create API key (Pro only)
+         * @description Create a new API key for the authenticated Pro user. The secret is only returned once at creation.
+         */
+        post: operations["createAPIKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api-keys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke API key (Pro only)
+         * @description Revoke (soft delete) an API key for the authenticated Pro user
+         */
+        delete: operations["revokeAPIKey"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api-keys/{id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate API key (Pro only)
+         * @description Generate a new secret for an existing API key, revoking the old one. Returns the new secret once.
+         */
+        post: operations["rotateAPIKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1361,6 +1425,76 @@ export interface components {
              * @enum {string}
              */
             activity_level?: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active";
+        };
+        APIKey: {
+            /** @description Unique identifier for the API key */
+            id: string;
+            /** @description ID of the user who owns this key */
+            user_id: string;
+            /**
+             * @description User-defined name for the key
+             * @example Production API Key
+             */
+            name: string;
+            /**
+             * @description Visible prefix for identification (e.g., noot_abc123)
+             * @example noot_abc123
+             */
+            prefix: string;
+            /**
+             * @description Permissions scope for the API key
+             * @enum {string}
+             */
+            scope: "read" | "read_write";
+            /**
+             * Format: date-time
+             * @description When the API key was created
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the API key was last used
+             */
+            last_used_at?: string | null;
+            /**
+             * Format: date-time
+             * @description When the API key expires (null for no expiration)
+             */
+            expires_at?: string | null;
+            /**
+             * Format: date-time
+             * @description When the API key was revoked (null if active)
+             */
+            revoked_at?: string | null;
+        };
+        CreateAPIKeyRequest: {
+            /**
+             * @description User-defined name for the API key
+             * @example Production API Key
+             */
+            name: string;
+            /**
+             * @description Permissions scope - 'read' for GET requests only, 'read_write' for all operations
+             * @enum {string}
+             */
+            scope: "read" | "read_write";
+            /**
+             * Format: date-time
+             * @description Optional expiration date (null for no expiration)
+             */
+            expires_at?: string | null;
+        };
+        CreateAPIKeyResponse: {
+            api_key: components["schemas"]["APIKey"];
+            /**
+             * @description Full API key secret (only returned once at creation or rotation)
+             * @example noot_abc123_def456ghi789jkl012mno345pqr678stu901vwx234yz
+             */
+            secret: string;
+        };
+        APIKeysResponse: {
+            /** @description List of API keys (secrets not included) */
+            api_keys: components["schemas"]["APIKey"][];
         };
     };
     responses: never;
@@ -3321,6 +3455,195 @@ export interface operations {
                 };
             };
             /** @description Biometrics not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listAPIKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of API keys (without secrets) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeysResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    createAPIKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAPIKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description API key created successfully (secret returned once) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAPIKeyResponse"];
+                };
+            };
+            /** @description Bad request (invalid name, scope, or duplicate name) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revokeAPIKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description API key ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API key revoked successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description API key not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    rotateAPIKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description API key ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API key rotated successfully (new secret returned once) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAPIKeyResponse"];
+                };
+            };
+            /** @description Access denied (Pro subscription required) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description API key not found */
             404: {
                 headers: {
                     [name: string]: unknown;

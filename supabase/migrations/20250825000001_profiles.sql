@@ -28,6 +28,27 @@ check (
   )
 );
 
+-- 1.1. Create the api_keys table for Pro users
+create table if not exists public.api_keys (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  name text not null,
+  prefix text not null unique,
+  hash text not null,
+  scope text not null check (scope in ('read', 'read_write')),
+  created_at timestamp with time zone default now(),
+  last_used_at timestamp with time zone,
+  expires_at timestamp with time zone,
+  revoked_at timestamp with time zone,
+  -- Ensure unique names per user
+  constraint unique_api_key_name_per_user unique (user_id, name)
+);
+
+-- Create indexes for API key performance
+create index if not exists idx_api_keys_user_id on api_keys(user_id);
+create index if not exists idx_api_keys_prefix on api_keys(prefix);
+create index if not exists idx_api_keys_active on api_keys(user_id, revoked_at, expires_at);
+
 -- 2. Keep updated_at current
 create or replace function public.update_updated_at_column()
 returns trigger
@@ -105,3 +126,63 @@ create policy "No client inserts into profiles"
 on public.profiles
 for insert
 with check (false);
+
+-- 6. API Keys RLS Policies
+
+-- Enable RLS on API keys table
+alter table public.api_keys enable row level security;
+
+-- Pro users can view their own API keys
+create policy "Pro users can view their own API keys"
+on public.api_keys
+for select
+using (
+  auth.uid() = user_id and
+  exists (
+    select 1 from public.profiles 
+    where id = auth.uid() and subscription_tier = 'pro'
+  )
+);
+
+-- Pro users can insert their own API keys
+create policy "Pro users can create their own API keys"
+on public.api_keys
+for insert
+with check (
+  auth.uid() = user_id and
+  exists (
+    select 1 from public.profiles 
+    where id = auth.uid() and subscription_tier = 'pro'
+  )
+);
+
+-- Pro users can update their own API keys (for rotation and revocation)
+create policy "Pro users can update their own API keys"
+on public.api_keys
+for update
+using (
+  auth.uid() = user_id and
+  exists (
+    select 1 from public.profiles 
+    where id = auth.uid() and subscription_tier = 'pro'
+  )
+)
+with check (
+  auth.uid() = user_id and
+  exists (
+    select 1 from public.profiles 
+    where id = auth.uid() and subscription_tier = 'pro'
+  )
+);
+
+-- Pro users can delete their own API keys
+create policy "Pro users can delete their own API keys"
+on public.api_keys
+for delete
+using (
+  auth.uid() = user_id and
+  exists (
+    select 1 from public.profiles 
+    where id = auth.uid() and subscription_tier = 'pro'
+  )
+);
