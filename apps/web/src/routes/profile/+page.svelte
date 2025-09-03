@@ -16,6 +16,7 @@
   import TrophyIcon from "$lib/components/icons/Trophy.svelte"
   import IdentificationIcon from "$lib/components/icons/Identification.svelte"
   import CalendarDaysIcon from "$lib/components/icons/calendar-days.svelte"
+  import KeyIcon from "$lib/components/icons/Key.svelte"
   import { getStorageJSON, setStorageJSON } from "$lib/utils/secure-storage"
   import {
     parseErrorMessage,
@@ -1513,6 +1514,16 @@
                   Manage your data and privacy settings
                 </p>
                 <div class="space-y-2">
+                  <a
+                    href="/api-keys"
+                    class="btn btn-outline btn-sm w-full flex items-center gap-2"
+                  >
+                    <KeyIcon class_="w-4 h-4" />
+                    API Keys
+                    {#if !isProUser}
+                      <span class="badge badge-primary badge-xs ml-auto">Pro</span>
+                    {/if}
+                  </a>
                   <button class="btn btn-outline btn-sm w-full"
                     >Export Data</button
                   >

@@ -9,6 +9,23 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+const (
+	ApiKeyAuthScopes = "ApiKeyAuth.Scopes"
+	BearerAuthScopes = "BearerAuth.Scopes"
+)
+
+// Defines values for APIKeyScope.
+const (
+	APIKeyScopeRead      APIKeyScope = "read"
+	APIKeyScopeReadWrite APIKeyScope = "read_write"
+)
+
+// Defines values for CreateAPIKeyRequestScope.
+const (
+	CreateAPIKeyRequestScopeRead      CreateAPIKeyRequestScope = "read"
+	CreateAPIKeyRequestScopeReadWrite CreateAPIKeyRequestScope = "read_write"
+)
+
 // Defines values for ExportResponseFormat.
 const (
 	ExportResponseFormatCsv  ExportResponseFormat = "csv"
@@ -91,6 +108,45 @@ const (
 	GetGoalsParamsSourceAuto GetGoalsParamsSource = "auto"
 	GetGoalsParamsSourceDri  GetGoalsParamsSource = "dri"
 )
+
+// APIKey defines model for APIKey.
+type APIKey struct {
+	// CreatedAt When the API key was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// ExpiresAt When the API key expires (null for no expiration)
+	ExpiresAt *time.Time `json:"expires_at"`
+
+	// Id Unique identifier for the API key
+	Id string `json:"id"`
+
+	// LastUsedAt When the API key was last used
+	LastUsedAt *time.Time `json:"last_used_at"`
+
+	// Name User-defined name for the key
+	Name string `json:"name"`
+
+	// Prefix Visible prefix for identification (e.g., noot_abc123)
+	Prefix string `json:"prefix"`
+
+	// RevokedAt When the API key was revoked (null if active)
+	RevokedAt *time.Time `json:"revoked_at"`
+
+	// Scope Permissions scope for the API key
+	Scope APIKeyScope `json:"scope"`
+
+	// UserId ID of the user who owns this key
+	UserId string `json:"user_id"`
+}
+
+// APIKeyScope Permissions scope for the API key
+type APIKeyScope string
+
+// APIKeysResponse defines model for APIKeysResponse.
+type APIKeysResponse struct {
+	// ApiKeys List of API keys (secrets not included)
+	ApiKeys []APIKey `json:"api_keys"`
+}
 
 // AssignLabelsRequest defines model for AssignLabelsRequest.
 type AssignLabelsRequest struct {
@@ -312,6 +368,29 @@ type ConsumptionsResponse struct {
 	// Count Number of consumptions returned
 	Count int  `json:"count"`
 	User  User `json:"user"`
+}
+
+// CreateAPIKeyRequest defines model for CreateAPIKeyRequest.
+type CreateAPIKeyRequest struct {
+	// ExpiresAt Optional expiration date (null for no expiration)
+	ExpiresAt *time.Time `json:"expires_at"`
+
+	// Name User-defined name for the API key
+	Name string `json:"name"`
+
+	// Scope Permissions scope - 'read' for GET requests only, 'read_write' for all operations
+	Scope CreateAPIKeyRequestScope `json:"scope"`
+}
+
+// CreateAPIKeyRequestScope Permissions scope - 'read' for GET requests only, 'read_write' for all operations
+type CreateAPIKeyRequestScope string
+
+// CreateAPIKeyResponse defines model for CreateAPIKeyResponse.
+type CreateAPIKeyResponse struct {
+	ApiKey APIKey `json:"api_key"`
+
+	// Secret Full API key secret (only returned once at creation or rotation)
+	Secret string `json:"secret"`
 }
 
 // DataPoint defines model for DataPoint.
@@ -1049,6 +1128,9 @@ type GetTrendsParams struct {
 	// Days Number of days to look back from today (alternative to start/end)
 	Days *int `form:"days,omitempty" json:"days,omitempty"`
 }
+
+// CreateAPIKeyJSONRequestBody defines body for CreateAPIKey for application/json ContentType.
+type CreateAPIKeyJSONRequestBody = CreateAPIKeyRequest
 
 // UpdateUserBiometricsJSONRequestBody defines body for UpdateUserBiometrics for application/json ContentType.
 type UpdateUserBiometricsJSONRequestBody = UpdateBiometricsRequest
