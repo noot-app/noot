@@ -35,7 +35,7 @@
   let eventCategory = ""
   let eventStartedAt = ""
   let eventEndedAt = ""
-  let eventLevel: number | null = null
+  let eventLevel: string | number | undefined = undefined
   let eventNote = ""
   let eventColor = ""
 
@@ -73,7 +73,7 @@
   $: isValidName = eventName.trim().length > 0 && eventName.length <= 100
   $: isValidStartDate = eventStartedAt.length > 0
   $: isValidEndDate = !eventEndedAt || eventEndedAt >= eventStartedAt
-  $: isValidLevel = eventLevel === null || (eventLevel >= 0 && eventLevel <= 10)
+  $: isValidLevel = eventLevel === undefined || eventLevel === "" || (Number(eventLevel) >= 0 && Number(eventLevel) <= 10)
   $: isValidNote = eventNote.length <= 1000
   $: isValidColor = !eventColor || /^#?[0-9a-f]{6}$/i.test(eventColor)
   $: canSave =
@@ -138,7 +138,7 @@
     eventCategory = ""
     eventStartedAt = new Date().toISOString().slice(0, 16) // Current datetime
     eventEndedAt = ""
-    eventLevel = null
+    eventLevel = undefined
     eventNote = ""
     eventColor = "#FFD700" // Default to gold
     showModal = true
@@ -151,7 +151,7 @@
     eventCategory = event.category || ""
     eventStartedAt = new Date(event.started_at).toISOString().slice(0, 16)
     eventEndedAt = event.ended_at ? new Date(event.ended_at).toISOString().slice(0, 16) : ""
-    eventLevel = event.level
+    eventLevel = event.level ?? undefined
     eventNote = event.note || ""
     eventColor = event.color ? (event.color.startsWith("#") ? event.color : `#${event.color}`) : ""
     showModal = true
@@ -168,7 +168,7 @@
     eventCategory = ""
     eventStartedAt = ""
     eventEndedAt = ""
-    eventLevel = null
+    eventLevel = undefined
     eventNote = ""
     eventColor = ""
   }
@@ -183,12 +183,12 @@
     try {
       const eventData: CreateEventRequest = {
         name: eventName.trim(),
-        category: eventCategory || null,
+        category: eventCategory || undefined,
         started_at: new Date(eventStartedAt).toISOString(),
-        ended_at: eventEndedAt ? new Date(eventEndedAt).toISOString() : null,
-        level: eventLevel,
-        note: eventNote.trim() || null,
-        color: eventColor ? eventColor.replace("#", "") : null,
+        ended_at: eventEndedAt ? new Date(eventEndedAt).toISOString() : undefined,
+        level: eventLevel ? Number(eventLevel) : undefined,
+        note: eventNote.trim() || undefined,
+        color: eventColor ? eventColor.replace("#", "") : undefined,
       }
 
       if (editingEvent) {
@@ -266,7 +266,7 @@
     return new Date(dateStr).toLocaleDateString()
   }
 
-  function getCategoryColor(category: string | null) {
+  function getCategoryColor(category: string | null | undefined) {
     const categoryColors: Record<string, string> = {
       symptom: "#FF0000",
       activity: "#FF8C00", 
@@ -519,7 +519,6 @@
             label="Category (Optional)"
             bind:value={eventCategory}
             options={createCategories}
-            placeholder="Select a category"
           />
         </div>
 
