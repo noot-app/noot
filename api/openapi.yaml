@@ -839,9 +839,9 @@ paths:
           schema:
             type: string
             format: date-time
-        - name: category
+        - name: event_type_id
           in: query
-          description: Filter by event category
+          description: Filter by event type ID
           schema:
             type: string
         - name: level_min
@@ -1256,6 +1256,142 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /event-types:
+    get:
+      summary: List event types
+      description: Get all event types owned by the current user, including usage counts
+      operationId: getEventTypes
+      responses:
+        "200":
+          description: List of user event types with usage counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventTypesResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Create a new event type
+      description: Create a new event type for the current user
+      operationId: createEventType
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventTypeCreateRequest"
+      responses:
+        "201":
+          description: Event type created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventType"
+        "400":
+          description: Bad request (invalid name/color, validation errors)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Event type name already exists for user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Event type limit exceeded (50 event types per user)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /event-types/{id}:
+    put:
+      summary: Update an event type
+      description: Update an existing event type owned by the current user
+      operationId: updateEventType
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event type ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventTypeUpdateRequest"
+      responses:
+        "200":
+          description: Event type updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventType"
+        "400":
+          description: Bad request (validation errors)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Event type not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Event type name already exists for user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Delete an event type
+      description: Delete an event type owned by the current user. Events using this type will have their event_type_id set to null.
+      operationId: deleteEventType
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event type ID
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Event type deleted successfully
+        "404":
+          description: Event type not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /trends:
     get:
       summary: Get nutrition trends
@@ -1627,6 +1763,136 @@ components:
             type: string
           description: Array of label IDs to assign
 
+    EventType:
+      type: object
+      required: [id, user_id, name, color, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          description: Event type ID
+        user_id:
+          type: string
+          description: User ID who owns this event type
+        name:
+          type: string
+          maxLength: 63
+          description: Event type name
+        description:
+          type: string
+          maxLength: 250
+          nullable: true
+          description: Optional description of the event type
+        default_name:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: Default name suggestion when creating events of this type
+        color:
+          type: string
+          description: Hex color for visual distinction (#RRGGBB)
+          example: "#FF6B6B"
+        created_at:
+          type: string
+          format: date-time
+          description: When the event type was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the event type was last updated
+
+    EventTypeCreateRequest:
+      type: object
+      required: [name, color]
+      properties:
+        name:
+          type: string
+          maxLength: 63
+          description: Event type name (unique per user, case-insensitive)
+        description:
+          type: string
+          maxLength: 250
+          description: Optional description of the event type
+        default_name:
+          type: string
+          maxLength: 100
+          description: Default name suggestion when creating events of this type
+        color:
+          type: string
+          description: Hex color for visual distinction (#RRGGBB)
+          example: "#FF6B6B"
+
+    EventTypeUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 63
+          description: Event type name (unique per user, case-insensitive)
+        description:
+          type: string
+          maxLength: 250
+          nullable: true
+          description: Optional description of the event type
+        default_name:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: Default name suggestion when creating events of this type
+        color:
+          type: string
+          nullable: true
+          description: Hex color for visual distinction (#RRGGBB)
+          example: "#FF6B6B"
+
+    EventTypeWithUsage:
+      type: object
+      required: [id, user_id, name, color, created_at, updated_at, event_count]
+      properties:
+        id:
+          type: string
+          description: Event type ID
+        user_id:
+          type: string
+          description: User ID who owns this event type
+        name:
+          type: string
+          maxLength: 63
+          description: Event type name
+        description:
+          type: string
+          maxLength: 250
+          nullable: true
+          description: Optional description of the event type
+        default_name:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: Default name suggestion when creating events of this type
+        color:
+          type: string
+          description: Hex color for visual distinction (#RRGGBB)
+          example: "#FF6B6B"
+        created_at:
+          type: string
+          format: date-time
+          description: When the event type was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the event type was last updated
+        event_count:
+          type: integer
+          description: Number of events using this event type
+
+    EventTypesResponse:
+      type: object
+      required: [event_types]
+      properties:
+        event_types:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventTypeWithUsage"
+
     Event:
       type: object
       required: [id, user_id, name, started_at, created_at, updated_at]
@@ -1641,11 +1907,10 @@ components:
           type: string
           maxLength: 100
           description: Event name
-        category:
+        event_type_id:
           type: string
-          maxLength: 50
           nullable: true
-          description: Optional event category (e.g., 'symptom', 'activity', 'measurement')
+          description: Optional event type ID reference
         started_at:
           type: string
           format: date-time
@@ -1694,11 +1959,10 @@ components:
           type: string
           maxLength: 100
           description: Event name
-        category:
+        event_type_id:
           type: string
-          maxLength: 50
           nullable: true
-          description: Optional event category
+          description: Reference to the event type
         started_at:
           type: string
           format: date-time
@@ -1751,10 +2015,9 @@ components:
           type: string
           maxLength: 100
           description: Event name
-        category:
+        event_type_id:
           type: string
-          maxLength: 50
-          description: Optional event category
+          description: Optional event type ID reference
         started_at:
           type: string
           format: date-time
@@ -1788,11 +2051,10 @@ components:
           type: string
           maxLength: 100
           description: Event name
-        category:
+        event_type_id:
           type: string
-          maxLength: 50
           nullable: true
-          description: Optional event category
+          description: Optional event type ID reference
         started_at:
           type: string
           format: date-time

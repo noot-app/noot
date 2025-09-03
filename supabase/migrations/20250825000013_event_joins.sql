@@ -1,4 +1,4 @@
--- Migration 012: Create event join tables for label assignments and consumption linking (PostgreSQL)
+-- Migration 013: Create event join tables for label assignments and consumption linking (PostgreSQL)
 -- These tables enable many-to-many relationships between events and labels/consumptions/items
 
 -- Join table for event labels (reuse existing labels)

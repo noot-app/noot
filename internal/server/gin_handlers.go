@@ -1889,8 +1889,8 @@ func (s *APIServer) GetEvents(c *gin.Context, params api.GetEventsParams) {
 	if params.EndDate != nil {
 		options.EndDate = params.EndDate
 	}
-	if params.Category != nil {
-		options.Category = params.Category
+	if params.EventTypeId != nil {
+		options.EventTypeID = params.EventTypeId
 	}
 	if params.LevelMin != nil {
 		options.LevelMin = params.LevelMin
@@ -1917,17 +1917,17 @@ func (s *APIServer) GetEvents(c *gin.Context, params api.GetEventsParams) {
 	apiEvents := make([]api.Event, len(events))
 	for i, event := range events {
 		apiEvents[i] = api.Event{
-			Id:        event.ID,
-			UserId:    event.UserID,
-			Name:      event.Name,
-			Category:  event.Category,
-			StartedAt: event.StartedAt,
-			EndedAt:   event.EndedAt,
-			Level:     event.Level,
-			Note:      event.Note,
-			Color:     event.Color,
-			CreatedAt: event.CreatedAt,
-			UpdatedAt: event.UpdatedAt,
+			Id:          event.ID,
+			UserId:      event.UserID,
+			Name:        event.Name,
+			EventTypeId: event.EventTypeID,
+			StartedAt:   event.StartedAt,
+			EndedAt:     event.EndedAt,
+			Level:       event.Level,
+			Note:        event.Note,
+			Color:       event.Color,
+			CreatedAt:   event.CreatedAt,
+			UpdatedAt:   event.UpdatedAt,
 		}
 	}
 
@@ -1954,24 +1954,42 @@ func (s *APIServer) CreateEvent(c *gin.Context) {
 		return
 	}
 
+	// Validate that event dates are not in the future
+	now := time.Now().UTC()
+	if req.StartedAt.After(now) {
+		appErr := NewAppError("Event start time cannot be in the future", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
 	// Calculate end time if duration_minutes is provided
 	var endedAt *time.Time
 	if req.EndedAt != nil {
+		if req.EndedAt.After(now) {
+			appErr := NewAppError("Event end time cannot be in the future", http.StatusBadRequest, nil)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
 		endedAt = req.EndedAt
 	} else if req.DurationMinutes != nil {
 		endTime := req.StartedAt.Add(time.Duration(*req.DurationMinutes) * time.Minute)
+		if endTime.After(now) {
+			appErr := NewAppError("Event end time cannot be in the future", http.StatusBadRequest, nil)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
 		endedAt = &endTime
 	}
 
 	event := &storage.Event{
-		UserID:    user.ID,
-		Name:      req.Name,
-		Category:  req.Category,
-		StartedAt: req.StartedAt,
-		EndedAt:   endedAt,
-		Level:     req.Level,
-		Note:      req.Note,
-		Color:     req.Color,
+		UserID:      user.ID,
+		Name:        req.Name,
+		EventTypeID: req.EventTypeId,
+		StartedAt:   req.StartedAt,
+		EndedAt:     endedAt,
+		Level:       req.Level,
+		Note:        req.Note,
+		Color:       req.Color,
 	}
 
 	ctx := c.Request.Context()
@@ -1988,17 +2006,17 @@ func (s *APIServer) CreateEvent(c *gin.Context) {
 	}
 
 	apiEvent := api.Event{
-		Id:        event.ID,
-		UserId:    event.UserID,
-		Name:      event.Name,
-		Category:  event.Category,
-		StartedAt: event.StartedAt,
-		EndedAt:   event.EndedAt,
-		Level:     event.Level,
-		Note:      event.Note,
-		Color:     event.Color,
-		CreatedAt: event.CreatedAt,
-		UpdatedAt: event.UpdatedAt,
+		Id:          event.ID,
+		UserId:      event.UserID,
+		Name:        event.Name,
+		EventTypeId: event.EventTypeID,
+		StartedAt:   event.StartedAt,
+		EndedAt:     event.EndedAt,
+		Level:       event.Level,
+		Note:        event.Note,
+		Color:       event.Color,
+		CreatedAt:   event.CreatedAt,
+		UpdatedAt:   event.UpdatedAt,
 	}
 
 	c.JSON(http.StatusCreated, apiEvent)
@@ -2066,19 +2084,19 @@ func (s *APIServer) GetEvent(c *gin.Context, id string) {
 	}
 
 	response := api.EventWithDetails{
-		Id:        event.ID,
-		UserId:    event.UserID,
-		Name:      event.Name,
-		Category:  event.Category,
-		StartedAt: event.StartedAt,
-		EndedAt:   event.EndedAt,
-		Level:     event.Level,
-		Note:      event.Note,
-		Color:     event.Color,
-		CreatedAt: event.CreatedAt,
-		UpdatedAt: event.UpdatedAt,
-		Labels:    apiLabels,
-		Links:     apiLinks,
+		Id:          event.ID,
+		UserId:      event.UserID,
+		Name:        event.Name,
+		EventTypeId: event.EventTypeID,
+		StartedAt:   event.StartedAt,
+		EndedAt:     event.EndedAt,
+		Level:       event.Level,
+		Note:        event.Note,
+		Color:       event.Color,
+		CreatedAt:   event.CreatedAt,
+		UpdatedAt:   event.UpdatedAt,
+		Labels:      apiLabels,
+		Links:       apiLinks,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -2115,16 +2133,28 @@ func (s *APIServer) UpdateEvent(c *gin.Context, id string) {
 	}
 
 	// Update fields if provided
+	now := time.Now().UTC()
+
 	if req.Name != nil {
 		event.Name = *req.Name
 	}
-	if req.Category != nil {
-		event.Category = req.Category
+	if req.EventTypeId != nil {
+		event.EventTypeID = req.EventTypeId
 	}
 	if req.StartedAt != nil {
+		if req.StartedAt.After(now) {
+			appErr := NewAppError("Event start time cannot be in the future", http.StatusBadRequest, nil)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
 		event.StartedAt = *req.StartedAt
 	}
 	if req.EndedAt != nil {
+		if req.EndedAt.After(now) {
+			appErr := NewAppError("Event end time cannot be in the future", http.StatusBadRequest, nil)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
 		event.EndedAt = req.EndedAt
 	}
 	if req.Level != nil {
@@ -2145,17 +2175,17 @@ func (s *APIServer) UpdateEvent(c *gin.Context, id string) {
 	}
 
 	apiEvent := api.Event{
-		Id:        event.ID,
-		UserId:    event.UserID,
-		Name:      event.Name,
-		Category:  event.Category,
-		StartedAt: event.StartedAt,
-		EndedAt:   event.EndedAt,
-		Level:     event.Level,
-		Note:      event.Note,
-		Color:     event.Color,
-		CreatedAt: event.CreatedAt,
-		UpdatedAt: event.UpdatedAt,
+		Id:          event.ID,
+		UserId:      event.UserID,
+		Name:        event.Name,
+		EventTypeId: event.EventTypeID,
+		StartedAt:   event.StartedAt,
+		EndedAt:     event.EndedAt,
+		Level:       event.Level,
+		Note:        event.Note,
+		Color:       event.Color,
+		CreatedAt:   event.CreatedAt,
+		UpdatedAt:   event.UpdatedAt,
 	}
 
 	c.JSON(http.StatusOK, apiEvent)
@@ -2418,6 +2448,223 @@ func (s *APIServer) DeleteEventLink(c *gin.Context, id string, linkId string) {
 	err = s.store.DeleteEventLink(ctx, user.ID, linkId)
 	if err != nil {
 		appErr := NewAppError("Link not found or access denied", http.StatusNotFound, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// Event Type handlers
+
+// GetEventTypes retrieves all event types for the current user
+func (s *APIServer) GetEventTypes(c *gin.Context) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	eventTypes, err := s.store.ListEventTypes(ctx, user.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve event types", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Get event counts for each event type
+	eventCounts, err := s.store.GetEventTypeCounts(ctx, user.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve event type counts", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiEventTypes := make([]api.EventTypeWithUsage, len(eventTypes))
+	for i, eventType := range eventTypes {
+		eventCount := eventCounts[eventType.ID] // Will be 0 if not found
+		apiEventTypes[i] = api.EventTypeWithUsage{
+			Id:          eventType.ID,
+			UserId:      eventType.UserID,
+			Name:        eventType.Name,
+			Description: eventType.Description,
+			DefaultName: eventType.DefaultName,
+			Color:       eventType.Color,
+			CreatedAt:   eventType.CreatedAt,
+			UpdatedAt:   eventType.UpdatedAt,
+			EventCount:  eventCount,
+		}
+	}
+
+	response := api.EventTypesResponse{
+		EventTypes: apiEventTypes,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// CreateEventType creates a new event type for the current user
+func (s *APIServer) CreateEventType(c *gin.Context) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	var req api.EventTypeCreateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Validate required fields
+	if req.Name == "" {
+		appErr := NewAppError("Event type name is required", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	if req.Color == "" {
+		appErr := NewAppError("Event type color is required", http.StatusBadRequest, nil)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Create storage event type
+	eventType := &storage.EventType{
+		UserID:      user.ID,
+		Name:        req.Name,
+		Description: req.Description,
+		DefaultName: req.DefaultName,
+		Color:       req.Color,
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.CreateEventType(ctx, eventType)
+	if err != nil {
+		if strings.Contains(err.Error(), "event_type_limit_exceeded") {
+			appErr := NewAppError("Event type limit exceeded (50 event types per user)", http.StatusForbidden, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		if strings.Contains(err.Error(), "duplicate") {
+			appErr := NewAppError("Event type with this name already exists", http.StatusConflict, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to create event type", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiEventType := api.EventType{
+		Id:          eventType.ID,
+		Name:        eventType.Name,
+		Description: eventType.Description,
+		DefaultName: eventType.DefaultName,
+		Color:       eventType.Color,
+		CreatedAt:   eventType.CreatedAt,
+		UpdatedAt:   eventType.UpdatedAt,
+	}
+
+	c.JSON(http.StatusCreated, apiEventType)
+}
+
+// UpdateEventType updates an existing event type
+func (s *APIServer) UpdateEventType(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	var req api.EventTypeUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// Get existing event type to ensure it exists and user owns it
+	existingEventType, err := s.store.GetEventType(ctx, user.ID, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			appErr := NewAppError("Event type not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to retrieve event type", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Update fields if provided
+	if req.Name != nil {
+		existingEventType.Name = *req.Name
+	}
+	if req.Description != nil {
+		existingEventType.Description = req.Description
+	}
+	if req.DefaultName != nil {
+		existingEventType.DefaultName = req.DefaultName
+	}
+	if req.Color != nil {
+		existingEventType.Color = *req.Color
+	}
+
+	err = s.store.UpdateEventType(ctx, existingEventType)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate") {
+			appErr := NewAppError("Event type with this name already exists", http.StatusConflict, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to update event type", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	// Convert to API format
+	apiEventType := api.EventType{
+		Id:          existingEventType.ID,
+		Name:        existingEventType.Name,
+		Description: existingEventType.Description,
+		DefaultName: existingEventType.DefaultName,
+		Color:       existingEventType.Color,
+		CreatedAt:   existingEventType.CreatedAt,
+		UpdatedAt:   existingEventType.UpdatedAt,
+	}
+
+	c.JSON(http.StatusOK, apiEventType)
+}
+
+// DeleteEventType deletes an event type and updates related events
+func (s *APIServer) DeleteEventType(c *gin.Context, id string) {
+	user, err := getCurrentUser(c, s.store)
+	if err != nil {
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		s.handleAppError(c, appErr, c.GetString("request_id"))
+		return
+	}
+
+	ctx := c.Request.Context()
+	err = s.store.DeleteEventType(ctx, user.ID, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			appErr := NewAppError("Event type not found", http.StatusNotFound, err)
+			s.handleAppError(c, appErr, c.GetString("request_id"))
+			return
+		}
+		appErr := NewAppError("Failed to delete event type", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
 		return
 	}
