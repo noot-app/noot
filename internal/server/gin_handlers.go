@@ -2786,8 +2786,8 @@ func (s *APIServer) CreateAPIKey(c *gin.Context) {
 
 	if err := s.store.CreateAPIKey(ctx, apiKey); err != nil {
 		// Check for duplicate name error
-		if strings.Contains(err.Error(), "unique_api_key_name_per_user") || 
-		   strings.Contains(err.Error(), "duplicate key") {
+		if strings.Contains(err.Error(), "unique_api_key_name_per_user") ||
+			strings.Contains(err.Error(), "duplicate key") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "API key name already exists"})
 			return
 		}
@@ -2850,7 +2850,7 @@ func (s *APIServer) RevokeAPIKey(c *gin.Context, id string) {
 	c.JSON(http.StatusOK, response)
 }
 
-// RotateAPIKey implements ServerInterface.RotateAPIKey  
+// RotateAPIKey implements ServerInterface.RotateAPIKey
 // Rotates an API key by generating a new secret and revoking the old one
 func (s *APIServer) RotateAPIKey(c *gin.Context, id string) {
 	if s.store == nil {
@@ -2925,12 +2925,12 @@ func (s *APIServer) RotateAPIKey(c *gin.Context, id string) {
 // convertStorageAPIKeyToAPI converts a storage APIKey to an API APIKey
 func convertStorageAPIKeyToAPI(key *storage.APIKey) api.APIKey {
 	return api.APIKey{
-		Id:        key.ID,
-		UserId:    key.UserID,
-		Name:      key.Name,
-		Prefix:    key.Prefix,
-		Scope:     api.APIKeyScope(key.Scope),
-		CreatedAt: key.CreatedAt,
+		Id:         key.ID,
+		UserId:     key.UserID,
+		Name:       key.Name,
+		Prefix:     key.Prefix,
+		Scope:      api.APIKeyScope(key.Scope),
+		CreatedAt:  key.CreatedAt,
 		LastUsedAt: key.LastUsedAt,
 		ExpiresAt:  key.ExpiresAt,
 		RevokedAt:  key.RevokedAt,

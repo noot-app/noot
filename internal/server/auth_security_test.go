@@ -220,7 +220,7 @@ func (m *mockStore) ListAPIKeys(ctx context.Context, userID string) ([]*storage.
 	return nil, nil
 }
 func (m *mockStore) UpdateAPIKey(ctx context.Context, apiKey *storage.APIKey) error { return nil }
-func (m *mockStore) RevokeAPIKey(ctx context.Context, userID, id string) error     { return nil }
+func (m *mockStore) RevokeAPIKey(ctx context.Context, userID, id string) error      { return nil }
 func (m *mockStore) UpdateAPIKeyLastUsed(ctx context.Context, id string, lastUsed time.Time) error {
 	return nil
 }

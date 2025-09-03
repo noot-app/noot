@@ -15,7 +15,7 @@ const (
 	// APIKeyPrefix is the prefix for all API keys
 	APIKeyPrefix = "noot_"
 	// APIKeySecretLength is the length of the secret part of the key (in bytes before hex encoding)
-	APIKeySecretLength = 20  // Reduced to keep hex length reasonable 
+	APIKeySecretLength = 20 // Reduced to keep hex length reasonable
 	// APIKeyPrefixLength is the length of the visible prefix (not including noot_)
 	APIKeyPrefixLength = 8
 	// bcrypt cost for hashing API keys

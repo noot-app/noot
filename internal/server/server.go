@@ -59,7 +59,7 @@ func Run(ctx context.Context, port string) error {
 		return fmt.Errorf("failed to create API server: %w", err)
 	}
 
-	// API v1 routes with dual auth middleware that supports both JWT and API keys  
+	// API v1 routes with dual auth middleware that supports both JWT and API keys
 	v1 := r.Group("/api/v1")
 	v1.Use(DualAuthMiddleware(store)) // Dual auth middleware supports both JWT tokens and API keys for Pro users
 	{

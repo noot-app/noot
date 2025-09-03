@@ -18,7 +18,7 @@ func TestGenerateAPIKey(t *testing.T) {
 		assert.True(t, strings.HasPrefix(prefix, APIKeyPrefix))
 		assert.Len(t, prefix, len(APIKeyPrefix)+APIKeyPrefixLength)
 
-		// Verify full key format  
+		// Verify full key format
 		parts := strings.Split(fullKey, "_")
 		assert.Len(t, parts, 3, "Full key should have format: noot_prefix_secret")
 		assert.Equal(t, "noot", parts[0])
