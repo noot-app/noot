@@ -5,7 +5,7 @@
   import UserIcon from "$lib/components/icons/User.svelte"
   import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
   import MicrophoneIcon from "$lib/components/icons/Microphone.svelte"
-  import CalendarIcon from "$lib/components/icons/Calendar.svelte"
+  import CalendarIcon from "$lib/components/icons/calendar-days.svelte"
 
   // Navigation items
   const navItems = [

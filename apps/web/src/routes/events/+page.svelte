@@ -6,7 +6,7 @@
   import FormField from "$lib/components/FormField.svelte"
   import FormSelect from "$lib/components/FormSelect.svelte"
   import ConfirmModal from "$lib/components/ConfirmModal.svelte"
-  import CalendarIcon from "$lib/components/icons/Calendar.svelte"
+  import CalendarIcon from "$lib/components/icons/calendar-days.svelte"
   import { formatErrorForUser } from "$lib/utils/error-handling"
   import type { paths } from "$lib/api/schema"
 
