@@ -61,6 +61,7 @@
       showRedoButton={false}
       autoShowLabelEdit={false}
       editable={true}
+      buttonsAtBottom={true}
       preloadGoalsAuto={data.goalsAuto}
       preloadGoalsDri={data.goalsDri}
       on:delete={handleDelete}

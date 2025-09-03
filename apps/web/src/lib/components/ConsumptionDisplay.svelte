@@ -15,6 +15,7 @@
   export let editable = true // Whether the consumption can be edited
   export let preloadGoalsAuto: any = null // Preloaded auto goals
   export let preloadGoalsDri: any = null // Preloaded DRI goals
+  export let buttonsAtBottom = false // Whether to show action buttons at bottom instead of top
 
   // Local state
   let isEditing = false
@@ -134,18 +135,8 @@
   }
 </script>
 
-<div class="space-y-6">
-  <!-- Error display -->
-  {#if error}
-    <div class="alert alert-error">
-      <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-      </svg>
-      <span>{error}</span>
-    </div>
-  {/if}
-
-  <!-- Action buttons -->
+<!-- Action buttons block - defined once and used conditionally -->
+{#snippet actionButtons()}
   {#if consumption?.id && editable}
     <div class="flex justify-center gap-4 mb-6">
       {#if !isEditing}
@@ -207,6 +198,23 @@
         </button>
       {/if}
     </div>
+  {/if}
+{/snippet}
+
+<div class="space-y-6">
+  <!-- Error display -->
+  {#if error}
+    <div class="alert alert-error">
+      <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span>{error}</span>
+    </div>
+  {/if}
+
+  <!-- Show buttons at top if buttonsAtBottom is false (default behavior) -->
+  {#if !buttonsAtBottom}
+    {@render actionButtons()}
   {/if}
 
   <!-- Transcript -->
@@ -357,5 +365,10 @@
         {preloadGoalsDri}
       />
     </div>
+  {/if}
+
+  <!-- Show buttons at bottom if buttonsAtBottom is true -->
+  {#if buttonsAtBottom}
+    {@render actionButtons()}
   {/if}
 </div>
