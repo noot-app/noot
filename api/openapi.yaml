@@ -2275,6 +2275,11 @@ components:
         transcript:
           type: string
           description: Transcribed text from audio
+        note:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Additional note about the consumption
         labels:
           type: array
           items:
@@ -2914,6 +2919,11 @@ components:
           items:
             $ref: "#/components/schemas/ItemWithNutrition"
           description: Updated items with nutrition information
+        note:
+          type: string
+          nullable: true
+          maxLength: 1000
+          description: Additional note about the consumption
 
     DeleteResponse:
       type: object

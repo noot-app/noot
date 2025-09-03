@@ -342,6 +342,13 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 	updatedConsumption.ID = existingConsumption.ID
 	updatedConsumption.CreatedAt = existingConsumption.CreatedAt
 
+	// Handle note update - use new note if provided, otherwise keep existing note
+	if updateReq.Note != nil {
+		updatedConsumption.Note = updateReq.Note
+	} else {
+		updatedConsumption.Note = existingConsumption.Note
+	}
+
 	if err := s.store.UpdateConsumption(ctx, updatedConsumption); err != nil {
 		appErr := NewAppError("Failed to update consumption", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -385,6 +392,7 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 	resp := api.ConsumptionResponse{
 		Id:         updatedConsumption.ID,
 		Transcript: updatedConsumption.Transcript,
+		Note:       updatedConsumption.Note,
 		Items:      updateReq.Items,
 		Summary:    apiSummary,
 		RequestId:  requestID,
