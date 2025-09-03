@@ -82,6 +82,84 @@ Then run: `script/generate-nutrients` → All 20+ files automatically updated!
 - polyunsaturated_fat_g
 - monounsaturated_fat_g
 
+## Consumption Flow Diagram
+
+This diagram shows the simplified user journey from voice recording to saved meal data, focusing on the user experience and key business logic rather than technical implementation details. The full technical flow is [documented separately here](./docs/consumption_flow_diagram.md).
+
+```mermaid
+graph TB
+    %% User journey starts
+    Start([User Records Voice<br/>Describing Their Meal]) --> Auth{User Authentication}
+    
+    %% Authentication - simplified
+    Auth -->|✅ Authenticated User| AuthOK[User Verified]
+    Auth -->|❌ Not Logged In| AuthFail[Login Required]
+    AuthFail --> End([End - User Must Login])
+    
+    %% Core processing flow
+    AuthOK --> Upload[Audio File Upload<br/>Max 50MB]
+    Upload -->|✅ Valid Audio| Process[AI Processing Begins]
+    Upload -->|❌ Invalid File| UploadError[Error: Invalid Audio File]
+    UploadError --> End
+    
+    %% AI Processing - simplified into logical steps
+    Process --> Step1[Step 1: Convert Speech to Text<br/>Using AI Speech Recognition]
+    Step1 -->|✅ Success| Step2[Step 2: Extract Food Items<br/>AI identifies individual foods]
+    Step1 -->|❌ Failed| ProcessError[Error: Could not understand audio]
+    ProcessError --> End
+    
+    Step2 -->|✅ Foods Identified| Step3[Step 3: Get Nutrition Data<br/>Smart lookup with AI assistance]
+    Step2 -->|❌ Failed| ProcessError
+    
+    %% Smart nutrition lookup - business logic
+    Step3 --> NutritionLookup{How do we find nutrition data?}
+    
+    %% Different data sources - simplified
+    NutritionLookup --> Cache[Check Our Database<br/>for Previously Calculated Foods]
+    NutritionLookup --> ProductDB[Search Product Database<br/>for Branded Items]
+    NutritionLookup --> AI[Ask AI for Nutrition<br/>Analysis and Estimates]
+    
+    Cache -->|Found| UseCache[✅ Use Cached Data<br/>Fast Response]
+    Cache -->|Not Found| ProductDB
+    
+    ProductDB -->|Found Brand Match| UseProduct[✅ Use Product Data as Context<br/>AI gets real product info for<br/>more accurate nutrition calculation]
+    ProductDB -->|Not Found| AI
+    
+    AI --> UseAI[✅ AI Calculates Nutrition<br/>Comprehensive Analysis]
+    
+    %% All paths lead to nutrition data
+    UseCache --> NutritionReady[Nutrition Data Ready<br/>for All Food Items]
+    UseProduct --> NutritionReady
+    UseAI --> NutritionReady
+    
+    %% Final steps - user value
+    NutritionReady --> Summary[Calculate Meal Summary<br/>Total Calories, Protein, etc.]
+    Summary --> Save[Save to User's Meal History<br/>for Tracking and Analytics]
+    
+    %% Success response
+    Save -->|✅ Saved Successfully| Success[Return Complete Results<br/>📱 User sees nutrition data]
+    Save -->|⚠️ Save Failed| PartialSuccess[Return Nutrition Data<br/>⚠️ Not saved to history]
+    
+    Success --> End
+    PartialSuccess --> End
+    
+    %% Key benefits callout
+    NutritionReady --> Benefits[Key Benefits:<br/>🚀 Fast responses via caching<br/>🎯 Real product data guides AI decisions<br/>🤖 AI fills gaps for everything else<br/>📊 Comprehensive nutrition analysis]
+    
+    %% Styling for business audience - High contrast for accessibility
+    classDef userAction fill:#0D47A1,stroke:#000000,stroke-width:3px,color:#FFFFFF
+    classDef success fill:#1B5E20,stroke:#000000,stroke-width:3px,color:#FFFFFF
+    classDef error fill:#B71C1C,stroke:#000000,stroke-width:3px,color:#FFFFFF
+    classDef process fill:#E65100,stroke:#000000,stroke-width:3px,color:#FFFFFF
+    classDef benefit fill:#4A148C,stroke:#000000,stroke-width:3px,color:#FFFFFF
+    
+    class Start,Upload userAction
+    class AuthOK,UseCache,UseProduct,UseAI,Success,PartialSuccess success
+    class AuthFail,UploadError,ProcessError error
+    class Step1,Step2,Step3,Summary,Save process
+    class Benefits benefit
+```
+
 ## Quick Start
 
 ### Backend (Go API)
