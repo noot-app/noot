@@ -22,12 +22,18 @@
   type EventType = EventTypesResponse["event_types"][0]
   type CreateEventTypeRequest =
     paths["/event-types"]["post"]["requestBody"]["content"]["application/json"]
+  type EventLinksResponse = 
+    paths["/events/{id}/links"]["get"]["responses"]["200"]["content"]["application/json"]
+  type EventLink = NonNullable<EventLinksResponse["links"]>[0]
 
   let events: Event[] = []
   let eventTypes: EventType[] = []
   let loading = true
   let loadingEventTypes = false
   let error = ""
+
+  // Event links cache
+  let eventLinks: Map<string, EventLink[]> = new Map()
 
   // Filtering and sorting
   let filterEventType = ""
@@ -47,6 +53,12 @@
   let eventLevel: string | number | undefined = undefined
   let eventNote = ""
   let eventColor = ""
+
+  // Consumption linking for modal
+  let linkToLastConsumption = false
+  let lastConsumption: any = null
+  let isLoadingConsumption = false
+  let consumptionError = ""
 
   // New event type modal state
   let showEventTypeModal = false
@@ -148,6 +160,29 @@
     }
   }
 
+  async function loadEventLinks(eventIds: string[]) {
+    try {
+      const linkPromises = eventIds.map(async (eventId) => {
+        const response = await apiClient.GET("/events/{id}/links", {
+          params: { path: { id: eventId } }
+        })
+        
+        if (!response.error && response.data) {
+          return { eventId, links: response.data.links }
+        }
+        return { eventId, links: [] }
+      })
+
+      const results = await Promise.all(linkPromises)
+      eventLinks = new Map()
+      results.forEach(({ eventId, links }) => {
+        eventLinks.set(eventId, links || [])
+      })
+    } catch (err) {
+      console.error("Error loading event links:", err)
+    }
+  }
+
   async function loadEvents() {
     try {
       loading = true
@@ -186,6 +221,12 @@
       })
 
       events = eventList
+      
+      // Load event links for all events
+      if (events.length > 0) {
+        await loadEventLinks(events.map(e => e.id))
+      }
+      
       error = ""
     } catch (err) {
       console.error("Error loading events:", err)
@@ -236,6 +277,9 @@
     eventLevel = undefined
     eventNote = ""
     eventColor = ""
+    linkToLastConsumption = false
+    lastConsumption = null
+    consumptionError = ""
   }
 
   async function saveEvent() {
@@ -277,7 +321,41 @@
           return
         }
 
-        toast.success("Event created successfully")
+        const createdEvent = response.data
+        let linkSuccess = true
+
+        // Create link to last consumption if requested and available
+        if (linkToLastConsumption && lastConsumption && createdEvent) {
+          try {
+            const linkData = {
+              consumption_id: lastConsumption.id
+            }
+
+            const linkResponse = await apiClient.POST("/events/{id}/links", {
+              params: { path: { id: createdEvent.id } },
+              body: linkData
+            })
+
+            if (linkResponse.error) {
+              console.error("Failed to create event-consumption link:", linkResponse.error)
+              linkSuccess = false
+            }
+          } catch (linkErr) {
+            console.error("Error creating event-consumption link:", linkErr)
+            linkSuccess = false
+          }
+        }
+
+        // Show appropriate success message
+        if (linkToLastConsumption && lastConsumption) {
+          if (linkSuccess) {
+            toast.success("Event created and linked to consumption")
+          } else {
+            toast.success("Event created (linking failed)")
+          }
+        } else {
+          toast.success("Event created successfully")
+        }
       }
 
       closeModal()
@@ -383,6 +461,66 @@
     if (!eventTypeId) return "#9CA3AF"
     const eventType = eventTypes.find(type => type.id === eventTypeId)
     return eventType?.color ? `#${eventType.color}` : "#9CA3AF"
+  }
+
+  function getEventLinks(eventId: string): EventLink[] {
+    return eventLinks.get(eventId) || []
+  }
+
+  function hasConsumptionLinks(eventId: string): boolean {
+    const links = getEventLinks(eventId)
+    return links.some(link => link.consumption_id)
+  }
+
+  function getConsumptionLinks(eventId: string): EventLink[] {
+    const links = getEventLinks(eventId)
+    return links.filter(link => link.consumption_id)
+  }
+
+  function navigateToConsumption(consumptionId: string) {
+    window.open(`/consumptions/${consumptionId}`, '_blank')
+  }
+
+  // Fetch latest consumption when modal quick link option is toggled
+  async function fetchLatestConsumption() {
+    if (!linkToLastConsumption || lastConsumption) return
+    
+    try {
+      isLoadingConsumption = true
+      consumptionError = ""
+      
+      const response = await apiClient.GET("/consumptions", {
+        params: { query: { days: 1 } } // Get consumptions from last 24 hours
+      })
+      
+      if (response.error) {
+        consumptionError = "Failed to fetch recent consumptions"
+        return
+      }
+      
+      if (!response.data?.consumptions || response.data.consumptions.length === 0) {
+        consumptionError = "No recent consumptions found"
+        lastConsumption = null
+        return
+      }
+      
+      // Get the most recent consumption (they should be sorted by created_at desc)
+      lastConsumption = response.data.consumptions[0]
+    } catch (err) {
+      console.error("Error fetching latest consumption:", err)
+      consumptionError = "Failed to load recent consumptions"
+    } finally {
+      isLoadingConsumption = false
+    }
+  }
+
+  // Watch for changes in linkToLastConsumption toggle
+  $: if (linkToLastConsumption) {
+    fetchLatestConsumption()
+  } else {
+    // Clear consumption data when toggled off
+    lastConsumption = null
+    consumptionError = ""
   }
 
   // Watch for filter changes and reload
@@ -581,6 +719,35 @@
                       {#if event.note}
                         <div><strong>Note:</strong> {event.note}</div>
                       {/if}
+                      
+                      <!-- Consumption Links Display -->
+                      {#if hasConsumptionLinks(event.id)}
+                        {@const consumptionLinks = getConsumptionLinks(event.id)}
+                        <div class="flex items-center gap-2 mt-2">
+                          <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                          </svg>
+                          <span class="text-primary font-medium">
+                            Linked to {consumptionLinks.length === 1 ? 'consumption' : `${consumptionLinks.length} consumptions`}
+                          </span>
+                          <div class="flex gap-1">
+                            {#each consumptionLinks as link}
+                              {#if link.consumption_id}
+                                <button
+                                  class="btn btn-xs btn-outline btn-primary"
+                                  title="View linked consumption"
+                                  on:click={() => navigateToConsumption(link.consumption_id || '')}
+                                >
+                                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                  </svg>
+                                  View
+                                </button>
+                              {/if}
+                            {/each}
+                          </div>
+                        </div>
+                      {/if}
                     </div>
                   </div>
 
@@ -653,16 +820,18 @@
               <span class="label-text">Event Type (Optional)</span>
             </label>
             <div class="flex gap-2">
-              <FormSelect
+              <select
                 id="eventTypeId"
-                label=""
+                class="select select-bordered flex-1"
                 bind:value={eventTypeId}
-                options={createEventTypeOptions}
-                className="flex-1"
-              />
+              >
+                {#each createEventTypeOptions as option}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </select>
               <button
                 type="button"
-                class="btn btn-outline btn-sm"
+                class="btn btn-outline"
                 title="Create new event type"
                 aria-label="Create new event type"
                 on:click={openEventTypeModal}
@@ -686,18 +855,18 @@
             <label class="label" for="eventStartedAt">
               <span class="label-text">Start Date & Time <span class="text-error">*</span></span>
             </label>
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-start">
               <input
                 id="eventStartedAt"
                 type="datetime-local"
-                class="input input-bordered flex-1"
+                class="input input-bordered flex-1 min-h-[48px]"
                 class:input-error={!isValidStartDate || isStartDateInFuture}
                 bind:value={eventStartedAt}
                 required
               />
               <button
                 type="button"
-                class="btn btn-outline btn-sm"
+                class="btn btn-outline min-h-[48px]"
                 title="Set to current time"
                 on:click={() => setCurrentTime(false)}
               >
@@ -723,17 +892,17 @@
             <label class="label" for="eventEndedAt">
               <span class="label-text">End Date & Time (Optional)</span>
             </label>
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-start">
               <input
                 id="eventEndedAt"
                 type="datetime-local"
-                class="input input-bordered flex-1"
+                class="input input-bordered flex-1 min-h-[48px]"
                 class:input-error={!isValidEndDate || isEndDateInFuture}
                 bind:value={eventEndedAt}
               />
               <button
                 type="button"
-                class="btn btn-outline btn-sm"
+                class="btn btn-outline min-h-[48px]"
                 title="Set to current time"
                 on:click={() => setCurrentTime(true)}
               >
@@ -753,27 +922,82 @@
         </div>
 
         <!-- Level -->
-        <FormField
-          id="eventLevel"
-          label="Level (0-10, Optional)"
-          type="number"
-          bind:value={eventLevel}
-          min="0"
-          max="10"
-          placeholder="Intensity, severity, or performance level"
-          error={!isValidLevel ? "Level must be between 0 and 10" : ""}
-        />
+        <div class="form-control">
+          <label class="label" for="eventLevel">
+            <span class="label-text">Level (0-10, Optional)</span>
+          </label>
+          <div class="flex gap-2 items-center">
+            <div class="flex items-center">
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                aria-label="Decrease level"
+                title="Decrease level"
+                disabled={eventLevel !== undefined && Number(eventLevel) <= 0}
+                on:click={() => {
+                  const current = eventLevel === undefined || eventLevel === "" ? 0 : Number(eventLevel);
+                  eventLevel = Math.max(0, current - 1);
+                }}
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                </svg>
+              </button>
+              <input
+                id="eventLevel"
+                type="number"
+                class="input input-bordered w-20 text-center mx-2"
+                class:input-error={!isValidLevel}
+                bind:value={eventLevel}
+                min="0"
+                max="10"
+                placeholder="0"
+              />
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                aria-label="Increase level"
+                title="Increase level"
+                disabled={eventLevel !== undefined && Number(eventLevel) >= 10}
+                on:click={() => {
+                  const current = eventLevel === undefined || eventLevel === "" ? 0 : Number(eventLevel);
+                  eventLevel = Math.min(10, current + 1);
+                }}
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+              </button>
+            </div>
+            <span class="text-sm text-base-content/60 ml-2">Intensity, severity, or performance level</span>
+          </div>
+          {#if !isValidLevel}
+            <div class="label">
+              <span class="label-text-alt text-error">Level must be between 0 and 10</span>
+            </div>
+          {/if}
+        </div>
 
         <!-- Note -->
-        <FormField
-          id="eventNote"
-          label="Note (Optional)"
-          bind:value={eventNote}
-          maxlength={1000}
-          placeholder="Additional details about this event"
-          multiline
-          error={!isValidNote ? "Note must be 1000 characters or less" : ""}
-        />
+        <div class="form-control w-full">
+          <label class="label" for="eventNote">
+            <span class="label-text">Note (Optional)</span>
+          </label>
+          <textarea
+            id="eventNote"
+            class="textarea textarea-bordered w-full"
+            class:textarea-error={!isValidNote}
+            bind:value={eventNote}
+            maxlength={1000}
+            placeholder="Additional details about this event"
+            rows="3"
+          ></textarea>
+          {#if !isValidNote}
+            <div class="label">
+              <span class="label-text-alt text-error">Note must be 1000 characters or less</span>
+            </div>
+          {/if}
+        </div>
 
         <!-- Color Selection -->
         <div class="form-control">
@@ -794,6 +1018,57 @@
             </div>
           {/if}
         </div>
+
+        <!-- Quick Link to Last Consumption (only for new events) -->
+        {#if !editingEvent}
+          <div class="form-control">
+            <div class="mb-2 flex items-center gap-2">
+              <span class="label-text font-medium">Link to Consumption</span>
+              <span class="label-text-alt text-xs opacity-60">Optional</span>
+              <div class="tooltip tooltip-top" data-tip="Linking related events and consumptions helps Noot's AI nutritionist better understand patterns and connections in your health data, leading to more accurate insights and personalized recommendations.">
+                <svg class="w-4 h-4 text-base-content/50 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+            </div>
+            <label class="cursor-pointer label justify-start gap-2 py-1">
+              <input
+                type="checkbox"
+                class="checkbox checkbox-sm"
+                bind:checked={linkToLastConsumption}
+                disabled={isLoadingConsumption}
+              />
+              <span class="label-text">Link to last consumption</span>
+              {#if isLoadingConsumption}
+                <span class="loading loading-spinner loading-xs"></span>
+              {/if}
+            </label>
+            
+            {#if linkToLastConsumption}
+              {#if consumptionError}
+                <div class="alert alert-warning alert-sm mt-2">
+                  <svg class="stroke-current shrink-0 w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <span class="text-xs">{consumptionError}</span>
+                </div>
+              {:else if lastConsumption}
+                <div class="bg-base-200 border border-base-300 rounded p-3 mt-2">
+                  <div class="text-xs font-medium mb-1">Will link to:</div>
+                  <div class="text-sm font-semibold">"{lastConsumption.transcript}"</div>
+                  <div class="text-xs text-base-content/60 mt-1">
+                    {new Date(lastConsumption.created_at).toLocaleString()}
+                  </div>
+                  {#if lastConsumption.summary?.totals?.calories}
+                    <div class="text-xs text-base-content/60 mt-1">
+                      {Math.round(lastConsumption.summary.totals.calories)} cal
+                    </div>
+                  {/if}
+                </div>
+              {/if}
+            {/if}
+          </div>
+        {/if}
       </form>
 
       <div class="modal-action">

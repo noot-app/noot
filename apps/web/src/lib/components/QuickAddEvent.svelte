@@ -7,6 +7,9 @@
 
   type EventType = paths["/event-types"]["get"]["responses"]["200"]["content"]["application/json"]["event_types"][0]
   type CreateEventRequest = paths["/events"]["post"]["requestBody"]["content"]["application/json"]
+  type ConsumptionsResponse = paths["/consumptions"]["get"]["responses"]["200"]["content"]["application/json"]
+  type Consumption = ConsumptionsResponse["consumptions"][0]
+  type EventLinkCreateRequest = paths["/events/{id}/links"]["post"]["requestBody"]["content"]["application/json"]
 
   export let eventTypes: EventType[] = []
   export let onEventCreated: () => void = () => {}
@@ -37,6 +40,12 @@
   let hasEndTime = false
   let eventEndedAt = ""
   let isCreating = false
+
+  // Quick link to last consumption
+  let linkToLastConsumption = false
+  let lastConsumption: Consumption | null = null
+  let isLoadingConsumption = false
+  let consumptionError = ""
 
   // Helper functions for time handling
   function toLocalDateTimeString(utcDate: Date): string {
@@ -99,6 +108,48 @@
     eventEndedAt = toLocalDateTimeString(endDate)
   }
 
+  // Fetch latest consumption when quick link option is toggled
+  async function fetchLatestConsumption() {
+    if (!linkToLastConsumption || lastConsumption) return
+    
+    try {
+      isLoadingConsumption = true
+      consumptionError = ""
+      
+      const response = await apiClient.GET("/consumptions", {
+        params: { query: { days: 1 } } // Get consumptions from last 24 hours
+      })
+      
+      if (response.error) {
+        consumptionError = "Failed to fetch recent consumptions"
+        return
+      }
+      
+      if (!response.data?.consumptions || response.data.consumptions.length === 0) {
+        consumptionError = "No recent consumptions found"
+        lastConsumption = null
+        return
+      }
+      
+      // Get the most recent consumption (they should be sorted by created_at desc)
+      lastConsumption = response.data.consumptions[0]
+    } catch (err) {
+      console.error("Error fetching latest consumption:", err)
+      consumptionError = "Failed to load recent consumptions"
+    } finally {
+      isLoadingConsumption = false
+    }
+  }
+
+  // Watch for changes in linkToLastConsumption toggle
+  $: if (linkToLastConsumption) {
+    fetchLatestConsumption()
+  } else {
+    // Clear consumption data when toggled off
+    lastConsumption = null
+    consumptionError = ""
+  }
+
   async function quickAddEvent() {
     if (isCreating || !selectedEventType) return
 
@@ -124,7 +175,41 @@
         return
       }
 
-      toast.success(`${selectedEventType.name} event created successfully`)
+      const createdEvent = response.data
+      let linkSuccess = true
+
+      // Create link to last consumption if requested and available
+      if (linkToLastConsumption && lastConsumption && createdEvent) {
+        try {
+          const linkData: EventLinkCreateRequest = {
+            consumption_id: lastConsumption.id
+          }
+
+          const linkResponse = await apiClient.POST("/events/{id}/links", {
+            params: { path: { id: createdEvent.id } },
+            body: linkData
+          })
+
+          if (linkResponse.error) {
+            console.error("Failed to create event-consumption link:", linkResponse.error)
+            linkSuccess = false
+          }
+        } catch (linkErr) {
+          console.error("Error creating event-consumption link:", linkErr)
+          linkSuccess = false
+        }
+      }
+
+      // Show appropriate success message
+      if (linkToLastConsumption && lastConsumption) {
+        if (linkSuccess) {
+          toast.success(`${selectedEventType.name} event created and linked to consumption`)
+        } else {
+          toast.success(`${selectedEventType.name} event created (linking failed)`)
+        }
+      } else {
+        toast.success(`${selectedEventType.name} event created successfully`)
+      }
       
       // Reset form but keep event type selected
       eventLevel = undefined
@@ -132,6 +217,9 @@
       eventTitle = selectedEventType?.default_name || selectedEventType?.name || ""
       hasEndTime = false
       eventEndedAt = ""
+      linkToLastConsumption = false
+      lastConsumption = null
+      consumptionError = ""
       resetToNow()
       
       onEventCreated()
@@ -381,6 +469,50 @@
                     </div>
                   {/if}
                 </div>
+
+                <!-- Quick Link to Last Consumption -->
+                <div class="form-control">
+                  <div class="mb-2">
+                    <span class="label-text font-medium">Link to Consumption</span>
+                    <span class="label-text-alt text-xs opacity-60 ml-2">Optional</span>
+                  </div>
+                  <label class="cursor-pointer label justify-start gap-2 py-1">
+                    <input
+                      type="checkbox"
+                      class="checkbox checkbox-sm"
+                      bind:checked={linkToLastConsumption}
+                      disabled={isLoadingConsumption}
+                    />
+                    <span class="label-text">Link to last consumption</span>
+                    {#if isLoadingConsumption}
+                      <span class="loading loading-spinner loading-xs"></span>
+                    {/if}
+                  </label>
+                  
+                  {#if linkToLastConsumption}
+                    {#if consumptionError}
+                      <div class="alert alert-warning alert-sm mt-2">
+                        <svg class="stroke-current shrink-0 w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <span class="text-xs">{consumptionError}</span>
+                      </div>
+                    {:else if lastConsumption}
+                      <div class="bg-base-200 border border-base-300 rounded p-3 mt-2">
+                        <div class="text-xs font-medium mb-1">Will link to:</div>
+                        <div class="text-sm font-semibold">"{lastConsumption.transcript}"</div>
+                        <div class="text-xs text-base-content/60 mt-1">
+                          {new Date(lastConsumption.created_at).toLocaleString()}
+                        </div>
+                        {#if lastConsumption.summary?.totals?.calories}
+                          <div class="text-xs text-base-content/60 mt-1">
+                            {Math.round(lastConsumption.summary.totals.calories)} cal
+                          </div>
+                        {/if}
+                      </div>
+                    {/if}
+                  {/if}
+                </div>
               </div>
 
               <!-- Right Column: Preview -->
@@ -431,6 +563,21 @@
                         <span class="text-base-content/60 flex-shrink-0">Note:</span>
                         <span class="text-right break-words ml-2 max-w-40">
                           {eventNote.trim() || 'None'}
+                        </span>
+                      </div>
+                      
+                      <div class="flex justify-between items-start">
+                        <span class="text-base-content/60 flex-shrink-0">Link:</span>
+                        <span class="text-right break-words ml-2 max-w-40">
+                          {#if linkToLastConsumption && lastConsumption}
+                            Last consumption
+                          {:else if linkToLastConsumption && consumptionError}
+                            Error loading
+                          {:else if linkToLastConsumption && isLoadingConsumption}
+                            Loading...
+                          {:else}
+                            None
+                          {/if}
                         </span>
                       </div>
                     </div>
