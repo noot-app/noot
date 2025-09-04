@@ -759,7 +759,7 @@
                 <div class="flex gap-2 ml-auto">
                   {#if goalSets.length > 0}
                     <button
-                      class="btn btn-warning btn-xs"
+                      class="btn btn-warning btn-sm min-h-[44px]"
                       on:click={resetToDRIDefaults}
                       title="Delete all custom goals to return to DRI defaults"
                     >
@@ -767,7 +767,7 @@
                     </button>
                   {/if}
                   <button
-                    class="btn btn-outline btn-xs"
+                    class="btn btn-outline btn-sm min-h-[44px]"
                     on:click={() => openEditModal("New Goal")}
                   >
                     + New
@@ -837,22 +837,23 @@
                       <div class="flex gap-2">
                         {#if goalSet.name !== activeGoalName}
                           <button
-                            class="btn btn-primary btn-xs"
+                            class="btn btn-primary btn-sm min-h-[44px]"
                             on:click={() => switchToGoal(goalSet.name)}
                           >
                             Activate
                           </button>
                         {/if}
                         <button
-                          class="btn btn-outline btn-xs"
+                          class="btn btn-outline btn-sm min-h-[44px]"
                           on:click={() => openEditModal(goalSet.name)}
                         >
                           Edit
                         </button>
                         <button
-                          class="btn btn-error btn-xs"
+                          class="btn btn-error btn-sm min-h-[44px] min-w-[44px]"
                           on:click={() => deleteGoalSet(goalSet.name)}
                           title="Delete this goal set"
+                          aria-label="Delete goal set"
                         >
                           ×
                         </button>

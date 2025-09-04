@@ -14,7 +14,7 @@
   import TrashIcon from "$lib/components/icons/Trash.svelte"
   import ArrowPathIcon from "$lib/components/icons/ArrowPath.svelte"
   import ClockIcon from "$lib/components/icons/Clock.svelte"
-  import { formatErrorForUser } from "$lib/utils/error-handling"
+  import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import type { paths } from "$lib/api/schema"
 
   type APIKeysResponse =
@@ -82,22 +82,24 @@
       loading = true
       error = ""
       
-      const response = await apiClient.GET("/api-keys")
+      const result = await handleApiCallWithAuthRedirect(async () => {
+        return await apiClient.GET("/api-keys")
+      })
 
-      if (response.error) {
+      if (result.error) {
         // If 403, user is not a pro user
-        if (response.error.code === 403) {
+        if (result.error.includes("Forbidden") || result.error.includes("permission")) {
           isProUser = false
           error = "API keys are available for Pro users only. Upgrade your subscription to access this feature."
           return
         }
         
-        error = formatErrorForUser(response.error)
+        error = result.error
         return
       }
 
       isProUser = true
-      apiKeys = response.data?.api_keys || []
+      apiKeys = result.data?.api_keys || []
     } catch (err) {
       console.error("Error loading API keys:", err)
       error = "Failed to load API keys. Please try again."

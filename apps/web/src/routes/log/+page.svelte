@@ -2,7 +2,7 @@
   import { onMount } from "svelte"
   import { apiClient } from "$lib/api/client"
   import { toast } from "$lib/stores/toast"
-  import { formatErrorForUser } from "$lib/utils/error-handling"
+  import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import TimelineIcon from "$lib/components/icons/Timeline.svelte"
   import type { paths } from "$lib/api/schema"
 
@@ -92,45 +92,49 @@
     error = ""
 
     try {
-      // Fetch both consumptions and events in parallel
-      const [consumptionsResponse, eventsResponse] = await Promise.all([
-        apiClient.GET("/consumptions", {
-          params: { 
-            query: { 
-              limit: pageSize, 
-              offset: offset 
-            } 
-          }
+      // Fetch both consumptions and events in parallel with auth redirect handling
+      const [consumptionsResult, eventsResult] = await Promise.all([
+        handleApiCallWithAuthRedirect(async () => {
+          return await apiClient.GET("/consumptions", {
+            params: { 
+              query: { 
+                limit: pageSize, 
+                offset: offset 
+              } 
+            }
+          })
         }),
-        apiClient.GET("/events", {
-          params: { 
-            query: { 
-              limit: pageSize, 
-              offset: offset 
-            } 
-          }
+        handleApiCallWithAuthRedirect(async () => {
+          return await apiClient.GET("/events", {
+            params: { 
+              query: { 
+                limit: pageSize, 
+                offset: offset 
+              } 
+            }
+          })
         })
       ])
 
       // Handle errors
-      if (consumptionsResponse.error) {
-        error = formatErrorForUser(consumptionsResponse.error)
+      if (consumptionsResult.error) {
+        error = consumptionsResult.error
         return
       }
-      if (eventsResponse.error) {
-        error = formatErrorForUser(eventsResponse.error)
+      if (eventsResult.error) {
+        error = eventsResult.error
         return
       }
 
       // Transform data into timeline entries
-      const consumptionEntries: TimelineEntry[] = (consumptionsResponse.data?.consumptions || []).map((consumption) => ({
+      const consumptionEntries: TimelineEntry[] = (consumptionsResult.data?.consumptions || []).map((consumption) => ({
         id: consumption.id,
         type: "consumption" as const,
         created_at: consumption.created_at,
         data: consumption
       }))
 
-      const eventEntries: TimelineEntry[] = (eventsResponse.data?.events || []).map((event) => ({
+      const eventEntries: TimelineEntry[] = (eventsResult.data?.events || []).map((event) => ({
         id: event.id,
         type: "event" as const,
         created_at: event.started_at, // Use started_at as the timeline timestamp

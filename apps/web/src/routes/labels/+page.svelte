@@ -8,7 +8,7 @@
   import ColorPicker from "$lib/components/ColorPicker.svelte"
   import Label from "$lib/components/Label.svelte"
   import TagIcon from "$lib/components/icons/Tag.svelte"
-  import { formatErrorForUser } from "$lib/utils/error-handling"
+  import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import type { paths } from "$lib/api/schema"
 
   type LabelsResponse =
@@ -47,14 +47,16 @@
   async function loadLabels() {
     try {
       loading = true
-      const response = await apiClient.GET("/labels")
+      const result = await handleApiCallWithAuthRedirect(async () => {
+        return await apiClient.GET("/labels")
+      })
 
-      if (response.error) {
-        error = formatErrorForUser(response.error)
+      if (result.error) {
+        error = result.error
         return
       }
 
-      labels = response.data?.labels || []
+      labels = result.data?.labels || []
       error = ""
     } catch (err) {
       console.error("Error loading labels:", err)
@@ -262,7 +264,7 @@
         </svg>
         <span>{error}</span>
         <div>
-          <button class="btn btn-sm btn-ghost" on:click={loadLabels}>
+          <button class="btn btn-sm btn-ghost min-h-[44px]" on:click={loadLabels}>
             Try Again
           </button>
         </div>
@@ -314,7 +316,7 @@
 
                   <div class="flex gap-2 self-start sm:self-center">
                     <button
-                      class="btn btn-ghost btn-sm"
+                      class="btn btn-ghost btn-sm min-h-[44px] min-w-[44px]"
                       aria-label={`Edit label ${label.name}`}
                       title={`Edit label ${label.name}`}
                       on:click={() => openEditModal(label)}
@@ -334,7 +336,7 @@
                       </svg>
                     </button>
                     <button
-                      class="btn btn-ghost btn-sm text-error hover:bg-error hover:text-error-content"
+                      class="btn btn-ghost btn-sm min-h-[44px] min-w-[44px] text-error hover:bg-error hover:text-error-content"
                       aria-label={`Delete label ${label.name}`}
                       title={`Delete label ${label.name}`}
                       on:click={() => openDeleteModal(label)}

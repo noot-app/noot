@@ -9,7 +9,7 @@
   import ColorPicker from "$lib/components/ColorPicker.svelte"
   import QuickAddEvent from "$lib/components/QuickAddEvent.svelte"
   import CalendarIcon from "$lib/components/icons/calendar-days.svelte"
-  import { formatErrorForUser } from "$lib/utils/error-handling"
+  import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import type { paths } from "$lib/api/schema"
 
   type EventsResponse =
@@ -192,16 +192,18 @@
       if (filterStartDate) params.start_date = filterStartDate
       if (filterEndDate) params.end_date = filterEndDate
 
-      const response = await apiClient.GET("/events", {
-        params: { query: params },
+      const result = await handleApiCallWithAuthRedirect(async () => {
+        return await apiClient.GET("/events", {
+          params: { query: params },
+        })
       })
 
-      if (response.error) {
-        error = formatErrorForUser(response.error)
+      if (result.error) {
+        error = result.error
         return
       }
 
-      let eventList = response.data?.events || []
+      let eventList = result.data?.events || []
 
       // Client-side sorting since API might not support all sorting options
       eventList.sort((a, b) => {
@@ -734,11 +736,12 @@
                             {#each consumptionLinks as link}
                               {#if link.consumption_id}
                                 <button
-                                  class="btn btn-xs btn-outline btn-primary"
+                                  class="btn btn-sm btn-outline btn-primary min-h-[44px]"
                                   title="View linked consumption"
+                                  aria-label="View linked consumption"
                                   on:click={() => navigateToConsumption(link.consumption_id || '')}
                                 >
-                                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                                   </svg>
                                   View
