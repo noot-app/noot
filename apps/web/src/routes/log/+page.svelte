@@ -277,22 +277,22 @@
   <meta name="description" content="View your complete timeline of meals and events" />
 </svelte:head>
 
-<!-- Clean, minimal background -->
-<div class="min-h-screen bg-white">
+<!-- Clean, consistent background matching other pages -->
+<div class="min-h-screen bg-base-100">
   <div class="max-w-3xl mx-auto px-6 py-12">
     
     <!-- Simple, clean header -->
     <div class="mb-16">
-      <h1 class="text-2xl font-medium text-gray-900 mb-2">Timeline</h1>
-      <p class="text-gray-600">Your complete log of meals and wellness events</p>
+      <h1 class="text-2xl font-medium text-base-content mb-2">Timeline</h1>
+      <p class="text-base-content/70">Your complete log of meals and wellness events</p>
     </div>
 
     <!-- Error State -->
     {#if error}
-      <div class="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+      <div class="mb-8 p-4 bg-error/10 border border-error/20 rounded-lg">
         <div class="flex items-center justify-between">
-          <p class="text-red-800">{error}</p>
-          <button class="text-red-600 hover:text-red-800 font-medium" on:click={() => loadTimelineData()}>
+          <p class="text-error">{error}</p>
+          <button class="text-error hover:text-error/80 font-medium" on:click={() => loadTimelineData()}>
             Retry
           </button>
         </div>
@@ -303,15 +303,15 @@
     {#if timelineEntries.length === 0 && !isLoading}
       <!-- Clean empty state -->
       <div class="text-center py-24">
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No entries yet</h3>
-        <p class="text-gray-600 mb-8 max-w-sm mx-auto">
+        <h3 class="text-lg font-medium text-base-content mb-2">No entries yet</h3>
+        <p class="text-base-content/70 mb-8 max-w-sm mx-auto">
           Start logging meals and tracking events to see your timeline here
         </p>
         <div class="flex gap-3 justify-center">
-          <a href="/record" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+          <a href="/record" class="px-4 py-2 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors">
             Record a Meal
           </a>
-          <a href="/events" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+          <a href="/events" class="px-4 py-2 border border-base-300 text-base-content rounded-lg hover:bg-base-200 transition-colors">
             Create Event
           </a>
         </div>
@@ -325,10 +325,10 @@
           <div class="flex gap-4">
             <!-- Simple timestamp -->
             <div class="flex-shrink-0 w-20 pt-1">
-              <div class="text-xs text-gray-500 font-mono">
+              <div class="text-xs text-base-content/60 font-mono">
                 {formatTime(entry.created_at)}
               </div>
-              <div class="text-xs text-gray-400">
+              <div class="text-xs text-base-content/40">
                 {formatRelativeDate(entry.created_at)}
               </div>
             </div>
@@ -339,21 +339,21 @@
                 {@const consumption = entry.data as Consumption}
                 {@const nutritionStats = getNutritionStats(consumption)}
                 
-                <div class="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors">
+                <div class="bg-base-100 border border-base-300 rounded-lg p-6 hover:border-base-content/20 transition-colors">
                   <!-- Header -->
                   <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
-                      <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div class="w-2 h-2 bg-primary rounded-full"></div>
                       <div>
-                        <h3 class="font-medium text-gray-900">
+                        <h3 class="font-medium text-base-content">
                           {getMealType(consumption)}
                         </h3>
                         {#if isConsumptionLinked(consumption.id)}
                           <div class="flex items-center gap-1 mt-1">
-                            <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-3 h-3 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
                             </svg>
-                            <span class="text-xs text-gray-500">Linked to event</span>
+                            <span class="text-xs text-base-content/60">Linked to event</span>
                           </div>
                         {/if}
                       </div>
@@ -362,7 +362,7 @@
                   
                   <!-- Meal description -->
                   <div class="mb-4">
-                    <p class="text-gray-700 leading-relaxed">
+                    <p class="text-base-content/80 leading-relaxed">
                       {consumption.transcript}
                     </p>
                   </div>
@@ -372,8 +372,8 @@
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       {#each nutritionStats as stat}
                         <div class="text-center">
-                          <div class="text-sm font-medium text-gray-900">{stat.value}{stat.unit}</div>
-                          <div class="text-xs text-gray-500">{stat.label}</div>
+                          <div class="text-sm font-medium text-base-content">{stat.value}{stat.unit}</div>
+                          <div class="text-xs text-base-content/60">{stat.label}</div>
                         </div>
                       {/each}
                     </div>
@@ -383,7 +383,7 @@
                   {#if consumption.labels && consumption.labels.length > 0}
                     <div class="flex flex-wrap gap-2">
                       {#each consumption.labels as label}
-                        <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">
+                        <span class="px-2 py-1 text-xs bg-base-200 text-base-content/80 rounded-md">
                           {label.name}
                         </span>
                       {/each}
@@ -395,30 +395,30 @@
                 {@const event = entry.data as Event}
                 {@const levelInfo = getLevelInfo(event.level)}
                 
-                <div class="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors">
+                <div class="bg-base-100 border border-base-300 rounded-lg p-6 hover:border-base-content/20 transition-colors">
                   <!-- Header -->
                   <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
-                      <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      <div class="w-2 h-2 bg-secondary rounded-full"></div>
                       <div>
-                        <h3 class="font-medium text-gray-900">
+                        <h3 class="font-medium text-base-content">
                           {event.name}
                         </h3>
                         <div class="flex items-center gap-2 mt-1">
-                          <span class="text-xs text-gray-500">
+                          <span class="text-xs text-base-content/60">
                             {formatEventType(event.event_type_id)}
                           </span>
                           {#if levelInfo}
-                            <span class="text-xs text-gray-500">
+                            <span class="text-xs text-base-content/60">
                               • Level {event.level}
                             </span>
                           {/if}
                           {#if hasConsumptionLinks(event.id)}
                             <div class="flex items-center gap-1">
-                              <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg class="w-3 h-3 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
                               </svg>
-                              <span class="text-xs text-gray-500">Linked to meal</span>
+                              <span class="text-xs text-base-content/60">Linked to meal</span>
                             </div>
                           {/if}
                         </div>
@@ -429,7 +429,7 @@
                   <!-- Event details -->
                   {#if event.note}
                     <div class="mb-4">
-                      <p class="text-gray-700 leading-relaxed">
+                      <p class="text-base-content/80 leading-relaxed">
                         {event.note}
                       </p>
                     </div>
@@ -437,7 +437,7 @@
                   
                   <!-- Event duration -->
                   {#if event.ended_at}
-                    <div class="text-xs text-gray-500">
+                    <div class="text-xs text-base-content/60">
                       Duration: {formatTime(event.started_at)} → {formatTime(event.ended_at)}
                     </div>
                   {/if}
@@ -452,7 +452,7 @@
       {#if hasMore}
         <div class="text-center mt-12">
           <button 
-            class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors {isLoading ? 'opacity-50' : ''}"
+            class="px-6 py-2 border border-base-300 text-base-content rounded-lg hover:bg-base-200 transition-colors {isLoading ? 'opacity-50' : ''}"
             disabled={isLoading}
             on:click={loadMore}
           >
@@ -461,7 +461,7 @@
         </div>
       {:else if timelineEntries.length > 0}
         <div class="text-center mt-16 py-8">
-          <p class="text-gray-500 text-sm">End of timeline</p>
+          <p class="text-base-content/60 text-sm">End of timeline</p>
         </div>
       {/if}
     {/if}
@@ -469,8 +469,8 @@
     <!-- Loading State -->
     {#if isLoading && timelineEntries.length === 0}
       <div class="flex flex-col items-center justify-center py-24">
-        <div class="animate-spin w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full mb-4"></div>
-        <p class="text-gray-600">Loading your timeline...</p>
+        <div class="animate-spin w-6 h-6 border-2 border-base-300 border-t-base-content rounded-full mb-4"></div>
+        <p class="text-base-content/70">Loading your timeline...</p>
       </div>
     {/if}
   </div>
