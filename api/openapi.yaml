@@ -198,6 +198,21 @@ paths:
       description: Get a list of stored consumptions for the default user, optionally filtered by labels and date range. Supports tier-based date range limits - Free users can access up to 7 days, Pro users up to 365 days.
       operationId: getConsumptions
       parameters:
+        - name: limit
+          in: query
+          description: Maximum number of consumptions to return (default 50, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Number of consumptions to skip for pagination
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
         - name: labels
           in: query
           description: Comma-separated list of label names to filter by

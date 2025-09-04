@@ -6,11 +6,13 @@
   import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
   import MicrophoneIcon from "$lib/components/icons/Microphone.svelte"
   import CalendarIcon from "$lib/components/icons/calendar-days.svelte"
+  import TimelineIcon from "$lib/components/icons/Timeline.svelte"
 
   // Navigation items
   const navItems = [
     { href: "/record", label: "Record", icon: "microphone" },
     { href: "/summary", label: "Summary", icon: "chart-bar" },
+    { href: "/log", label: "Log", icon: "timeline" },
     { href: "/events", label: "Events", icon: "calendar" },
     { href: "/labels", label: "Labels", icon: "tag" },
     { href: "/profile", label: "Profile", icon: "user" },
@@ -79,6 +81,8 @@
                 <MicrophoneIcon className="w-6 h-6" />
               {:else if item.icon === "calendar"}
                 <CalendarIcon className="w-6 h-6" />
+              {:else if item.icon === "timeline"}
+                <TimelineIcon class_="w-6 h-6" />
               {:else}
                 <svg
                   class="w-6 h-6"
@@ -121,6 +125,8 @@
                 <MicrophoneIcon className="w-4 h-4" />
               {:else if item.icon === "calendar"}
                 <CalendarIcon className="w-4 h-4" />
+              {:else if item.icon === "timeline"}
+                <TimelineIcon class_="w-4 h-4" />
               {:else}
                 <svg
                   class="w-4 h-4"

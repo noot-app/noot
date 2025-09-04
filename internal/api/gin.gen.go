@@ -599,6 +599,22 @@ func (siw *ServerInterfaceWrapper) GetConsumptions(c *gin.Context) {
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetConsumptionsParams
 
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "offset", c.Request.URL.Query(), &params.Offset)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		return
+	}
+
 	// ------------- Optional query parameter "labels" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "labels", c.Request.URL.Query(), &params.Labels)
