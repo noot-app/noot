@@ -20,6 +20,12 @@ const (
 	APIKeyScopeReadWrite APIKeyScope = "read_write"
 )
 
+// Defines values for ConsumptionResponseInputSource.
+const (
+	Audio ConsumptionResponseInputSource = "audio"
+	Text  ConsumptionResponseInputSource = "text"
+)
+
 // Defines values for CreateAPIKeyRequestScope.
 const (
 	CreateAPIKeyRequestScopeRead      CreateAPIKeyRequestScope = "read"
@@ -347,6 +353,9 @@ type ConsumptionResponse struct {
 	// Id Consumption ID (for future edits/deletes)
 	Id string `json:"id"`
 
+	// InputSource Source of the input data (audio transcription or direct text)
+	InputSource *ConsumptionResponseInputSource `json:"input_source,omitempty"`
+
 	// Items Items with complete nutrition information
 	Items []ItemWithNutrition `json:"items"`
 
@@ -363,6 +372,9 @@ type ConsumptionResponse struct {
 	// Transcript Transcribed text from audio
 	Transcript string `json:"transcript"`
 }
+
+// ConsumptionResponseInputSource Source of the input data (audio transcription or direct text)
+type ConsumptionResponseInputSource string
 
 // ConsumptionsResponse defines model for ConsumptionsResponse.
 type ConsumptionsResponse struct {
@@ -1030,10 +1042,19 @@ type UserBiometricsActivityLevel string
 // UserBiometricsSex Biological sex for DRI calculations
 type UserBiometricsSex string
 
+// CreateConsumptionJSONBody defines parameters for CreateConsumption.
+type CreateConsumptionJSONBody struct {
+	// Text Text description of consumption
+	Text string `json:"text"`
+}
+
 // CreateConsumptionMultipartBody defines parameters for CreateConsumption.
 type CreateConsumptionMultipartBody struct {
 	// Audio Audio file (webm, opus, mp3, wav)
 	Audio openapi_types.File `json:"audio"`
+
+	// Text Text description of consumption (optional, takes precedence over audio if both provided)
+	Text *string `json:"text,omitempty"`
 }
 
 // GetConsumptionsParams defines parameters for GetConsumptions.
@@ -1146,6 +1167,9 @@ type CreateAPIKeyJSONRequestBody = CreateAPIKeyRequest
 
 // UpdateUserBiometricsJSONRequestBody defines body for UpdateUserBiometrics for application/json ContentType.
 type UpdateUserBiometricsJSONRequestBody = UpdateBiometricsRequest
+
+// CreateConsumptionJSONRequestBody defines body for CreateConsumption for application/json ContentType.
+type CreateConsumptionJSONRequestBody CreateConsumptionJSONBody
 
 // CreateConsumptionMultipartRequestBody defines body for CreateConsumption for multipart/form-data ContentType.
 type CreateConsumptionMultipartRequestBody CreateConsumptionMultipartBody

@@ -56,7 +56,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 
 	LogDebug("Processing consumption request", "request_id", requestID)
 
-	// Parse multipart form with strict size limits - reduced to 50MB for security
+	// Parse size limits - reduced to 50MB for security
 	maxFormSize := int64(50 << 20) // 50MB
 	if maxBytesStr := getenv("MAX_UPLOAD_BYTES", ""); maxBytesStr != "" {
 		if parsed, err := strconv.ParseInt(maxBytesStr, 10, 64); err == nil && parsed > 0 {
@@ -69,52 +69,25 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 		}
 	}
 
-	if err := c.Request.ParseMultipartForm(maxFormSize); err != nil {
-		appErr := NewAppError("Invalid multipart form or file too large", http.StatusBadRequest, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-
-	file, header, err := c.Request.FormFile("audio")
+	// 1) Normalize input (either audio transcription or text)
+	input, err := normalizeConsumptionInput(c, requestID, maxFormSize)
 	if err != nil {
-		appErr := NewAppError("No audio file uploaded (field: audio)", http.StatusBadRequest, err)
-		s.handleAppError(c, appErr, requestID)
+		if appErr, ok := err.(*AppError); ok {
+			s.handleAppError(c, appErr, requestID)
+		} else {
+			appErr := NewAppError("Failed to process input", http.StatusInternalServerError, err)
+			s.handleAppError(c, appErr, requestID)
+		}
 		return
 	}
-	defer file.Close()
-
-	LogDebug("Audio file received",
-		"filename", header.Filename,
-		"size", header.Size,
-		"content_type", header.Header.Get("Content-Type"),
-		"request_id", requestID,
-	)
-
-	// Save to temp file
-	tmpPath, mimeType, err := saveTempFile(file, header)
-	if err != nil {
-		appErr := NewAppError("Failed to save upload", http.StatusInternalServerError, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-	defer removeFile(tmpPath)
-
-	LogDebug("Temp file created", "path", tmpPath, "mime_type", mimeType, "request_id", requestID)
 
 	ctx := c.Request.Context()
+	transcript := input.Text
+
+	LogDebug("Input normalized", "source", input.Source, "text_length", len(transcript), "request_id", requestID)
 
 	// Create nutrition service
 	nutritionService := NewNutritionService(s.store)
-
-	// 1) Transcribe
-	LogDebug("Starting transcription", "request_id", requestID)
-	transcript, err := nutritionService.TranscribeAudio(ctx, tmpPath, mimeType)
-	if err != nil {
-		appErr := NewAppError("Transcription failed", http.StatusInternalServerError, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-	LogDebug("Transcription completed", "transcript_length", len(transcript), "request_id", requestID)
 
 	// 2) Parse items (phase 1: extract items without nutrition)
 	LogDebug("Starting item parsing (items only)", "request_id", requestID)
@@ -215,12 +188,20 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	}
 
 	// Create the API response
+	var inputSource api.ConsumptionResponseInputSource
+	if input.Source == "audio" {
+		inputSource = api.Audio
+	} else {
+		inputSource = api.Text
+	}
+
 	resp := api.ConsumptionResponse{
-		Id:         consumptionID, // Include consumption ID for editing
-		Transcript: transcript,
-		Items:      itemsWithNutrition,
-		Summary:    apiSummary,
-		RequestId:  requestID,
+		Id:          consumptionID, // Include consumption ID for editing
+		Transcript:  transcript,
+		Items:       itemsWithNutrition,
+		Summary:     apiSummary,
+		RequestId:   requestID,
+		InputSource: &inputSource, // Track whether this came from audio or text
 	}
 
 	LogInfo("Consumption request completed successfully",

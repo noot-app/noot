@@ -14,8 +14,8 @@ servers:
 paths:
   /consumption:
     post:
-      summary: Log a consumption via audio
-      description: Upload an audio file of spoken consumption data to be transcribed, parsed, and analyzed for nutrition information
+      summary: Log a consumption via audio or text
+      description: Upload an audio file of spoken consumption data to be transcribed, or provide text directly, then parse and analyze for nutrition information
       operationId: createConsumption
       requestBody:
         required: true
@@ -28,8 +28,20 @@ paths:
                   type: string
                   format: binary
                   description: Audio file (webm, opus, mp3, wav)
+                text:
+                  type: string
+                  description: Text description of consumption (optional, takes precedence over audio if both provided)
               required:
                 - audio
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: Text description of consumption
+              required:
+                - text
       responses:
         "200":
           description: Successful consumption analysis
@@ -38,7 +50,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsumptionResponse"
         "400":
-          description: Bad request (invalid multipart form, no audio file, etc.)
+          description: Bad request (invalid multipart form, no audio file, no text provided, etc.)
           content:
             application/json:
               schema:
@@ -2310,6 +2322,10 @@ components:
         request_id:
           type: string
           description: Request identifier for tracking
+        input_source:
+          type: string
+          enum: [audio, text]
+          description: Source of the input data (audio transcription or direct text)
 
     ConsumptionsResponse:
       type: object

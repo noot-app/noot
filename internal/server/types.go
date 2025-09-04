@@ -31,3 +31,10 @@ type Summary struct {
 	PercentOfDaily  map[string]int     `json:"percent_of_daily"`
 	DailyValuesUsed map[string]float64 `json:"daily_values"`
 }
+
+// ConsumptionInput represents the normalized input for consumption processing
+type ConsumptionInput struct {
+	Text      string // The text to process (from audio transcription or direct input)
+	Source    string // "audio" or "text" to track the input source
+	RequestID string // For logging purposes
+}
