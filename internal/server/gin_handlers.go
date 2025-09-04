@@ -194,7 +194,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	} else {
 		inputSource = api.Text
 	}
-	
+
 	resp := api.ConsumptionResponse{
 		Id:          consumptionID, // Include consumption ID for editing
 		Transcript:  transcript,

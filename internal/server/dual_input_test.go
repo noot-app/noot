@@ -133,7 +133,7 @@ func TestDualConsumptionInput(t *testing.T) {
 				c.Set("request_id", "test-request-123")
 				c.Next()
 			})
-			
+
 			router.POST("/consumption", server.CreateConsumption)
 
 			req, err := tt.setupRequest()
@@ -165,7 +165,7 @@ func TestNormalizeConsumptionInput(t *testing.T) {
 					"text": "test meal description",
 				}
 				body, _ := json.Marshal(payload)
-				
+
 				req, _ := http.NewRequest("POST", "/", bytes.NewReader(body))
 				req.Header.Set("Content-Type", "application/json")
 				c.Request = req
@@ -205,7 +205,7 @@ func TestNormalizeConsumptionInput(t *testing.T) {
 					"text": "   ",
 				}
 				body, _ := json.Marshal(payload)
-				
+
 				req, _ := http.NewRequest("POST", "/", bytes.NewReader(body))
 				req.Header.Set("Content-Type", "application/json")
 				c.Request = req
@@ -220,9 +220,9 @@ func TestNormalizeConsumptionInput(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c, _ := tt.setupContext()
-			
+
 			input, err := normalizeConsumptionInput(c, "test-request-123", 50<<20)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, input)
