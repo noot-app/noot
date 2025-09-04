@@ -132,6 +132,7 @@ func validateParsedItems(items []Item) []Item {
 			item.Grams = 0 // Reset to safe default
 		}
 
+		// This should maybe be revisited if the user is reporting consuming 1200mg of something
 		if item.UserQuantity != nil && (*item.UserQuantity < 0 || *item.UserQuantity > 1000) {
 			LogWarn("User quantity out of reasonable range", "name", item.Name, "quantity", *item.UserQuantity)
 			item.UserQuantity = nil // Remove invalid value
@@ -415,6 +416,7 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 			UserQuantity *float64 `json:"user_quantity"`
 			UserUnit     *string  `json:"user_unit"`
 			Brand        *string  `json:"brand"`
+			Context      *string  `json:"context"`
 		} `json:"items"`
 	}
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
@@ -458,6 +460,7 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 			UserUnit:     strPtrOrNil(i.UserUnit),
 			Brand:        strPtrOrNil(i.Brand),
 			BaseQuantity: baseQuantity,
+			Context:      strPtrOrNil(i.Context),
 			Nutrients:    nil, // No nutrition data in phase 1
 		})
 	}
@@ -494,6 +497,7 @@ func (p *OpenAIProvider) GetNutritionWithContext(ctx context.Context, item Item,
 		"name":              item.Name,
 		"grams":             item.Grams,
 		"brand":             item.Brand,
+		"context":           item.Context,
 		"nutrition_context": nutritionContext, // Always present, either object or null
 	}
 	inputBytes, _ := json.Marshal(inputObj)
@@ -652,6 +656,7 @@ func (p *OpenAIProvider) GetNutritionWithContextComplete(ctx context.Context, it
 		"name":              item.Name,
 		"grams":             item.Grams,
 		"brand":             item.Brand,
+		"context":           item.Context,
 		"nutrition_context": nutritionContext, // Always present, either object or null
 	}
 	inputBytes, _ := json.Marshal(inputObj)

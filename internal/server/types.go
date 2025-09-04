@@ -19,6 +19,7 @@ type Item struct {
 	Nutrients    *CompleteNutrient       `json:"nutrients,omitempty"`
 	Ingredients  []storage.OFFIngredient `json:"ingredients,omitempty"` // Ingredient list from OFF
 	Url          *string                 `json:"url,omitempty"`         // Open Food Facts product URL
+	Context      *string                 `json:"context"`               // Contextual information, e.g., "for a salad"
 }
 
 type ItemWithNutrition struct {
