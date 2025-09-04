@@ -1,4 +1,7 @@
 import { dev } from "$app/environment"
+import { goto } from "$app/navigation"
+import { page } from "$app/stores"
+import { get } from "svelte/store"
 
 /**
  * Represents various error formats that can be parsed
@@ -84,6 +87,42 @@ export async function handleApiCall<T>(
   try {
     const data = await apiCall()
     return { data }
+  } catch (error) {
+    return { error: formatErrorForUser(error) }
+  }
+}
+
+/**
+ * Enhanced API call handler that detects authentication errors and redirects
+ */
+export async function handleApiCallWithAuthRedirect<T>(
+  apiCall: () => Promise<{ data?: T; error?: any }>,
+): Promise<{ data?: T; error?: string }> {
+  try {
+    const result = await apiCall()
+    
+    if (result.error) {
+      // Check if it's an authentication error (401 or 403)
+      const isAuthError = 
+        result.error?.status === 401 ||
+        result.error?.status === 403 ||
+        (typeof result.error === "object" && result.error?.code === 401) ||
+        (typeof result.error === "object" && result.error?.code === 403)
+      
+      if (isAuthError && typeof window !== "undefined") {
+        // Get current page to set redirect
+        const currentPage = get(page)
+        const redirectPath = encodeURIComponent(currentPage.url.pathname + currentPage.url.search)
+        
+        // Redirect to login with current page as redirect target
+        await goto(`/login?redirect=${redirectPath}`)
+        return { error: "Redirecting to login..." }
+      }
+      
+      return { error: formatErrorForUser(result.error) }
+    }
+    
+    return result
   } catch (error) {
     return { error: formatErrorForUser(error) }
   }
