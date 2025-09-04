@@ -14,6 +14,10 @@
   let result: any = null
   let error: string = ""
   let consumptionId: string | null = null
+  
+  // Text input mode
+  let isTextMode = false
+  let textInput = ""
 
   async function startRecording() {
     try {
@@ -109,6 +113,54 @@
     }
   }
 
+  async function submitText() {
+    if (!textInput.trim()) {
+      error = "Please enter a description of your meal"
+      return
+    }
+
+    try {
+      status = "⏳ Processing..."
+      error = ""
+      transcript = ""
+      result = null
+      consumptionId = null
+
+      const response = await apiClient.POST("/consumption", {
+        body: {
+          text: textInput.trim()
+        },
+      })
+
+      if (response.error) {
+        throw new Error(`API Error: ${response.error}`)
+      }
+
+      const data = response.data
+      transcript = data?.transcript || textInput.trim()
+      result = data
+      consumptionId = data?.id || null
+      status = "✅ Complete"
+
+      // Clear text input once processing is complete
+      textInput = ""
+    } catch (err) {
+      error = `Error processing text: ${err}`
+      status = "❌ Error occurred"
+      console.error("Submit error:", err)
+    }
+  }
+
+  // Function to toggle between recording and text modes
+  function toggleMode() {
+    isTextMode = !isTextMode
+    // Reset states when switching modes
+    error = ""
+    status = isTextMode ? "Ready to type" : "Ready to record"
+    textInput = ""
+    audioBlob = null
+  }
+
   // Auto-upload when recording stops
   $: if (audioBlob && status === "Processing...") {
     uploadAudio()
@@ -136,7 +188,7 @@
       result = null
       transcript = ""
       consumptionId = null
-      status = "Ready to record"
+      status = isTextMode ? "Ready to type" : "Ready to record"
     } catch (err) {
       error = `Error deleting consumption: ${err}`
       console.error("Delete error:", err)
@@ -247,54 +299,111 @@
   {#if !result}
     <div class="flex-1 flex items-center justify-center px-4">
       <div class="text-center max-w-md w-full space-y-8">
-        <!-- Main recording button -->
-        <div class="flex justify-center">
-          <button
-            class="record-button {isRecording
-              ? 'recording'
-              : ''} {status.includes('Processing') ? 'processing' : ''}"
-            on:click={toggleRecordingWithSound}
-            disabled={status.includes("Processing")}
-            aria-label={isRecording ? "Stop recording" : "Start recording"}
-          >
-            {#if status.includes("Processing")}
-              <!-- Processing spinner -->
-              <svg
-                class="w-16 h-16"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
+        
+        <!-- Mode toggle -->
+        <div class="flex justify-center mb-6">
+          <div class="btn-group">
+            <button 
+              class="btn btn-sm {!isTextMode ? 'btn-primary' : 'btn-outline'}"
+              on:click={() => !isTextMode || toggleMode()}
+              disabled={status.includes("Processing")}
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
               </svg>
-            {:else if isRecording}
-              <!-- Stop icon (square) -->
-              <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="6" width="12" height="12" rx="2" />
+              Voice
+            </button>
+            <button 
+              class="btn btn-sm {isTextMode ? 'btn-primary' : 'btn-outline'}"
+              on:click={() => isTextMode || toggleMode()}
+              disabled={status.includes("Processing")}
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
               </svg>
-            {:else}
-              <!-- Microphone icon -->
-              <svg
-                class="w-20 h-20"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2.5"
-                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                />
-              </svg>
-            {/if}
-          </button>
+              Type
+            </button>
+          </div>
         </div>
+
+        {#if isTextMode}
+          <!-- Text input interface -->
+          <div class="space-y-4">
+            <textarea
+              bind:value={textInput}
+              placeholder="Describe what you ate... (e.g., 'I had a chicken caesar salad with croutons and parmesan cheese')"
+              class="textarea textarea-primary w-full h-32 resize-none"
+              disabled={status.includes("Processing")}
+              on:keydown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault()
+                  submitText()
+                }
+              }}
+            ></textarea>
+            <button
+              class="btn btn-primary btn-lg w-full"
+              on:click={submitText}
+              disabled={status.includes("Processing") || !textInput.trim()}
+            >
+              {#if status.includes("Processing")}
+                <span class="loading loading-spinner loading-sm"></span>
+                Processing...
+              {:else}
+                Analyze Meal
+              {/if}
+            </button>
+          </div>
+        {:else}
+          <!-- Recording button interface -->
+          <div class="flex justify-center">
+            <button
+              class="record-button {isRecording
+                ? 'recording'
+                : ''} {status.includes('Processing') ? 'processing' : ''}"
+              on:click={toggleRecordingWithSound}
+              disabled={status.includes("Processing")}
+              aria-label={isRecording ? "Stop recording" : "Start recording"}
+            >
+              {#if status.includes("Processing")}
+                <!-- Processing spinner -->
+                <svg
+                  class="w-16 h-16"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              {:else if isRecording}
+                <!-- Stop icon (square) -->
+                <svg class="w-20 h-20" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+              {:else}
+                <!-- Microphone icon -->
+                <svg
+                  class="w-20 h-20"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                    d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                  />
+                </svg>
+              {/if}
+            </button>
+          </div>
+        {/if}
 
         <!-- Status message -->
         <div class="status-text">
@@ -308,6 +417,15 @@
             </p>
           {:else if error}
             <p class="text-lg text-error font-medium">{error}</p>
+          {:else if isTextMode}
+            <div class="space-y-2">
+              <p class="text-xl font-semibold text-base-content">
+                Describe what you ate
+              </p>
+              <p class="text-sm text-base-content/70">
+                Type your meal description and click "Analyze Meal" or press Ctrl/Cmd+Enter
+              </p>
+            </div>
           {:else}
             <div class="space-y-2">
               <p class="text-xl font-semibold text-base-content">
