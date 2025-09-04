@@ -2,6 +2,8 @@
   import { apiClient } from "$lib/api/client"
   import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
   import { getAppName } from "$lib/utils/app-info"
+  import { onMount } from "svelte"
+  import { page } from "$app/stores"
 
   // Get app name from runtime environment
   $: appName = getAppName()
@@ -18,6 +20,12 @@
   // Text input mode
   let isTextMode = false
   let textInput = ""
+  
+  // OS detection for keyboard shortcuts
+  let isMac = false
+  if (typeof window !== 'undefined') {
+    isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0 || navigator.userAgent.includes('Mac')
+  }
 
   async function startRecording() {
     try {
@@ -161,6 +169,28 @@
     audioBlob = null
   }
 
+  // Function to reset the page to initial recording state
+  function resetToRecording() {
+    result = null
+    transcript = ""
+    consumptionId = null
+    audioBlob = null
+    textInput = ""
+    error = ""
+    isTextMode = false
+    status = "Ready to record"
+  }
+
+  // Clear any existing results when the page loads/mounts
+  onMount(() => {
+    resetToRecording()
+  })
+
+  // Reset state when navigating to the record page
+  $: if ($page.route.id === '/record') {
+    resetToRecording()
+  }
+
   // Auto-upload when recording stops
   $: if (audioBlob && status === "Processing...") {
     uploadAudio()
@@ -300,32 +330,6 @@
     <div class="flex-1 flex items-center justify-center px-4">
       <div class="text-center max-w-md w-full space-y-8">
         
-        <!-- Mode toggle -->
-        <div class="flex justify-center mb-6">
-          <div class="btn-group">
-            <button 
-              class="btn btn-sm {!isTextMode ? 'btn-primary' : 'btn-outline'}"
-              on:click={() => !isTextMode || toggleMode()}
-              disabled={status.includes("Processing")}
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
-              </svg>
-              Voice
-            </button>
-            <button 
-              class="btn btn-sm {isTextMode ? 'btn-primary' : 'btn-outline'}"
-              on:click={() => isTextMode || toggleMode()}
-              disabled={status.includes("Processing")}
-            >
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-              </svg>
-              Type
-            </button>
-          </div>
-        </div>
-
         {#if isTextMode}
           <!-- Text input interface -->
           <div class="space-y-4">
@@ -422,8 +426,15 @@
               <p class="text-xl font-semibold text-base-content">
                 Describe what you ate
               </p>
-              <p class="text-sm text-base-content/70">
-                Type your meal description and click "Analyze Meal" or press Ctrl/Cmd+Enter
+              <p class="text-sm text-base-content/70 flex items-center justify-center gap-1 flex-wrap">
+                <span>To submit, click "Analyze Meal" or press</span>
+                {#if isMac}
+                  <kbd class="kbd kbd-sm">⌘</kbd>
+                {:else}
+                  <kbd class="kbd kbd-sm">Ctrl</kbd>
+                {/if}
+                <span>+</span>
+                <kbd class="kbd kbd-sm">Enter</kbd>
               </p>
             </div>
           {:else}
@@ -476,14 +487,7 @@
             </a>
             <button
               class="btn btn-primary min-h-[44px]"
-              on:click={() => {
-                result = null
-                transcript = ""
-                consumptionId = null
-                audioBlob = null
-                status = "Ready to record"
-                error = ""
-              }}
+              on:click={resetToRecording}
             >
               <svg
                 class="w-4 h-4 mr-2"
@@ -503,6 +507,28 @@
           </div>
         {/if}
       </div>
+    </div>
+  {/if}
+
+  <!-- Single toggle button at bottom -->
+  {#if !result}
+    <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10">
+      <button
+        class="toggle-button"
+        on:click={toggleMode}
+        disabled={status.includes("Processing")}
+        aria-label="Switch to {isTextMode ? 'voice' : 'text'} mode"
+      >
+        {#if isTextMode}
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+          </svg>
+        {:else}
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+          </svg>
+        {/if}
+      </button>
     </div>
   {/if}
 </div>
@@ -599,5 +625,47 @@
 
   .gradient-bg {
     background: linear-gradient(135deg, hsl(var(--b1)), hsl(var(--b2)));
+  }
+
+  .toggle-button {
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Glass morphism effect */
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    
+    color: hsl(var(--bc));
+  }
+
+  .toggle-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .toggle-button:active:not(:disabled) {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .toggle-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
 </style>
