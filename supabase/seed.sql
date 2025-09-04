@@ -306,20 +306,20 @@ timed_consumptions AS (
         fiber_g,
         sodium_mg,
         caffeine_mg,
-        -- Calculate realistic timestamp for meal type
+        -- Calculate realistic timestamp for meal type (ensuring past dates)
         CASE 
             WHEN meal_type = 'breakfast' THEN 
-                (CURRENT_DATE - day_offset)::timestamp + INTERVAL '7 hours' + (random() * INTERVAL '3 hours')
+                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '7 hours' + (random() * INTERVAL '3 hours')
             WHEN meal_type = 'lunch' THEN 
-                (CURRENT_DATE - day_offset)::timestamp + INTERVAL '11.5 hours' + (random() * INTERVAL '2.5 hours')
+                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '11.5 hours' + (random() * INTERVAL '2.5 hours')
             WHEN meal_type = 'dinner' THEN 
-                (CURRENT_DATE - day_offset)::timestamp + INTERVAL '18 hours' + (random() * INTERVAL '3 hours')
+                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '18 hours' + (random() * INTERVAL '3 hours')
             WHEN meal_type = 'snack' THEN 
-                (CURRENT_DATE - day_offset)::timestamp + INTERVAL '15 hours' + (random() * INTERVAL '8 hours')
+                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '15 hours' + (random() * INTERVAL '8 hours')
             WHEN meal_type = 'drink' THEN 
-                (CURRENT_DATE - day_offset)::timestamp + INTERVAL '9 hours' + (random() * INTERVAL '10 hours')
+                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '9 hours' + (random() * INTERVAL '10 hours')
             ELSE 
-                (CURRENT_DATE - day_offset)::timestamp + INTERVAL '12 hours' + (random() * INTERVAL '8 hours')
+                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '12 hours' + (random() * INTERVAL '8 hours')
         END AS created_at
     FROM selected_meals
 )
@@ -353,9 +353,9 @@ ORDER BY user_id, created_at;
 SELECT 
     p.email,
     COUNT(*) as total_consumptions,
-    COUNT(CASE WHEN c.created_at::date = CURRENT_DATE THEN 1 END) as today_meals,
-    COUNT(CASE WHEN c.created_at::date = CURRENT_DATE - 1 THEN 1 END) as yesterday_meals,
-    COUNT(CASE WHEN c.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as last_week_meals,
+    COUNT(CASE WHEN c.created_at::date = NOW()::date THEN 1 END) as today_meals,
+    COUNT(CASE WHEN c.created_at::date = (NOW() - INTERVAL '1 day')::date THEN 1 END) as yesterday_meals,
+    COUNT(CASE WHEN c.created_at >= NOW() - INTERVAL '7 days' THEN 1 END) as last_week_meals,
     SUM(c.caffeine_mg)::int as total_caffeine_mg
 FROM consumptions c 
 JOIN profiles p ON p.id = c.user_id 
@@ -468,3 +468,126 @@ JOIN profiles p ON p.id = c.user_id
 WHERE p.email = 'monalisa@birki.io'
 GROUP BY l.id, l.name, l.description
 ORDER BY usage_count DESC, l.name;
+
+-- ================================================================================================
+-- Dev seed: event types
+-- Create some common event types for both test users
+-- ================================================================================================
+
+-- Delete existing event types for idempotent reseeding
+DELETE FROM event_types WHERE user_id IN (
+    'a1b2c3d4-e5f6-7890-abcd-ef1234567890', -- monalisa@birki.io
+    'b2c3d4e5-f6a7-8901-bcde-f23456789abc'  -- alice@birki.io
+);
+
+-- Insert event types for both users
+INSERT INTO event_types (user_id, name, description, default_name, color, created_at) VALUES
+-- Mona's event types (more comprehensive for pro user)
+('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'symptom', 'Physical symptoms or health issues', 'Symptom occurrence', '#FF6B6B', NOW() - INTERVAL '30 days'),
+('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'sleep', 'Sleep quality and duration tracking', 'Sleep session', '#4ECDC4', NOW() - INTERVAL '25 days'),
+('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'exercise', 'Physical activity and workouts', 'Workout session', '#45B7D1', NOW() - INTERVAL '20 days'),
+('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'mood', 'Emotional state and mental health', 'Mood check-in', '#96CEB4', NOW() - INTERVAL '18 days'),
+('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'medication', 'Medication intake and supplements', 'Medication taken', '#FECA57', NOW() - INTERVAL '15 days'),
+('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'stress', 'Stress levels and triggers', 'Stress event', '#FF9FF3', NOW() - INTERVAL '12 days'),
+('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'digestion', 'Digestive health and gut issues', 'Digestive event', '#F38BA8', NOW() - INTERVAL '10 days'),
+
+-- Alice's event types (basic set for free user)
+('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 'symptom', 'Physical symptoms or health issues', 'Symptom occurrence', '#FF6B6B', NOW() - INTERVAL '20 days'),
+('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 'exercise', 'Physical activity and workouts', 'Workout session', '#45B7D1', NOW() - INTERVAL '15 days'),
+('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 'mood', 'Emotional state and mental health', 'Mood check-in', '#96CEB4', NOW() - INTERVAL '10 days');
+
+-- ================================================================================================
+-- Dev seed: events
+-- Create realistic event data for both users with varied patterns across time
+-- ================================================================================================
+
+-- Delete existing events for idempotent reseeding
+DELETE FROM events WHERE user_id IN (
+    'a1b2c3d4-e5f6-7890-abcd-ef1234567890', -- monalisa@birki.io
+    'b2c3d4e5-f6a7-8901-bcde-f23456789abc'  -- alice@birki.io
+);
+
+-- Insert varied events for both users
+WITH event_data AS (
+    SELECT * FROM (VALUES
+        -- Mona's events (more detailed tracking as pro user)
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'symptom', 'Mild headache after lunch', 3, 'Started around 2 PM, lasted about 2 hours. Possibly related to coffee intake.', 0),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'sleep', 'Good nights sleep', 8, '8 hours of solid sleep, felt refreshed in the morning.', 0),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'exercise', 'Morning yoga session', 6, '30 minutes of gentle yoga and stretching. Focused on flexibility.', 0),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'mood', 'Feeling energetic and positive', 8, 'Great mood today! Accomplished a lot at work and felt motivated.', 1),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'medication', 'Daily vitamin D supplement', NULL, 'Took 1000 IU vitamin D3 with breakfast as usual.', 1),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'digestion', 'Some bloating after dinner', 4, 'Noticed bloating about an hour after eating the pasta with marinara sauce.', 1),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'stress', 'Work presentation stress', 6, 'Preparing for big client presentation tomorrow. Elevated stress levels.', 2),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'exercise', 'Evening walk in the park', 4, '45 minute relaxing walk after work. Beautiful weather.', 2),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'sleep', 'Restless night', 4, 'Had trouble falling asleep due to work stress. Only got about 5 hours.', 3),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'symptom', 'Stomach upset', 5, 'Digestive discomfort after trying the new Thai restaurant. Spicy food reaction.', 4),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'mood', 'Feeling a bit anxious', 4, 'General anxiety today, possibly related to upcoming deadlines.', 5),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'exercise', 'Strength training at gym', 7, '1 hour weight training session. Focused on upper body and core.', 6),
+
+        -- Alice's events (basic tracking as free user)
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 'symptom', 'Minor fatigue', 3, 'Feeling tired despite adequate sleep. Might be weather related.', 0),
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 'exercise', 'Morning jog', 6, '20 minute jog around the neighborhood. Felt good afterwards.', 1),
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 'mood', 'Happy and relaxed', 8, 'Great day overall! Spent time with friends and enjoyed the sunshine.', 1),
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 'symptom', 'Slight headache', 2, 'Mild tension headache, probably from screen time.', 2),
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 'exercise', 'Yoga class', 7, 'Attended evening yoga class. Very relaxing and centering.', 3),
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 'mood', 'Stressed about work', 3, 'Deadline pressure at work making me feel overwhelmed.', 4)
+    ) AS t(user_id, event_type_name, name, level, note, day_offset)
+),
+events_with_types AS (
+    -- Join with actual event type IDs
+    SELECT 
+        ed.user_id::uuid as user_id,
+        et.id as event_type_id,
+        ed.name,
+        ed.level,
+        ed.note,
+        ed.day_offset,
+        -- Calculate realistic started_at timestamp
+        ('2025-09-03'::date - INTERVAL '1 day' * ed.day_offset)::timestamp + 
+        CASE 
+            WHEN ed.event_type_name = 'sleep' THEN INTERVAL '22 hours' + (random() * INTERVAL '3 hours')
+            WHEN ed.event_type_name = 'exercise' THEN INTERVAL '7 hours' + (random() * INTERVAL '14 hours') 
+            WHEN ed.event_type_name = 'medication' THEN INTERVAL '8 hours' + (random() * INTERVAL '2 hours')
+            WHEN ed.event_type_name = 'mood' THEN INTERVAL '10 hours' + (random() * INTERVAL '10 hours')
+            ELSE INTERVAL '12 hours' + (random() * INTERVAL '8 hours')
+        END as started_at,
+        -- Some events have end times (especially sleep and exercise)
+        CASE 
+            WHEN ed.event_type_name = 'sleep' THEN 
+                ('2025-09-03'::date - INTERVAL '1 day' * ed.day_offset)::timestamp + INTERVAL '22 hours' + (random() * INTERVAL '3 hours') + 
+                INTERVAL '6 hours' + (random() * INTERVAL '4 hours')
+            WHEN ed.event_type_name = 'exercise' AND ed.level >= 6 THEN
+                ('2025-09-03'::date - INTERVAL '1 day' * ed.day_offset)::timestamp + INTERVAL '7 hours' + (random() * INTERVAL '14 hours') +
+                INTERVAL '30 minutes' + (random() * INTERVAL '90 minutes')
+            ELSE NULL
+        END as ended_at
+    FROM event_data ed
+    JOIN event_types et ON et.user_id = ed.user_id::uuid AND et.name = ed.event_type_name
+)
+INSERT INTO events (user_id, event_type_id, name, level, note, started_at, ended_at, created_at)
+SELECT 
+    user_id,
+    event_type_id,
+    name,
+    level,
+    note,
+    started_at,
+    ended_at,
+    started_at -- created_at is the same as started_at for events
+FROM events_with_types
+ORDER BY user_id, started_at;
+
+-- Show event seeding results
+SELECT 
+    p.email,
+    COUNT(*) as total_events,
+    COUNT(CASE WHEN e.started_at::date >= NOW()::date THEN 1 END) as today_events,
+    COUNT(CASE WHEN e.started_at::date = (NOW() - INTERVAL '1 day')::date THEN 1 END) as yesterday_events,
+    COUNT(CASE WHEN e.started_at >= NOW() - INTERVAL '7 days' THEN 1 END) as last_week_events,
+    STRING_AGG(DISTINCT et.name, ', ' ORDER BY et.name) as event_types_used
+FROM events e
+JOIN profiles p ON p.id = e.user_id 
+JOIN event_types et ON et.id = e.event_type_id
+WHERE p.email IN ('monalisa@birki.io', 'alice@birki.io')
+GROUP BY p.email 
+ORDER BY p.email;

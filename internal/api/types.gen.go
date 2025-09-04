@@ -1038,6 +1038,12 @@ type CreateConsumptionMultipartBody struct {
 
 // GetConsumptionsParams defines parameters for GetConsumptions.
 type GetConsumptionsParams struct {
+	// Limit Maximum number of consumptions to return (default 50, max 100)
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of consumptions to skip for pagination
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+
 	// Labels Comma-separated list of label names to filter by
 	Labels *string `form:"labels,omitempty" json:"labels,omitempty"`
 
