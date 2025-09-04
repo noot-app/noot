@@ -153,13 +153,13 @@
       }
 
       // Load event links for the new events
-      const events = eventsResponse.data?.events || []
+      const events = eventsResult.data?.events || []
       if (events.length > 0) {
         await loadEventLinks(events)
       }
 
       // Check if there's more data to load
-      const totalFetched = (consumptionsResponse.data?.consumptions?.length || 0) + (eventsResponse.data?.events?.length || 0)
+      const totalFetched = (consumptionsResult.data?.consumptions?.length || 0) + (eventsResult.data?.events?.length || 0)
       hasMore = totalFetched >= pageSize
 
     } catch (err) {
