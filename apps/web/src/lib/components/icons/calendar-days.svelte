@@ -1,6 +1,6 @@
 <script lang="ts">
   export let className: string = "w-6 h-6"
-  export let strokeWidth: number = 1.5
+  export let strokeWidth: number = 1.8
   export let title: string | undefined = undefined
 </script>
 
