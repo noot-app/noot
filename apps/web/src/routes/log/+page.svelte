@@ -191,6 +191,26 @@
     }
   }
 
+  // Format time only
+  function formatTime(dateString: string): string {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+  // Format relative date
+  function formatRelativeDate(dateString: string): string {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Yesterday'
+    if (diffDays < 7) return `${diffDays} days ago`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  }
+
   // Get nutrition highlights for consumption
   function getNutritionHighlights(consumption: Consumption) {
     const summary = consumption.summary?.totals
@@ -205,6 +225,48 @@
     return highlights.join(" • ")
   }
 
+  // Get nutrition stats array for better display
+  function getNutritionStats(consumption: Consumption) {
+    const summary = consumption.summary?.totals
+    if (!summary) return []
+    
+    const stats = []
+    if (summary.calories) stats.push({ label: 'Calories', value: Math.round(summary.calories), unit: '' })
+    if (summary.protein_g) stats.push({ label: 'Protein', value: Math.round(summary.protein_g), unit: 'g' })
+    if (summary.total_carbs_g) stats.push({ label: 'Carbs', value: Math.round(summary.total_carbs_g), unit: 'g' })
+    if (summary.total_fat_g) stats.push({ label: 'Fat', value: Math.round(summary.total_fat_g), unit: 'g' })
+    
+    return stats
+  }
+
+  // Get meal type from transcript
+  function getMealType(consumption: Consumption): string {
+    const transcript = consumption.transcript?.toLowerCase() || ''
+    if (transcript.includes('breakfast') || transcript.includes('morning')) return 'Breakfast'
+    if (transcript.includes('lunch')) return 'Lunch'
+    if (transcript.includes('dinner')) return 'Dinner'
+    if (transcript.includes('snack')) return 'Snack'
+    if (transcript.includes('coffee') || transcript.includes('tea') || transcript.includes('drink')) return 'Beverage'
+    return 'Meal'
+  }
+
+  // Format event type for display
+  function formatEventType(eventTypeId: string | null | undefined): string {
+    if (!eventTypeId) return 'Event'
+    return eventTypeId.charAt(0).toUpperCase() + eventTypeId.slice(1)
+  }
+
+  // Get level color and description
+  function getLevelInfo(level: number | null | undefined) {
+    if (level === null || level === undefined) return null
+    
+    if (level <= 2) return { color: 'text-green-600 bg-green-100', desc: 'Mild' }
+    if (level <= 4) return { color: 'text-yellow-600 bg-yellow-100', desc: 'Moderate' }
+    if (level <= 6) return { color: 'text-orange-600 bg-orange-100', desc: 'Significant' }
+    if (level <= 8) return { color: 'text-red-600 bg-red-100', desc: 'High' }
+    return { color: 'text-purple-600 bg-purple-100', desc: 'Intense' }
+  }
+
   onMount(() => {
     loadTimelineData()
   })
@@ -215,173 +277,201 @@
   <meta name="description" content="View your complete timeline of meals and events" />
 </svelte:head>
 
-<div class="container mx-auto px-4 py-8 max-w-4xl">
-  <!-- Header -->
-  <div class="flex items-center gap-3 mb-8">
-    <TimelineIcon class="w-8 h-8 text-primary" />
-    <div>
-      <h1 class="text-3xl font-bold">Timeline Log</h1>
-      <p class="text-base-content/70">Your complete timeline of meals and events</p>
-    </div>
-  </div>
-
-  <!-- Error State -->
-  {#if error}
-    <div class="alert alert-error mb-6">
-      <svg class="stroke-current shrink-0 w-6 h-6" fill="none" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span>{error}</span>
-      <button class="btn btn-sm" on:click={() => loadTimelineData()}>Retry</button>
-    </div>
-  {/if}
-
-  <!-- Timeline -->
-  {#if timelineEntries.length === 0 && !isLoading}
-    <!-- Empty State -->
-    <div class="text-center py-12">
-      <div class="text-6xl mb-4">📚</div>
-      <h3 class="text-2xl font-bold mb-2">No Timeline Entries</h3>
-      <p class="text-base-content/70 mb-6">
-        Start logging meals and creating events to see your timeline
-      </p>
-      <div class="flex gap-4 justify-center">
-        <a href="/record" class="btn btn-primary">Record a Meal</a>
-        <a href="/events" class="btn btn-outline">Create Event</a>
-      </div>
-    </div>
-  {:else}
-    <!-- Timeline Entries -->
-    <div class="timeline timeline-snap-icon max-md:timeline-compact timeline-vertical">
-      {#each timelineEntries as entry, index (entry.id)}
-        <li>
-          <div class="timeline-middle">
-            {#if entry.type === "consumption"}
-              <div class="w-3 h-3 bg-success rounded-full"></div>
-            {:else}
-              <div class="w-3 h-3 bg-info rounded-full"></div>
-            {/if}
-          </div>
-          <div class="timeline-start md:text-end mb-10">
-            <time class="font-mono italic text-sm text-base-content/60">
-              {formatDate(entry.created_at)}
-            </time>
-          </div>
-          <div class="timeline-end timeline-box">
-            {#if entry.type === "consumption"}
-              {@const consumption = entry.data}
-              <div class="space-y-3">
-                <div class="flex items-start gap-2">
-                  <div class="w-2 h-2 bg-success rounded-full mt-2 shrink-0"></div>
-                  <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-1">
-                      <h3 class="font-semibold text-success">Meal Logged</h3>
-                      <!-- Show lock icon for linked consumptions -->
-                      {#if isConsumptionLinked(consumption.id)}
-                        <svg class="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Linked to event">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                      {/if}
-                    </div>
-                    <p class="text-sm italic mb-2">"{consumption.transcript}"</p>
-                    
-                    <!-- Nutrition highlights -->
-                    {#if getNutritionHighlights(consumption)}
-                      <div class="text-sm text-base-content/80 mb-2">
-                        {getNutritionHighlights(consumption)}
-                      </div>
-                    {/if}
-                    
-                    <!-- Labels -->
-                    {#if consumption.labels && consumption.labels.length > 0}
-                      <div class="flex gap-1 flex-wrap">
-                        {#each consumption.labels as label}
-                          <span 
-                            class="badge badge-xs"
-                            style="background-color: {label.color}20; color: {label.color}; border: 1px solid {label.color};"
-                          >
-                            {label.name}
-                          </span>
-                        {/each}
-                      </div>
-                    {/if}
-                  </div>
-                </div>
-              </div>
-            {:else}
-              {@const event = entry.data}
-              <div class="space-y-3">
-                <div class="flex items-start gap-2">
-                  <div class="w-2 h-2 bg-info rounded-full mt-2 shrink-0"></div>
-                  <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-1">
-                      <h3 class="font-semibold text-info">{event.name}</h3>
-                      {#if event.level !== null && event.level !== undefined}
-                        <span class="badge badge-xs badge-outline">Level {event.level}</span>
-                      {/if}
-                      <!-- Show lock icon for linked events -->
-                      {#if hasConsumptionLinks(event.id)}
-                        <svg class="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Linked to consumption">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                      {/if}
-                    </div>
-                    
-                    <p class="text-sm text-base-content/60 mb-2">{event.event_type?.name || "Event"}</p>
-                    
-                    {#if event.note}
-                      <p class="text-sm mb-2">{event.note}</p>
-                    {/if}
-                    
-                    <!-- Show consumption links -->
-                    {#if hasConsumptionLinks(event.id)}
-                      {@const consumptionLinks = getConsumptionLinks(event.id)}
-                      <div class="flex items-center gap-2 mt-2">
-                        <svg class="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
-                        </svg>
-                        <span class="text-primary font-medium text-xs">
-                          Linked to {consumptionLinks.length === 1 ? 'consumption' : `${consumptionLinks.length} consumptions`}
-                        </span>
-                      </div>
-                    {/if}
-                    
-                    <!-- Event timing -->
-                    <div class="text-xs text-base-content/50 mt-2">
-                      {#if event.ended_at}
-                        Duration: {formatDate(event.started_at)} → {formatDate(event.ended_at)}
-                      {:else}
-                        Started: {formatDate(event.started_at)}
-                      {/if}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            {/if}
-          </div>
-        </li>
-      {/each}
+<!-- Clean, minimal background -->
+<div class="min-h-screen bg-white">
+  <div class="max-w-3xl mx-auto px-6 py-12">
+    
+    <!-- Simple, clean header -->
+    <div class="mb-16">
+      <h1 class="text-2xl font-medium text-gray-900 mb-2">Timeline</h1>
+      <p class="text-gray-600">Your complete log of meals and wellness events</p>
     </div>
 
-    <!-- Load More Button -->
-    {#if hasMore}
-      <div class="text-center mt-8">
-        <button 
-          class="btn btn-outline"
-          class:loading={isLoading}
-          disabled={isLoading}
-          on:click={loadMore}
-        >
-          {isLoading ? "Loading..." : "Load More"}
-        </button>
+    <!-- Error State -->
+    {#if error}
+      <div class="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div class="flex items-center justify-between">
+          <p class="text-red-800">{error}</p>
+          <button class="text-red-600 hover:text-red-800 font-medium" on:click={() => loadTimelineData()}>
+            Retry
+          </button>
+        </div>
       </div>
     {/if}
-  {/if}
 
-  <!-- Loading State -->
-  {#if isLoading && timelineEntries.length === 0}
-    <div class="flex justify-center py-12">
-      <span class="loading loading-spinner loading-lg"></span>
-    </div>
-  {/if}
+    <!-- Timeline Content -->
+    {#if timelineEntries.length === 0 && !isLoading}
+      <!-- Clean empty state -->
+      <div class="text-center py-24">
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No entries yet</h3>
+        <p class="text-gray-600 mb-8 max-w-sm mx-auto">
+          Start logging meals and tracking events to see your timeline here
+        </p>
+        <div class="flex gap-3 justify-center">
+          <a href="/record" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+            Record a Meal
+          </a>
+          <a href="/events" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+            Create Event
+          </a>
+        </div>
+      </div>
+    {:else}
+      <!-- Clean Timeline -->
+      <div class="space-y-8">
+        {#each timelineEntries as entry, index (entry.id)}
+          {@const isConsumption = entry.type === "consumption"}
+          
+          <div class="flex gap-4">
+            <!-- Simple timestamp -->
+            <div class="flex-shrink-0 w-20 pt-1">
+              <div class="text-xs text-gray-500 font-mono">
+                {formatTime(entry.created_at)}
+              </div>
+              <div class="text-xs text-gray-400">
+                {formatRelativeDate(entry.created_at)}
+              </div>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+              {#if isConsumption}
+                {@const consumption = entry.data as Consumption}
+                {@const nutritionStats = getNutritionStats(consumption)}
+                
+                <div class="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors">
+                  <!-- Header -->
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div>
+                        <h3 class="font-medium text-gray-900">
+                          {getMealType(consumption)}
+                        </h3>
+                        {#if isConsumptionLinked(consumption.id)}
+                          <div class="flex items-center gap-1 mt-1">
+                            <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                            </svg>
+                            <span class="text-xs text-gray-500">Linked to event</span>
+                          </div>
+                        {/if}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Meal description -->
+                  <div class="mb-4">
+                    <p class="text-gray-700 leading-relaxed">
+                      {consumption.transcript}
+                    </p>
+                  </div>
+                  
+                  <!-- Nutrition stats -->
+                  {#if nutritionStats.length > 0}
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      {#each nutritionStats as stat}
+                        <div class="text-center">
+                          <div class="text-sm font-medium text-gray-900">{stat.value}{stat.unit}</div>
+                          <div class="text-xs text-gray-500">{stat.label}</div>
+                        </div>
+                      {/each}
+                    </div>
+                  {/if}
+                  
+                  <!-- Labels -->
+                  {#if consumption.labels && consumption.labels.length > 0}
+                    <div class="flex flex-wrap gap-2">
+                      {#each consumption.labels as label}
+                        <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-md">
+                          {label.name}
+                        </span>
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+
+              {:else}
+                {@const event = entry.data as Event}
+                {@const levelInfo = getLevelInfo(event.level)}
+                
+                <div class="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors">
+                  <!-- Header -->
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      <div>
+                        <h3 class="font-medium text-gray-900">
+                          {event.name}
+                        </h3>
+                        <div class="flex items-center gap-2 mt-1">
+                          <span class="text-xs text-gray-500">
+                            {formatEventType(event.event_type_id)}
+                          </span>
+                          {#if levelInfo}
+                            <span class="text-xs text-gray-500">
+                              • Level {event.level}
+                            </span>
+                          {/if}
+                          {#if hasConsumptionLinks(event.id)}
+                            <div class="flex items-center gap-1">
+                              <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                              </svg>
+                              <span class="text-xs text-gray-500">Linked to meal</span>
+                            </div>
+                          {/if}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Event details -->
+                  {#if event.note}
+                    <div class="mb-4">
+                      <p class="text-gray-700 leading-relaxed">
+                        {event.note}
+                      </p>
+                    </div>
+                  {/if}
+                  
+                  <!-- Event duration -->
+                  {#if event.ended_at}
+                    <div class="text-xs text-gray-500">
+                      Duration: {formatTime(event.started_at)} → {formatTime(event.ended_at)}
+                    </div>
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+
+      <!-- Load More Button -->
+      {#if hasMore}
+        <div class="text-center mt-12">
+          <button 
+            class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors {isLoading ? 'opacity-50' : ''}"
+            disabled={isLoading}
+            on:click={loadMore}
+          >
+            {isLoading ? "Loading..." : "Load more entries"}
+          </button>
+        </div>
+      {:else if timelineEntries.length > 0}
+        <div class="text-center mt-16 py-8">
+          <p class="text-gray-500 text-sm">End of timeline</p>
+        </div>
+      {/if}
+    {/if}
+
+    <!-- Loading State -->
+    {#if isLoading && timelineEntries.length === 0}
+      <div class="flex flex-col items-center justify-center py-24">
+        <div class="animate-spin w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full mb-4"></div>
+        <p class="text-gray-600">Loading your timeline...</p>
+      </div>
+    {/if}
+  </div>
 </div>

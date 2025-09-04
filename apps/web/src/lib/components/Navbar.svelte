@@ -82,7 +82,7 @@
               {:else if item.icon === "calendar"}
                 <CalendarIcon className="w-6 h-6" />
               {:else if item.icon === "timeline"}
-                <TimelineIcon className="w-6 h-6" />
+                <TimelineIcon class_="w-6 h-6" />
               {:else}
                 <svg
                   class="w-6 h-6"
@@ -126,7 +126,7 @@
               {:else if item.icon === "calendar"}
                 <CalendarIcon className="w-4 h-4" />
               {:else if item.icon === "timeline"}
-                <TimelineIcon className="w-4 h-4" />
+                <TimelineIcon class_="w-4 h-4" />
               {:else}
                 <svg
                   class="w-4 h-4"
