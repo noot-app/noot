@@ -1,14 +1,18 @@
 <script lang="ts">
-  export let class_: string = "size-6"
+  export let className: string = "w-6 h-6"
+  export let strokeWidth: number = 1.8
+  export let title: string | undefined = undefined
 </script>
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
   fill="none"
   viewBox="0 0 24 24"
-  stroke-width="1.5"
+  stroke-width={strokeWidth}
   stroke="currentColor"
-  class={class_}
+  class={className}
+  aria-hidden={title ? undefined : true}
+  aria-label={title}
 >
   <path
     stroke-linecap="round"
