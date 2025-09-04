@@ -49,6 +49,13 @@
                 "null"
               ],
               "description": "The exact brand or product name mentioned, or null if not specified."
+            },
+            "context": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Contextual information about the item, e.g., 'for a salad', 'as a snack', etc., or null if it cannot be determined."
             }
           },
           "required": [
@@ -56,7 +63,8 @@
             "grams",
             "user_quantity",
             "user_unit",
-            "brand"
+            "brand",
+            "context"
           ],
           "additionalProperties": false
         }

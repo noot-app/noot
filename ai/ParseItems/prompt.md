@@ -24,6 +24,7 @@ Begin with a concise checklist (3-7 bullets) of what you will do; keep items con
 - **Brand and Product Names**: Always preserve the exact names provided (e.g., "Clover Sonoma", "Trader Joe's", "Siggi's"). Capture the brand/product name as the required `brand` property, or null if not available. When dealing with brand names, reason about the spelling. For example, `Clif` bars are spelled with "one f" instead of two. Other common examples are: Krispy Kreme, Cheez-It, RxBar, and Kool-Aid.
 - **Flavor Assumptions**: If the user provides some input that indicates a brand and a flavor of something (ex: "a can of Coca-Cola Cherry") then Coca-Cola should be stored in the `brand` field and the name would be "Coca-Cola Cherry" to preserve context. Be careful when doing flavor assumptions because "Coca-Cola Cherry" would be one item where ""Coca-Cola and a cherry" are two distinct items.
 - **What a Food Item is**: A food item could be a pre-packaged item like "Goldfish", it could be a canned drink like a "Pepsi", or it could be individual whole ingredients like "a tsp of table salt", a "potato", or perhaps "three onions". It could also be a composite food like a "burger" or a "slice of pizza".
+- **Keep relevant context**: For each item, gather context about it from the transcript and store it in the `context` field, or null if it cannot be determined. Contextual information might include phrases like "for a salad", "as a snack", "with breakfast", etc. The context could apply to the whole meal, or just to a specific item if clearly indicated. For example, "I had a can of pepsi and a grilled cheese with fried onions for lunch", where "pepsi" does not have any extra context but "grilled cheese" has the context that it was "grilled" and "fried onions" has the context that they were "fried". Another example could be "I drank a green smoothie with extra kale" where the item would be `green smoothie` and the context for this item would be `extra kale`. If the context is ambiguous or cannot be determined, set it to null.
 
 ## Input Format
 
@@ -49,6 +50,7 @@ Return a strict JSON object containing the following required fields:
   - `user_quantity` (number or null): User's reported quantity.
   - `user_unit` (string or null): User's reported unit (e.g., 'cup', 'slice'), or null.
   - `brand` (string or null): Exact brand or product name if specified, otherwise null.
+  - `context` (string or null): Contextual information about the item, e.g., 'for a salad', 'as a snack', 'no salt', etc., or null if it cannot be determined.
   The array should be empty if success is false. Each field must be present, and `brand` is now explicitly required.
 
 Order all array elements as they appeared in the user's original description.
@@ -65,14 +67,24 @@ Order all array elements as they appeared in the user's original description.
       "grams": 480,
       "user_quantity": 2,
       "user_unit": "cup",
-      "brand": "Starbucks"
+      "brand": "Starbucks",
+      "context": null
     },
     {
       "name": "banana",
       "grams": 118,
       "user_quantity": 1,
       "user_unit": "medium",
-      "brand": null
+      "brand": null,
+      "context": null
+    },
+    {
+      "name": "potato chips",
+      "grams": 30,
+      "user_quantity": 1,
+      "user_unit": "handful",
+      "brand": null,
+      "context": "as a snack, less sodium version"
     }
   ]
 }

@@ -24,9 +24,13 @@ Generate accurate, comprehensive nutrition information for a specified food item
 3. Web search results from 3rd party sources about the food/drink item
 4. Educated estimates
 
-## nutrition_context
+## `nutrition_context` field
 
 If a `nutrition_context` object is provided, look at the `note` field, the `source` field, and the `products`.  You are allowed to navigate to the `nutrition_context.products.<product>.link` via a web request to learn more about the product and determine if it is a correct fit for guiding nutrient data and if it is an exact match or not. For exact matches, it is best to use its ingredients, link, and nutrients as an authoritative source. This will always work best for branded products.
+
+## `context` field
+
+The context field may contain useful information about how the food was prepared or consumed. For example, "with extra kale" in the context of a smoothie indicates that kale is an ingredient. Use this information to adjust nutrient estimates accordingly. This context comes directly from the user and should be trusted as fairly accurate.
 
 ## Setting `ingredients` field
 
@@ -64,6 +68,9 @@ Always ensure the `ingredients` field is set with a best effort attempt.
     "brand": {
       "type": ["string", "null"]
     },
+    "context": {
+      "type": ["string", "null"]
+    },
     "nutrition_context": {
       "type": ["object", "null"]
     }
@@ -91,6 +98,8 @@ Return a strict JSON object. No extraneous fields, text, or metadata. Use the er
 - Only return the requested JSON nutrition data and associated ingredients.
 - Do not provide explanations or extra formatting.
 - After assembling data, internally validate quantities by comparing with provided food benchmarks, and correct if outliers are detected. Proceed or self-correct as needed.
+- Think through each item's nutritional profile carefully, especially when scaling from different serving sizes or when using estimates.
+- Ask yourself, 'does this item really contain trans fats?' or 'is it plausible for this item to have 0g of carbohydrates?', 'does this item have caffeine?' etc.
 
 ## Reasoning Effort
 
