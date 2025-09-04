@@ -14,8 +14,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Log a consumption via audio
-         * @description Upload an audio file of spoken consumption data to be transcribed, parsed, and analyzed for nutrition information
+         * Log a consumption via audio or text
+         * @description Upload an audio file of spoken consumption data to be transcribed, or provide text directly, then parse and analyze for nutrition information
          */
         post: operations["createConsumption"];
         delete?: never;
@@ -995,6 +995,11 @@ export interface components {
             summary: components["schemas"]["Summary"];
             /** @description Request identifier for tracking */
             request_id: string;
+            /**
+             * @description Source of the input data (audio transcription or direct text)
+             * @enum {string}
+             */
+            input_source?: "audio" | "text";
         };
         ConsumptionsResponse: {
             consumptions: components["schemas"]["Consumption"][];
@@ -1524,6 +1529,12 @@ export interface operations {
                      * @description Audio file (webm, opus, mp3, wav)
                      */
                     audio: string;
+                    /** @description Text description of consumption (optional, takes precedence over audio if both provided) */
+                    text?: string;
+                };
+                "application/json": {
+                    /** @description Text description of consumption */
+                    text: string;
                 };
             };
         };
@@ -1537,7 +1548,7 @@ export interface operations {
                     "application/json": components["schemas"]["ConsumptionResponse"];
                 };
             };
-            /** @description Bad request (invalid multipart form, no audio file, etc.) */
+            /** @description Bad request (invalid multipart form, no audio file, no text provided, etc.) */
             400: {
                 headers: {
                     [name: string]: unknown;

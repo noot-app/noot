@@ -34,7 +34,7 @@ type ServerInterface interface {
 	// Update user biometrics
 	// (PUT /biometrics)
 	UpdateUserBiometrics(c *gin.Context)
-	// Log a consumption via audio
+	// Log a consumption via audio or text
 	// (POST /consumption)
 	CreateConsumption(c *gin.Context)
 	// Get labels assigned to a consumption item

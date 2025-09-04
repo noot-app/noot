@@ -337,3 +337,101 @@ func validateTrendsSubscriptionAccess(subscriptionTier string, start, end time.T
 
 	return nil
 }
+
+// normalizeConsumptionInput extracts and normalizes input from either JSON or multipart form
+func normalizeConsumptionInput(c *gin.Context, requestID string, maxFormSize int64) (*ConsumptionInput, error) {
+	contentType := c.GetHeader("Content-Type")
+
+	LogDebug("Processing consumption input", "content_type", contentType, "request_id", requestID)
+
+	// Handle JSON input (application/json)
+	if strings.HasPrefix(contentType, "application/json") {
+		var jsonInput struct {
+			Text string `json:"text" binding:"required"`
+		}
+
+		if err := c.ShouldBindJSON(&jsonInput); err != nil {
+			return nil, NewAppError("Invalid JSON or missing text field", http.StatusBadRequest, err)
+		}
+
+		// Sanitize the text input for security
+		sanitizedText := sanitizeTranscriptOutput(jsonInput.Text)
+		if len(strings.TrimSpace(sanitizedText)) == 0 {
+			return nil, NewAppError("Text field cannot be empty", http.StatusBadRequest, nil)
+		}
+
+		LogDebug("JSON text input received", "text_length", len(sanitizedText), "request_id", requestID)
+
+		return &ConsumptionInput{
+			Text:      sanitizedText,
+			Source:    "text",
+			RequestID: requestID,
+		}, nil
+	}
+
+	// Handle multipart form input (multipart/form-data) - existing behavior
+	if err := c.Request.ParseMultipartForm(maxFormSize); err != nil {
+		return nil, NewAppError("Invalid multipart form or file too large", http.StatusBadRequest, err)
+	}
+
+	// Check if text field is provided in multipart form (takes precedence over audio)
+	if textValue := c.PostForm("text"); textValue != "" {
+		sanitizedText := sanitizeTranscriptOutput(textValue)
+		if len(strings.TrimSpace(sanitizedText)) == 0 {
+			return nil, NewAppError("Text field cannot be empty", http.StatusBadRequest, nil)
+		}
+
+		LogDebug("Multipart text input received", "text_length", len(sanitizedText), "request_id", requestID)
+
+		return &ConsumptionInput{
+			Text:      sanitizedText,
+			Source:    "text",
+			RequestID: requestID,
+		}, nil
+	}
+
+	// Handle audio file input
+	file, header, err := c.Request.FormFile("audio")
+	if err != nil {
+		return nil, NewAppError("No audio file uploaded (field: audio) or text provided", http.StatusBadRequest, err)
+	}
+	defer file.Close()
+
+	LogDebug("Audio file received",
+		"filename", header.Filename,
+		"size", header.Size,
+		"content_type", header.Header.Get("Content-Type"),
+		"request_id", requestID,
+	)
+
+	// Save to temp file
+	tmpPath, mimeType, err := saveTempFile(file, header)
+	if err != nil {
+		return nil, NewAppError("Failed to save upload", http.StatusInternalServerError, err)
+	}
+	// Note: We don't defer removeFile here because the caller needs to handle cleanup
+
+	LogDebug("Temp file created", "path", tmpPath, "mime_type", mimeType, "request_id", requestID)
+
+	// Create nutrition service for transcription
+	nutritionService := NewNutritionService(nil) // No store needed for transcription
+
+	// Transcribe audio
+	ctx := c.Request.Context()
+	transcript, err := nutritionService.TranscribeAudio(ctx, tmpPath, mimeType)
+
+	// Clean up temp file
+	removeFile(tmpPath)
+
+	if err != nil {
+		return nil, NewAppError("Transcription failed", http.StatusInternalServerError, err)
+	}
+
+	LogDebug("Transcription completed", "transcript_length", len(transcript), "request_id", requestID)
+
+	return &ConsumptionInput{
+		Text:      transcript,
+		Source:    "audio",
+		RequestID: requestID,
+	}, nil
+}
