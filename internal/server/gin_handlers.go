@@ -1459,18 +1459,16 @@ func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
 
 // GetLabels retrieves all labels for the current user with usage counts
 func (s *APIServer) GetLabels(c *gin.Context) {
-	user, err := getCurrentUser(c)
-	if err != nil {
-		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
-		s.handleAppError(c, appErr, c.GetString("request_id"))
-		return
+	user := requireAuthentication(c)
+	if user == nil {
+		return // Error already handled by requireAuthentication
 	}
 
 	ctx := c.Request.Context()
 	labels, err := s.store.ListLabels(ctx, user.ID)
 	if err != nil {
 		appErr := NewAppError("Failed to retrieve labels", http.StatusInternalServerError, err)
-		s.handleAppError(c, appErr, c.GetString("request_id"))
+		s.handleAppError(c, appErr, getRequestID(c))
 		return
 	}
 
@@ -1498,30 +1496,28 @@ func (s *APIServer) GetLabels(c *gin.Context) {
 
 // CreateLabel creates a new label for the current user
 func (s *APIServer) CreateLabel(c *gin.Context) {
-	user, err := getCurrentUser(c)
-	if err != nil {
-		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
-		s.handleAppError(c, appErr, c.GetString("request_id"))
-		return
+	user := requireAuthentication(c)
+	if user == nil {
+		return // Error already handled by requireAuthentication
 	}
 
 	var req api.LabelCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		appErr := NewAppError("Invalid request body", http.StatusBadRequest, err)
-		s.handleAppError(c, appErr, c.GetString("request_id"))
+		s.handleAppError(c, appErr, getRequestID(c))
 		return
 	}
 
 	// Validate required fields
 	if req.Name == "" {
 		appErr := NewAppError("Label name is required", http.StatusBadRequest, nil)
-		s.handleAppError(c, appErr, c.GetString("request_id"))
+		s.handleAppError(c, appErr, getRequestID(c))
 		return
 	}
 
 	if req.Color == "" {
 		appErr := NewAppError("Label color is required", http.StatusBadRequest, nil)
-		s.handleAppError(c, appErr, c.GetString("request_id"))
+		s.handleAppError(c, appErr, getRequestID(c))
 		return
 	}
 
@@ -1534,7 +1530,7 @@ func (s *APIServer) CreateLabel(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	err = s.store.CreateLabel(ctx, label)
+	err := s.store.CreateLabel(ctx, label)
 	if err != nil {
 		if err.Error() == "label name already exists" {
 			appErr := NewAppError("Label name already exists", http.StatusConflict, err)
