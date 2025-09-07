@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/grantbirki/noot/internal/storage"
 )
 
@@ -14,26 +16,6 @@ const (
 	// Cache TTL for nutrition data
 	cacheTTLDays = 30
 	cacheTTL     = cacheTTLDays * 24 * time.Hour
-
-	// Decimal precision for different nutrient types
-	caloriesPrecision    = 3
-	proteinPrecision     = 2
-	fatPrecision         = 2
-	transFatPrecision    = 1
-	cholesterolPrecision = 1
-	sodiumPrecision      = 1
-	carbsPrecision       = 1
-	fiberPrecision       = 1
-	sugarsPrecision      = 1
-	vitaminPrecision     = 1
-	vitaminBPrecision    = 3 // For B vitamins that need higher precision
-	mineralPrecision     = 1
-	tracePrecision       = 3 // For trace elements like omega-3s
-	zincPrecision        = 2
-	vitaminB12Precision  = 2
-	omegaPrecision       = 3
-	omega6Precision      = 2
-	alcoholPrecision     = 2
 )
 
 // getCommonServingSizes returns common serving sizes for cache lookups
@@ -336,126 +318,115 @@ func (s *NutritionService) ParseItems(ctx context.Context, transcriptText string
 
 // HydrateNutrition hydrates parsed items with nutrition data using cache when available
 func (s *NutritionService) HydrateNutrition(ctx context.Context, items []Item) ([]Item, error) {
-	LogDebug("Starting nutrition hydration", "item_count", len(items))
+	logHydrationDecision("hydration_start", "item_count", len(items))
 
 	if len(items) == 0 {
 		return items, nil
 	}
 
-	// Use goroutines and channels for parallel processing
-	type result struct {
-		index int
-		item  Item
-		err   error
-	}
-
-	results := make(chan result, len(items))
-
-	// Start goroutines for each item
-	for i, item := range items {
-		go func(index int, item Item) {
-			hydratedItem, err := s.hydrateItemNutrition(ctx, item)
-			results <- result{index: index, item: hydratedItem, err: err}
-		}(i, item)
-	}
-
-	// Collect results
+	// Create errgroup for concurrency control and context cancellation
+	g, ctx := errgroup.WithContext(ctx)
+	
+	// Limit concurrent AI calls to 6 (reasonable for API rate limits)
+	const maxConcurrentAICalls = 6
+	semaphore := make(chan struct{}, maxConcurrentAICalls)
+	
+	// Results channel to collect hydrated items
 	hydratedItems := make([]Item, len(items))
-	for i := 0; i < len(items); i++ {
-		res := <-results
-		if res.err != nil {
-			LogWarn("Failed to hydrate item nutrition, using item without nutrition",
-				"index", res.index, "name", items[res.index].Name, "error", res.err.Error())
-			// Use original item without nutrition data rather than failing entire request
-			hydratedItems[res.index] = items[res.index]
-		} else {
-			hydratedItems[res.index] = res.item
-		}
+	
+	// Process each item with concurrency limiting
+	for i, item := range items {
+		i, item := i, item // Capture loop variables
+		g.Go(func() error {
+			// Acquire semaphore for AI call limiting
+			select {
+			case semaphore <- struct{}{}:
+				defer func() { <-semaphore }()
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+			
+			hydratedItem, err := s.hydrateItemNutrition(ctx, item)
+			if err != nil {
+				logHydrationDecision("hydration_failed", "index", i, "name", item.Name, "error", err.Error())
+				// Use original item without nutrition data rather than failing entire request
+				hydratedItems[i] = item
+				return nil // Don't fail the entire batch for individual failures
+			}
+			
+			hydratedItems[i] = hydratedItem
+			return nil
+		})
 	}
-
-	LogDebug("Nutrition hydration completed", "hydrated_count", len(hydratedItems))
+	
+	// Wait for all goroutines to complete
+	if err := g.Wait(); err != nil {
+		return nil, fmt.Errorf("nutrition hydration failed: %w", err)
+	}
+	
+	logHydrationDecision("hydration_completed", "hydrated_count", len(hydratedItems))
 	return hydratedItems, nil
 }
 
 // HydrateNutritionWithoutCache hydrates items without using cache (direct AI calls)
 func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, items []Item) ([]Item, error) {
-	LogDebug("Starting nutrition hydration without cache", "item_count", len(items))
+	logHydrationDecision("hydration_without_cache_start", "item_count", len(items))
 
 	if len(items) == 0 {
 		return items, nil
 	}
 
-	// Use goroutines and channels for parallel processing
-	type result struct {
-		index int
-		item  Item
-		err   error
-	}
-
-	results := make(chan result, len(items))
-
-	// Start goroutines for each item
-	for i, item := range items {
-		go func(index int, item Item) {
-			// Determine if this is a generic item (no brand)
-			isGenericItem := (item.Brand == nil || (item.Brand != nil && *item.Brand == ""))
-			LogDebug("Processing item for nutrition", "item", item.Name, "is_generic", isGenericItem)
-
-			var nutrition CompleteNutrient
-			var err error
-
-			if isGenericItem {
-				// No brand - use complete AI response for ingredients
-				aiResponse, aiErr := s.aiProvider.GetNutritionWithContextComplete(ctx, item)
-				if aiErr != nil {
-					results <- result{index: index, item: item, err: aiErr}
-					return
-				}
-				nutrition = aiResponse.Nutrients
-
-				// Extract ingredients from AI response for generic items
-				if len(aiResponse.Ingredients) > 0 {
-					item.Ingredients = aiResponse.Ingredients
-					LogDebug("Extracted ingredients from AI", "item", item.Name, "ingredient_count", len(item.Ingredients))
-				}
-
-				// Extract URL from AI response if available
-				if aiResponse.URL != nil && *aiResponse.URL != "" {
-					item.Url = aiResponse.URL
-					LogDebug("Saved AI URL", "item", item.Name, "url", *aiResponse.URL)
-				}
-
-				LogDebug("Using complete AI nutrition", "item", item.Name, "calories", nutrition.Calories)
-			} else {
-				// Branded items - use standard nutrition only
-				nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, item)
-				if err != nil {
-					results <- result{index: index, item: item, err: err}
-					return
-				}
-				LogDebug("Using AI nutrition", "item", item.Name, "calories", nutrition.Calories)
-			}
-
-			item.Nutrients = &nutrition
-			results <- result{index: index, item: item, err: nil}
-		}(i, item)
-	}
-
-	// Collect results
+	// Create errgroup for concurrency control and context cancellation
+	g, ctx := errgroup.WithContext(ctx)
+	
+	// Limit concurrent AI calls to 6 (reasonable for API rate limits)
+	const maxConcurrentAICalls = 6
+	semaphore := make(chan struct{}, maxConcurrentAICalls)
+	
+	// Results to collect hydrated items
 	hydratedItems := make([]Item, len(items))
-	for i := 0; i < len(items); i++ {
-		res := <-results
-		if res.err != nil {
-			LogWarn("Failed to get item nutrition, using item without nutrition",
-				"index", res.index, "name", items[res.index].Name, "error", res.err.Error())
-			// Use original item without nutrition data rather than failing entire request
-			hydratedItems[res.index] = items[res.index]
-		} else {
-			hydratedItems[res.index] = res.item
-		}
+	
+	// Process each item with concurrency limiting
+	for i, item := range items {
+		i, item := i, item // Capture loop variables
+		g.Go(func() error {
+			// Acquire semaphore for AI call limiting
+			select {
+			case semaphore <- struct{}{}:
+				defer func() { <-semaphore }()
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+			
+			// Get nutrition from AI (using extracted helper)
+			nutrition, ingredients, url, err := s.getAINutrition(ctx, item, s.aiProvider)
+			if err != nil {
+				logHydrationDecision("ai_call_failed", "index", i, "name", item.Name, "error", err.Error())
+				// Use original item without nutrition data rather than failing entire request
+				hydratedItems[i] = item
+				return nil // Don't fail the entire batch for individual failures
+			}
+			
+			// Update item with nutrition and extracted data
+			item.Nutrients = &nutrition
+			if ingredients != nil {
+				item.Ingredients = ingredients
+			}
+			if url != nil {
+				item.Url = url
+			}
+			
+			hydratedItems[i] = item
+			return nil
+		})
 	}
-
-	LogDebug("Nutrition hydration completed", "hydrated_count", len(hydratedItems))
+	
+	// Wait for all goroutines to complete
+	if err := g.Wait(); err != nil {
+		return nil, fmt.Errorf("nutrition hydration without cache failed: %w", err)
+	}
+	
+	logHydrationDecision("hydration_without_cache_completed", "hydrated_count", len(hydratedItems))
 	return hydratedItems, nil
 }
 
