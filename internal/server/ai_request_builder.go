@@ -127,11 +127,13 @@ func (b *AIRequestBuilder) BuildRequestPayload(userInput string) (*AIRequestPayl
 }
 
 // loadAIConfig loads the AI configuration from files in the specified directory
+// Falls back to embedded configs if files are not found
 func loadAIConfig(aiDir string) (*AIConfig, error) {
 	configPath := filepath.Join(aiDir, "config.json")
 	configData, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
+		// If file doesn't exist, try embedded config
+		return loadEmbeddedAIConfig(aiDir)
 	}
 
 	var config AIConfig
@@ -152,21 +154,25 @@ func loadAIConfig(aiDir string) (*AIConfig, error) {
 }
 
 // loadPrompt loads the prompt content from the specified directory
+// Falls back to embedded prompt if file is not found
 func loadPrompt(aiDir string) (string, error) {
 	promptPath := filepath.Join(aiDir, "prompt.md")
 	promptData, err := os.ReadFile(promptPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to read prompt file: %w", err)
+		// If file doesn't exist, try embedded prompt
+		return loadEmbeddedPrompt(aiDir)
 	}
 	return string(promptData), nil
 }
 
 // loadSchema loads the JSON schema from the specified directory
+// Falls back to embedded schema if file is not found
 func loadSchema(aiDir string) (map[string]interface{}, error) {
 	schemaPath := filepath.Join(aiDir, "schema.json")
 	schemaData, err := os.ReadFile(schemaPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read schema file: %w", err)
+		// If file doesn't exist, try embedded schema
+		return loadEmbeddedSchema(aiDir)
 	}
 
 	var schema map[string]interface{}

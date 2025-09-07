@@ -40,3 +40,6 @@ bin/
 *.db-wal
 
 main
+
+# Embedded AI config copies in server package (these are generated from the source ai/ directory)
+internal/server/ai/

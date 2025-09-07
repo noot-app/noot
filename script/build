@@ -30,6 +30,9 @@ done
 
 source script/env "${FILTERED_ARGS[@]}"
 
+# Prepare AI config files for embedding
+script/prepare-ai-embed
+
 # Get build information for embedding into binary
 COMMIT_SHA="$(git rev-parse HEAD)"
 BUILD_TIME="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"

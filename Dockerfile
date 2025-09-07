@@ -13,6 +13,9 @@ WORKDIR /build
 # Copy source code and vendor directory (full dependency vendoring)
 COPY . .
 
+# Prepare AI config files for embedding
+RUN script/prepare-ai-embed
+
 # Get build information for embedding into binary (similar to script/build)
 RUN COMMIT_SHA="$(git rev-parse HEAD 2>/dev/null || echo 'unknown')" && \
     BUILD_TIME="$(date -u '+%Y-%m-%dT%H:%M:%SZ')" && \

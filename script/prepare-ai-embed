@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# Script to ensure AI config files are available for embedding
+# This copies the source AI configs into the server package for embedding
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SERVER_AI_DIR="$ROOT_DIR/internal/server/ai"
+
+echo "🔄 Copying AI config files for embedding..."
+
+# Ensure the target directories exist
+mkdir -p "$SERVER_AI_DIR/ParseItems"
+mkdir -p "$SERVER_AI_DIR/GetNutrition"
+
+# Copy AI config files
+cp "$ROOT_DIR/ai/ParseItems/"* "$SERVER_AI_DIR/ParseItems/"
+cp "$ROOT_DIR/ai/GetNutrition/"* "$SERVER_AI_DIR/GetNutrition/"
+
+echo "✅ AI config files copied successfully for embedding"
+echo "   Source: $ROOT_DIR/ai/"
+echo "   Target: $SERVER_AI_DIR/"
