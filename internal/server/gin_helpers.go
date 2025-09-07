@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -124,6 +125,51 @@ func convertUser(user *storage.User) api.User {
 		AvatarUrl:        user.AvatarURL,
 		CreatedAt:        user.CreatedAt,
 	}
+}
+
+// requireAuthentication is a helper that handles user authentication boilerplate
+// Returns the authenticated user or handles the error response and returns nil
+func requireAuthentication(c *gin.Context) *storage.User {
+	user, err := getCurrentUser(c)
+	if err != nil {
+		requestID := getRequestID(c)
+		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
+		handleAppErrorGin(c, appErr, requestID)
+		return nil
+	}
+	return user
+}
+
+// setupRequestContext is a helper that extracts common request setup
+type RequestContext struct {
+	RequestID string
+	Context   context.Context
+	User      *storage.User
+}
+
+// setupAuthenticatedRequest sets up common request context with authentication
+func setupAuthenticatedRequest(c *gin.Context) *RequestContext {
+	requestID := getRequestID(c)
+	ctx := c.Request.Context()
+	user := requireAuthentication(c)
+	if user == nil {
+		return nil // Error already handled by requireAuthentication
+	}
+	
+	return &RequestContext{
+		RequestID: requestID,
+		Context:   ctx,
+		User:      user,
+	}
+}
+
+// checkStorageAvailable is a helper that checks if storage is available
+func checkStorageAvailable(c *gin.Context, store storage.Store) bool {
+	if store == nil {
+		handleStorageUnavailableError(c)
+		return false
+	}
+	return true
 }
 
 // generateTimeSeries creates time series data from consumption records
