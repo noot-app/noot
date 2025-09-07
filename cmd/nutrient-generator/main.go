@@ -18,6 +18,7 @@ type Nutrient struct {
 	Category    string `yaml:"category"`
 	Per100g     bool   `yaml:"per_100g"`
 	Original    bool   `yaml:"original"`
+	Precision   int    `yaml:"precision"`
 	GoFieldName string `yaml:"go_field_name"`
 	JSONTag     string `yaml:"json_tag"`
 	DisplayName string `yaml:"display_name"`
@@ -93,6 +94,11 @@ func generateGoTypes(config *NutrientConfig, outputDir string) error {
 		return fmt.Errorf("generating Item fields: %w", err)
 	}
 
+	// Generate nutrition service helpers (precision map, scaling functions)
+	if err := generateNutritionServiceHelpers(config, filepath.Join(outputDir, "internal/server")); err != nil {
+		return fmt.Errorf("generating nutrition service helpers: %w", err)
+	}
+
 	return nil
 }
 
@@ -127,6 +133,126 @@ type CompleteNutrient struct {
 
 	// Write package header
 	fmt.Fprintf(f, "package server\n\n")
+
+	return t.Execute(f, config)
+}
+
+func generateNutritionServiceHelpers(config *NutrientConfig, outputDir string) error {
+	tmpl := `// Nutrition service helper functions and constants
+// THIS FILE IS GENERATED - DO NOT EDIT MANUALLY
+// Generated from config/nutrients.yml
+
+package server
+
+import (
+	"math"
+	"reflect"
+	"github.com/grantbirki/noot/internal/storage"
+)
+
+// NutrientPrecision maps field names to their rounding precision
+var NutrientPrecision = map[string]int{
+{{- range .Nutrients}}
+{{- if and .Per100g (not (eq .Key "serving_grams"))}}
+	"{{.GoFieldName}}": {{.Precision}},
+{{- end}}
+{{- end}}
+}
+
+// ScaleNutritionDataGenerated scales nutrition data using reflection for DRY approach
+func ScaleNutritionDataGenerated(cached *storage.Item, factor float64) CompleteNutrient {
+	var result CompleteNutrient
+	
+	cachedVal := reflect.ValueOf(cached).Elem()
+	resultVal := reflect.ValueOf(&result).Elem()
+	
+	{{- range .Nutrients}}
+	{{- if and .Per100g (not (eq .Key "serving_grams"))}}
+	if field := cachedVal.FieldByName("{{.GoFieldName}}Per100g"); field.IsValid() && field.Kind() == reflect.Float64 {
+		scaled := field.Float() * factor
+		precision, exists := NutrientPrecision["{{.GoFieldName}}"]
+		if !exists {
+			precision = 2 // default precision
+		}
+		rounded := convertAndRound(scaled, precision)
+		resultVal.FieldByName("{{.GoFieldName}}").SetFloat(rounded)
+	}
+	{{- end}}
+	{{- end}}
+	
+	return result
+}
+
+// ConvertCachedToNutrientsGenerated converts cached data to CompleteNutrient
+func ConvertCachedToNutrientsGenerated(cached *storage.Item) CompleteNutrient {
+	var result CompleteNutrient
+	
+	cachedVal := reflect.ValueOf(cached).Elem()
+	resultVal := reflect.ValueOf(&result).Elem()
+	
+	{{- range .Nutrients}}
+	{{- if and .Per100g (not (eq .Key "serving_grams"))}}
+	if field := cachedVal.FieldByName("{{.GoFieldName}}Per100g"); field.IsValid() && field.Kind() == reflect.Float64 {
+		value := field.Float()
+		precision, exists := NutrientPrecision["{{.GoFieldName}}"]
+		if !exists {
+			precision = 2 // default precision
+		}
+		rounded := convertAndRound(value, precision)
+		resultVal.FieldByName("{{.GoFieldName}}").SetFloat(rounded)
+	}
+	{{- end}}
+	{{- end}}
+	
+	return result
+}
+
+// ConvertExactCachedToNutrientsGenerated converts exact cached data to CompleteNutrient
+func ConvertExactCachedToNutrientsGenerated(cached *storage.Item) CompleteNutrient {
+	var result CompleteNutrient
+	
+	cachedVal := reflect.ValueOf(cached).Elem()
+	resultVal := reflect.ValueOf(&result).Elem()
+	
+	{{- range .Nutrients}}
+	{{- if and .Per100g (not (eq .Key "serving_grams"))}}
+	if field := cachedVal.FieldByName("{{.GoFieldName}}Per100g"); field.IsValid() && field.Kind() == reflect.Float64 {
+		value := field.Float()
+		precision, exists := NutrientPrecision["{{.GoFieldName}}"]
+		if !exists {
+			precision = 2 // default precision
+		}
+		rounded := convertAndRound(value, precision)
+		resultVal.FieldByName("{{.GoFieldName}}").SetFloat(rounded)
+	}
+	{{- end}}
+	{{- end}}
+	
+	return result
+}
+
+// convertAndRound rounds a float64 to the specified decimal places
+func convertAndRound(value float64, precision int) float64 {
+	multiplier := math.Pow(10, float64(precision))
+	return math.Round(value*multiplier) / multiplier
+}
+`
+
+	t, err := template.New("nutritionHelpers").Parse(tmpl)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return err
+	}
+
+	outputFile := filepath.Join(outputDir, "nutrition_helpers_gen.go")
+	f, err := os.Create(outputFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
 
 	return t.Execute(f, config)
 }
@@ -275,6 +401,9 @@ func GetNutrientFields() []NutrientField {
 				return fieldName + "Mcg"
 			}
 			return fieldName
+		},
+		"contains": func(s, substr string) bool {
+			return strings.Contains(s, substr)
 		},
 	}
 

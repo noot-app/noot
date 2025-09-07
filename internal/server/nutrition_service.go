@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 	"time"
 
 	"github.com/grantbirki/noot/internal/storage"
@@ -14,26 +15,6 @@ const (
 	// Cache TTL for nutrition data
 	cacheTTLDays = 30
 	cacheTTL     = cacheTTLDays * 24 * time.Hour
-
-	// Decimal precision for different nutrient types
-	caloriesPrecision    = 3
-	proteinPrecision     = 2
-	fatPrecision         = 2
-	transFatPrecision    = 1
-	cholesterolPrecision = 1
-	sodiumPrecision      = 1
-	carbsPrecision       = 1
-	fiberPrecision       = 1
-	sugarsPrecision      = 1
-	vitaminPrecision     = 1
-	vitaminBPrecision    = 3 // For B vitamins that need higher precision
-	mineralPrecision     = 1
-	tracePrecision       = 3 // For trace elements like omega-3s
-	zincPrecision        = 2
-	vitaminB12Precision  = 2
-	omegaPrecision       = 3
-	omega6Precision      = 2
-	alcoholPrecision     = 2
 )
 
 // getCommonServingSizes returns common serving sizes for cache lookups
@@ -50,56 +31,30 @@ type NutritionService struct {
 
 // scaleNutritionData scales nutrition values by the given factor
 func scaleNutritionData(nutrients CompleteNutrient, factor float64) CompleteNutrient {
-	return CompleteNutrient{
-		Calories:           nutrients.Calories * factor,
-		Protein:            nutrients.Protein * factor,
-		TotalFat:           nutrients.TotalFat * factor,
-		SaturatedFat:       nutrients.SaturatedFat * factor,
-		TransFat:           nutrients.TransFat * factor,
-		Cholesterol:        nutrients.Cholesterol * factor,
-		Sodium:             nutrients.Sodium * factor,
-		TotalCarbs:         nutrients.TotalCarbs * factor,
-		DietaryFiber:       nutrients.DietaryFiber * factor,
-		TotalSugars:        nutrients.TotalSugars * factor,
-		AddedSugars:        nutrients.AddedSugars * factor,
-		VitaminA:           nutrients.VitaminA * factor,
-		VitaminC:           nutrients.VitaminC * factor,
-		VitaminD:           nutrients.VitaminD * factor,
-		VitaminE:           nutrients.VitaminE * factor,
-		VitaminK:           nutrients.VitaminK * factor,
-		Thiamine:           nutrients.Thiamine * factor,
-		Riboflavin:         nutrients.Riboflavin * factor,
-		Niacin:             nutrients.Niacin * factor,
-		VitaminB6:          nutrients.VitaminB6 * factor,
-		Folate:             nutrients.Folate * factor,
-		VitaminB12:         nutrients.VitaminB12 * factor,
-		Biotin:             nutrients.Biotin * factor,
-		PantothenicAcid:    nutrients.PantothenicAcid * factor,
-		Choline:            nutrients.Choline * factor,
-		Calcium:            nutrients.Calcium * factor,
-		Iron:               nutrients.Iron * factor,
-		Magnesium:          nutrients.Magnesium * factor,
-		Phosphorus:         nutrients.Phosphorus * factor,
-		Potassium:          nutrients.Potassium * factor,
-		Zinc:               nutrients.Zinc * factor,
-		Copper:             nutrients.Copper * factor,
-		Manganese:          nutrients.Manganese * factor,
-		Selenium:           nutrients.Selenium * factor,
-		Iodine:             nutrients.Iodine * factor,
-		Molybdenum:         nutrients.Molybdenum * factor,
-		Chromium:           nutrients.Chromium * factor,
-		Fluoride:           nutrients.Fluoride * factor,
-		Chloride:           nutrients.Chloride * factor,
-		Omega3Ala:          nutrients.Omega3Ala * factor,
-		Omega3Epa:          nutrients.Omega3Epa * factor,
-		Omega3Dha:          nutrients.Omega3Dha * factor,
-		Omega6:             nutrients.Omega6 * factor,
-		Creatine:           nutrients.Creatine * factor,
-		Caffeine:           nutrients.Caffeine * factor,
-		Alcohol:            nutrients.Alcohol * factor,
-		PolyunsaturatedFat: nutrients.PolyunsaturatedFat * factor,
-		MonounsaturatedFat: nutrients.MonounsaturatedFat * factor,
+	var result CompleteNutrient
+
+	// Use reflection to scale all fields with their appropriate precision
+	nutrientsVal := reflect.ValueOf(nutrients)
+	resultVal := reflect.ValueOf(&result).Elem()
+
+	for i := 0; i < nutrientsVal.NumField(); i++ {
+		field := nutrientsVal.Field(i)
+		if field.Kind() == reflect.Float64 {
+			fieldName := nutrientsVal.Type().Field(i).Name
+			scaled := field.Float() * factor
+
+			// Apply precision rounding using the generated map
+			precision, exists := NutrientPrecision[fieldName]
+			if !exists {
+				precision = 2 // default precision
+			}
+
+			rounded := convertAndRound(scaled, precision)
+			resultVal.Field(i).SetFloat(rounded)
+		}
 	}
+
+	return result
 }
 
 // fetchNutritionFromCache attempts to fetch nutrition data from cache
@@ -501,59 +456,84 @@ func (s *NutritionService) convertCachedToNutrients(cached *storage.Item, item I
 	// Use the actual grams from the item
 	actualGrams := item.Grams
 
-	// Helper function to convert and round in one step
-	convertAndRound := func(per100gValue float64, decimalPlaces int) float64 {
-		return RoundToDecimalPlaces(s.converter.ConvertFromPer100gToServing(per100gValue, actualGrams), decimalPlaces)
+	var result CompleteNutrient
+
+	// Use reflection to convert all fields dynamically
+	cachedVal := reflect.ValueOf(cached).Elem()
+	resultVal := reflect.ValueOf(&result).Elem()
+
+	// Map field names for conversion
+	fieldMap := map[string]string{
+		"Calories":           "CaloriesPer100g",
+		"Protein":            "ProteinGPer100g",
+		"TotalFat":           "TotalFatGPer100g",
+		"SaturatedFat":       "SaturatedFatGPer100g",
+		"TransFat":           "TransFatGPer100g",
+		"MonounsaturatedFat": "MonounsaturatedFatGPer100g",
+		"PolyunsaturatedFat": "PolyunsaturatedFatGPer100g",
+		"Cholesterol":        "CholesterolMgPer100g",
+		"Sodium":             "SodiumMgPer100g",
+		"TotalCarbs":         "TotalCarbsGPer100g",
+		"DietaryFiber":       "DietaryFiberGPer100g",
+		"TotalSugars":        "TotalSugarsGPer100g",
+		"AddedSugars":        "AddedSugarsGPer100g",
+		"VitaminA":           "VitaminAMcgPer100g",
+		"VitaminC":           "VitaminCMgPer100g",
+		"VitaminD":           "VitaminDMcgPer100g",
+		"VitaminE":           "VitaminEMgPer100g",
+		"VitaminK":           "VitaminKMcgPer100g",
+		"Thiamine":           "ThiamineMgPer100g",
+		"Riboflavin":         "RiboflavinMgPer100g",
+		"Niacin":             "NiacinMgPer100g",
+		"VitaminB6":          "VitaminB6MgPer100g",
+		"Folate":             "FolateMcgPer100g",
+		"VitaminB12":         "VitaminB12McgPer100g",
+		"Biotin":             "BiotinMcgPer100g",
+		"PantothenicAcid":    "PantothenicAcidMgPer100g",
+		"Choline":            "CholineMgPer100g",
+		"Calcium":            "CalciumMgPer100g",
+		"Iron":               "IronMgPer100g",
+		"Magnesium":          "MagnesiumMgPer100g",
+		"Phosphorus":         "PhosphorusMgPer100g",
+		"Potassium":          "PotassiumMgPer100g",
+		"Zinc":               "ZincMgPer100g",
+		"Copper":             "CopperMgPer100g",
+		"Manganese":          "ManganeseMgPer100g",
+		"Selenium":           "SeleniumMcgPer100g",
+		"Iodine":             "IodineMcgPer100g",
+		"Molybdenum":         "MolybdenumMcgPer100g",
+		"Chromium":           "ChromiumMcgPer100g",
+		"Fluoride":           "FluorideMgPer100g",
+		"Chloride":           "ChlorideMgPer100g",
+		"Omega3Ala":          "Omega3AlaGPer100g",
+		"Omega3Epa":          "Omega3EpaGPer100g",
+		"Omega3Dha":          "Omega3DhaGPer100g",
+		"Omega6":             "Omega6GPer100g",
+		"Alcohol":            "AlcoholGPer100g",
+		"Caffeine":           "CaffeineMgPer100g",
+		"Creatine":           "CreatineMgPer100g",
 	}
 
-	// Convert from per-100g cache data to actual weight
-	return CompleteNutrient{
-		Calories:           convertAndRound(cached.CaloriesPer100g, caloriesPrecision),
-		Protein:            convertAndRound(cached.ProteinGPer100g, proteinPrecision),
-		TotalFat:           convertAndRound(cached.TotalFatGPer100g, fatPrecision),
-		SaturatedFat:       convertAndRound(cached.SaturatedFatGPer100g, fatPrecision),
-		TransFat:           convertAndRound(cached.TransFatGPer100g, transFatPrecision),
-		Cholesterol:        convertAndRound(cached.CholesterolMgPer100g, cholesterolPrecision),
-		Sodium:             convertAndRound(cached.SodiumMgPer100g, sodiumPrecision),
-		TotalCarbs:         convertAndRound(cached.TotalCarbsGPer100g, carbsPrecision),
-		DietaryFiber:       convertAndRound(cached.DietaryFiberGPer100g, fiberPrecision),
-		TotalSugars:        convertAndRound(cached.TotalSugarsGPer100g, sugarsPrecision),
-		AddedSugars:        convertAndRound(cached.AddedSugarsGPer100g, sugarsPrecision),
-		VitaminA:           convertAndRound(cached.VitaminAMcgPer100g, vitaminPrecision),
-		VitaminC:           convertAndRound(cached.VitaminCMgPer100g, vitaminPrecision),
-		VitaminD:           convertAndRound(cached.VitaminDMcgPer100g, vitaminPrecision),
-		VitaminE:           convertAndRound(cached.VitaminEMgPer100g, vitaminPrecision),
-		VitaminK:           convertAndRound(cached.VitaminKMcgPer100g, vitaminPrecision),
-		Thiamine:           convertAndRound(cached.ThiamineMgPer100g, vitaminBPrecision),
-		Riboflavin:         convertAndRound(cached.RiboflavinMgPer100g, vitaminBPrecision),
-		Niacin:             convertAndRound(cached.NiacinMgPer100g, vitaminPrecision),
-		VitaminB6:          convertAndRound(cached.VitaminB6MgPer100g, vitaminBPrecision),
-		Folate:             convertAndRound(cached.FolateMcgPer100g, vitaminPrecision),
-		VitaminB12:         convertAndRound(cached.VitaminB12McgPer100g, vitaminB12Precision),
-		Calcium:            convertAndRound(cached.CalciumMgPer100g, mineralPrecision),
-		Iron:               convertAndRound(cached.IronMgPer100g, mineralPrecision),
-		Magnesium:          convertAndRound(cached.MagnesiumMgPer100g, mineralPrecision),
-		Phosphorus:         convertAndRound(cached.PhosphorusMgPer100g, mineralPrecision),
-		Potassium:          convertAndRound(cached.PotassiumMgPer100g, mineralPrecision),
-		Zinc:               convertAndRound(cached.ZincMgPer100g, zincPrecision),
-		Copper:             convertAndRound(cached.CopperMgPer100g, tracePrecision),
-		Manganese:          convertAndRound(cached.ManganeseMgPer100g, tracePrecision),
-		Selenium:           convertAndRound(cached.SeleniumMcgPer100g, mineralPrecision),
-		Iodine:             convertAndRound(cached.IodineMcgPer100g, mineralPrecision),
-		Molybdenum:         convertAndRound(cached.MolybdenumMcgPer100g, mineralPrecision),
-		Chromium:           convertAndRound(cached.ChromiumMcgPer100g, mineralPrecision),
-		Fluoride:           convertAndRound(cached.FluorideMgPer100g, mineralPrecision),
-		Chloride:           convertAndRound(cached.ChlorideMgPer100g, mineralPrecision),
-		Omega3Ala:          convertAndRound(cached.Omega3AlaGPer100g, omegaPrecision),
-		Omega3Epa:          convertAndRound(cached.Omega3EpaGPer100g, omegaPrecision),
-		Omega3Dha:          convertAndRound(cached.Omega3DhaGPer100g, omegaPrecision),
-		Omega6:             convertAndRound(cached.Omega6GPer100g, omega6Precision),
-		Creatine:           convertAndRound(cached.CreatineMgPer100g, mineralPrecision),
-		Caffeine:           convertAndRound(cached.CaffeineMgPer100g, mineralPrecision),
-		Alcohol:            convertAndRound(cached.AlcoholGPer100g, alcoholPrecision),
-		PolyunsaturatedFat: convertAndRound(cached.PolyunsaturatedFatGPer100g, fatPrecision),
-		MonounsaturatedFat: convertAndRound(cached.MonounsaturatedFatGPer100g, fatPrecision),
+	for resultFieldName, cachedFieldName := range fieldMap {
+		cachedField := cachedVal.FieldByName(cachedFieldName)
+		resultField := resultVal.FieldByName(resultFieldName)
+
+		if cachedField.IsValid() && resultField.IsValid() && cachedField.Kind() == reflect.Float64 {
+			per100gValue := cachedField.Float()
+			servingValue := s.converter.ConvertFromPer100gToServing(per100gValue, actualGrams)
+
+			// Apply precision rounding using the generated map
+			precision, exists := NutrientPrecision[resultFieldName]
+			if !exists {
+				precision = 2 // default precision
+			}
+
+			rounded := RoundToDecimalPlaces(servingValue, precision)
+			resultField.SetFloat(rounded)
+		}
 	}
+
+	return result
 }
 
 // cachedServingData holds info about a cached serving size for scaling
@@ -672,64 +652,87 @@ func (s *NutritionService) scaleNutritionFromCachedServing(cachedItem *storage.I
 	// Extract the original serving values from the exact cache and scale them
 	scalingFactor := toGrams / fromGrams
 
-	// Helper function to safely dereference pointers and scale
-	scaleValue := func(ptr *float64) float64 {
-		if ptr == nil {
-			return 0.0
-		}
-		return *ptr * scalingFactor
+	var result CompleteNutrient
+
+	// Use reflection to scale all fields dynamically
+	cachedVal := reflect.ValueOf(cachedItem).Elem()
+	resultVal := reflect.ValueOf(&result).Elem()
+
+	// Map field names for conversion from original cached values
+	fieldMap := map[string]string{
+		"Calories":           "OriginalCalories",
+		"Protein":            "OriginalProteinG",
+		"TotalFat":           "OriginalTotalFatG",
+		"SaturatedFat":       "OriginalSaturatedFatG",
+		"TransFat":           "OriginalTransFatG",
+		"MonounsaturatedFat": "OriginalMonounsaturatedFatG",
+		"PolyunsaturatedFat": "OriginalPolyunsaturatedFatG",
+		"Cholesterol":        "OriginalCholesterolMg",
+		"Sodium":             "OriginalSodiumMg",
+		"TotalCarbs":         "OriginalTotalCarbsG",
+		"DietaryFiber":       "OriginalDietaryFiberG",
+		"TotalSugars":        "OriginalTotalSugarsG",
+		"AddedSugars":        "OriginalAddedSugarsG",
+		"VitaminA":           "OriginalVitaminAMcg",
+		"VitaminC":           "OriginalVitaminCMg",
+		"VitaminD":           "OriginalVitaminDMcg",
+		"VitaminE":           "OriginalVitaminEMg",
+		"VitaminK":           "OriginalVitaminKMcg",
+		"Thiamine":           "OriginalThiamineMg",
+		"Riboflavin":         "OriginalRiboflavinMg",
+		"Niacin":             "OriginalNiacinMg",
+		"VitaminB6":          "OriginalVitaminB6Mg",
+		"Folate":             "OriginalFolateMcg",
+		"VitaminB12":         "OriginalVitaminB12Mcg",
+		"Biotin":             "OriginalBiotinMcg",
+		"PantothenicAcid":    "OriginalPantothenicAcidMg",
+		"Choline":            "OriginalCholineMg",
+		"Calcium":            "OriginalCalciumMg",
+		"Iron":               "OriginalIronMg",
+		"Magnesium":          "OriginalMagnesiumMg",
+		"Phosphorus":         "OriginalPhosphorusMg",
+		"Potassium":          "OriginalPotassiumMg",
+		"Zinc":               "OriginalZincMg",
+		"Copper":             "OriginalCopperMg",
+		"Manganese":          "OriginalManganeseMg",
+		"Selenium":           "OriginalSeleniumMcg",
+		"Iodine":             "OriginalIodineMcg",
+		"Molybdenum":         "OriginalMolybdenumMcg",
+		"Chromium":           "OriginalChromiumMcg",
+		"Fluoride":           "OriginalFluorideMg",
+		"Chloride":           "OriginalChlorideMg",
+		"Omega3Ala":          "OriginalOmega3AlaG",
+		"Omega3Epa":          "OriginalOmega3EpaG",
+		"Omega3Dha":          "OriginalOmega3DhaG",
+		"Omega6":             "OriginalOmega6G",
+		"Alcohol":            "OriginalAlcoholG",
+		"Caffeine":           "OriginalCaffeineMg",
+		"Creatine":           "OriginalCreatineMg",
 	}
 
-	return CompleteNutrient{
-		Calories:           float64(RoundCaloriesUp(scaleValue(cachedItem.OriginalCalories))),
-		Protein:            scaleValue(cachedItem.OriginalProteinG),
-		TotalFat:           scaleValue(cachedItem.OriginalTotalFatG),
-		SaturatedFat:       scaleValue(cachedItem.OriginalSaturatedFatG),
-		TransFat:           scaleValue(cachedItem.OriginalTransFatG),
-		Cholesterol:        scaleValue(cachedItem.OriginalCholesterolMg),
-		Sodium:             scaleValue(cachedItem.OriginalSodiumMg),
-		TotalCarbs:         scaleValue(cachedItem.OriginalTotalCarbsG),
-		DietaryFiber:       scaleValue(cachedItem.OriginalDietaryFiberG),
-		TotalSugars:        scaleValue(cachedItem.OriginalTotalSugarsG),
-		AddedSugars:        scaleValue(cachedItem.OriginalAddedSugarsG),
-		VitaminA:           scaleValue(cachedItem.OriginalVitaminAMcg),
-		VitaminC:           scaleValue(cachedItem.OriginalVitaminCMg),
-		VitaminD:           scaleValue(cachedItem.OriginalVitaminDMcg),
-		VitaminE:           scaleValue(cachedItem.OriginalVitaminEMg),
-		VitaminK:           scaleValue(cachedItem.OriginalVitaminKMcg),
-		Thiamine:           scaleValue(cachedItem.OriginalThiamineMg),
-		Riboflavin:         scaleValue(cachedItem.OriginalRiboflavinMg),
-		Niacin:             scaleValue(cachedItem.OriginalNiacinMg),
-		VitaminB6:          scaleValue(cachedItem.OriginalVitaminB6Mg),
-		Folate:             scaleValue(cachedItem.OriginalFolateMcg),
-		VitaminB12:         scaleValue(cachedItem.OriginalVitaminB12Mcg),
-		Biotin:             scaleValue(cachedItem.OriginalBiotinMcg),
-		PantothenicAcid:    scaleValue(cachedItem.OriginalPantothenicAcidMg),
-		Choline:            scaleValue(cachedItem.OriginalCholineMg),
-		Calcium:            scaleValue(cachedItem.OriginalCalciumMg),
-		Iron:               scaleValue(cachedItem.OriginalIronMg),
-		Magnesium:          scaleValue(cachedItem.OriginalMagnesiumMg),
-		Phosphorus:         scaleValue(cachedItem.OriginalPhosphorusMg),
-		Potassium:          scaleValue(cachedItem.OriginalPotassiumMg),
-		Zinc:               scaleValue(cachedItem.OriginalZincMg),
-		Copper:             scaleValue(cachedItem.OriginalCopperMg),
-		Manganese:          scaleValue(cachedItem.OriginalManganeseMg),
-		Selenium:           scaleValue(cachedItem.OriginalSeleniumMcg),
-		Iodine:             scaleValue(cachedItem.OriginalIodineMcg),
-		Molybdenum:         scaleValue(cachedItem.OriginalMolybdenumMcg),
-		Chromium:           scaleValue(cachedItem.OriginalChromiumMcg),
-		Fluoride:           scaleValue(cachedItem.OriginalFluorideMg),
-		Chloride:           scaleValue(cachedItem.OriginalChlorideMg),
-		Omega3Ala:          scaleValue(cachedItem.OriginalOmega3AlaG),
-		Omega3Epa:          scaleValue(cachedItem.OriginalOmega3EpaG),
-		Omega3Dha:          scaleValue(cachedItem.OriginalOmega3DhaG),
-		Omega6:             scaleValue(cachedItem.OriginalOmega6G),
-		Creatine:           scaleValue(cachedItem.OriginalCreatineMg),
-		Caffeine:           scaleValue(cachedItem.OriginalCaffeineMg),
-		Alcohol:            scaleValue(cachedItem.OriginalAlcoholG),
-		PolyunsaturatedFat: scaleValue(cachedItem.OriginalPolyunsaturatedFatG),
-		MonounsaturatedFat: scaleValue(cachedItem.OriginalMonounsaturatedFatG),
+	for resultFieldName, cachedFieldName := range fieldMap {
+		cachedField := cachedVal.FieldByName(cachedFieldName)
+		resultField := resultVal.FieldByName(resultFieldName)
+
+		if cachedField.IsValid() && resultField.IsValid() {
+			// Handle pointer fields (most original fields are pointers)
+			var scaledValue float64
+			if cachedField.Kind() == reflect.Ptr && !cachedField.IsNil() {
+				scaledValue = cachedField.Elem().Float() * scalingFactor
+			} else if cachedField.Kind() == reflect.Float64 {
+				scaledValue = cachedField.Float() * scalingFactor
+			}
+
+			// Special handling for calories (round up)
+			if resultFieldName == "Calories" {
+				scaledValue = float64(RoundCaloriesUp(scaledValue))
+			}
+
+			resultField.SetFloat(scaledValue)
+		}
 	}
+
+	return result
 }
 func (s *NutritionService) makeExactServingKey(normalizedName, normalizedBrand string, grams float64) string {
 	return fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, grams)
@@ -764,111 +767,87 @@ func (s *NutritionService) shouldUse100gScaling(item Item, cachedItem *storage.I
 func (s *NutritionService) convertExactCachedToNutrients(cached *storage.Item) CompleteNutrient {
 	// If we have original serving data, use it directly (no conversion needed)
 	if cached.OriginalServingGrams != nil {
-		return CompleteNutrient{
-			Calories:           floatValue(cached.OriginalCalories),
-			Protein:            floatValue(cached.OriginalProteinG),
-			TotalFat:           floatValue(cached.OriginalTotalFatG),
-			SaturatedFat:       floatValue(cached.OriginalSaturatedFatG),
-			TransFat:           floatValue(cached.OriginalTransFatG),
-			Cholesterol:        floatValue(cached.OriginalCholesterolMg),
-			Sodium:             floatValue(cached.OriginalSodiumMg),
-			TotalCarbs:         floatValue(cached.OriginalTotalCarbsG),
-			DietaryFiber:       floatValue(cached.OriginalDietaryFiberG),
-			TotalSugars:        floatValue(cached.OriginalTotalSugarsG),
-			AddedSugars:        floatValue(cached.OriginalAddedSugarsG),
-			VitaminA:           floatValue(cached.OriginalVitaminAMcg),
-			VitaminC:           floatValue(cached.OriginalVitaminCMg),
-			VitaminD:           floatValue(cached.OriginalVitaminDMcg),
-			VitaminE:           floatValue(cached.OriginalVitaminEMg),
-			VitaminK:           floatValue(cached.OriginalVitaminKMcg),
-			Thiamine:           floatValue(cached.OriginalThiamineMg),
-			Riboflavin:         floatValue(cached.OriginalRiboflavinMg),
-			Niacin:             floatValue(cached.OriginalNiacinMg),
-			VitaminB6:          floatValue(cached.OriginalVitaminB6Mg),
-			Folate:             floatValue(cached.OriginalFolateMcg),
-			VitaminB12:         floatValue(cached.OriginalVitaminB12Mcg),
-			Biotin:             floatValue(cached.OriginalBiotinMcg),
-			PantothenicAcid:    floatValue(cached.OriginalPantothenicAcidMg),
-			Choline:            floatValue(cached.OriginalCholineMg),
-			Calcium:            floatValue(cached.OriginalCalciumMg),
-			Iron:               floatValue(cached.OriginalIronMg),
-			Magnesium:          floatValue(cached.OriginalMagnesiumMg),
-			Phosphorus:         floatValue(cached.OriginalPhosphorusMg),
-			Potassium:          floatValue(cached.OriginalPotassiumMg),
-			Zinc:               floatValue(cached.OriginalZincMg),
-			Copper:             floatValue(cached.OriginalCopperMg),
-			Manganese:          floatValue(cached.OriginalManganeseMg),
-			Selenium:           floatValue(cached.OriginalSeleniumMcg),
-			Iodine:             floatValue(cached.OriginalIodineMcg),
-			Molybdenum:         floatValue(cached.OriginalMolybdenumMcg),
-			Chromium:           floatValue(cached.OriginalChromiumMcg),
-			Fluoride:           floatValue(cached.OriginalFluorideMg),
-			Chloride:           floatValue(cached.OriginalChlorideMg),
-			Omega3Ala:          floatValue(cached.OriginalOmega3AlaG),
-			Omega3Epa:          floatValue(cached.OriginalOmega3EpaG),
-			Omega3Dha:          floatValue(cached.OriginalOmega3DhaG),
-			Omega6:             floatValue(cached.OriginalOmega6G),
-			Creatine:           floatValue(cached.OriginalCreatineMg),
-			Caffeine:           floatValue(cached.OriginalCaffeineMg),
-			Alcohol:            floatValue(cached.OriginalAlcoholG),
-			PolyunsaturatedFat: floatValue(cached.OriginalPolyunsaturatedFatG),
-			MonounsaturatedFat: floatValue(cached.OriginalMonounsaturatedFatG),
+		var result CompleteNutrient
+
+		// Use reflection to convert all fields dynamically
+		cachedVal := reflect.ValueOf(cached).Elem()
+		resultVal := reflect.ValueOf(&result).Elem()
+
+		// Map field names for conversion from original cached values
+		fieldMap := map[string]string{
+			"Calories":           "OriginalCalories",
+			"Protein":            "OriginalProteinG",
+			"TotalFat":           "OriginalTotalFatG",
+			"SaturatedFat":       "OriginalSaturatedFatG",
+			"TransFat":           "OriginalTransFatG",
+			"MonounsaturatedFat": "OriginalMonounsaturatedFatG",
+			"PolyunsaturatedFat": "OriginalPolyunsaturatedFatG",
+			"Cholesterol":        "OriginalCholesterolMg",
+			"Sodium":             "OriginalSodiumMg",
+			"TotalCarbs":         "OriginalTotalCarbsG",
+			"DietaryFiber":       "OriginalDietaryFiberG",
+			"TotalSugars":        "OriginalTotalSugarsG",
+			"AddedSugars":        "OriginalAddedSugarsG",
+			"VitaminA":           "OriginalVitaminAMcg",
+			"VitaminC":           "OriginalVitaminCMg",
+			"VitaminD":           "OriginalVitaminDMcg",
+			"VitaminE":           "OriginalVitaminEMg",
+			"VitaminK":           "OriginalVitaminKMcg",
+			"Thiamine":           "OriginalThiamineMg",
+			"Riboflavin":         "OriginalRiboflavinMg",
+			"Niacin":             "OriginalNiacinMg",
+			"VitaminB6":          "OriginalVitaminB6Mg",
+			"Folate":             "OriginalFolateMcg",
+			"VitaminB12":         "OriginalVitaminB12Mcg",
+			"Biotin":             "OriginalBiotinMcg",
+			"PantothenicAcid":    "OriginalPantothenicAcidMg",
+			"Choline":            "OriginalCholineMg",
+			"Calcium":            "OriginalCalciumMg",
+			"Iron":               "OriginalIronMg",
+			"Magnesium":          "OriginalMagnesiumMg",
+			"Phosphorus":         "OriginalPhosphorusMg",
+			"Potassium":          "OriginalPotassiumMg",
+			"Zinc":               "OriginalZincMg",
+			"Copper":             "OriginalCopperMg",
+			"Manganese":          "OriginalManganeseMg",
+			"Selenium":           "OriginalSeleniumMcg",
+			"Iodine":             "OriginalIodineMcg",
+			"Molybdenum":         "OriginalMolybdenumMcg",
+			"Chromium":           "OriginalChromiumMcg",
+			"Fluoride":           "OriginalFluorideMg",
+			"Chloride":           "OriginalChlorideMg",
+			"Omega3Ala":          "OriginalOmega3AlaG",
+			"Omega3Epa":          "OriginalOmega3EpaG",
+			"Omega3Dha":          "OriginalOmega3DhaG",
+			"Omega6":             "OriginalOmega6G",
+			"Alcohol":            "OriginalAlcoholG",
+			"Caffeine":           "OriginalCaffeineMg",
+			"Creatine":           "OriginalCreatineMg",
 		}
+
+		for resultFieldName, cachedFieldName := range fieldMap {
+			cachedField := cachedVal.FieldByName(cachedFieldName)
+			resultField := resultVal.FieldByName(resultFieldName)
+
+			if cachedField.IsValid() && resultField.IsValid() {
+				// Handle pointer fields (original fields are pointers)
+				if cachedField.Kind() == reflect.Ptr && !cachedField.IsNil() {
+					resultField.SetFloat(cachedField.Elem().Float())
+				} else if cachedField.Kind() == reflect.Float64 {
+					resultField.SetFloat(cachedField.Float())
+				}
+			}
+		}
+
+		return result
 	}
 
 	// Fallback to per-100g data if original data is not available (shouldn't happen with new schema)
 	LogWarn("Original serving data not found, falling back to per-100g conversion",
 		"normalized_name", cached.NormalizedName)
-	return CompleteNutrient{
-		Calories:           cached.CaloriesPer100g,
-		Protein:            cached.ProteinGPer100g,
-		TotalFat:           cached.TotalFatGPer100g,
-		SaturatedFat:       cached.SaturatedFatGPer100g,
-		TransFat:           cached.TransFatGPer100g,
-		Cholesterol:        cached.CholesterolMgPer100g,
-		Sodium:             cached.SodiumMgPer100g,
-		TotalCarbs:         cached.TotalCarbsGPer100g,
-		DietaryFiber:       cached.DietaryFiberGPer100g,
-		TotalSugars:        cached.TotalSugarsGPer100g,
-		AddedSugars:        cached.AddedSugarsGPer100g,
-		VitaminA:           cached.VitaminAMcgPer100g,
-		VitaminC:           cached.VitaminCMgPer100g,
-		VitaminD:           cached.VitaminDMcgPer100g,
-		VitaminE:           cached.VitaminEMgPer100g,
-		VitaminK:           cached.VitaminKMcgPer100g,
-		Thiamine:           cached.ThiamineMgPer100g,
-		Riboflavin:         cached.RiboflavinMgPer100g,
-		Niacin:             cached.NiacinMgPer100g,
-		VitaminB6:          cached.VitaminB6MgPer100g,
-		Folate:             cached.FolateMcgPer100g,
-		VitaminB12:         cached.VitaminB12McgPer100g,
-		Biotin:             cached.BiotinMcgPer100g,
-		PantothenicAcid:    cached.PantothenicAcidMgPer100g,
-		Choline:            cached.CholineMgPer100g,
-		Calcium:            cached.CalciumMgPer100g,
-		Iron:               cached.IronMgPer100g,
-		Magnesium:          cached.MagnesiumMgPer100g,
-		Phosphorus:         cached.PhosphorusMgPer100g,
-		Potassium:          cached.PotassiumMgPer100g,
-		Zinc:               cached.ZincMgPer100g,
-		Copper:             cached.CopperMgPer100g,
-		Manganese:          cached.ManganeseMgPer100g,
-		Selenium:           cached.SeleniumMcgPer100g,
-		Iodine:             cached.IodineMcgPer100g,
-		Molybdenum:         cached.MolybdenumMcgPer100g,
-		Chromium:           cached.ChromiumMcgPer100g,
-		Fluoride:           cached.FluorideMgPer100g,
-		Chloride:           cached.ChlorideMgPer100g,
-		Omega3Ala:          cached.Omega3AlaGPer100g,
-		Omega3Epa:          cached.Omega3EpaGPer100g,
-		Omega3Dha:          cached.Omega3DhaGPer100g,
-		Omega6:             cached.Omega6GPer100g,
-		Creatine:           cached.CreatineMgPer100g,
-		Caffeine:           cached.CaffeineMgPer100g,
-		Alcohol:            cached.AlcoholGPer100g,
-		PolyunsaturatedFat: cached.PolyunsaturatedFatGPer100g,
-		MonounsaturatedFat: cached.MonounsaturatedFatGPer100g,
-	}
+
+	// Use the generated function for per-100g conversion
+	return ConvertCachedToNutrientsGenerated(cached)
 }
 
 // convertNutrientsToExactCache stores nutrition data with hybrid approach
@@ -888,8 +867,12 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 	}
 
 	// Helper function to convert and round in one step for per-100g values
-	convertAndRound := func(servingValue float64, decimalPlaces int) float64 {
-		return RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(servingValue, normalizedGrams), decimalPlaces)
+	convertAndRound := func(servingValue float64, fieldName string) float64 {
+		precision, exists := NutrientPrecision[fieldName]
+		if !exists {
+			precision = 2 // default precision
+		}
+		return RoundToDecimalPlaces(s.converter.ConvertFromServingToPer100g(servingValue, normalizedGrams), precision)
 	}
 
 	// Helper function to create pointer to float64
@@ -953,54 +936,54 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 		OriginalMonounsaturatedFatG: float64Ptr(normalizedNutrients.MonounsaturatedFat),
 
 		// Also store per-100g data for scaling to other serving sizes
-		CaloriesPer100g:            convertAndRound(normalizedNutrients.Calories, 4), // Higher precision for calories
-		ProteinGPer100g:            convertAndRound(normalizedNutrients.Protein, tracePrecision),
-		TotalFatGPer100g:           convertAndRound(normalizedNutrients.TotalFat, tracePrecision),
-		SaturatedFatGPer100g:       convertAndRound(normalizedNutrients.SaturatedFat, tracePrecision),
-		TransFatGPer100g:           convertAndRound(normalizedNutrients.TransFat, tracePrecision),
-		CholesterolMgPer100g:       convertAndRound(normalizedNutrients.Cholesterol, fatPrecision),
-		SodiumMgPer100g:            convertAndRound(normalizedNutrients.Sodium, mineralPrecision),
-		TotalCarbsGPer100g:         convertAndRound(normalizedNutrients.TotalCarbs, carbsPrecision),
-		DietaryFiberGPer100g:       convertAndRound(normalizedNutrients.DietaryFiber, fiberPrecision),
-		TotalSugarsGPer100g:        convertAndRound(normalizedNutrients.TotalSugars, sugarsPrecision),
-		AddedSugarsGPer100g:        convertAndRound(normalizedNutrients.AddedSugars, sugarsPrecision),
-		VitaminAMcgPer100g:         convertAndRound(normalizedNutrients.VitaminA, vitaminPrecision),
-		VitaminCMgPer100g:          convertAndRound(normalizedNutrients.VitaminC, vitaminPrecision),
-		VitaminDMcgPer100g:         convertAndRound(normalizedNutrients.VitaminD, vitaminPrecision),
-		VitaminEMgPer100g:          convertAndRound(normalizedNutrients.VitaminE, vitaminPrecision),
-		VitaminKMcgPer100g:         convertAndRound(normalizedNutrients.VitaminK, vitaminPrecision),
-		ThiamineMgPer100g:          convertAndRound(normalizedNutrients.Thiamine, vitaminBPrecision),
-		RiboflavinMgPer100g:        convertAndRound(normalizedNutrients.Riboflavin, vitaminBPrecision),
-		NiacinMgPer100g:            convertAndRound(normalizedNutrients.Niacin, vitaminPrecision),
-		VitaminB6MgPer100g:         convertAndRound(normalizedNutrients.VitaminB6, vitaminBPrecision),
-		FolateMcgPer100g:           convertAndRound(normalizedNutrients.Folate, vitaminPrecision),
-		VitaminB12McgPer100g:       convertAndRound(normalizedNutrients.VitaminB12, vitaminB12Precision),
-		BiotinMcgPer100g:           convertAndRound(normalizedNutrients.Biotin, vitaminPrecision),
-		PantothenicAcidMgPer100g:   convertAndRound(normalizedNutrients.PantothenicAcid, vitaminPrecision),
-		CholineMgPer100g:           convertAndRound(normalizedNutrients.Choline, vitaminPrecision),
-		CalciumMgPer100g:           convertAndRound(normalizedNutrients.Calcium, mineralPrecision),
-		IronMgPer100g:              convertAndRound(normalizedNutrients.Iron, mineralPrecision),
-		MagnesiumMgPer100g:         convertAndRound(normalizedNutrients.Magnesium, mineralPrecision),
-		PhosphorusMgPer100g:        convertAndRound(normalizedNutrients.Phosphorus, mineralPrecision),
-		PotassiumMgPer100g:         convertAndRound(normalizedNutrients.Potassium, mineralPrecision),
-		ZincMgPer100g:              convertAndRound(normalizedNutrients.Zinc, zincPrecision),
-		CopperMgPer100g:            convertAndRound(normalizedNutrients.Copper, tracePrecision),
-		ManganeseMgPer100g:         convertAndRound(normalizedNutrients.Manganese, tracePrecision),
-		SeleniumMcgPer100g:         convertAndRound(normalizedNutrients.Selenium, mineralPrecision),
-		IodineMcgPer100g:           convertAndRound(normalizedNutrients.Iodine, mineralPrecision),
-		MolybdenumMcgPer100g:       convertAndRound(normalizedNutrients.Molybdenum, mineralPrecision),
-		ChromiumMcgPer100g:         convertAndRound(normalizedNutrients.Chromium, mineralPrecision),
-		FluorideMgPer100g:          convertAndRound(normalizedNutrients.Fluoride, mineralPrecision),
-		ChlorideMgPer100g:          convertAndRound(normalizedNutrients.Chloride, mineralPrecision),
-		Omega3AlaGPer100g:          convertAndRound(normalizedNutrients.Omega3Ala, omegaPrecision),
-		Omega3EpaGPer100g:          convertAndRound(normalizedNutrients.Omega3Epa, omegaPrecision),
-		Omega3DhaGPer100g:          convertAndRound(normalizedNutrients.Omega3Dha, omegaPrecision),
-		Omega6GPer100g:             convertAndRound(normalizedNutrients.Omega6, omega6Precision),
-		CreatineMgPer100g:          convertAndRound(normalizedNutrients.Creatine, mineralPrecision),
-		CaffeineMgPer100g:          convertAndRound(normalizedNutrients.Caffeine, mineralPrecision),
-		AlcoholGPer100g:            convertAndRound(normalizedNutrients.Alcohol, alcoholPrecision),
-		PolyunsaturatedFatGPer100g: convertAndRound(normalizedNutrients.PolyunsaturatedFat, fatPrecision),
-		MonounsaturatedFatGPer100g: convertAndRound(normalizedNutrients.MonounsaturatedFat, fatPrecision),
+		CaloriesPer100g:            convertAndRound(normalizedNutrients.Calories, "Calories"),
+		ProteinGPer100g:            convertAndRound(normalizedNutrients.Protein, "Protein"),
+		TotalFatGPer100g:           convertAndRound(normalizedNutrients.TotalFat, "TotalFat"),
+		SaturatedFatGPer100g:       convertAndRound(normalizedNutrients.SaturatedFat, "SaturatedFat"),
+		TransFatGPer100g:           convertAndRound(normalizedNutrients.TransFat, "TransFat"),
+		CholesterolMgPer100g:       convertAndRound(normalizedNutrients.Cholesterol, "Cholesterol"),
+		SodiumMgPer100g:            convertAndRound(normalizedNutrients.Sodium, "Sodium"),
+		TotalCarbsGPer100g:         convertAndRound(normalizedNutrients.TotalCarbs, "TotalCarbs"),
+		DietaryFiberGPer100g:       convertAndRound(normalizedNutrients.DietaryFiber, "DietaryFiber"),
+		TotalSugarsGPer100g:        convertAndRound(normalizedNutrients.TotalSugars, "TotalSugars"),
+		AddedSugarsGPer100g:        convertAndRound(normalizedNutrients.AddedSugars, "AddedSugars"),
+		VitaminAMcgPer100g:         convertAndRound(normalizedNutrients.VitaminA, "VitaminA"),
+		VitaminCMgPer100g:          convertAndRound(normalizedNutrients.VitaminC, "VitaminC"),
+		VitaminDMcgPer100g:         convertAndRound(normalizedNutrients.VitaminD, "VitaminD"),
+		VitaminEMgPer100g:          convertAndRound(normalizedNutrients.VitaminE, "VitaminE"),
+		VitaminKMcgPer100g:         convertAndRound(normalizedNutrients.VitaminK, "VitaminK"),
+		ThiamineMgPer100g:          convertAndRound(normalizedNutrients.Thiamine, "Thiamine"),
+		RiboflavinMgPer100g:        convertAndRound(normalizedNutrients.Riboflavin, "Riboflavin"),
+		NiacinMgPer100g:            convertAndRound(normalizedNutrients.Niacin, "Niacin"),
+		VitaminB6MgPer100g:         convertAndRound(normalizedNutrients.VitaminB6, "VitaminB6"),
+		FolateMcgPer100g:           convertAndRound(normalizedNutrients.Folate, "Folate"),
+		VitaminB12McgPer100g:       convertAndRound(normalizedNutrients.VitaminB12, "VitaminB12"),
+		BiotinMcgPer100g:           convertAndRound(normalizedNutrients.Biotin, "Biotin"),
+		PantothenicAcidMgPer100g:   convertAndRound(normalizedNutrients.PantothenicAcid, "PantothenicAcid"),
+		CholineMgPer100g:           convertAndRound(normalizedNutrients.Choline, "Choline"),
+		CalciumMgPer100g:           convertAndRound(normalizedNutrients.Calcium, "Calcium"),
+		IronMgPer100g:              convertAndRound(normalizedNutrients.Iron, "Iron"),
+		MagnesiumMgPer100g:         convertAndRound(normalizedNutrients.Magnesium, "Magnesium"),
+		PhosphorusMgPer100g:        convertAndRound(normalizedNutrients.Phosphorus, "Phosphorus"),
+		PotassiumMgPer100g:         convertAndRound(normalizedNutrients.Potassium, "Potassium"),
+		ZincMgPer100g:              convertAndRound(normalizedNutrients.Zinc, "Zinc"),
+		CopperMgPer100g:            convertAndRound(normalizedNutrients.Copper, "Copper"),
+		ManganeseMgPer100g:         convertAndRound(normalizedNutrients.Manganese, "Manganese"),
+		SeleniumMcgPer100g:         convertAndRound(normalizedNutrients.Selenium, "Selenium"),
+		IodineMcgPer100g:           convertAndRound(normalizedNutrients.Iodine, "Iodine"),
+		MolybdenumMcgPer100g:       convertAndRound(normalizedNutrients.Molybdenum, "Molybdenum"),
+		ChromiumMcgPer100g:         convertAndRound(normalizedNutrients.Chromium, "Chromium"),
+		FluorideMgPer100g:          convertAndRound(normalizedNutrients.Fluoride, "Fluoride"),
+		ChlorideMgPer100g:          convertAndRound(normalizedNutrients.Chloride, "Chloride"),
+		Omega3AlaGPer100g:          convertAndRound(normalizedNutrients.Omega3Ala, "Omega3Ala"),
+		Omega3EpaGPer100g:          convertAndRound(normalizedNutrients.Omega3Epa, "Omega3Epa"),
+		Omega3DhaGPer100g:          convertAndRound(normalizedNutrients.Omega3Dha, "Omega3Dha"),
+		Omega6GPer100g:             convertAndRound(normalizedNutrients.Omega6, "Omega6"),
+		CreatineMgPer100g:          convertAndRound(normalizedNutrients.Creatine, "Creatine"),
+		CaffeineMgPer100g:          convertAndRound(normalizedNutrients.Caffeine, "Caffeine"),
+		AlcoholGPer100g:            convertAndRound(normalizedNutrients.Alcohol, "Alcohol"),
+		PolyunsaturatedFatGPer100g: convertAndRound(normalizedNutrients.PolyunsaturatedFat, "PolyunsaturatedFat"),
+		MonounsaturatedFatGPer100g: convertAndRound(normalizedNutrients.MonounsaturatedFat, "MonounsaturatedFat"),
 		Note:                       item.Note,
 
 		// Include ingredients and AI URL when caching items
