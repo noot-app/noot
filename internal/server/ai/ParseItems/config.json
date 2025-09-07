@@ -1,0 +1,13 @@
+{
+    "model": "gpt-4.1-mini",
+    "text.format": "json_schema",
+    "temp": 0.00,
+    "tokens": 2048,
+    "top_p": 1.00,
+    "tools": [],
+    "store": true,
+    "include": [
+        "web_search_call.action.sources"
+    ],
+    "reasoning": {}
+}
