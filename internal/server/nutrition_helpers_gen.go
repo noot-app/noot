@@ -5,67 +5,67 @@
 package server
 
 import (
+	"github.com/grantbirki/noot/internal/storage"
 	"math"
 	"reflect"
-	"github.com/grantbirki/noot/internal/storage"
 )
 
 // NutrientPrecision maps field names to their rounding precision
 var NutrientPrecision = map[string]int{
-	"Calories": 3,
-	"Protein": 2,
-	"TotalFat": 2,
-	"SaturatedFat": 2,
-	"TransFat": 1,
+	"Calories":           3,
+	"Protein":            2,
+	"TotalFat":           2,
+	"SaturatedFat":       2,
+	"TransFat":           1,
 	"MonounsaturatedFat": 2,
 	"PolyunsaturatedFat": 2,
-	"Cholesterol": 1,
-	"Sodium": 1,
-	"TotalCarbs": 1,
-	"DietaryFiber": 1,
-	"TotalSugars": 1,
-	"AddedSugars": 1,
-	"VitaminA": 1,
-	"VitaminC": 1,
-	"VitaminD": 1,
-	"VitaminE": 1,
-	"VitaminK": 1,
-	"Thiamine": 3,
-	"Riboflavin": 3,
-	"Niacin": 3,
-	"VitaminB6": 3,
-	"Folate": 3,
-	"VitaminB12": 2,
-	"Biotin": 3,
-	"PantothenicAcid": 3,
-	"Choline": 3,
-	"Calcium": 1,
-	"Iron": 1,
-	"Magnesium": 1,
-	"Phosphorus": 1,
-	"Potassium": 1,
-	"Zinc": 2,
-	"Copper": 1,
-	"Manganese": 1,
-	"Selenium": 3,
-	"Iodine": 3,
-	"Molybdenum": 3,
-	"Chromium": 3,
-	"Fluoride": 1,
-	"Chloride": 1,
-	"Omega3Ala": 3,
-	"Omega3Epa": 3,
-	"Omega3Dha": 3,
-	"Omega6": 2,
-	"Alcohol": 2,
-	"Caffeine": 1,
-	"Creatine": 1,
+	"Cholesterol":        1,
+	"Sodium":             1,
+	"TotalCarbs":         1,
+	"DietaryFiber":       1,
+	"TotalSugars":        1,
+	"AddedSugars":        1,
+	"VitaminA":           1,
+	"VitaminC":           1,
+	"VitaminD":           1,
+	"VitaminE":           1,
+	"VitaminK":           1,
+	"Thiamine":           3,
+	"Riboflavin":         3,
+	"Niacin":             3,
+	"VitaminB6":          3,
+	"Folate":             3,
+	"VitaminB12":         2,
+	"Biotin":             3,
+	"PantothenicAcid":    3,
+	"Choline":            3,
+	"Calcium":            1,
+	"Iron":               1,
+	"Magnesium":          1,
+	"Phosphorus":         1,
+	"Potassium":          1,
+	"Zinc":               2,
+	"Copper":             1,
+	"Manganese":          1,
+	"Selenium":           3,
+	"Iodine":             3,
+	"Molybdenum":         3,
+	"Chromium":           3,
+	"Fluoride":           1,
+	"Chloride":           1,
+	"Omega3Ala":          3,
+	"Omega3Epa":          3,
+	"Omega3Dha":          3,
+	"Omega6":             2,
+	"Alcohol":            2,
+	"Caffeine":           1,
+	"Creatine":           1,
 }
 
 // ScaleNutritionDataGenerated scales nutrition data using reflection for DRY approach
 func ScaleNutritionDataGenerated(cached *storage.Item, factor float64) CompleteNutrient {
 	var result CompleteNutrient
-	
+
 	cachedVal := reflect.ValueOf(cached).Elem()
 	resultVal := reflect.ValueOf(&result).Elem()
 	if field := cachedVal.FieldByName("CaloriesPer100g"); field.IsValid() && field.Kind() == reflect.Float64 {
@@ -500,14 +500,14 @@ func ScaleNutritionDataGenerated(cached *storage.Item, factor float64) CompleteN
 		rounded := convertAndRound(scaled, precision)
 		resultVal.FieldByName("Creatine").SetFloat(rounded)
 	}
-	
+
 	return result
 }
 
 // ConvertCachedToNutrientsGenerated converts cached data to CompleteNutrient
 func ConvertCachedToNutrientsGenerated(cached *storage.Item) CompleteNutrient {
 	var result CompleteNutrient
-	
+
 	cachedVal := reflect.ValueOf(cached).Elem()
 	resultVal := reflect.ValueOf(&result).Elem()
 	if field := cachedVal.FieldByName("CaloriesPer100g"); field.IsValid() && field.Kind() == reflect.Float64 {
@@ -942,14 +942,14 @@ func ConvertCachedToNutrientsGenerated(cached *storage.Item) CompleteNutrient {
 		rounded := convertAndRound(value, precision)
 		resultVal.FieldByName("Creatine").SetFloat(rounded)
 	}
-	
+
 	return result
 }
 
 // ConvertExactCachedToNutrientsGenerated converts exact cached data to CompleteNutrient
 func ConvertExactCachedToNutrientsGenerated(cached *storage.Item) CompleteNutrient {
 	var result CompleteNutrient
-	
+
 	cachedVal := reflect.ValueOf(cached).Elem()
 	resultVal := reflect.ValueOf(&result).Elem()
 	if field := cachedVal.FieldByName("CaloriesPer100g"); field.IsValid() && field.Kind() == reflect.Float64 {
@@ -1384,7 +1384,7 @@ func ConvertExactCachedToNutrientsGenerated(cached *storage.Item) CompleteNutrie
 		rounded := convertAndRound(value, precision)
 		resultVal.FieldByName("Creatine").SetFloat(rounded)
 	}
-	
+
 	return result
 }
 
