@@ -101,6 +101,20 @@ func TestEnvironmentVariableExpansion(t *testing.T) {
 	if !found {
 		t.Error("Environment variable OPENFOODFACTS_MCP_TOKEN was not properly expanded in embedded config")
 	}
+
+	// Verify that the original config still contains the placeholder, not the expanded value
+	// This ensures we're doing dynamic resolution, not static expansion
+	foundPlaceholder := false
+	for _, tool := range builder.config.Tools {
+		if tool.Type == "mcp" && tool.Authorization == "${OPENFOODFACTS_MCP_TOKEN}" {
+			foundPlaceholder = true
+			break
+		}
+	}
+
+	if !foundPlaceholder {
+		t.Error("Original config should still contain placeholder ${OPENFOODFACTS_MCP_TOKEN}, not expanded value")
+	}
 }
 
 func TestExpandEnvVars(t *testing.T) {

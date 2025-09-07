@@ -72,6 +72,16 @@ func (b *EmbeddedAIRequestBuilder) BuildRequestPayload(userInput string) (*AIReq
 	}
 
 	// Build the request payload using the cached configuration data
+	// Note: Tools need dynamic environment variable resolution for security
+	resolvedTools := make([]AITool, len(b.config.Tools))
+	for i, tool := range b.config.Tools {
+		resolvedTools[i] = tool // Copy the tool
+		if tool.Type == "mcp" && tool.Authorization != "" {
+			// Dynamically resolve environment variables at request time
+			resolvedTools[i].Authorization = expandEnvVars(tool.Authorization)
+		}
+	}
+
 	payload := &AIRequestPayload{
 		Model: b.config.Model,
 		Input: []map[string]interface{}{
@@ -103,7 +113,7 @@ func (b *EmbeddedAIRequestBuilder) BuildRequestPayload(userInput string) (*AIReq
 			},
 		},
 		Reasoning:       b.config.Reasoning,
-		Tools:           b.config.Tools,
+		Tools:           resolvedTools, // Use resolved tools with dynamic env vars
 		Temperature:     b.config.Temp,
 		MaxOutputTokens: b.config.Tokens,
 		TopP:            b.config.TopP,
@@ -128,14 +138,9 @@ func loadEmbeddedAIConfig(configDir string) (*AIConfig, error) {
 	}
 
 	// Environment variable substitution for sensitive fields
-	for i, tool := range config.Tools {
-		if tool.Type == "mcp" {
-			if tool.Authorization != "" {
-				// Expand environment variables in the authorization field
-				config.Tools[i].Authorization = expandEnvVars(tool.Authorization)
-			}
-		}
-	}
+	// Note: We intentionally do NOT expand environment variables here
+	// Instead, we leave them as placeholders (e.g., "${OPENFOODFACTS_MCP_TOKEN}")
+	// and resolve them dynamically in BuildRequestPayload() for better security
 
 	return &config, nil
 }
