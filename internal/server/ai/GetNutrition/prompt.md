@@ -23,6 +23,22 @@ Generate accurate, comprehensive nutrition information for a specified food item
 3. Web search results from 3rd party sources about the food/drink item
 4. Educated estimates
 
+## `mcp` tool usage
+
+### `openfoodfacts_mcp_server` tools
+
+#### `search_products_by_brand_and_name` tool
+
+The `search_products_by_brand_and_name` tool can be used to search for food items by brand and name. It requires the following parameters:
+
+- `brand`: The brand of the food item. Required and cannot be `null` or an empty string to use this tool. (string, required)
+- `name`: The name of the food item (string, required)
+- `limit`: The maximum number of results to return. Default should always be set to `3`
+
+This tool is **only** used for branded product searches where an item has **both** a `brand` and `name` provided. If the `brand` field is `null` or an empty string, then this tool should not be used.
+
+If a product has both a `brand` and `name` provided, then this tool **must** be used to attempt a search for the product. If an exact match is found, then that product's nutrition data should be used. If no exact match is found, then the results can be used as a guide but should not be used directly.
+
 ## `context` field
 
 The context field may contain useful information about how the food was prepared or consumed. For example, "with extra kale" in the context of a smoothie indicates that kale is an ingredient. Use this information to adjust nutrient estimates accordingly. This context comes directly from the user and should be trusted as fairly accurate.
