@@ -14,6 +14,20 @@ import (
 //go:embed ai
 var embeddedAIConfigFS embed.FS
 
+// AIRequestPayload represents the structure of an OpenAI API request
+type AIRequestPayload struct {
+	Model           string                   `json:"model"`
+	Input           []map[string]interface{} `json:"input"`
+	Text            map[string]interface{}   `json:"text"`
+	Reasoning       AIReasoning              `json:"reasoning"`
+	Tools           []AITool                 `json:"tools"`
+	Temperature     float64                  `json:"temperature"`
+	MaxOutputTokens int                      `json:"max_output_tokens"`
+	TopP            float64                  `json:"top_p"`
+	Store           bool                     `json:"store"`
+	Include         []string                 `json:"include"`
+}
+
 // AIRequestBuilderInterface defines the common interface for both filesystem and embedded builders
 type AIRequestBuilderInterface interface {
 	BuildRequestPayload(userInput string) (*AIRequestPayload, error)
