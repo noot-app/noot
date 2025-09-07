@@ -11,7 +11,6 @@ import (
 type mockAIProvider struct {
 	nutritionResponse CompleteNutrient
 	shouldError       bool
-	contextReceived   interface{}
 }
 
 func (m *mockAIProvider) TranscribeAudio(ctx context.Context, filePath, mimeType string) (string, error) {
@@ -23,23 +22,17 @@ func (m *mockAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 }
 
 func (m *mockAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteNutrient, error) {
-	return m.GetNutritionWithContext(ctx, item, nil)
+	return m.GetNutritionWithContext(ctx, item)
 }
 
-func (m *mockAIProvider) GetNutritionWithContext(ctx context.Context, item Item, nutritionContext interface{}) (CompleteNutrient, error) {
-	// Store the context for verification in tests
-	m.contextReceived = nutritionContext
-
+func (m *mockAIProvider) GetNutritionWithContext(ctx context.Context, item Item) (CompleteNutrient, error) {
 	if m.shouldError {
 		return CompleteNutrient{}, errors.New("mock error")
 	}
 	return m.nutritionResponse, nil
 }
 
-func (m *mockAIProvider) GetNutritionWithContextComplete(ctx context.Context, item Item, nutritionContext interface{}) (NutritionResponse, error) {
-	// Store the context for verification in tests
-	m.contextReceived = nutritionContext
-
+func (m *mockAIProvider) GetNutritionWithContextComplete(ctx context.Context, item Item) (NutritionResponse, error) {
 	if m.shouldError {
 		return NutritionResponse{}, errors.New("mock error")
 	}

@@ -532,11 +532,11 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 
 // GetNutrition implements AIProvider.GetNutrition
 func (p *OpenAIProvider) GetNutrition(ctx context.Context, item Item) (CompleteNutrient, error) {
-	return p.GetNutritionWithContext(ctx, item, nil)
+	return p.GetNutritionWithContext(ctx, item)
 }
 
 // GetNutritionWithContext implements AIProvider.GetNutritionWithContext
-func (p *OpenAIProvider) GetNutritionWithContext(ctx context.Context, item Item, nutritionContext interface{}) (CompleteNutrient, error) {
+func (p *OpenAIProvider) GetNutritionWithContext(ctx context.Context, item Item) (CompleteNutrient, error) {
 	// Security: Validate item input
 	if len(strings.TrimSpace(item.Name)) == 0 {
 		return CompleteNutrient{}, NewAppError("Item name cannot be empty", http.StatusBadRequest,
@@ -552,11 +552,10 @@ func (p *OpenAIProvider) GetNutritionWithContext(ctx context.Context, item Item,
 
 	// Build input message as JSON
 	inputObj := map[string]any{
-		"name":              item.Name,
-		"grams":             item.Grams,
-		"brand":             item.Brand,
-		"context":           item.Context,
-		"nutrition_context": nutritionContext, // Always present, either object or null
+		"name":    item.Name,
+		"grams":   item.Grams,
+		"brand":   item.Brand,
+		"context": item.Context,
 	}
 	inputBytes, _ := json.Marshal(inputObj)
 	input := string(inputBytes)
@@ -707,7 +706,7 @@ func (p *OpenAIProvider) GetNutritionWithContext(ctx context.Context, item Item,
 }
 
 // GetNutritionWithContextComplete implements AIProvider.GetNutritionWithContextComplete
-func (p *OpenAIProvider) GetNutritionWithContextComplete(ctx context.Context, item Item, nutritionContext interface{}) (NutritionResponse, error) {
+func (p *OpenAIProvider) GetNutritionWithContextComplete(ctx context.Context, item Item) (NutritionResponse, error) {
 	// Security: Validate item input
 	if len(strings.TrimSpace(item.Name)) == 0 {
 		return NutritionResponse{}, NewAppError("Item name cannot be empty", http.StatusBadRequest,
@@ -723,11 +722,10 @@ func (p *OpenAIProvider) GetNutritionWithContextComplete(ctx context.Context, it
 
 	// Build input message as JSON
 	inputObj := map[string]any{
-		"name":              item.Name,
-		"grams":             item.Grams,
-		"brand":             item.Brand,
-		"context":           item.Context,
-		"nutrition_context": nutritionContext, // Always present, either object or null
+		"name":    item.Name,
+		"grams":   item.Grams,
+		"brand":   item.Brand,
+		"context": item.Context,
 	}
 	inputBytes, _ := json.Marshal(inputObj)
 	input := string(inputBytes)
