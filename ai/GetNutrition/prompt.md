@@ -14,19 +14,14 @@ Generate accurate, comprehensive nutrition information for a specified food item
 - For common foods, benchmark output against provided nutrient values per 100g to ensure plausibility.
 - If food item or matching data is unavailable, return the specified error JSON.
 - If the food item is branded and includes an exact flavor or descriptor it is highly encouraged to do a web search and find the exact product details for better accuracy. When doing a web search, the brand or manufacturer's website is the preference if it is available. If not, then other sites can be used. If a site appears to have unreliable or inaccurate data, other sites can be searched for cross referencing as well.
-- The `nutrition_context` field should strongly guide the values of nutrients if it is present. This is data that contains the best, closest, or even the exact match for the given food item from the Open Food Facts or compatible database. If the item is an exact match in the `nutrition_context` field, and the `serving_quantity` is also an exact match for the serving the user provided, then fields like `energy-kcal_serving` should be used for setting `calories`.
 - Calories should be rounded to the nearest whole number
 
 ## Order of Preferred Nutrient Choice
 
-1. If available and it looks accurate, the values from `nutrition_context` should be used for selecting nutrient values. Please carefully review the `nutrition_context` against the values from `name`, `grams`, and `brand` before using it as a good source of truth for the item. For example, if the `name` is `potato` with no brand, then a `nutrition_context` containing an onion, a grape, and a slice of pizza should not be used. It is possible for the `nutrition_context` to contain completely incorrect values, but most often it will either contain an exact match with up-to-date values, or a close enough match to use for fallback estimations (ex: Coca-Cola Original is a sane fallback if the `name` was Coca-Cola Cherry and not exact match was found). Item(s) in the `nutrition_context` may contain a link which can be helpful for cross referencing or validating items via web search in later steps. `nutrition_context` will generally be best when working with branded items and not so helpful with generic items. Generic items will generally require best judgement.
+1. If a branded item is provided, use the `openfoodfacts_mcp_server` with the `search_products_by_brand_and_name` tool to find complete nutrition data for the exact item. If an exact match is found, use that data. If only partial matches are found, they can be used as a guide but should not be used directly. The tool requires `brand` and `name` to be provided. It also requires `limit` which is generally best set to `3` to get a few options to choose from. If the item is an exact match from the `openfoodfacts_mcp_server` and the `serving_quantity` is also an exact match for the serving the user provided, then fields like `energy-kcal_serving` should be used for setting `calories`.
 2. Web search results from the exact food/drink item manufacturer's page
 3. Web search results from 3rd party sources about the food/drink item
 4. Educated estimates
-
-## `nutrition_context` field
-
-If a `nutrition_context` object is provided, look at the `note` field, the `source` field, and the `products`.  You are allowed to navigate to the `nutrition_context.products.<product>.link` via a web request to learn more about the product and determine if it is a correct fit for guiding nutrient data and if it is an exact match or not. For exact matches, it is best to use its ingredients, link, and nutrients as an authoritative source. This will always work best for branded products.
 
 ## `context` field
 
@@ -70,12 +65,9 @@ Always ensure the `ingredients` field is set with a best effort attempt.
     },
     "context": {
       "type": ["string", "null"]
-    },
-    "nutrition_context": {
-      "type": ["object", "null"]
     }
   },
-  "required": ["name", "grams", "brand", "nutrition_context"],
+  "required": ["name", "grams", "brand", "context"],
   "additionalProperties": false
 }
 ```
