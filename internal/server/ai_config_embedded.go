@@ -4,7 +4,9 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
+	"strings"
 )
 
 // Embed the AI configuration files into the binary
@@ -125,14 +127,12 @@ func loadEmbeddedAIConfig(configDir string) (*AIConfig, error) {
 		return nil, fmt.Errorf("failed to parse embedded config file: %w", err)
 	}
 
-	// Environment variable substitution for sensitive fields (if needed in production)
-	// Note: This is less common in embedded configs but keeping for compatibility
+	// Environment variable substitution for sensitive fields
 	for i, tool := range config.Tools {
 		if tool.Type == "mcp" {
 			if tool.Authorization != "" {
-				// In embedded mode, we typically wouldn't expand env vars
-				// but keeping this for backward compatibility if needed
-				config.Tools[i].Authorization = tool.Authorization
+				// Expand environment variables in the authorization field
+				config.Tools[i].Authorization = expandEnvVars(tool.Authorization)
 			}
 		}
 	}
@@ -164,4 +164,19 @@ func loadEmbeddedSchema(configDir string) (map[string]interface{}, error) {
 	}
 
 	return schema, nil
+}
+
+// expandEnvVars expands environment variables in the format ${VAR_NAME}
+func expandEnvVars(text string) string {
+	// Handle ${VAR_NAME} format
+	if strings.HasPrefix(text, "${") && strings.HasSuffix(text, "}") {
+		varName := text[2 : len(text)-1] // Remove ${ and }
+		if envValue := os.Getenv(varName); envValue != "" {
+			return envValue
+		}
+		// If environment variable is not set, return the original text
+		// This maintains backward compatibility and prevents empty values
+		return text
+	}
+	return text
 }
