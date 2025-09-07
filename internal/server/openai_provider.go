@@ -84,7 +84,7 @@ type AIReasoning struct{}
 var getNutritionBuilder AIRequestBuilderInterface
 var parseItemsBuilder AIRequestBuilderInterface
 
-// GetNutritionBuilder returns the nutrition V2 builder, initializing it if needed
+// GetNutritionBuilder returns the nutrition builder, initializing it if needed
 func GetNutritionBuilder() (AIRequestBuilderInterface, error) {
 	if getNutritionBuilder == nil {
 		builder, err := NewEmbeddedAIRequestBuilder("GetNutrition")
