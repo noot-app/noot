@@ -151,9 +151,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 		if err != nil {
 			LogError("Failed to get user for consumption storage", err)
 		} else if user != nil {
-			// Convert back to internal types for storage
-			internalItems := convertAPIItemsToInternal(itemsWithNutrition)
-			consumption := itemWithNutritionToConsumption(user.ID, transcript, internalItems, summary)
+			consumption := itemWithNutritionToConsumption(user.ID, transcript, summary)
 			if err := s.store.CreateConsumption(ctx, consumption); err != nil {
 				LogError("Failed to save consumption to database", err)
 				// Don't fail the request if storage fails
@@ -319,7 +317,7 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 	summary := summarize(internalItems)
 
 	// Update the consumption record (keep original transcript, user_id, created_at)
-	updatedConsumption := itemWithNutritionToConsumption(existingConsumption.UserID, existingConsumption.Transcript, internalItems, summary)
+	updatedConsumption := itemWithNutritionToConsumption(existingConsumption.UserID, existingConsumption.Transcript, summary)
 	updatedConsumption.ID = existingConsumption.ID
 	updatedConsumption.CreatedAt = existingConsumption.CreatedAt
 

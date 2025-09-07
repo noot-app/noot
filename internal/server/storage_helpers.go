@@ -29,7 +29,7 @@ func CreateDatabaseConfig() *storage.Config {
 }
 
 // itemWithNutritionToConsumption converts server response data to a consumption record
-func itemWithNutritionToConsumption(userID string, transcript string, items []ItemWithNutrition, summary Summary) *storage.Consumption {
+func itemWithNutritionToConsumption(userID string, transcript string, summary Summary) *storage.Consumption {
 	return &storage.Consumption{
 		UserID:        userID,
 		Transcript:    transcript,
@@ -87,79 +87,6 @@ func itemWithNutritionToConsumption(userID string, transcript string, items []It
 		Alcohol:  summary.Totals.Alcohol,
 		Caffeine: summary.Totals.Caffeine,
 		Creatine: summary.Totals.Creatine,
-	}
-}
-
-// itemWithNutritionToConsumptionItem converts server response data to a consumption item record
-func itemWithNutritionToConsumptionItem(consumptionID string, item ItemWithNutrition, itemID *string) *storage.ConsumptionItem {
-	brandStr := ""
-	if item.Item.Brand != nil {
-		brandStr = *item.Item.Brand
-	}
-
-	var nutrients CompleteNutrient
-	if item.Item.Nutrients != nil {
-		nutrients = *item.Item.Nutrients
-	}
-
-	return &storage.ConsumptionItem{
-		ConsumptionID: consumptionID,
-		ItemID:        itemID,
-		Name:          item.Item.Name,
-		Brand:         brandStr,
-		Grams:         item.Item.Grams,
-		UserQuantity:  item.Item.UserQuantity,
-		UserUnit:      item.Item.UserUnit,
-		Note:          item.Item.Note,
-		// Nutrition snapshot for this serving
-		Calories:            nutrients.Calories,
-		ProteinG:            nutrients.Protein,
-		TotalFatG:           nutrients.TotalFat,
-		SaturatedFatG:       nutrients.SaturatedFat,
-		TransFatG:           nutrients.TransFat,
-		CholesterolMg:       nutrients.Cholesterol,
-		SodiumMg:            nutrients.Sodium,
-		TotalCarbsG:         nutrients.TotalCarbs,
-		DietaryFiberG:       nutrients.DietaryFiber,
-		TotalSugarsG:        nutrients.TotalSugars,
-		AddedSugarsG:        nutrients.AddedSugars,
-		VitaminAMcg:         nutrients.VitaminA,
-		VitaminCMg:          nutrients.VitaminC,
-		VitaminDMcg:         nutrients.VitaminD,
-		VitaminEMg:          nutrients.VitaminE,
-		VitaminKMcg:         nutrients.VitaminK,
-		ThiamineMg:          nutrients.Thiamine,
-		RiboflavinMg:        nutrients.Riboflavin,
-		NiacinMg:            nutrients.Niacin,
-		VitaminB6Mg:         nutrients.VitaminB6,
-		FolateMcg:           nutrients.Folate,
-		VitaminB12Mcg:       nutrients.VitaminB12,
-		BiotinMcg:           nutrients.Biotin,
-		PantothenicAcidMg:   nutrients.PantothenicAcid,
-		CholineMg:           nutrients.Choline,
-		CalciumMg:           nutrients.Calcium,
-		IronMg:              nutrients.Iron,
-		MagnesiumMg:         nutrients.Magnesium,
-		PhosphorusMg:        nutrients.Phosphorus,
-		PotassiumMg:         nutrients.Potassium,
-		ZincMg:              nutrients.Zinc,
-		CopperMg:            nutrients.Copper,
-		ManganeseMg:         nutrients.Manganese,
-		SeleniumMcg:         nutrients.Selenium,
-		IodineMcg:           nutrients.Iodine,
-		MolybdenumMcg:       nutrients.Molybdenum,
-		ChromiumMcg:         nutrients.Chromium,
-		FluorideMg:          nutrients.Fluoride,
-		ChlorideMg:          nutrients.Chloride,
-		Omega3AlaG:          nutrients.Omega3Ala,
-		Omega3EpaG:          nutrients.Omega3Epa,
-		Omega3DhaG:          nutrients.Omega3Dha,
-		Omega6G:             nutrients.Omega6,
-		CreatineMg:          nutrients.Creatine,
-		CaffeineMg:          nutrients.Caffeine,
-		AlcoholG:            nutrients.Alcohol,
-		PolyunsaturatedFatG: nutrients.PolyunsaturatedFat,
-		MonounsaturatedFatG: nutrients.MonounsaturatedFat,
 	}
 }
 
