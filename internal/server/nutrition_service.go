@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/grantbirki/noot/internal/storage"
@@ -16,9 +14,6 @@ const (
 	// Cache TTL for nutrition data
 	cacheTTLDays = 30
 	cacheTTL     = cacheTTLDays * 24 * time.Hour
-
-	// Common serving sizes for cache lookups (in grams)
-	servingSizes = "100,355,250,200,500,150,300,400,50,75,125"
 
 	// Decimal precision for different nutrient types
 	caloriesPrecision    = 3
@@ -49,7 +44,6 @@ func getCommonServingSizes() []float64 {
 // NutritionService handles nutrition data processing with caching and unit conversions
 type NutritionService struct {
 	aiProvider AIProvider
-	offClient  *OFFClient
 	converter  *UnitConverter
 	store      storage.Store
 }
@@ -198,75 +192,21 @@ func (s *NutritionService) fetchNutritionFromCache(ctx context.Context, item Ite
 	return nil, nil // No cache hit
 }
 
-// fetchNutritionContext fetches nutrition context from Open Food Facts
-// Returns context data and ingredients/URL information to be added to the item
-func (s *NutritionService) fetchNutritionContext(ctx context.Context, item *Item) (interface{}, error) {
-	// Only query OFF if we have a brand (OFF is only good for branded items)
-	brand := getBrandOrEmpty(item.Brand)
-	if s.offClient == nil || brand == "" || strings.TrimSpace(brand) == "" {
-		LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
-		return nil, nil
-	}
+// fetchNutritionFromAI fetches nutrition data from AI provider
+func (s *NutritionService) fetchNutritionFromAI(ctx context.Context, item *Item, _ interface{}) (*CompleteNutrient, error) {
+	LogDebug("Fetching nutrition from AI provider", "name", item.Name)
 
-	LogDebug("Checking OFF database for item context", "name", item.Name, "brand", brand)
-
-	offProduct, err := s.offClient.SearchProduct(ctx, item.Name, brand)
-	if err != nil || offProduct == nil {
-		LogDebug("Item not found in OFF database", "name", item.Name, "error", err)
-		return nil, nil
-	}
-
-	LogDebug("Found item in OFF database for context", "name", item.Name, "product_name", offProduct.ProductName)
-
-	// Extract ingredients and OFF URL BEFORE creating context so they get saved
-	if len(offProduct.Ingredients) > 0 {
-		item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
-		LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
-	}
-
-	if offProduct.Link != "" {
-		item.Url = &offProduct.Link
-		LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
-	}
-
-	// Create nutrition context for AI
-	nutritionContext := map[string]interface{}{
-		"source": "open_food_facts",
-		"products": []interface{}{
-			map[string]interface{}{
-				"product_name":          offProduct.ProductName,
-				"brands":                offProduct.Brands,
-				"nutrients":             offProduct.Nutriments,
-				"serving_quantity":      offProduct.ServingQuantity,
-				"serving_quantity_unit": offProduct.ServingQuantityUnit,
-				"serving_size":          offProduct.ServingSize,
-				"ingredients":           parseOFFIngredients(offProduct.Ingredients),
-				"link":                  offProduct.Link,
-				"grade":                 offProduct.Grade,
-				"is_beverage":           offProduct.IsBeverage,
-			},
-		},
-		"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as reference but provide complete nutrition data including nutrients not available in the context.",
-	}
-
-	return nutritionContext, nil
-}
-
-// fetchNutritionFromAI fetches nutrition data from AI provider with optional context
-func (s *NutritionService) fetchNutritionFromAI(ctx context.Context, item *Item, nutritionContext interface{}) (*CompleteNutrient, error) {
-	LogDebug("Fetching nutrition from AI provider", "name", item.Name, "has_context", nutritionContext != nil)
-
-	// For generic items without OFF data, use complete AI response to get ingredients
-	isGenericItem := (item.Brand == nil || (item.Brand != nil && *item.Brand == "")) && nutritionContext == nil
+	// For generic items without brand, use complete AI response to get ingredients
+	isGenericItem := (item.Brand == nil || (item.Brand != nil && *item.Brand == ""))
 	LogDebug("Checking if item is generic", "item", item.Name, "brand_nil", item.Brand == nil,
-		"brand_empty", item.Brand != nil && *item.Brand == "", "has_context", nutritionContext != nil, "is_generic", isGenericItem)
+		"brand_empty", item.Brand != nil && *item.Brand == "", "is_generic", isGenericItem)
 
 	var nutrition CompleteNutrient
 	var err error
 
 	if isGenericItem {
-		// No OFF data and no brand - use complete AI response for ingredients
-		aiResponse, aiErr := s.aiProvider.GetNutritionWithContextComplete(ctx, *item, nutritionContext)
+		// No brand - use complete AI response for ingredients
+		aiResponse, aiErr := s.aiProvider.GetNutritionWithContextComplete(ctx, *item)
 		if aiErr != nil {
 			return nil, aiErr
 		}
@@ -286,8 +226,8 @@ func (s *NutritionService) fetchNutritionFromAI(ctx context.Context, item *Item,
 
 		LogDebug("Using complete AI nutrition", "item", item.Name, "calories", nutrition.Calories)
 	} else {
-		// Branded items or items with OFF context - use standard nutrition only
-		nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, *item, nutritionContext)
+		// Branded items - use standard nutrition only
+		nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, *item)
 		if err != nil {
 			return nil, err
 		}
@@ -335,8 +275,8 @@ func (s *NutritionService) cacheNutritionData(ctx context.Context, item Item, nu
 		Name:        baseName,
 		Brand:       item.Brand,
 		Grams:       baseGrams,
-		Ingredients: item.Ingredients, // Include ingredients from OFF/AI
-		Url:         item.Url,         // Include OFF/AI URL
+		Ingredients: item.Ingredients, // Include ingredients from AI
+		Url:         item.Url,         // Include AI URL
 	}
 
 	// Use brand-aware normalization for consistent cache keys
@@ -381,21 +321,11 @@ func NewNutritionService(store storage.Store) *NutritionService {
 		Timeout:         60,
 	}
 
-	// Create OFF client with config from environment
-	offConfig := OFFClientConfig{
-		BaseURL:   getenv("OFF_API_URL", "https://world.openfoodfacts.org"),
-		UserAgent: getenv("OFF_USER_AGENT", "noot/0.1 (https://github.com/GrantBirki/noot)"),
-		Timeout:   time.Duration(getenvInt("OFF_TIMEOUT", 5)) * time.Second,
-		Enabled:   getenvBool("OFF_ENABLED", true),
-	}
-
 	aiProvider := NewOpenAIProvider(config)
-	offClient := NewOFFClient(offConfig)
 	converter := NewUnitConverter()
 
 	return &NutritionService{
 		aiProvider: aiProvider,
-		offClient:  offClient,
 		converter:  converter,
 		store:      store,
 	}
@@ -474,141 +404,46 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 	// Start goroutines for each item
 	for i, item := range items {
 		go func(index int, item Item) {
-			// Try to get OFF context for this item
-			var nutritionContext interface{}
-			var directNutrition *CompleteNutrient
-			var offProduct *OFFProduct // Declare here so we can use it later for ingredients
+			// Determine if this is a generic item (no brand)
+			isGenericItem := (item.Brand == nil || (item.Brand != nil && *item.Brand == ""))
+			LogDebug("Processing item for nutrition", "item", item.Name, "is_generic", isGenericItem)
 
-			// Only query OFF if we have a brand (OFF is only good for branded items)
-			brand := getBrandOrEmpty(item.Brand)
-			if s.offClient != nil && brand != "" && strings.TrimSpace(brand) != "" {
-				var err error
-				offProduct, err = s.offClient.SearchProduct(ctx, item.Name, brand)
-				if err == nil && offProduct != nil {
-					// Check if we have an exact serving size match - use direct OFF data
-					if offProduct.ServingQuantity != nil &&
-						float64(*offProduct.ServingQuantity) == item.Grams {
-						LogDebug("Exact serving size match found - using direct OFF nutrition",
-							"item", item.Name,
-							"serving_quantity", float64(*offProduct.ServingQuantity),
-							"item_grams", item.Grams)
-
-						// Use precise OFF nutrition directly
-						nutrition := s.offClient.ConvertToCompleteNutrient(offProduct, item.Grams)
-						directNutrition = &nutrition
-					} else {
-						// Fall back to AI with OFF context
-						LogDebug("No exact serving match - using OFF as AI context",
-							"item", item.Name,
-							"serving_quantity", offProduct.ServingQuantity,
-							"item_grams", item.Grams)
-					}
-
-					productInfo := map[string]interface{}{
-						"product_name": offProduct.ProductName,
-						"brands":       offProduct.Brands,
-						"nutrients":    offProduct.Nutriments,
-					}
-
-					// Add serving size information if available
-					if offProduct.ServingQuantity != nil {
-						productInfo["serving_quantity"] = fmt.Sprintf("%.0f", float64(*offProduct.ServingQuantity))
-					}
-					if offProduct.ServingQuantityUnit != "" {
-						productInfo["serving_quantity_unit"] = offProduct.ServingQuantityUnit
-					}
-					if offProduct.ServingSize != "" {
-						productInfo["serving_size"] = offProduct.ServingSize
-					}
-
-					// Add additional product information if available
-					if len(offProduct.Ingredients) > 0 {
-						productInfo["ingredients"] = parseOFFIngredients(offProduct.Ingredients)
-					}
-					if offProduct.Link != "" {
-						productInfo["link"] = offProduct.Link
-					}
-					if offProduct.Grade != "" {
-						productInfo["grade"] = offProduct.Grade
-					}
-					if offProduct.IsBeverage != nil {
-						productInfo["is_beverage"] = *offProduct.IsBeverage
-					}
-
-					nutritionContext = map[string]interface{}{
-						"source": "open_food_facts",
-						"products": []interface{}{
-							productInfo,
-						},
-						"note": "This context provides real product data from Open Food Facts that may help inform nutrition estimates. Use this data as a reference but provide complete nutrition data including nutrients not available in the context. This data could be a closely related product, the exact product, or an entirely incorrect product. Please inspect it carefully and use your best judgement. If ingredients/link are provided and seem to match the user's input, you may optionally include them in your response.",
-					}
-				} else {
-					LogDebug("Item not found in OFF database", "name", item.Name, "brand", brand, "error", err)
-				}
-			} else {
-				LogDebug("Skipping OFF database query - no brand available", "name", item.Name, "brand", brand)
-			}
-
-			// Extract ingredients and OFF URL from OFF product data
-			if offProduct != nil {
-				// Extract and convert ingredients from OFF format to our format
-				if len(offProduct.Ingredients) > 0 {
-					item.Ingredients = parseOFFIngredients(offProduct.Ingredients)
-					LogDebug("Extracted ingredients from OFF", "item", item.Name, "ingredient_count", len(item.Ingredients))
-				}
-
-				// Save OFF URL for historical reference
-				if offProduct.Link != "" {
-					item.Url = &offProduct.Link
-					LogDebug("Saved OFF URL", "item", item.Name, "url", offProduct.Link)
-				}
-			}
-
-			// Use direct OFF nutrition if available, otherwise use AI
 			var nutrition CompleteNutrient
 			var err error
-			if directNutrition != nil {
-				nutrition = *directNutrition
-				LogDebug("Using direct OFF nutrition", "item", item.Name, "calories", nutrition.Calories)
-			} else {
-				// For generic items without OFF data, use complete AI response to get ingredients
-				isGenericItem := offProduct == nil && (item.Brand == nil || (item.Brand != nil && *item.Brand == ""))
-				LogDebug("Checking if item is generic", "item", item.Name, "offProduct_nil", offProduct == nil, "brand_nil", item.Brand == nil, "brand_empty", item.Brand != nil && *item.Brand == "", "is_generic", isGenericItem)
 
-				if isGenericItem {
-					// No OFF data and no brand - use complete AI response for ingredients
-					aiResponse, aiErr := s.aiProvider.GetNutritionWithContextComplete(ctx, item, nutritionContext)
-					if aiErr != nil {
-						results <- result{index: index, item: item, err: aiErr}
-						return
-					}
-					nutrition = aiResponse.Nutrients
-
-					// Extract ingredients from AI response for generic items
-					if len(aiResponse.Ingredients) > 0 {
-						item.Ingredients = aiResponse.Ingredients
-						LogDebug("Extracted ingredients from AI", "item", item.Name, "ingredient_count", len(item.Ingredients))
-					}
-
-					// Extract URL from AI response if available
-					if aiResponse.URL != nil && *aiResponse.URL != "" {
-						item.Url = aiResponse.URL
-						LogDebug("Saved AI URL", "item", item.Name, "url", *aiResponse.URL)
-					}
-
-					LogDebug("Using complete AI nutrition", "item", item.Name, "calories", nutrition.Calories)
-				} else {
-					// Branded items or items with OFF context - use standard nutrition only
-					nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, item, nutritionContext)
-					if err != nil {
-						results <- result{index: index, item: item, err: err}
-						return
-					}
-					LogDebug("Using AI nutrition", "item", item.Name, "calories", nutrition.Calories)
+			if isGenericItem {
+				// No brand - use complete AI response for ingredients
+				aiResponse, aiErr := s.aiProvider.GetNutritionWithContextComplete(ctx, item)
+				if aiErr != nil {
+					results <- result{index: index, item: item, err: aiErr}
+					return
 				}
-			}
-			item.Nutrients = &nutrition
+				nutrition = aiResponse.Nutrients
 
+				// Extract ingredients from AI response for generic items
+				if len(aiResponse.Ingredients) > 0 {
+					item.Ingredients = aiResponse.Ingredients
+					LogDebug("Extracted ingredients from AI", "item", item.Name, "ingredient_count", len(item.Ingredients))
+				}
+
+				// Extract URL from AI response if available
+				if aiResponse.URL != nil && *aiResponse.URL != "" {
+					item.Url = aiResponse.URL
+					LogDebug("Saved AI URL", "item", item.Name, "url", *aiResponse.URL)
+				}
+
+				LogDebug("Using complete AI nutrition", "item", item.Name, "calories", nutrition.Calories)
+			} else {
+				// Branded items - use standard nutrition only
+				nutrition, err = s.aiProvider.GetNutritionWithContext(ctx, item)
+				if err != nil {
+					results <- result{index: index, item: item, err: err}
+					return
+				}
+				LogDebug("Using AI nutrition", "item", item.Name, "calories", nutrition.Calories)
+			}
+
+			item.Nutrients = &nutrition
 			results <- result{index: index, item: item, err: nil}
 		}(i, item)
 	}
@@ -644,14 +479,8 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 		return item, nil
 	}
 
-	// Step 2: Fetch nutrition context from OFF and extract ingredients/URL
-	nutritionContext, err := s.fetchNutritionContext(ctx, &item)
-	if err != nil {
-		LogWarn("Error fetching OFF context", "error", err.Error())
-	}
-
-	// Step 3: Fetch nutrition from AI with context
-	nutrition, err := s.fetchNutritionFromAI(ctx, &item, nutritionContext)
+	// Step 2: Fetch nutrition from AI
+	nutrition, err := s.fetchNutritionFromAI(ctx, &item, nil)
 	if err != nil {
 		return item, err
 	}
@@ -1174,9 +1003,9 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 		MonounsaturatedFatGPer100g: convertAndRound(normalizedNutrients.MonounsaturatedFat, fatPrecision),
 		Note:                       item.Note,
 
-		// Include ingredients and OFF URL when caching items
+		// Include ingredients and AI URL when caching items
 		Ingredients: item.Ingredients, // Copy ingredients from the item
-		Url:         item.Url,         // Copy OFF URL from the item
+		Url:         item.Url,         // Copy AI URL from the item
 
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -1189,79 +1018,4 @@ func floatValue(f *float64) float64 {
 		return 0
 	}
 	return *f
-}
-
-// parseOFFIngredients converts raw OFF ingredient data to our OFFIngredient format
-func parseOFFIngredients(rawIngredients []interface{}) []storage.OFFIngredient {
-	if len(rawIngredients) == 0 {
-		return []storage.OFFIngredient{}
-	}
-
-	var ingredients []storage.OFFIngredient
-
-	for _, rawIngredient := range rawIngredients {
-		// OFF ingredients come as map[string]interface{}
-		ingredientMap, ok := rawIngredient.(map[string]interface{})
-		if !ok {
-			continue
-		}
-
-		ingredient := storage.OFFIngredient{}
-
-		// Extract ID
-		if id, ok := ingredientMap["id"].(string); ok {
-			ingredient.ID = id
-		}
-
-		// Extract text/display name
-		if text, ok := ingredientMap["text"].(string); ok {
-			ingredient.Text = text
-		}
-
-		// Extract percentage values (they might be numbers or strings)
-		if percentEstimate := extractFloatFromInterface(ingredientMap["percent_estimate"]); percentEstimate != nil {
-			ingredient.PercentEstimate = percentEstimate
-		}
-		if percentMax := extractFloatFromInterface(ingredientMap["percent_max"]); percentMax != nil {
-			ingredient.PercentMax = percentMax
-		}
-		if percentMin := extractFloatFromInterface(ingredientMap["percent_min"]); percentMin != nil {
-			ingredient.PercentMin = percentMin
-		}
-
-		// Only add ingredient if it has meaningful data
-		if ingredient.ID != "" || ingredient.Text != "" {
-			ingredients = append(ingredients, ingredient)
-		}
-	}
-
-	return ingredients
-}
-
-// extractFloatFromInterface safely extracts a float64 from an interface{} value
-func extractFloatFromInterface(value interface{}) *float64 {
-	if value == nil {
-		return nil
-	}
-
-	switch v := value.(type) {
-	case float64:
-		return &v
-	case float32:
-		f := float64(v)
-		return &f
-	case int:
-		f := float64(v)
-		return &f
-	case int64:
-		f := float64(v)
-		return &f
-	case string:
-		// Try to parse string as float
-		if f, err := strconv.ParseFloat(v, 64); err == nil {
-			return &f
-		}
-	}
-
-	return nil
 }

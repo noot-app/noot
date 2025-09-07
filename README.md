@@ -199,12 +199,6 @@ graph TB
     TRANSCRIBE_LANGUAGE=en
     #OPENAI_TRANSCRIBE_RESPONSE_FORMAT=
 
-    # Open Food Facts (OFF) Configuration - Pre-hydrates nutrition data before AI fallback
-    OFF_ENABLED=true                                                         # Enable OFF integration (default: true)
-    OFF_API_URL=https://world.openfoodfacts.org                             # OFF API base URL (default)
-    OFF_USER_AGENT=noot/0.1 (https://github.com/GrantBirki/noot)           # User agent for OFF API (default)
-    OFF_TIMEOUT=5                                                           # Request timeout in seconds (default: 5)
-
     # Upload Configuration
     MAX_UPLOAD_BYTES=104857600  # Maximum upload size in bytes (default: 100MB)
 
@@ -319,7 +313,6 @@ The application supports automated deployment with built-in version tracking:
 - Supabase/PostgreSQL database with CLI-managed migrations and seeding for consumption storage
 - OpenAI gpt-4o-mini-transcribe for speech-to-text
 - OpenAI gpt-4o-mini for consumption parsing with complete nutrition data
-- **Open Food Facts (OFF) integration** for faster, more accurate nutrition data before AI fallback
 - Audio uploads are streamed to temporary files to avoid memory spikes
 - JWT authentication via Supabase Auth for user management
 - CORS middleware for cross-origin requests from frontend
@@ -339,7 +332,6 @@ The application supports automated deployment with built-in version tracking:
 - **Backend**: Go API server ([http://localhost:3001](http://localhost:3001))
 - **Database**: Supabase/PostgreSQL with automatic migrations
 - **Audio Processing**: OpenAI Whisper via API
-- **Nutrition Data**: Open Food Facts (OFF) API with OpenAI GPT-4o-mini fallback for structured JSON responses
 
 ## Theme
 

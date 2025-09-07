@@ -312,6 +312,7 @@ func TestJWTSecurityValidation(t *testing.T) {
 // Test authentication middleware security patterns
 func TestAuthMiddlewareSecurity(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	InitLogger() // Initialize logger for the test
 
 	// Save original env vars
 	originalEnv := os.Getenv("ENV")
