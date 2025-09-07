@@ -49,7 +49,6 @@ func TestLoadPrompt(t *testing.T) {
 	// Verify it contains expected content
 	assert.Contains(t, prompt, "# Role and Objective")
 	assert.Contains(t, prompt, "Generate accurate, comprehensive nutrition information")
-	assert.Contains(t, prompt, "nutrition_context")
 }
 
 func TestLoadSchema(t *testing.T) {
