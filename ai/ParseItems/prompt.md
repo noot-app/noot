@@ -104,7 +104,7 @@ If any item cannot be resolved or mapped to a known conversion, set its `grams` 
 
 ## Verbosity
 
-- Provide concise outputs—just enough detail for unambiguous extraction and conversion.
+- Provide concise outputs - just enough detail for unambiguous extraction and conversion.
 
 ## Stop Conditions
 

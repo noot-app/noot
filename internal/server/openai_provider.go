@@ -82,9 +82,11 @@ type AIReasoning struct{}
 
 // AI configuration paths
 const getNutritionAIDir = "ai/GetNutrition"
+const parseItemsAIDir = "ai/ParseItems"
 
 // Package-level AI request builder initialized lazily
 var getNutritionBuilder *AIRequestBuilder
+var parseItemsBuilder *AIRequestBuilder
 
 // GetNutritionBuilder returns the nutrition V2 builder, initializing it if needed
 func GetNutritionBuilder() (*AIRequestBuilder, error) {
@@ -96,6 +98,18 @@ func GetNutritionBuilder() (*AIRequestBuilder, error) {
 		getNutritionBuilder = builder
 	}
 	return getNutritionBuilder, nil
+}
+
+// ParseItemsBuilder returns the parse items builder, initializing it if needed
+func ParseItemsBuilder() (*AIRequestBuilder, error) {
+	if parseItemsBuilder == nil {
+		builder, err := NewAIRequestBuilderSafe(parseItemsAIDir)
+		if err != nil {
+			return nil, err
+		}
+		parseItemsBuilder = builder
+	}
+	return parseItemsBuilder, nil
 }
 
 // filterResponseForLogging removes verbose fields from OpenAI response for cleaner logging
@@ -360,16 +374,28 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 	// Security: Log truncated input to avoid exposing full transcript in logs
 	LogDebug("Sending OpenAI ParseItems request", "input_preview", truncateForLog(input))
 
-	// Get prompt configuration from environment variables
-	promptID := strings.TrimSpace(os.Getenv("OPENAI_PARSE_ITEMS_PROMPT_ID"))
-	promptVersion := strings.TrimSpace(os.Getenv("OPENAI_PARSE_ITEMS_PROMPT_VERSION"))
+	// Build request payload using pre-initialized AIRequestBuilder
+	builder, err := ParseItemsBuilder()
+	if err != nil {
+		return ParsedItems{}, NewAppError("Failed to initialize AI request builder", http.StatusInternalServerError, err)
+	}
+	payloadStruct, err := builder.BuildRequestPayload(input)
+	if err != nil {
+		return ParsedItems{}, NewAppError("Failed to build request payload", http.StatusInternalServerError, err)
+	}
 
+	// Convert to map for HTTP request
 	payload := map[string]any{
-		"prompt": map[string]any{
-			"id":      promptID,
-			"version": promptVersion,
-		},
-		"input": input,
+		"model":             payloadStruct.Model,
+		"input":             payloadStruct.Input,
+		"text":              payloadStruct.Text,
+		"reasoning":         payloadStruct.Reasoning,
+		"tools":             payloadStruct.Tools,
+		"temperature":       payloadStruct.Temperature,
+		"max_output_tokens": payloadStruct.MaxOutputTokens,
+		"top_p":             payloadStruct.TopP,
+		"store":             payloadStruct.Store,
+		"include":           payloadStruct.Include,
 	}
 
 	b, _ := json.Marshal(payload)
