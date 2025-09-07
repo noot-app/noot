@@ -6,6 +6,32 @@
     "tokens": 5000,
     "top_p": 1.00,
     "tools": [
-        "web_search"
-    ]
+        {
+            "type": "web_search",
+            "search_context_size": "medium",
+            "user_location": {
+                "type": "approximate",
+                "city": null,
+                "country": "US",
+                "region": null,
+                "timezone": null
+            }
+        },
+        {
+            "type": "mcp",
+            "server_label": "openfoodfacts_mcp_server",
+            "server_url": "https://mcp.nootapp.io/mcp",
+            "server_description": "Open Food Facts MCP server for branded item nutrition data",
+            "authorization": "${OPENFOODFACTS_MCP_TOKEN}",
+            "allowed_tools": [
+                "search_products_by_brand_and_name"
+            ],
+            "require_approval": "never"
+        }
+    ],
+    "store": true,
+    "include": [
+        "web_search_call.action.sources"
+    ],
+    "reasoning": {}
 }

@@ -40,6 +40,64 @@ func NewOpenAIProvider(config AIProviderConfig) *OpenAIProvider {
 	}
 }
 
+// AIConfig represents the configuration for an AI prompt
+type AIConfig struct {
+	Model      string      `json:"model"`
+	TextFormat string      `json:"text.format"`
+	ToolChoice string      `json:"tool_choice"`
+	Temp       float64     `json:"temp"`
+	Tokens     int         `json:"tokens"`
+	TopP       float64     `json:"top_p"`
+	Tools      []AITool    `json:"tools"`
+	Store      bool        `json:"store"`
+	Include    []string    `json:"include"`
+	Reasoning  AIReasoning `json:"reasoning"`
+}
+
+// AITool represents a tool configuration
+type AITool struct {
+	Type              string          `json:"type"`
+	Filters           interface{}     `json:"filters,omitempty"`
+	SearchContextSize string          `json:"search_context_size,omitempty"`
+	UserLocation      *AIUserLocation `json:"user_location,omitempty"`
+	ServerLabel       string          `json:"server_label,omitempty"`
+	ServerURL         string          `json:"server_url,omitempty"`
+	ServerDescription string          `json:"server_description,omitempty"`
+	Authorization     string          `json:"authorization,omitempty"`
+	AllowedTools      []string        `json:"allowed_tools,omitempty"`
+	RequireApproval   string          `json:"require_approval,omitempty"`
+}
+
+// AIUserLocation represents user location for web search
+type AIUserLocation struct {
+	Type     string  `json:"type"`
+	City     *string `json:"city"`
+	Country  string  `json:"country"`
+	Region   *string `json:"region"`
+	Timezone *string `json:"timezone"`
+}
+
+// AIReasoning represents reasoning configuration
+type AIReasoning struct{}
+
+// AI configuration paths
+const getNutritionAIDir = "ai/GetNutrition"
+
+// Package-level AI request builder initialized lazily
+var getNutritionBuilder *AIRequestBuilder
+
+// GetNutritionBuilder returns the nutrition V2 builder, initializing it if needed
+func GetNutritionBuilder() (*AIRequestBuilder, error) {
+	if getNutritionBuilder == nil {
+		builder, err := NewAIRequestBuilderSafe(getNutritionAIDir)
+		if err != nil {
+			return nil, err
+		}
+		getNutritionBuilder = builder
+	}
+	return getNutritionBuilder, nil
+}
+
 // filterResponseForLogging removes verbose fields from OpenAI response for cleaner logging
 func filterResponseForLogging(responseBody []byte) string {
 	var response map[string]interface{}
@@ -505,16 +563,28 @@ func (p *OpenAIProvider) GetNutritionWithContext(ctx context.Context, item Item,
 
 	LogDebug("Starting OpenAI GetNutrition request", "item", item.Name, "input_message", input)
 
-	// Get prompt configuration from environment variables
-	promptID := strings.TrimSpace(os.Getenv("OPENAI_NUTRITION_PROMPT_ID"))
-	promptVersion := strings.TrimSpace(os.Getenv("OPENAI_NUTRITION_PROMPT_VERSION"))
+	// Build request payload using pre-initialized AIRequestBuilder
+	builder, err := GetNutritionBuilder()
+	if err != nil {
+		return CompleteNutrient{}, NewAppError("Failed to initialize AI request builder", http.StatusInternalServerError, err)
+	}
+	payloadStruct, err := builder.BuildRequestPayload(input)
+	if err != nil {
+		return CompleteNutrient{}, NewAppError("Failed to build request payload", http.StatusInternalServerError, err)
+	}
 
+	// Convert to map for HTTP request
 	payload := map[string]any{
-		"prompt": map[string]any{
-			"id":      promptID,
-			"version": promptVersion,
-		},
-		"input": input,
+		"model":             payloadStruct.Model,
+		"input":             payloadStruct.Input,
+		"text":              payloadStruct.Text,
+		"reasoning":         payloadStruct.Reasoning,
+		"tools":             payloadStruct.Tools,
+		"temperature":       payloadStruct.Temperature,
+		"max_output_tokens": payloadStruct.MaxOutputTokens,
+		"top_p":             payloadStruct.TopP,
+		"store":             payloadStruct.Store,
+		"include":           payloadStruct.Include,
 	}
 
 	b, _ := json.Marshal(payload)
@@ -664,16 +734,28 @@ func (p *OpenAIProvider) GetNutritionWithContextComplete(ctx context.Context, it
 
 	LogDebug("Starting OpenAI GetNutritionComplete request", "item", item.Name, "input_message", input)
 
-	// Get prompt configuration from environment variables
-	promptID := strings.TrimSpace(os.Getenv("OPENAI_NUTRITION_PROMPT_ID"))
-	promptVersion := strings.TrimSpace(os.Getenv("OPENAI_NUTRITION_PROMPT_VERSION"))
+	// Build request payload using pre-initialized AIRequestBuilder
+	builder, err := GetNutritionBuilder()
+	if err != nil {
+		return NutritionResponse{}, NewAppError("Failed to initialize AI request builder", http.StatusInternalServerError, err)
+	}
+	payloadStruct, err := builder.BuildRequestPayload(input)
+	if err != nil {
+		return NutritionResponse{}, NewAppError("Failed to build request payload", http.StatusInternalServerError, err)
+	}
 
+	// Convert to map for HTTP request
 	payload := map[string]any{
-		"prompt": map[string]any{
-			"id":      promptID,
-			"version": promptVersion,
-		},
-		"input": input,
+		"model":             payloadStruct.Model,
+		"input":             payloadStruct.Input,
+		"text":              payloadStruct.Text,
+		"reasoning":         payloadStruct.Reasoning,
+		"tools":             payloadStruct.Tools,
+		"temperature":       payloadStruct.Temperature,
+		"max_output_tokens": payloadStruct.MaxOutputTokens,
+		"top_p":             payloadStruct.TopP,
+		"store":             payloadStruct.Store,
+		"include":           payloadStruct.Include,
 	}
 
 	b, _ := json.Marshal(payload)
