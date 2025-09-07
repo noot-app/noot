@@ -19,7 +19,7 @@ type DateRangeParams struct {
 }
 
 // getCurrentUser retrieves the current authenticated user from context
-func getCurrentUser(c *gin.Context, store storage.Store) (*storage.User, error) {
+func getCurrentUser(c *gin.Context) (*storage.User, error) {
 	user := GetAuthenticatedUser(c)
 	if user != nil {
 		return user, nil

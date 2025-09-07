@@ -147,7 +147,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	if s.store != nil {
 		// For now, use the default user if no authentication
 		// In the future, this would come from authentication middleware
-		user, err := getCurrentUser(c, s.store)
+		user, err := getCurrentUser(c)
 		if err != nil {
 			LogError("Failed to get user for consumption storage", err)
 		} else if user != nil {
@@ -223,7 +223,7 @@ func (s *APIServer) GetConsumption(c *gin.Context, id string) {
 	ctx := c.Request.Context()
 
 	// Get authenticated user for authorization
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		if appErr, ok := err.(*AppError); ok {
 			s.handleAppError(c, appErr, requestID)
@@ -279,7 +279,7 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 	}
 
 	// Get authenticated user for authorization
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		if appErr, ok := err.(*AppError); ok {
 			s.handleAppError(c, appErr, requestID)
@@ -395,7 +395,7 @@ func (s *APIServer) DeleteConsumption(c *gin.Context, id string) {
 	}
 
 	// Get authenticated user for authorization
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		if appErr, ok := err.(*AppError); ok {
 			s.handleAppError(c, appErr, requestID)
@@ -445,7 +445,7 @@ func (s *APIServer) GetConsumptions(c *gin.Context, params api.GetConsumptionsPa
 	requestID := c.GetString("request_id")
 
 	// For now, get consumptions for the default user
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		handleInternalServerError(c, "Failed to get user", err)
 		return
@@ -619,7 +619,7 @@ func (s *APIServer) GetGoals(c *gin.Context, params api.GetGoalsParams) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -727,7 +727,7 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -817,7 +817,7 @@ func (s *APIServer) GetTrends(c *gin.Context, params api.GetTrendsParams) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -879,7 +879,7 @@ func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -945,7 +945,7 @@ func (s *APIServer) GetUserBiometrics(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -1069,7 +1069,7 @@ func (s *APIServer) UpdateUserBiometrics(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -1262,7 +1262,7 @@ func (s *APIServer) DeleteUserBiometrics(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -1301,7 +1301,7 @@ func (s *APIServer) GetGoalSets(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -1354,7 +1354,7 @@ func (s *APIServer) SetActiveGoalSet(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -1406,7 +1406,7 @@ func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
 	ctx := c.Request.Context()
 
 	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
 		s.handleAppError(c, appErr, requestID)
@@ -1459,7 +1459,7 @@ func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
 
 // GetLabels retrieves all labels for the current user with usage counts
 func (s *APIServer) GetLabels(c *gin.Context) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -1498,7 +1498,7 @@ func (s *APIServer) GetLabels(c *gin.Context) {
 
 // CreateLabel creates a new label for the current user
 func (s *APIServer) CreateLabel(c *gin.Context) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -1566,7 +1566,7 @@ func (s *APIServer) CreateLabel(c *gin.Context) {
 
 // UpdateLabel updates an existing label
 func (s *APIServer) UpdateLabel(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -1628,7 +1628,7 @@ func (s *APIServer) UpdateLabel(c *gin.Context, id string) {
 
 // DeleteLabel deletes a label and all its assignments
 func (s *APIServer) DeleteLabel(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -1648,7 +1648,7 @@ func (s *APIServer) DeleteLabel(c *gin.Context, id string) {
 
 // GetConsumptionLabels retrieves labels assigned to a consumption
 func (s *APIServer) GetConsumptionLabels(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -1681,7 +1681,7 @@ func (s *APIServer) GetConsumptionLabels(c *gin.Context, id string) {
 
 // AssignConsumptionLabels assigns labels to a consumption
 func (s *APIServer) AssignConsumptionLabels(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -1734,7 +1734,7 @@ func (s *APIServer) AssignConsumptionLabels(c *gin.Context, id string) {
 
 // UnassignConsumptionLabel removes a label assignment from a consumption
 func (s *APIServer) UnassignConsumptionLabel(c *gin.Context, id string, labelId string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -1754,7 +1754,7 @@ func (s *APIServer) UnassignConsumptionLabel(c *gin.Context, id string, labelId 
 
 // GetConsumptionItemLabels retrieves labels assigned to a consumption item
 func (s *APIServer) GetConsumptionItemLabels(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -1787,7 +1787,7 @@ func (s *APIServer) GetConsumptionItemLabels(c *gin.Context, id string) {
 
 // AssignConsumptionItemLabels assigns labels to a consumption item
 func (s *APIServer) AssignConsumptionItemLabels(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -1840,7 +1840,7 @@ func (s *APIServer) AssignConsumptionItemLabels(c *gin.Context, id string) {
 
 // UnassignConsumptionItemLabel removes a label assignment from a consumption item
 func (s *APIServer) UnassignConsumptionItemLabel(c *gin.Context, id string, labelId string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -1862,7 +1862,7 @@ func (s *APIServer) UnassignConsumptionItemLabel(c *gin.Context, id string, labe
 
 // GetEvents retrieves events for the current user with optional filtering
 func (s *APIServer) GetEvents(c *gin.Context, params api.GetEventsParams) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -1938,7 +1938,7 @@ func (s *APIServer) GetEvents(c *gin.Context, params api.GetEventsParams) {
 
 // CreateEvent creates a new event for the current user
 func (s *APIServer) CreateEvent(c *gin.Context) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2022,7 +2022,7 @@ func (s *APIServer) CreateEvent(c *gin.Context) {
 
 // GetEvent retrieves a specific event by ID
 func (s *APIServer) GetEvent(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2102,7 +2102,7 @@ func (s *APIServer) GetEvent(c *gin.Context, id string) {
 
 // UpdateEvent updates an existing event
 func (s *APIServer) UpdateEvent(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2191,7 +2191,7 @@ func (s *APIServer) UpdateEvent(c *gin.Context, id string) {
 
 // DeleteEvent deletes an event and all its associations
 func (s *APIServer) DeleteEvent(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2216,7 +2216,7 @@ func (s *APIServer) DeleteEvent(c *gin.Context, id string) {
 
 // GetEventLabels retrieves all labels assigned to an event
 func (s *APIServer) GetEventLabels(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2254,7 +2254,7 @@ func (s *APIServer) GetEventLabels(c *gin.Context, id string) {
 
 // AssignEventLabels assigns labels to an event
 func (s *APIServer) AssignEventLabels(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2312,7 +2312,7 @@ func (s *APIServer) AssignEventLabels(c *gin.Context, id string) {
 
 // UnassignEventLabel removes a label assignment from an event
 func (s *APIServer) UnassignEventLabel(c *gin.Context, id string, labelId string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2332,7 +2332,7 @@ func (s *APIServer) UnassignEventLabel(c *gin.Context, id string, labelId string
 
 // GetEventLinks retrieves consumption/item links for an event
 func (s *APIServer) GetEventLinks(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2369,7 +2369,7 @@ func (s *APIServer) GetEventLinks(c *gin.Context, id string) {
 
 // CreateEventLink creates a manual link between an event and consumption/item
 func (s *APIServer) CreateEventLink(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2435,7 +2435,7 @@ func (s *APIServer) CreateEventLink(c *gin.Context, id string) {
 
 // DeleteEventLink removes a link between an event and consumption/item
 func (s *APIServer) DeleteEventLink(c *gin.Context, id string, linkId string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2457,7 +2457,7 @@ func (s *APIServer) DeleteEventLink(c *gin.Context, id string, linkId string) {
 
 // GetEventTypes retrieves all event types for the current user
 func (s *APIServer) GetEventTypes(c *gin.Context) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2506,7 +2506,7 @@ func (s *APIServer) GetEventTypes(c *gin.Context) {
 
 // CreateEventType creates a new event type for the current user
 func (s *APIServer) CreateEventType(c *gin.Context) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2576,7 +2576,7 @@ func (s *APIServer) CreateEventType(c *gin.Context) {
 
 // UpdateEventType updates an existing event type
 func (s *APIServer) UpdateEventType(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2647,7 +2647,7 @@ func (s *APIServer) UpdateEventType(c *gin.Context, id string) {
 
 // DeleteEventType deletes an event type and updates related events
 func (s *APIServer) DeleteEventType(c *gin.Context, id string) {
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		appErr := NewAppError("Authentication required", http.StatusUnauthorized, err)
 		s.handleAppError(c, appErr, c.GetString("request_id"))
@@ -2682,7 +2682,7 @@ func (s *APIServer) ListAPIKeys(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get authenticated user
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		if appErr, ok := err.(*AppError); ok {
 			s.handleAppError(c, appErr, requestID)
@@ -2730,7 +2730,7 @@ func (s *APIServer) CreateAPIKey(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get authenticated user
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		if appErr, ok := err.(*AppError); ok {
 			s.handleAppError(c, appErr, requestID)
@@ -2814,7 +2814,7 @@ func (s *APIServer) RevokeAPIKey(c *gin.Context, id string) {
 	ctx := c.Request.Context()
 
 	// Get authenticated user
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		if appErr, ok := err.(*AppError); ok {
 			s.handleAppError(c, appErr, requestID)
@@ -2860,7 +2860,7 @@ func (s *APIServer) RotateAPIKey(c *gin.Context, id string) {
 	ctx := c.Request.Context()
 
 	// Get authenticated user
-	user, err := getCurrentUser(c, s.store)
+	user, err := getCurrentUser(c)
 	if err != nil {
 		if appErr, ok := err.(*AppError); ok {
 			s.handleAppError(c, appErr, requestID)
