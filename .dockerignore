@@ -6,6 +6,7 @@ supabase/
 tmp/
 README.md
 vendor_bin/
+.deploy.env
 .env
 .env.*
 .vscode/

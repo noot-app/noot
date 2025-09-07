@@ -29,7 +29,7 @@ func CreateDatabaseConfig() *storage.Config {
 }
 
 // itemWithNutritionToConsumption converts server response data to a consumption record
-func itemWithNutritionToConsumption(userID string, transcript string, items []ItemWithNutrition, summary Summary) *storage.Consumption {
+func itemWithNutritionToConsumption(userID string, transcript string, summary Summary) *storage.Consumption {
 	return &storage.Consumption{
 		UserID:        userID,
 		Transcript:    transcript,
@@ -87,79 +87,6 @@ func itemWithNutritionToConsumption(userID string, transcript string, items []It
 		Alcohol:  summary.Totals.Alcohol,
 		Caffeine: summary.Totals.Caffeine,
 		Creatine: summary.Totals.Creatine,
-	}
-}
-
-// itemWithNutritionToConsumptionItem converts server response data to a consumption item record
-func itemWithNutritionToConsumptionItem(consumptionID string, item ItemWithNutrition, itemID *string) *storage.ConsumptionItem {
-	brandStr := ""
-	if item.Item.Brand != nil {
-		brandStr = *item.Item.Brand
-	}
-
-	var nutrients CompleteNutrient
-	if item.Item.Nutrients != nil {
-		nutrients = *item.Item.Nutrients
-	}
-
-	return &storage.ConsumptionItem{
-		ConsumptionID: consumptionID,
-		ItemID:        itemID,
-		Name:          item.Item.Name,
-		Brand:         brandStr,
-		Grams:         item.Item.Grams,
-		UserQuantity:  item.Item.UserQuantity,
-		UserUnit:      item.Item.UserUnit,
-		Note:          item.Item.Note,
-		// Nutrition snapshot for this serving
-		Calories:            nutrients.Calories,
-		ProteinG:            nutrients.Protein,
-		TotalFatG:           nutrients.TotalFat,
-		SaturatedFatG:       nutrients.SaturatedFat,
-		TransFatG:           nutrients.TransFat,
-		CholesterolMg:       nutrients.Cholesterol,
-		SodiumMg:            nutrients.Sodium,
-		TotalCarbsG:         nutrients.TotalCarbs,
-		DietaryFiberG:       nutrients.DietaryFiber,
-		TotalSugarsG:        nutrients.TotalSugars,
-		AddedSugarsG:        nutrients.AddedSugars,
-		VitaminAMcg:         nutrients.VitaminA,
-		VitaminCMg:          nutrients.VitaminC,
-		VitaminDMcg:         nutrients.VitaminD,
-		VitaminEMg:          nutrients.VitaminE,
-		VitaminKMcg:         nutrients.VitaminK,
-		ThiamineMg:          nutrients.Thiamine,
-		RiboflavinMg:        nutrients.Riboflavin,
-		NiacinMg:            nutrients.Niacin,
-		VitaminB6Mg:         nutrients.VitaminB6,
-		FolateMcg:           nutrients.Folate,
-		VitaminB12Mcg:       nutrients.VitaminB12,
-		BiotinMcg:           nutrients.Biotin,
-		PantothenicAcidMg:   nutrients.PantothenicAcid,
-		CholineMg:           nutrients.Choline,
-		CalciumMg:           nutrients.Calcium,
-		IronMg:              nutrients.Iron,
-		MagnesiumMg:         nutrients.Magnesium,
-		PhosphorusMg:        nutrients.Phosphorus,
-		PotassiumMg:         nutrients.Potassium,
-		ZincMg:              nutrients.Zinc,
-		CopperMg:            nutrients.Copper,
-		ManganeseMg:         nutrients.Manganese,
-		SeleniumMcg:         nutrients.Selenium,
-		IodineMcg:           nutrients.Iodine,
-		MolybdenumMcg:       nutrients.Molybdenum,
-		ChromiumMcg:         nutrients.Chromium,
-		FluorideMg:          nutrients.Fluoride,
-		ChlorideMg:          nutrients.Chloride,
-		Omega3AlaG:          nutrients.Omega3Ala,
-		Omega3EpaG:          nutrients.Omega3Epa,
-		Omega3DhaG:          nutrients.Omega3Dha,
-		Omega6G:             nutrients.Omega6,
-		CreatineMg:          nutrients.Creatine,
-		CaffeineMg:          nutrients.Caffeine,
-		AlcoholG:            nutrients.Alcohol,
-		PolyunsaturatedFatG: nutrients.PolyunsaturatedFat,
-		MonounsaturatedFatG: nutrients.MonounsaturatedFat,
 	}
 }
 
@@ -242,77 +169,6 @@ func apiItemWithNutritionToConsumptionItem(consumptionID string, item api.ItemWi
 		// Ingredients and OFF URL (historical snapshot)
 		Ingredients: convertAPIIngredientsToStorage(item.Item.Ingredients), // Convert and copy ingredients from API item
 		Url:         item.Item.Url,                                         // Copy OFF URL from API item
-	}
-}
-
-// consumptionItemToItemWithNutrition converts a consumption item back to server response format
-func consumptionItemToItemWithNutrition(ci *storage.ConsumptionItem) ItemWithNutrition {
-	var brand *string
-	if ci.Brand != "" {
-		brand = &ci.Brand
-	}
-
-	nutrients := &CompleteNutrient{
-		Calories:           ci.Calories,
-		Protein:            ci.ProteinG,
-		TotalFat:           ci.TotalFatG,
-		SaturatedFat:       ci.SaturatedFatG,
-		TransFat:           ci.TransFatG,
-		Cholesterol:        ci.CholesterolMg,
-		Sodium:             ci.SodiumMg,
-		TotalCarbs:         ci.TotalCarbsG,
-		DietaryFiber:       ci.DietaryFiberG,
-		TotalSugars:        ci.TotalSugarsG,
-		AddedSugars:        ci.AddedSugarsG,
-		VitaminA:           ci.VitaminAMcg,
-		VitaminC:           ci.VitaminCMg,
-		VitaminD:           ci.VitaminDMcg,
-		VitaminE:           ci.VitaminEMg,
-		VitaminK:           ci.VitaminKMcg,
-		Thiamine:           ci.ThiamineMg,
-		Riboflavin:         ci.RiboflavinMg,
-		Niacin:             ci.NiacinMg,
-		VitaminB6:          ci.VitaminB6Mg,
-		Folate:             ci.FolateMcg,
-		VitaminB12:         ci.VitaminB12Mcg,
-		Biotin:             ci.BiotinMcg,
-		PantothenicAcid:    ci.PantothenicAcidMg,
-		Choline:            ci.CholineMg,
-		Calcium:            ci.CalciumMg,
-		Iron:               ci.IronMg,
-		Magnesium:          ci.MagnesiumMg,
-		Phosphorus:         ci.PhosphorusMg,
-		Potassium:          ci.PotassiumMg,
-		Zinc:               ci.ZincMg,
-		Copper:             ci.CopperMg,
-		Manganese:          ci.ManganeseMg,
-		Selenium:           ci.SeleniumMcg,
-		Iodine:             ci.IodineMcg,
-		Molybdenum:         ci.MolybdenumMcg,
-		Chromium:           ci.ChromiumMcg,
-		Fluoride:           ci.FluorideMg,
-		Chloride:           ci.ChlorideMg,
-		Omega3Ala:          ci.Omega3AlaG,
-		Omega3Epa:          ci.Omega3EpaG,
-		Omega3Dha:          ci.Omega3DhaG,
-		Omega6:             ci.Omega6G,
-		Creatine:           ci.CreatineMg,
-		Caffeine:           ci.CaffeineMg,
-		Alcohol:            ci.AlcoholG,
-		PolyunsaturatedFat: ci.PolyunsaturatedFatG,
-		MonounsaturatedFat: ci.MonounsaturatedFatG,
-	}
-
-	return ItemWithNutrition{
-		Item: Item{
-			Name:         ci.Name,
-			Grams:        ci.Grams,
-			UserQuantity: ci.UserQuantity,
-			UserUnit:     ci.UserUnit,
-			Brand:        brand,
-			Note:         ci.Note,
-			Nutrients:    nutrients,
-		},
 	}
 }
 
