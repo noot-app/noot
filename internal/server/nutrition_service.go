@@ -655,14 +655,6 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 	return cacheItem
 }
 
-// floatValue safely dereferences a float64 pointer, returning 0 if nil
-func floatValue(f *float64) float64 {
-	if f == nil {
-		return 0
-	}
-	return *f
-}
-
 // isFresh checks if a cache entry is still within its TTL
 func isFresh(updatedAt time.Time, ttl time.Duration) bool {
 	return time.Since(updatedAt) < ttl
