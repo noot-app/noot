@@ -153,6 +153,32 @@ func extractQuantityFromName(name string) QuantityInfo {
 		{"pinch", 0.05},   // Very small amount
 		{"dash", 0.08},    // Small amount
 		{"sprinkle", 0.1}, // Small amount
+		{"few", 0.3},      // A few of something
+		{"couple", 0.2},   // A couple/pair
+		{"some", 0.5},     // Some amount
+		{"bit", 0.3},      // A bit of something
+		{"little", 0.3},   // A little bit
+		{"bunch", 0.8},    // A bunch of something
+
+		// Article + quantity combinations
+		{"a handful", 0.6},
+		{"a pinch", 0.05},
+		{"a dash", 0.08},
+		{"a sprinkle", 0.1},
+		{"a few", 0.3},
+		{"a couple", 0.2},
+		{"a bit", 0.3},
+		{"a little", 0.3},
+		{"a bunch", 0.8},
+
+		// Article + size combinations
+		{"a small", 0.75},
+		{"a large", 1.3},
+		{"a big", 1.4},
+
+		// Slicing/cutting descriptors
+		{"slices of", 1.0},   // "slices of" pattern
+		{"slice of", 1.0},    // "slice of" pattern
 
 		// Numeric quantities
 		{"two", 2.0},
@@ -188,6 +214,20 @@ func extractQuantityFromName(name string) QuantityInfo {
 				cleanName = strings.TrimPrefix(lowerName, p.pattern+" ")
 				break
 			}
+		}
+	}
+
+	// Additional cleanup for compound patterns
+	// Handle remaining slice/piece descriptors after initial quantity extraction
+	additionalDescriptors := []string{
+		"slices of ", "slice of ", "pieces of ", "piece of ",
+		"strips of ", "strip of ", "chunks of ", "chunk of ",
+	}
+	
+	for _, desc := range additionalDescriptors {
+		if strings.HasPrefix(cleanName, desc) {
+			cleanName = strings.TrimPrefix(cleanName, desc)
+			break
 		}
 	}
 
@@ -315,6 +355,125 @@ func normalizeItemNameWithQuantityForCache(name string, brand *string) (normaliz
 // NormalizeItemNameWithQuantity normalizes item names and extracts quantity information (exported for testing)
 func NormalizeItemNameWithQuantity(name string) (normalizedName string, quantityInfo QuantityInfo) {
 	return normalizeItemNameWithQuantity(name)
+}
+
+// generateCanonicalFoodName creates a canonical base food name for deduplication
+// This strips all quantity descriptors, containers, and brand info to get the core food item
+func generateCanonicalFoodName(name string, brand *string) string {
+	// First extract quantity info to get clean name
+	quantityInfo := extractQuantityFromName(name)
+	cleanName := quantityInfo.CleanName
+	
+	// Special case: if the clean name is empty after quantity extraction, return empty
+	if strings.TrimSpace(cleanName) == "" {
+		return ""
+	}
+	
+	// Handle brand removal manually for canonical names (don't use normalizeItemNameForCache fallback)
+	canonicalName := strings.ToLower(strings.TrimSpace(cleanName))
+	
+	if brand != nil && strings.TrimSpace(*brand) != "" {
+		brandLower := strings.ToLower(strings.TrimSpace(*brand))
+		
+		// If the cleaned name is exactly the brand, return empty (no food content)
+		if canonicalName == brandLower {
+			return ""
+		}
+		
+		// Remove brand from the canonical name using the same logic as normalizeItemNameForCache
+		// but without the fallback to original
+		if strings.HasPrefix(canonicalName, brandLower+" ") {
+			canonicalName = strings.TrimPrefix(canonicalName, brandLower+" ")
+		} else if strings.HasSuffix(canonicalName, " "+brandLower) {
+			canonicalName = strings.TrimSuffix(canonicalName, " "+brandLower)
+		} else {
+			// Try removing individual brand words
+			brandWords := strings.Fields(brandLower)
+			for _, brandWord := range brandWords {
+				if strings.HasPrefix(canonicalName, brandWord+" ") {
+					canonicalName = strings.TrimPrefix(canonicalName, brandWord+" ")
+					break
+				}
+				if strings.HasSuffix(canonicalName, " "+brandWord) {
+					canonicalName = strings.TrimSuffix(canonicalName, " "+brandWord)
+					break
+				}
+			}
+		}
+		
+		// Final cleanup for multiple brand occurrences
+		if strings.Contains(canonicalName, " "+brandLower) {
+			canonicalName = strings.TrimSuffix(canonicalName, " "+brandLower)
+		}
+	}
+	
+	// Additional normalization for canonical names
+	canonicalName = normalizeCanonicalName(canonicalName)
+	
+	return canonicalName
+}
+
+// normalizeCanonicalName applies additional normalization for consistent canonical food names
+func normalizeCanonicalName(name string) string {
+	normalized := strings.ToLower(strings.TrimSpace(name))
+	
+	// Remove common descriptors that don't change the base food (handle multiple iterations)
+	descriptors := []string{
+		"fresh ", "organic ", "raw ", "cooked ", "baked ", "grilled ", "fried ",
+		"steamed ", "boiled ", "roasted ", "sliced ", "diced ", "chopped ",
+		"whole ", "ground ", "crushed ", "minced ", "shredded ", "grated ",
+		"frozen ", "canned ", "dried ", "dehydrated ", "pickled ", "salted ",
+		"unsalted ", "seasoned ", "spiced ", "sweet ", "sour ", "bitter ",
+		"ripe ", "unripe ", "green ", "red ", "yellow ", "white ", "black ",
+	}
+	
+	// Keep removing descriptors until no more are found
+	changed := true
+	for changed {
+		changed = false
+		for _, desc := range descriptors {
+			if strings.HasPrefix(normalized, desc) {
+				normalized = strings.TrimPrefix(normalized, desc)
+				normalized = strings.TrimSpace(normalized)
+				changed = true
+				break
+			}
+		}
+	}
+	
+	// Handle plural/singular normalization for common foods
+	pluralToSingular := map[string]string{
+		"carrots":    "carrot",
+		"apples":     "apple", 
+		"bananas":    "banana",
+		"oranges":    "orange",
+		"tomatoes":   "tomato",
+		"potatoes":   "potato",
+		"onions":     "onion",
+		"eggs":       "egg",
+		"cookies":    "cookie",
+		"crackers":   "cracker",
+		"chips":      "chip",
+		"strawberries": "strawberry",
+		"blueberries": "blueberry",
+		"grapes":     "grape",
+		"nuts":       "nut",
+		"almonds":    "almond",
+		"walnuts":    "walnut",
+		"berries":    "berry",
+	}
+	
+	// Check for exact plural matches
+	if singular, exists := pluralToSingular[normalized]; exists {
+		normalized = singular
+	}
+	
+	return strings.TrimSpace(normalized)
+}
+
+// GenerateCanonicalFoodName exported function for testing
+func GenerateCanonicalFoodName(name string, brand *string) string {
+	return generateCanonicalFoodName(name, brand)
 }
 
 // getBrandOrEmpty returns the brand string or empty string if nil
