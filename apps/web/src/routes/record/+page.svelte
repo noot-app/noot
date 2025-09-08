@@ -522,7 +522,7 @@
         {/if}
 
         <!-- Status message -->
-        <div class="status-text">
+        <div class="status-text mt-6">
           {#if isProcessing}
             <p class="text-lg text-warning font-medium">
               Processing your meal...
