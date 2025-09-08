@@ -55,23 +55,23 @@ func (s *NutritionService) buildCacheKeys(item Item) (exactKey, fallbackKey, nor
 func (s *NutritionService) tryCanonicalKey(ctx context.Context, item Item) (*CompleteNutrient, bool, error) {
 	canonicalKey := s.makeCanonicalFoodKey(item.Name, item.Brand)
 	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
-	
+
 	logHydrationDecision("trying_canonical_key", "canonical_key", canonicalKey)
-	
+
 	if cached, err := s.store.GetItemByName(ctx, canonicalKey, normalizedBrand); err == nil && cached != nil {
 		if isFresh(cached.UpdatedAt, cacheTTL) {
 			logHydrationDecision("canonical_cache_hit", "key", canonicalKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
-			
+
 			// Scale nutrition from the canonical item to the requested portion using per-100g data
 			nutrition := s.convertCachedToNutrients(cached, item)
-			
+
 			// Handle BaseQuantity scaling if needed
 			if item.BaseQuantity != nil && *item.BaseQuantity > 1.0 {
 				logHydrationDecision("scaling_for_base_quantity", "name", item.Name, "base_quantity", *item.BaseQuantity)
 				scalingFactor := *item.BaseQuantity
 				nutrition.Scale(scalingFactor)
 			}
-			
+
 			return &nutrition, true, nil
 		}
 	}
@@ -583,12 +583,12 @@ func (s *NutritionService) makeExactServingKey(normalizedName, normalizedBrand s
 func (s *NutritionService) makeCanonicalFoodKey(name string, brand *string) string {
 	canonicalName := generateCanonicalFoodName(name, brand)
 	normalizedBrand := normalizeItemName(getBrandOrEmpty(brand))
-	
+
 	// If canonical name is empty (e.g., input was just a brand), use original name
 	if canonicalName == "" {
 		canonicalName = normalizeItemName(name)
 	}
-	
+
 	return fmt.Sprintf("%s|%s", canonicalName, normalizedBrand)
 }
 

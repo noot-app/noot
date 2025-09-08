@@ -177,8 +177,8 @@ func extractQuantityFromName(name string) QuantityInfo {
 		{"a big", 1.4},
 
 		// Slicing/cutting descriptors
-		{"slices of", 1.0},   // "slices of" pattern
-		{"slice of", 1.0},    // "slice of" pattern
+		{"slices of", 1.0}, // "slices of" pattern
+		{"slice of", 1.0},  // "slice of" pattern
 
 		// Numeric quantities
 		{"two", 2.0},
@@ -223,7 +223,7 @@ func extractQuantityFromName(name string) QuantityInfo {
 		"slices of ", "slice of ", "pieces of ", "piece of ",
 		"strips of ", "strip of ", "chunks of ", "chunk of ",
 	}
-	
+
 	for _, desc := range additionalDescriptors {
 		if strings.HasPrefix(cleanName, desc) {
 			cleanName = strings.TrimPrefix(cleanName, desc)
@@ -363,23 +363,23 @@ func generateCanonicalFoodName(name string, brand *string) string {
 	// First extract quantity info to get clean name
 	quantityInfo := extractQuantityFromName(name)
 	cleanName := quantityInfo.CleanName
-	
+
 	// Special case: if the clean name is empty after quantity extraction, return empty
 	if strings.TrimSpace(cleanName) == "" {
 		return ""
 	}
-	
+
 	// Handle brand removal manually for canonical names (don't use normalizeItemNameForCache fallback)
 	canonicalName := strings.ToLower(strings.TrimSpace(cleanName))
-	
+
 	if brand != nil && strings.TrimSpace(*brand) != "" {
 		brandLower := strings.ToLower(strings.TrimSpace(*brand))
-		
+
 		// If the cleaned name is exactly the brand, return empty (no food content)
 		if canonicalName == brandLower {
 			return ""
 		}
-		
+
 		// Remove brand from the canonical name using the same logic as normalizeItemNameForCache
 		// but without the fallback to original
 		if strings.HasPrefix(canonicalName, brandLower+" ") {
@@ -400,23 +400,23 @@ func generateCanonicalFoodName(name string, brand *string) string {
 				}
 			}
 		}
-		
+
 		// Final cleanup for multiple brand occurrences
 		if strings.Contains(canonicalName, " "+brandLower) {
 			canonicalName = strings.TrimSuffix(canonicalName, " "+brandLower)
 		}
 	}
-	
+
 	// Additional normalization for canonical names
 	canonicalName = normalizeCanonicalName(canonicalName)
-	
+
 	return canonicalName
 }
 
 // normalizeCanonicalName applies additional normalization for consistent canonical food names
 func normalizeCanonicalName(name string) string {
 	normalized := strings.ToLower(strings.TrimSpace(name))
-	
+
 	// Remove common descriptors that don't change the base food (handle multiple iterations)
 	descriptors := []string{
 		"fresh ", "organic ", "raw ", "cooked ", "baked ", "grilled ", "fried ",
@@ -426,7 +426,7 @@ func normalizeCanonicalName(name string) string {
 		"unsalted ", "seasoned ", "spiced ", "sweet ", "sour ", "bitter ",
 		"ripe ", "unripe ", "green ", "red ", "yellow ", "white ", "black ",
 	}
-	
+
 	// Keep removing descriptors until no more are found
 	changed := true
 	for changed {
@@ -440,34 +440,34 @@ func normalizeCanonicalName(name string) string {
 			}
 		}
 	}
-	
+
 	// Handle plural/singular normalization for common foods
 	pluralToSingular := map[string]string{
-		"carrots":    "carrot",
-		"apples":     "apple", 
-		"bananas":    "banana",
-		"oranges":    "orange",
-		"tomatoes":   "tomato",
-		"potatoes":   "potato",
-		"onions":     "onion",
-		"eggs":       "egg",
-		"cookies":    "cookie",
-		"crackers":   "cracker",
-		"chips":      "chip",
+		"carrots":      "carrot",
+		"apples":       "apple",
+		"bananas":      "banana",
+		"oranges":      "orange",
+		"tomatoes":     "tomato",
+		"potatoes":     "potato",
+		"onions":       "onion",
+		"eggs":         "egg",
+		"cookies":      "cookie",
+		"crackers":     "cracker",
+		"chips":        "chip",
 		"strawberries": "strawberry",
-		"blueberries": "blueberry",
-		"grapes":     "grape",
-		"nuts":       "nut",
-		"almonds":    "almond",
-		"walnuts":    "walnut",
-		"berries":    "berry",
+		"blueberries":  "blueberry",
+		"grapes":       "grape",
+		"nuts":         "nut",
+		"almonds":      "almond",
+		"walnuts":      "walnut",
+		"berries":      "berry",
 	}
-	
+
 	// Check for exact plural matches
 	if singular, exists := pluralToSingular[normalized]; exists {
 		normalized = singular
 	}
-	
+
 	return strings.TrimSpace(normalized)
 }
 

@@ -8,10 +8,10 @@ import (
 
 func TestGenerateCanonicalFoodName(t *testing.T) {
 	testCases := []struct {
-		name     string
-		input    string
-		brand    *string
-		expected string
+		name        string
+		input       string
+		brand       *string
+		expected    string
 		description string
 	}{
 		{
@@ -22,7 +22,7 @@ func TestGenerateCanonicalFoodName(t *testing.T) {
 			description: "Should normalize plural to singular",
 		},
 		{
-			name:        "HandfulOfCarrots", 
+			name:        "HandfulOfCarrots",
 			input:       "a handful of carrots",
 			brand:       nil,
 			expected:    "carrot",
@@ -138,7 +138,7 @@ func TestGenerateCanonicalFoodName(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := GenerateCanonicalFoodName(tc.input, tc.brand)
-			assert.Equal(t, tc.expected, result, 
+			assert.Equal(t, tc.expected, result,
 				"Input: '%s', Brand: %v - %s", tc.input, tc.brand, tc.description)
 		})
 	}
@@ -146,9 +146,9 @@ func TestGenerateCanonicalFoodName(t *testing.T) {
 
 func TestNormalizeCanonicalName(t *testing.T) {
 	testCases := []struct {
-		name     string
-		input    string
-		expected string
+		name        string
+		input       string
+		expected    string
 		description string
 	}{
 		{
@@ -204,9 +204,8 @@ func TestNormalizeCanonicalName(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := normalizeCanonicalName(tc.input)
-			assert.Equal(t, tc.expected, result, 
+			assert.Equal(t, tc.expected, result,
 				"Input: '%s' - %s", tc.input, tc.description)
 		})
 	}
 }
-
