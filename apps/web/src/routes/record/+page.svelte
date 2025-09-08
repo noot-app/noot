@@ -2,8 +2,8 @@
   import { apiClient } from "$lib/api/client"
   import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
   import { getAppName } from "$lib/utils/app-info"
-  import { onMount } from "svelte"
-  import { page } from "$app/stores"
+  import { onMount, onDestroy } from "svelte"
+  import { browser } from "$app/environment"
   import { getStorageJSON, setStorageJSON, removeStorageItem } from "$lib/utils/secure-storage"
 
   // Get app name from runtime environment
@@ -18,6 +18,7 @@
   // Draft expiration time (24 hours)
   const DRAFT_EXPIRY_MS = 24 * 60 * 60 * 1000
 
+  // Core recording state
   let isRecording = false
   let mediaRecorder: MediaRecorder | null = null
   let audioBlob: Blob | null = null
@@ -27,18 +28,29 @@
   let error: string = ""
   let consumptionId: string | null = null
   
-  // Text input mode
-  let isTextMode = false
+  // Text input mode - initialize to null to prevent flicker during SSR
+  let isTextMode: boolean | null = null
   let textInput = ""
+  
+  // State tracking
+  let isProcessing = false
+  let hasSubmitted = false
+  let draftSaveTimeout: ReturnType<typeof setTimeout> | null = null
+  let lastSubmissionId: string | null = null
+  let lastSubmissionText: string = ""
+  let lastSubmissionMode: boolean | null = null // Track the mode used for the last submission
   
   // OS detection for keyboard shortcuts
   let isMac = false
-  if (typeof window !== 'undefined') {
+  if (browser) {
     isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0 || navigator.userAgent.includes('Mac')
   }
 
   async function startRecording() {
+    if (isProcessing || isRecording) return
+    
     try {
+      clearError()
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -77,15 +89,15 @@
           type: options.mimeType || "audio/webm",
         })
         stream.getTracks().forEach((track) => track.stop())
+        // Automatically upload when recording stops
+        uploadAudio()
       }
 
       mediaRecorder.start()
       isRecording = true
       status = "Recording... Tap to stop"
-      error = ""
     } catch (err) {
-      error =
-        "Failed to access microphone. Please ensure you have given permission."
+      setError("Failed to access microphone. Please ensure you have given permission.")
       console.error("Error accessing microphone:", err)
     }
   }
@@ -99,14 +111,13 @@
   }
 
   async function uploadAudio() {
-    if (!audioBlob) return
+    if (!audioBlob || isProcessing) return
 
     try {
+      isProcessing = true
       status = "⏳ Processing..."
-      error = ""
-      transcript = ""
-      result = null
-      consumptionId = null
+      clearError()
+      clearResults()
 
       const formData = new FormData()
       formData.append("audio", audioBlob, "audio.webm")
@@ -123,33 +134,47 @@
       transcript = data?.transcript || ""
       result = data
       consumptionId = data?.id || null
+      lastSubmissionId = consumptionId
+      lastSubmissionMode = false // Audio submission
       status = "✅ Complete"
+      hasSubmitted = true
       
-      // Clear draft state after successful submission
+      // Clear audio state and draft after successful submission
+      audioBlob = null
       clearDraftState()
     } catch (err) {
-      error = `Error processing audio: ${err}`
+      setError(`Error processing audio: ${err}`)
       status = "❌ Error occurred"
       console.error("Upload error:", err)
+    } finally {
+      isProcessing = false
     }
   }
 
   async function submitText() {
-    if (!textInput.trim()) {
-      error = "Please enter a description of your meal"
+    if (!textInput.trim() || isProcessing) {
+      if (!textInput.trim()) {
+        setError("Please enter a description of your meal")
+      }
+      return
+    }
+
+    // Prevent duplicate submissions
+    if (hasSubmitted && textInput === lastSubmissionText) {
+      setError("This meal has already been submitted")
       return
     }
 
     try {
+      isProcessing = true
       status = "⏳ Processing..."
-      error = ""
-      transcript = ""
-      result = null
-      consumptionId = null
+      clearError()
+      clearResults()
 
+      const submissionText = textInput.trim()
       const response = await apiClient.POST("/consumption", {
         body: {
-          text: textInput.trim()
+          text: submissionText
         },
       })
 
@@ -158,33 +183,84 @@
       }
 
       const data = response.data
-      transcript = data?.transcript || textInput.trim()
+      transcript = data?.transcript || submissionText
       result = data
       consumptionId = data?.id || null
+      lastSubmissionId = consumptionId
+      lastSubmissionText = submissionText
+      lastSubmissionMode = true // Text submission
       status = "✅ Complete"
+      hasSubmitted = true
 
-      // Clear text input and draft state once processing is complete
+      // Clear text input and draft state after successful submission
       textInput = ""
       clearDraftState()
     } catch (err) {
-      error = `Error processing text: ${err}`
+      setError(`Error processing text: ${err}`)
       status = "❌ Error occurred"
       console.error("Submit error:", err)
+    } finally {
+      isProcessing = false
     }
   }
 
   // Function to toggle between recording and text modes
   function toggleMode() {
+    if (isProcessing) return
+    
     isTextMode = !isTextMode
-    // Reset error and status when switching modes, but preserve text input
+    clearError()
+    updateStatus()
+    debouncedSaveDraft()
+  }
+
+  // Utility functions for cleaner state management
+  function clearError() {
     error = ""
-    status = isTextMode ? "Ready to type" : "Ready to record"
-    // Don't clear textInput or audioBlob - let user keep their work
-    // Draft state will be saved automatically by reactive statements
+  }
+
+  function setError(message: string) {
+    error = message
+  }
+
+  function clearResults() {
+    transcript = ""
+    result = null
+    consumptionId = null
+  }
+
+  function updateStatus() {
+    if (isProcessing) {
+      status = "⏳ Processing..."
+    } else if (isRecording) {
+      status = "Recording... Tap to stop"
+    } else if (isTextMode === true) {
+      status = "Ready to type"
+    } else if (isTextMode === false) {
+      status = "Ready to record"
+    } else {
+      // During initial load, keep status neutral
+      status = "Loading..."
+    }
+  }
+
+  // Debounced draft saving to prevent excessive storage writes
+  function debouncedSaveDraft() {
+    if (!browser) return
+    
+    if (draftSaveTimeout) {
+      clearTimeout(draftSaveTimeout)
+    }
+    
+    draftSaveTimeout = setTimeout(() => {
+      saveDraftState()
+    }, 500) // 500ms debounce
   }
 
   // Function to persist draft state
   function saveDraftState() {
+    if (!browser) return
+    
     const timestamp = Date.now()
     
     // Only save non-empty text input
@@ -206,6 +282,8 @@
 
   // Function to restore draft state
   function restoreDraftState() {
+    if (!browser) return
+    
     const now = Date.now()
     
     // Restore text input
@@ -214,70 +292,110 @@
       textInput = textDraft.text
     }
     
-    // Restore mode selection
+    // Restore mode selection - always set a definitive value to prevent flicker
     const modeDraft = getStorageJSON(DRAFT_STORAGE_KEYS.MODE, { isTextMode: false, timestamp: 0 })
     if ((now - modeDraft.timestamp) <= DRAFT_EXPIRY_MS) {
       isTextMode = modeDraft.isTextMode
+    } else {
+      // Set default to false if no valid draft exists
+      isTextMode = false
     }
   }
 
   // Function to clear draft state (called after successful submission)
   function clearDraftState() {
+    if (!browser) return
+    
     removeStorageItem(DRAFT_STORAGE_KEYS.TEXT)
     removeStorageItem(DRAFT_STORAGE_KEYS.MODE)
   }
 
-  // Function to reset the page to initial recording state (preserving drafts)
-  function resetToRecording() {
-    result = null
-    transcript = ""
-    consumptionId = null
+  // Function to reset the page to initial state
+  function resetToInitialState() {
+    // Clear all state
+    isRecording = false
+    isProcessing = false
+    hasSubmitted = false
+    lastSubmissionId = null
+    lastSubmissionText = ""
+    // Don't reset lastSubmissionMode here - we want to preserve it for "Record Another"
+    mediaRecorder = null
     audioBlob = null
-    error = ""
     
-    // Only clear input state if there's no draft to restore
-    // This will be handled by restoreDraftState() on mount
-    if (typeof window === 'undefined') {
-      // During SSR, use default values
-      textInput = ""
-      isTextMode = false
-    }
+    clearError()
+    clearResults()
     
-    status = isTextMode ? "Ready to type" : "Ready to record"
+    // Don't set isTextMode or textInput here - let restoreDraftState handle it
+    // This prevents the brief flash of wrong state when navigating to the page
   }
 
-  // Clear any existing results when the page loads/mounts
-  onMount(() => {
-    resetToRecording()
-    restoreDraftState()
-  })
+  // Function to set initial status based on current mode
+  function setInitialStatus() {
+    updateStatus()
+  }
 
-  // Reset state when navigating to the record page (but preserve drafts)
-  $: if ($page.route.id === '/record') {
-    // Only reset if we haven't already mounted
-    if (typeof window !== 'undefined') {
-      resetToRecording()
+  // Function to start a new recording/entry (preserving drafts)
+  function startNewEntry() {
+    resetToInitialState()
+    restoreDraftState()
+    setInitialStatus()
+  }
+
+  // Function to start another entry in the same mode as the last submission
+  function startAnotherEntry() {
+    resetToInitialState()
+    
+    // If we have a last submission mode, use that instead of restoring drafts
+    if (lastSubmissionMode !== null) {
+      isTextMode = lastSubmissionMode
+      textInput = "" // Always start with empty input for new entry
+    } else {
+      // Fallback to draft restoration if no last submission mode
       restoreDraftState()
     }
+    
+    setInitialStatus()
   }
 
-  // Auto-upload when recording stops
-  $: if (audioBlob && status === "Processing...") {
-    uploadAudio()
-  }
+  // Initialize component
+  onMount(() => {
+    // First restore drafts to get the correct mode, then reset other state, then set status
+    // This prevents the brief flash of microphone icon when in text mode
+    restoreDraftState()
+    resetToInitialState()
+    setInitialStatus()
+  })
 
-  // Save draft state when text input changes
-  $: if (typeof window !== 'undefined' && textInput !== undefined) {
-    saveDraftState()
-  }
+  // Cleanup on destroy
+  onDestroy(() => {
+    // Stop any ongoing recording
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop()
+    }
+    
+    // Clear timeouts
+    if (draftSaveTimeout) {
+      clearTimeout(draftSaveTimeout)
+    }
+    
+    // Save current draft state before leaving
+    if (browser && (textInput.trim() || isTextMode === true)) {
+      saveDraftState()
+    }
+    
+    // Reset submission mode when navigating away from the page
+    // This ensures that when users navigate back, they get draft restoration
+    // instead of being locked into their last submission mode
+    lastSubmissionMode = null
+  })
 
-  // Save draft state when mode changes
-  $: if (typeof window !== 'undefined' && isTextMode !== undefined) {
-    saveDraftState()
+  // Handle text input changes with debounced saving
+  function handleTextInput() {
+    debouncedSaveDraft()
   }
 
   async function handleRedo() {
-    if (!consumptionId) return
+    if (!consumptionId || isProcessing) return
 
     const confirmed = confirm(
       "Delete this entry and record again? This action cannot be undone.",
@@ -285,7 +403,9 @@
     if (!confirmed) return
 
     try {
-      error = ""
+      clearError()
+      isProcessing = true
+      
       const deleteResponse = await apiClient.DELETE("/consumption/{id}", {
         params: { path: { id: consumptionId } },
       })
@@ -294,14 +414,13 @@
         throw new Error(`Delete failed: ${deleteResponse.error}`)
       }
 
-      // Reset the interface to recording state
-      result = null
-      transcript = ""
-      consumptionId = null
-      status = isTextMode ? "Ready to type" : "Ready to record"
+      // Reset to fresh state for new recording
+      startAnotherEntry()
     } catch (err) {
-      error = `Error deleting consumption: ${err}`
+      setError(`Error deleting consumption: ${err}`)
       console.error("Delete error:", err)
+    } finally {
+      isProcessing = false
     }
   }
 
@@ -386,6 +505,8 @@
 
   // Enhanced toggle function with sound effects
   async function toggleRecordingWithSound() {
+    if (isProcessing) return
+    
     if (isRecording) {
       playStopSound()
       stopRecording()
@@ -410,14 +531,20 @@
     <div class="flex-1 flex items-center justify-center px-4">
       <div class="text-center max-w-md w-full space-y-8">
         
-        {#if isTextMode}
+        {#if isTextMode === null}
+          <!-- Loading state during SSR/initialization -->
+          <div class="flex justify-center">
+            <div class="loading loading-spinner loading-lg text-primary"></div>
+          </div>
+        {:else if isTextMode === true}
           <!-- Text input interface -->
           <div class="space-y-4">
             <textarea
               bind:value={textInput}
+              on:input={handleTextInput}
               placeholder="Describe what you ate... (e.g., 'I had a chicken caesar salad with croutons and parmesan cheese')"
               class="textarea textarea-primary w-full h-32 resize-none"
-              disabled={status.includes("Processing")}
+              disabled={isProcessing}
               on:keydown={(e) => {
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                   e.preventDefault()
@@ -428,9 +555,9 @@
             <button
               class="btn btn-primary btn-lg w-full"
               on:click={submitText}
-              disabled={status.includes("Processing") || !textInput.trim()}
+              disabled={isProcessing || !textInput.trim()}
             >
-              {#if status.includes("Processing")}
+              {#if isProcessing}
                 <span class="loading loading-spinner loading-sm"></span>
                 Processing...
               {:else}
@@ -444,12 +571,12 @@
             <button
               class="record-button {isRecording
                 ? 'recording'
-                : ''} {status.includes('Processing') ? 'processing' : ''}"
+                : ''} {isProcessing ? 'processing' : ''}"
               on:click={toggleRecordingWithSound}
-              disabled={status.includes("Processing")}
+              disabled={isProcessing}
               aria-label={isRecording ? "Stop recording" : "Start recording"}
             >
-              {#if status.includes("Processing")}
+              {#if isProcessing}
                 <!-- Processing spinner -->
                 <svg
                   class="w-16 h-16"
@@ -491,7 +618,7 @@
 
         <!-- Status message -->
         <div class="status-text">
-          {#if status.includes("Processing")}
+          {#if isProcessing}
             <p class="text-lg text-warning font-medium">
               Processing your meal...
             </p>
@@ -501,7 +628,7 @@
             </p>
           {:else if error}
             <p class="text-lg text-error font-medium">{error}</p>
-          {:else if isTextMode}
+          {:else if isTextMode === true}
             <div class="space-y-2">
               <p class="text-xl font-semibold text-base-content">
                 Describe what you ate
@@ -517,13 +644,20 @@
                 <kbd class="kbd kbd-sm">Enter</kbd>
               </p>
             </div>
-          {:else}
+          {:else if isTextMode === false}
             <div class="space-y-2">
               <p class="text-xl font-semibold text-base-content">
                 Tap to record your meal
               </p>
               <p class="text-sm text-base-content/70">
                 Speak naturally about what you ate
+              </p>
+            </div>
+          {:else}
+            <!-- Loading state -->
+            <div class="space-y-2">
+              <p class="text-lg text-base-content/70">
+                Loading...
               </p>
             </div>
           {/if}
@@ -567,7 +701,7 @@
             </a>
             <button
               class="btn btn-primary min-h-[44px]"
-              on:click={resetToRecording}
+              on:click={startAnotherEntry}
             >
               <svg
                 class="w-4 h-4 mr-2"
@@ -591,12 +725,12 @@
   {/if}
 
   <!-- Single toggle button at bottom -->
-  {#if !result}
+  {#if !result && isTextMode !== null}
     <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10">
       <button
         class="toggle-button"
         on:click={toggleMode}
-        disabled={status.includes("Processing")}
+        disabled={isProcessing}
         aria-label="Switch to {isTextMode ? 'voice' : 'text'} mode"
       >
         {#if isTextMode}
