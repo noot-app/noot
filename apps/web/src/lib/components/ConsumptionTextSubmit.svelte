@@ -19,7 +19,7 @@
 
   // Props
   export let disabled = false
-  export let placeholder = "Describe what you ate..."
+  export let placeholder = "Type naturally about what you ate"
   export let storageKey = 'consumption-text-draft'
 
   // Storage keys for draft persistence
@@ -222,7 +222,7 @@
       {#if isProcessing}
         <div class="loading-spinner"></div>
       {:else}
-        <ArrowUpCircle className="w-6 h-6" />
+        <ArrowUpCircle className="w-8 h-8" />
       {/if}
     </button>
   </div>
@@ -239,8 +239,8 @@
 
   .chat-input-wrapper {
     position: relative;
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: var(--color-base-100);
+    border: 1px solid var(--color-base-300);
     border-radius: 16px;
     padding: 14px 60px 14px 20px;
     display: flex;
@@ -252,22 +252,18 @@
   }
 
   .chat-input-wrapper:hover {
-    border-color: #9ca3af;
+    border-color: var(--color-base-content-lighter);
     box-shadow: 0 6px 25px hsl(0 0% 0% / 12%);
   }
 
   .chat-input-wrapper:focus-within {
-    border-color: #6b7280;
-    box-shadow: 
-      0 8px 30px hsl(0 0% 0% / 15%),
-      0 0 0 3px hsl(var(--p) / 0.1);
+    border-color: var(--color-base-content-lighter);
+    box-shadow: 0 6px 25px hsl(0 0% 0% / 12%);
   }
 
   .chat-input-wrapper:hover:focus-within {
-    border-color: #6b7280;
-    box-shadow: 
-      0 8px 30px hsl(0 0% 0% / 15%),
-      0 0 0 3px hsl(var(--p) / 0.1);
+    border-color: var(--color-base-content-lighter);
+    box-shadow: 0 6px 25px hsl(0 0% 0% / 12%);
   }
 
   .chat-textarea {
@@ -276,7 +272,7 @@
     outline: none;
     resize: none;
     background: transparent;
-    color: hsl(var(--bc));
+    color: var(--color-base-content);
     font-size: 16px;
     line-height: 1.5;
     padding: 0;
@@ -288,7 +284,7 @@
   }
 
   .chat-textarea::placeholder {
-    color: hsl(var(--bc) / 0.3);
+    color: var(--color-placeholder);
   }
 
   .chat-textarea:disabled {
@@ -304,18 +300,18 @@
     height: 36px;
     border-radius: 8px;
     border: none;
-    background: hsl(var(--su));
-    color: hsl(var(--suc));
+    background: transparent;
+    color: var(--color-primary);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 200ms;
+    transition: all 100ms;
     flex-shrink: 0;
   }
 
   .chat-submit-button:hover:not(:disabled) {
-    background: hsl(var(--su) / 0.9);
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
     transform: scale(0.95);
   }
 
