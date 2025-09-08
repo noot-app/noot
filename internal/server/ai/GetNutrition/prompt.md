@@ -35,7 +35,7 @@ The `search_products_by_brand_and_name` tool can be used to search for food item
 - `name`: The name of the food item (string, required)
 - `limit`: The maximum number of results to return. Default should always be set to `3`
 
-This tool MUST NOT be called if `brand` is null, undefined, or an empty string. If `brand` is missing or empty, do not attempt to call this tool under any circumstance.
+This tool MUST NOT be called if `brand` is null, undefined, or an empty string. If `brand` is missing or empty, do not attempt to call this tool under any circumstance. Parameter `brand` **must** be at least 1 character long.
 
 If a product has both a `brand` and `name` provided, then this tool **must** be used to attempt a search for the product. If an exact match is found, then that product's nutrition data should be used. If no exact match is found, then the results can be used as a guide but should not be used directly.
 
