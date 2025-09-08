@@ -222,7 +222,7 @@
       {#if isProcessing}
         <div class="loading-spinner"></div>
       {:else}
-        <ArrowUpCircle className="w-5 h-5" />
+        <ArrowUpCircle className="w-6 h-6" />
       {/if}
     </button>
   </div>
@@ -239,20 +239,35 @@
 
   .chat-input-wrapper {
     position: relative;
-    background: hsl(var(--b1));
-    border: 2px solid hsl(var(--bc) / 0.1);
-    border-radius: 24px;
-    padding: 12px 60px 12px 20px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s ease;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 14px 60px 14px 20px;
     display: flex;
     align-items: flex-end;
     min-height: 48px;
+    cursor: text;
+    transition: all 200ms;
+    box-shadow: 0 4px 20px hsl(0 0% 0% / 8%);
+  }
+
+  .chat-input-wrapper:hover {
+    border-color: #9ca3af;
+    box-shadow: 0 6px 25px hsl(0 0% 0% / 12%);
   }
 
   .chat-input-wrapper:focus-within {
-    border-color: hsl(var(--p));
-    box-shadow: 0 0 0 3px hsl(var(--p) / 0.1), 0 4px 24px rgba(0, 0, 0, 0.15);
+    border-color: #6b7280;
+    box-shadow: 
+      0 8px 30px hsl(0 0% 0% / 15%),
+      0 0 0 3px hsl(var(--p) / 0.1);
+  }
+
+  .chat-input-wrapper:hover:focus-within {
+    border-color: #6b7280;
+    box-shadow: 
+      0 8px 30px hsl(0 0% 0% / 15%),
+      0 0 0 3px hsl(var(--p) / 0.1);
   }
 
   .chat-textarea {
@@ -273,7 +288,7 @@
   }
 
   .chat-textarea::placeholder {
-    color: hsl(var(--bc) / 0.5);
+    color: hsl(var(--bc) / 0.3);
   }
 
   .chat-textarea:disabled {
@@ -283,33 +298,33 @@
 
   .chat-submit-button {
     position: absolute;
-    right: 8px;
-    bottom: 8px;
-    width: 32px;
-    height: 32px;
+    right: 6px;
+    bottom: 6px;
+    width: 36px;
+    height: 36px;
     border-radius: 8px;
     border: none;
-    background: hsl(var(--p));
-    color: hsl(var(--pc));
+    background: hsl(var(--su));
+    color: hsl(var(--suc));
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all 200ms;
     flex-shrink: 0;
   }
 
   .chat-submit-button:hover:not(:disabled) {
-    background: hsl(var(--p) / 0.9);
-    transform: scale(1.05);
-  }
-
-  .chat-submit-button:active:not(:disabled) {
+    background: hsl(var(--su) / 0.9);
     transform: scale(0.95);
   }
 
+  .chat-submit-button:active:not(:disabled) {
+    transform: scale(0.9);
+  }
+
   .chat-submit-button:disabled {
-    opacity: 0.4;
+    opacity: 0.5;
     cursor: not-allowed;
     transform: none;
   }
