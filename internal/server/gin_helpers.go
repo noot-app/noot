@@ -155,7 +155,7 @@ func setupAuthenticatedRequest(c *gin.Context) *RequestContext {
 	if user == nil {
 		return nil // Error already handled by requireAuthentication
 	}
-	
+
 	return &RequestContext{
 		RequestID: requestID,
 		Context:   ctx,

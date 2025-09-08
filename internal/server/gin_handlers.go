@@ -34,8 +34,6 @@ func NewAPIServer(store storage.Store) (*APIServer, error) {
 	}, nil
 }
 
-
-
 // CreateConsumption implements ServerInterface.CreateConsumption
 //
 // Security Notes:
@@ -576,8 +574,6 @@ func (s *APIServer) handleAppError(c *gin.Context, appErr *AppError, requestID s
 	handleAppErrorGin(c, appErr, requestID)
 }
 
-
-
 // GetGoals implements ServerInterface.GetGoals
 func (s *APIServer) GetGoals(c *gin.Context, params api.GetGoalsParams) {
 	requestID := c.GetString("request_id")
@@ -837,8 +833,6 @@ func (s *APIServer) GetTrends(c *gin.Context, params api.GetTrendsParams) {
 
 	c.JSON(http.StatusOK, response)
 }
-
-
 
 // GetUserBiometrics retrieves user biometrics data
 func (s *APIServer) GetUserBiometrics(c *gin.Context) {
@@ -1357,14 +1351,6 @@ func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
 }
 
 // Label handlers
-
-
-
-
-
-
-
-
 
 // GetConsumptionLabels retrieves labels assigned to a consumption
 func (s *APIServer) GetConsumptionLabels(c *gin.Context, id string) {
@@ -2392,6 +2378,3 @@ func (s *APIServer) DeleteEventType(c *gin.Context, id string) {
 
 // ListAPIKeys implements ServerInterface.ListAPIKeys
 // Lists all API keys for the authenticated Pro user
-
-
-
