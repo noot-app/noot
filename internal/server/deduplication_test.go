@@ -215,14 +215,6 @@ func TestFoodDeduplication(t *testing.T) {
 
 	// Verify only one item was stored (deduplication worked)
 	assert.Equal(t, 1, len(store.items), "Should have only one deduplicated carrot item")
-	
-	// Debug: check what was actually stored
-	for key, item := range store.items {
-		t.Logf("Stored item key: %s", key)
-		t.Logf("Stored item calories per 100g: %.2f", item.CaloriesPer100g)
-		t.Logf("Stored item original calories: %v", item.OriginalCalories)
-		t.Logf("Stored item original serving grams: %v", item.OriginalServingGrams)
-	}
 
 	// Verify we can retrieve and scale nutrition for all variations
 	for _, tc := range testCases {
