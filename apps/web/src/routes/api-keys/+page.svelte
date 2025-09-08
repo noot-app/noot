@@ -381,7 +381,7 @@
       <div class="card bg-base-100 shadow-xl">
         <div class="card-body text-center py-12">
           <div class="mx-auto w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mb-4">
-            <KeyIcon class_="w-8 h-8 text-warning" />
+            <KeyIcon className="w-8 h-8 text-warning" />
           </div>
           <h2 class="text-2xl font-bold mb-2">Pro Feature</h2>
           <p class="text-base-content/70 max-w-md mx-auto mb-6">
@@ -405,7 +405,7 @@
             <!-- Empty state -->
             <div class="text-center py-12">
               <div class="mx-auto w-16 h-16 bg-base-200 rounded-full flex items-center justify-center mb-4">
-                <KeyIcon class_="w-8 h-8 text-base-content/40" />
+                <KeyIcon className="w-8 h-8 text-base-content/40" />
               </div>
               <h3 class="text-lg font-semibold mb-2">No API Keys</h3>
               <p class="text-base-content/60 mb-4">
@@ -447,7 +447,7 @@
                     <div class="space-y-2 mb-4">
                       <div class="flex items-center gap-2 text-sm">
                         {#if scope === 'read'}
-                          <EyeIcon class_="w-4 h-4" />
+                          <EyeIcon className="w-4 h-4" />
                         {:else}
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -458,20 +458,20 @@
                       </div>
                       
                       <div class="flex items-center gap-2 text-sm">
-                        <CubeIcon class_="w-4 h-4" />
+                        <CubeIcon className="w-4 h-4" />
                         <span class="text-base-content/70">Created:</span>
                         <span>{formatDate(apiKey.created_at)}</span>
                       </div>
                       
                       {#if apiKey.last_used_at}
                         <div class="flex items-center gap-2 text-sm">
-                          <ClockIcon class_="w-4 h-4" />
+                          <ClockIcon className="w-4 h-4" />
                           <span class="text-base-content/70">Last used:</span>
                           <span>{formatDateTime(apiKey.last_used_at)}</span>
                         </div>
                       {:else}
                         <div class="flex items-center gap-2 text-sm">
-                          <ClockIcon class_="w-4 h-4" />
+                          <ClockIcon className="w-4 h-4" />
                           <span class="text-base-content/70">Last used:</span>
                           <span class="text-warning">Never</span>
                         </div>
@@ -479,7 +479,7 @@
                       
                       {#if apiKey.expires_at}
                         <div class="flex items-center gap-2 text-sm">
-                          <ClockIcon class_="w-4 h-4" />
+                          <ClockIcon className="w-4 h-4" />
                           <span class="text-base-content/70">Expires:</span>
                           <span class:text-warning={new Date(apiKey.expires_at) <= new Date()}>
                             {formatDate(apiKey.expires_at)}
@@ -495,14 +495,14 @@
                           class="btn btn-outline btn-sm flex-1"
                           on:click={() => openRotateModal(apiKey)}
                         >
-                          <ArrowPathIcon class_="w-4 h-4" />
+                          <ArrowPathIcon className="w-4 h-4" />
                           Rotate
                         </button>
                         <button
                           class="btn btn-error btn-sm flex-1"
                           on:click={() => openDeleteModal(apiKey)}
                         >
-                          <TrashIcon class_="w-4 h-4" />
+                          <TrashIcon className="w-4 h-4" />
                           Delete
                         </button>
                       </div>
