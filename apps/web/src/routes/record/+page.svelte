@@ -1,6 +1,7 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client"
   import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
+  import ConsumptionTextSubmit from "$lib/components/ConsumptionTextSubmit.svelte"
   import { getAppName } from "$lib/utils/app-info"
   import { onMount, onDestroy } from "svelte"
   import { browser } from "$app/environment"
@@ -11,7 +12,6 @@
 
   // Storage keys for draft persistence
   const DRAFT_STORAGE_KEYS = {
-    TEXT: 'record-draft-text',
     MODE: 'record-draft-mode'
   }
 
@@ -30,15 +30,15 @@
   
   // Text input mode - initialize to null to prevent flicker during SSR
   let isTextMode: boolean | null = null
-  let textInput = ""
   
   // State tracking
   let isProcessing = false
   let hasSubmitted = false
-  let draftSaveTimeout: ReturnType<typeof setTimeout> | null = null
   let lastSubmissionId: string | null = null
-  let lastSubmissionText: string = ""
   let lastSubmissionMode: boolean | null = null // Track the mode used for the last submission
+  
+  // Component references
+  let textSubmitComponent: ConsumptionTextSubmit
   
   // OS detection for keyboard shortcuts
   let isMac = false
@@ -139,66 +139,12 @@
       status = "✅ Complete"
       hasSubmitted = true
       
-      // Clear audio state and draft after successful submission
+      // Clear audio state after successful submission
       audioBlob = null
-      clearDraftState()
     } catch (err) {
       setError(`Error processing audio: ${err}`)
       status = "❌ Error occurred"
       console.error("Upload error:", err)
-    } finally {
-      isProcessing = false
-    }
-  }
-
-  async function submitText() {
-    if (!textInput.trim() || isProcessing) {
-      if (!textInput.trim()) {
-        setError("Please enter a description of your meal")
-      }
-      return
-    }
-
-    // Prevent duplicate submissions
-    if (hasSubmitted && textInput === lastSubmissionText) {
-      setError("This meal has already been submitted")
-      return
-    }
-
-    try {
-      isProcessing = true
-      status = "⏳ Processing..."
-      clearError()
-      clearResults()
-
-      const submissionText = textInput.trim()
-      const response = await apiClient.POST("/consumption", {
-        body: {
-          text: submissionText
-        },
-      })
-
-      if (response.error) {
-        throw new Error(`API Error: ${response.error}`)
-      }
-
-      const data = response.data
-      transcript = data?.transcript || submissionText
-      result = data
-      consumptionId = data?.id || null
-      lastSubmissionId = consumptionId
-      lastSubmissionText = submissionText
-      lastSubmissionMode = true // Text submission
-      status = "✅ Complete"
-      hasSubmitted = true
-
-      // Clear text input and draft state after successful submission
-      textInput = ""
-      clearDraftState()
-    } catch (err) {
-      setError(`Error processing text: ${err}`)
-      status = "❌ Error occurred"
-      console.error("Submit error:", err)
     } finally {
       isProcessing = false
     }
@@ -211,7 +157,7 @@
     isTextMode = !isTextMode
     clearError()
     updateStatus()
-    debouncedSaveDraft()
+    saveModeState()
   }
 
   // Utility functions for cleaner state management
@@ -244,53 +190,22 @@
     }
   }
 
-  // Debounced draft saving to prevent excessive storage writes
-  function debouncedSaveDraft() {
-    if (!browser) return
-    
-    if (draftSaveTimeout) {
-      clearTimeout(draftSaveTimeout)
-    }
-    
-    draftSaveTimeout = setTimeout(() => {
-      saveDraftState()
-    }, 500) // 500ms debounce
-  }
-
-  // Function to persist draft state
-  function saveDraftState() {
+  // Function to persist mode state
+  function saveModeState() {
     if (!browser) return
     
     const timestamp = Date.now()
-    
-    // Only save non-empty text input
-    if (textInput.trim().length > 0) {
-      setStorageJSON(DRAFT_STORAGE_KEYS.TEXT, {
-        text: textInput,
-        timestamp
-      })
-    } else {
-      removeStorageItem(DRAFT_STORAGE_KEYS.TEXT)
-    }
-    
-    // Save mode selection
     setStorageJSON(DRAFT_STORAGE_KEYS.MODE, {
       isTextMode,
       timestamp
     })
   }
 
-  // Function to restore draft state
-  function restoreDraftState() {
+  // Function to restore mode state
+  function restoreModeState() {
     if (!browser) return
     
     const now = Date.now()
-    
-    // Restore text input
-    const textDraft = getStorageJSON(DRAFT_STORAGE_KEYS.TEXT, { text: '', timestamp: 0 })
-    if (textDraft.text.trim().length > 0 && (now - textDraft.timestamp) <= DRAFT_EXPIRY_MS) {
-      textInput = textDraft.text
-    }
     
     // Restore mode selection - always set a definitive value to prevent flicker
     const modeDraft = getStorageJSON(DRAFT_STORAGE_KEYS.MODE, { isTextMode: false, timestamp: 0 })
@@ -302,11 +217,9 @@
     }
   }
 
-  // Function to clear draft state (called after successful submission)
-  function clearDraftState() {
+  // Function to clear mode state
+  function clearModeState() {
     if (!browser) return
-    
-    removeStorageItem(DRAFT_STORAGE_KEYS.TEXT)
     removeStorageItem(DRAFT_STORAGE_KEYS.MODE)
   }
 
@@ -317,7 +230,6 @@
     isProcessing = false
     hasSubmitted = false
     lastSubmissionId = null
-    lastSubmissionText = ""
     // Don't reset lastSubmissionMode here - we want to preserve it for "Record Another"
     mediaRecorder = null
     audioBlob = null
@@ -325,7 +237,7 @@
     clearError()
     clearResults()
     
-    // Don't set isTextMode or textInput here - let restoreDraftState handle it
+    // Don't set isTextMode here - let restoreModeState handle it
     // This prevents the brief flash of wrong state when navigating to the page
   }
 
@@ -337,7 +249,7 @@
   // Function to start a new recording/entry (preserving drafts)
   function startNewEntry() {
     resetToInitialState()
-    restoreDraftState()
+    restoreModeState()
     setInitialStatus()
   }
 
@@ -348,10 +260,12 @@
     // If we have a last submission mode, use that instead of restoring drafts
     if (lastSubmissionMode !== null) {
       isTextMode = lastSubmissionMode
-      textInput = "" // Always start with empty input for new entry
+      if (lastSubmissionMode === true && textSubmitComponent) {
+        textSubmitComponent.reset() // Clear the text input for new entry
+      }
     } else {
       // Fallback to draft restoration if no last submission mode
-      restoreDraftState()
+      restoreModeState()
     }
     
     setInitialStatus()
@@ -359,9 +273,9 @@
 
   // Initialize component
   onMount(() => {
-    // First restore drafts to get the correct mode, then reset other state, then set status
+    // First restore mode to get the correct mode, then reset other state, then set status
     // This prevents the brief flash of microphone icon when in text mode
-    restoreDraftState()
+    restoreModeState()
     resetToInitialState()
     setInitialStatus()
   })
@@ -373,25 +287,36 @@
       mediaRecorder.stop()
     }
     
-    // Clear timeouts
-    if (draftSaveTimeout) {
-      clearTimeout(draftSaveTimeout)
-    }
-    
-    // Save current draft state before leaving
-    if (browser && (textInput.trim() || isTextMode === true)) {
-      saveDraftState()
-    }
-    
     // Reset submission mode when navigating away from the page
     // This ensures that when users navigate back, they get draft restoration
     // instead of being locked into their last submission mode
     lastSubmissionMode = null
   })
 
-  // Handle text input changes with debounced saving
-  function handleTextInput() {
-    debouncedSaveDraft()
+  // Event handlers for the text submit component
+  function handleTextSubmit(event: CustomEvent<{ transcript: string, result: any, consumptionId: string | null, submissionText: string }>) {
+    const { transcript: textTranscript, result: textResult, consumptionId: textConsumptionId } = event.detail
+    transcript = textTranscript
+    result = textResult
+    consumptionId = textConsumptionId
+    lastSubmissionId = textConsumptionId
+    lastSubmissionMode = true // Text submission
+    status = "✅ Complete"
+    hasSubmitted = true
+  }
+
+  function handleTextError(event: CustomEvent<{ message: string }>) {
+    setError(event.detail.message)
+    status = "❌ Error occurred"
+  }
+
+  function handleTextProcessing(event: CustomEvent<{ isProcessing: boolean }>) {
+    isProcessing = event.detail.isProcessing
+    if (isProcessing) {
+      status = "⏳ Processing..."
+      clearError()
+      clearResults()
+    }
   }
 
   async function handleRedo() {
@@ -529,7 +454,7 @@
   <!-- Main recording interface - only show when not complete -->
   {#if !result}
     <div class="flex-1 flex items-center justify-center px-4">
-      <div class="text-center max-w-md w-full space-y-8">
+      <div class="text-center max-w-4xl w-full space-y-8">
         
         {#if isTextMode === null}
           <!-- Loading state during SSR/initialization -->
@@ -537,34 +462,14 @@
             <div class="loading loading-spinner loading-lg text-primary"></div>
           </div>
         {:else if isTextMode === true}
-          <!-- Text input interface -->
-          <div class="space-y-4">
-            <textarea
-              bind:value={textInput}
-              on:input={handleTextInput}
-              placeholder="Describe what you ate... (e.g., 'I had a chicken caesar salad with croutons and parmesan cheese')"
-              class="textarea textarea-primary w-full h-32 resize-none"
-              disabled={isProcessing}
-              on:keydown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault()
-                  submitText()
-                }
-              }}
-            ></textarea>
-            <button
-              class="btn btn-primary btn-lg w-full"
-              on:click={submitText}
-              disabled={isProcessing || !textInput.trim()}
-            >
-              {#if isProcessing}
-                <span class="loading loading-spinner loading-sm"></span>
-                Processing...
-              {:else}
-                Analyze Meal
-              {/if}
-            </button>
-          </div>
+          <!-- Chat-style text input interface -->
+          <ConsumptionTextSubmit
+            bind:this={textSubmitComponent}
+            disabled={isProcessing}
+            on:submit={handleTextSubmit}
+            on:error={handleTextError}
+            on:processing={handleTextProcessing}
+          />
         {:else}
           <!-- Recording button interface -->
           <div class="flex justify-center">
@@ -630,18 +535,10 @@
             <p class="text-lg text-error font-medium">{error}</p>
           {:else if isTextMode === true}
             <div class="space-y-2">
-              <p class="text-xl font-semibold text-base-content">
-                Describe what you ate
-              </p>
               <p class="text-sm text-base-content/70 flex items-center justify-center gap-1 flex-wrap">
-                <span>To submit, click "Analyze Meal" or press</span>
-                {#if isMac}
-                  <kbd class="kbd kbd-sm">⌘</kbd>
-                {:else}
-                  <kbd class="kbd kbd-sm">Ctrl</kbd>
-                {/if}
-                <span>+</span>
+                <span>Press</span>
                 <kbd class="kbd kbd-sm">Enter</kbd>
+                <span>to submit</span>
               </p>
             </div>
           {:else if isTextMode === false}
