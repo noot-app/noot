@@ -18,7 +18,7 @@ Generate accurate, comprehensive nutrition information for a specified food item
 
 ## Order of Preferred Nutrient Choice
 
-1. If a branded item is provided, use the `openfoodfacts_mcp_server` with the `search_products_by_brand_and_name` tool to find complete nutrition data for the exact item. If an exact match is found, use that data. If only partial matches are found, they can be used as a guide but should not be used directly. The tool requires `brand` and `name` to be provided. It also requires `limit` which is generally best set to `3` to get a few options to choose from. If the item is an exact match from the `openfoodfacts_mcp_server` and the `serving_quantity` is also an exact match for the serving the user provided, then fields like `energy-kcal_serving` should be used for setting `calories`.
+1. If a branded item is provided, use the `openfoodfacts_mcp_server` with the `search_products_by_brand_and_name` tool to find complete nutrition data for the exact item. If an exact match is found, use that data. If only partial matches are found, they can be used as a guide but should not be used directly. If the item is an exact match from the `openfoodfacts_mcp_server` and the `serving_quantity` is also an exact match for the serving the user provided, then fields like `nutriments.energy-kcal.serving` should be used for setting `calories`. For example, if the user consumed 355g of a beverage and the `serving_size` field returned is `1 portion (355 ml)` or `serving_quantity` is `355`, then you can reasonably assume that the user consumed one exact full serving of the product.
 2. Web search results from the exact food/drink item manufacturer's page
 3. Web search results from 3rd party sources about the food/drink item
 4. Educated estimates
