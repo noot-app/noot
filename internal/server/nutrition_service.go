@@ -154,43 +154,32 @@ func (s *NutritionService) fetchNutritionFromCache(ctx context.Context, item Ite
 
 // getAINutrition handles AI nutrition lookup for both generic and branded items
 func (s *NutritionService) getAINutrition(ctx context.Context, item Item, provider AIProvider) (CompleteNutrient, []storage.OFFIngredient, *string, error) {
-	// Determine if this is a generic item (no brand)
-	isGenericItem := (item.Brand == nil || (item.Brand != nil && *item.Brand == ""))
-	logHydrationDecision("ai_lookup", "item", item.Name, "is_generic", isGenericItem)
+	// Always use complete AI response to get ingredients and URL for all items
+	// Both branded and generic items can benefit from Open Food Facts ingredient data
+	logHydrationDecision("ai_lookup", "item", item.Name, "brand", getBrandOrEmpty(item.Brand))
 
-	if isGenericItem {
-		// No brand - use complete AI response for ingredients
-		aiResponse, err := provider.GetNutritionWithContextComplete(ctx, item)
-		if err != nil {
-			return CompleteNutrient{}, nil, nil, err
-		}
-
-		logHydrationDecision("ai_complete_response", "item", item.Name, "calories", aiResponse.Nutrients.Calories)
-
-		// Extract ingredients and URL from AI response for generic items
-		var ingredients []storage.OFFIngredient
-		var url *string
-
-		if len(aiResponse.Ingredients) > 0 {
-			ingredients = aiResponse.Ingredients
-			logHydrationDecision("extracted_ingredients", "item", item.Name, "ingredient_count", len(ingredients))
-		}
-
-		if aiResponse.URL != nil && *aiResponse.URL != "" {
-			url = aiResponse.URL
-			logHydrationDecision("extracted_url", "item", item.Name, "url", *url)
-		}
-
-		return aiResponse.Nutrients, ingredients, url, nil
-	} else {
-		// Branded items - use standard nutrition only
-		nutrition, err := provider.GetNutritionWithContext(ctx, item)
-		if err != nil {
-			return CompleteNutrient{}, nil, nil, err
-		}
-		logHydrationDecision("ai_standard_response", "item", item.Name, "calories", nutrition.Calories)
-		return nutrition, nil, nil, nil
+	aiResponse, err := provider.GetNutritionWithContextComplete(ctx, item)
+	if err != nil {
+		return CompleteNutrient{}, nil, nil, err
 	}
+
+	logHydrationDecision("ai_complete_response", "item", item.Name, "calories", aiResponse.Nutrients.Calories)
+
+	// Extract ingredients and URL from AI response for all items
+	var ingredients []storage.OFFIngredient
+	var url *string
+
+	if len(aiResponse.Ingredients) > 0 {
+		ingredients = aiResponse.Ingredients
+		logHydrationDecision("extracted_ingredients", "item", item.Name, "ingredient_count", len(ingredients))
+	}
+
+	if aiResponse.URL != nil && *aiResponse.URL != "" {
+		url = aiResponse.URL
+		logHydrationDecision("extracted_url", "item", item.Name, "url", *url)
+	}
+
+	return aiResponse.Nutrients, ingredients, url, nil
 }
 
 // fetchNutritionFromAI fetches nutrition data from AI provider
