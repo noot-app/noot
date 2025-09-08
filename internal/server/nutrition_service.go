@@ -51,6 +51,33 @@ func (s *NutritionService) buildCacheKeys(item Item) (exactKey, fallbackKey, nor
 	return exactKey, fallbackKey, normalizedNameForCache, normalizedBrand, normalizedGrams
 }
 
+// tryCanonicalKey attempts to find a canonical food item and scale it to the requested portion
+func (s *NutritionService) tryCanonicalKey(ctx context.Context, item Item) (*CompleteNutrient, bool, error) {
+	canonicalKey := s.makeCanonicalFoodKey(item.Name, item.Brand)
+	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
+	
+	logHydrationDecision("trying_canonical_key", "canonical_key", canonicalKey)
+	
+	if cached, err := s.store.GetItemByName(ctx, canonicalKey, normalizedBrand); err == nil && cached != nil {
+		if isFresh(cached.UpdatedAt, cacheTTL) {
+			logHydrationDecision("canonical_cache_hit", "key", canonicalKey, "age_days", int(time.Since(cached.UpdatedAt).Hours()/24))
+			
+			// Scale nutrition from the canonical item to the requested portion using per-100g data
+			nutrition := s.convertCachedToNutrients(cached, item)
+			
+			// Handle BaseQuantity scaling if needed
+			if item.BaseQuantity != nil && *item.BaseQuantity > 1.0 {
+				logHydrationDecision("scaling_for_base_quantity", "name", item.Name, "base_quantity", *item.BaseQuantity)
+				scalingFactor := *item.BaseQuantity
+				nutrition.Scale(scalingFactor)
+			}
+			
+			return &nutrition, true, nil
+		}
+	}
+	return nil, false, nil
+}
+
 // tryExactKey attempts to find a fresh exact cache match
 func (s *NutritionService) tryExactKey(ctx context.Context, key, normalizedBrand string) (*CompleteNutrient, bool, error) {
 	if cached, err := s.store.GetItemByName(ctx, key, normalizedBrand); err == nil && cached != nil {
@@ -113,7 +140,15 @@ func (s *NutritionService) fetchNutritionFromCache(ctx context.Context, item Ite
 	logHydrationDecision("cache_lookup_start", "original_name", item.Name, "normalized_name", normalizedName,
 		"normalized_brand", normalizedBrand, "grams", item.Grams)
 
-	// Try exact key first (brand-aware)
+	// First, try canonical food lookup for deduplication
+	if nutrition, found, err := s.tryCanonicalKey(ctx, item); err != nil {
+		return nil, err
+	} else if found {
+		logHydrationDecision("returning_canonical_match", "name", item.Name, "grams", item.Grams)
+		return nutrition, nil
+	}
+
+	// Try exact key second (backward compatibility)
 	logHydrationDecision("trying_exact_key", "exact_key", exactKey)
 	if nutrition, found, err := s.tryExactKey(ctx, exactKey, normalizedBrand); err != nil {
 		return nil, err
@@ -202,7 +237,7 @@ func (s *NutritionService) fetchNutritionFromAI(ctx context.Context, item *Item,
 	return &nutrition, nil
 }
 
-// cacheNutritionData stores nutrition data in the cache with proper scaling
+// cacheNutritionData stores nutrition data in the cache using canonical food names for deduplication
 func (s *NutritionService) cacheNutritionData(ctx context.Context, item Item, nutrition CompleteNutrient) error {
 	if s.store == nil {
 		return nil // No cache available
@@ -210,69 +245,37 @@ func (s *NutritionService) cacheNutritionData(ctx context.Context, item Item, nu
 
 	LogDebug("Attempting to cache item nutrition data", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
 
-	// Extract original quantity info to reverse-scale if needed
-	quantityInfo := extractQuantityFromName(item.Name)
-
-	// Calculate the nutrition data for the BASE item (full serving)
-	var baseNutrition CompleteNutrient
-	var baseGrams float64
-	var baseName string
-
-	if quantityInfo.Multiplier != 1.0 {
-		// This was a fractional quantity - reverse-scale to get base nutrition
-		reverseMultiplier := 1.0 / quantityInfo.Multiplier
-		baseGrams = item.Grams * reverseMultiplier
-		baseName = quantityInfo.CleanName
-
-		baseNutrition = scaleNutritionData(nutrition, reverseMultiplier)
-
-		LogDebug("Reverse-scaling nutrition for base cache storage", "original_multiplier", quantityInfo.Multiplier,
-			"reverse_multiplier", reverseMultiplier, "base_grams", baseGrams, "original_grams", item.Grams)
-	} else {
-		// This is already a base serving - use as-is
-		baseNutrition = nutrition
-		baseGrams = item.Grams
-		baseName = item.Name
-	}
-
-	// Create a base item for caching (using clean name and base grams)
-	baseItem := Item{
-		Name:        baseName,
-		Brand:       item.Brand,
-		Grams:       baseGrams,
-		Ingredients: item.Ingredients, // Include ingredients from AI
-		Url:         item.Url,         // Include AI URL
-	}
-
-	// Use brand-aware normalization for consistent cache keys
+	// For deduplication, we store items using canonical food names
+	// All portion variations will reference the same canonical item
+	canonicalKey := s.makeCanonicalFoodKey(item.Name, item.Brand)
 	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
-	baseNormalizedName := normalizeItemNameForCache(baseName, item.Brand)
 
-	// Cache under the base serving size
-	exactKey := s.makeExactServingKey(baseNormalizedName, normalizedBrand, baseGrams)
-	exactCacheItem := s.convertNutrientsToExactCache(baseItem, baseNutrition, exactKey)
-
-	if exactCached, _ := s.store.GetItemByName(ctx, exactKey, normalizedBrand); exactCached != nil {
-		// Update existing exact cache entry
-		exactCacheItem.ID = exactCached.ID
-		err := s.store.UpdateItem(ctx, exactCacheItem)
+	// Check if canonical item already exists
+	if canonicalCached, _ := s.store.GetItemByName(ctx, canonicalKey, normalizedBrand); canonicalCached != nil {
+		// Update existing canonical cache entry with fresh data
+		canonicalCacheItem := s.convertNutrientsToCanonicalCache(item, nutrition, canonicalKey)
+		canonicalCacheItem.ID = canonicalCached.ID
+		err := s.store.UpdateItem(ctx, canonicalCacheItem)
 		if err != nil {
-			LogWarn("Failed to update cached nutrition data", "base_name", baseName,
-				"base_grams", baseGrams, "error", err.Error())
+			LogWarn("Failed to update canonical cached nutrition data", "canonical_name", canonicalKey,
+				"error", err.Error())
 			return err
 		}
+		LogInfo("Successfully updated canonical nutrition data", "canonical_name", canonicalKey,
+			"cache_key", canonicalKey)
 	} else {
-		// Create new exact cache entry
-		err := s.store.CreateItem(ctx, exactCacheItem)
+		// Create new canonical cache entry
+		canonicalCacheItem := s.convertNutrientsToCanonicalCache(item, nutrition, canonicalKey)
+		err := s.store.CreateItem(ctx, canonicalCacheItem)
 		if err != nil {
-			LogWarn("Failed to cache nutrition data", "base_name", baseName,
-				"base_grams", baseGrams, "error", err.Error())
+			LogWarn("Failed to cache canonical nutrition data", "canonical_name", canonicalKey,
+				"error", err.Error())
 			return err
 		}
+		LogInfo("Successfully cached canonical nutrition data", "canonical_name", canonicalKey,
+			"cache_key", canonicalKey)
 	}
 
-	LogInfo("Successfully cached nutrition data", "base_name", baseName,
-		"base_grams", baseGrams, "cache_key", exactKey)
 	return nil
 }
 
@@ -575,6 +578,20 @@ func (s *NutritionService) makeExactServingKey(normalizedName, normalizedBrand s
 	return fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, grams)
 }
 
+// makeCanonicalFoodKey creates a cache key based on canonical food name and brand only
+// This enables deduplication by removing portion-specific information
+func (s *NutritionService) makeCanonicalFoodKey(name string, brand *string) string {
+	canonicalName := generateCanonicalFoodName(name, brand)
+	normalizedBrand := normalizeItemName(getBrandOrEmpty(brand))
+	
+	// If canonical name is empty (e.g., input was just a brand), use original name
+	if canonicalName == "" {
+		canonicalName = normalizeItemName(name)
+	}
+	
+	return fmt.Sprintf("%s|%s", canonicalName, normalizedBrand)
+}
+
 // getNormalizedGrams returns the normalized grams for cache key generation
 func (s *NutritionService) getNormalizedGrams(item Item) float64 {
 	if item.BaseQuantity != nil && *item.BaseQuantity > 1.0 {
@@ -603,6 +620,52 @@ func (s *NutritionService) shouldUse100gScaling(item Item, cachedItem *storage.I
 // convertExactCachedToNutrients converts cached data from exact serving match (uses original values)
 func (s *NutritionService) convertExactCachedToNutrients(cached *storage.Item) CompleteNutrient {
 	return ConvertExactCachedToNutrients(cached)
+}
+
+// convertNutrientsToCanonicalCache stores nutrition data using canonical food names for deduplication
+func (s *NutritionService) convertNutrientsToCanonicalCache(item Item, nutrients CompleteNutrient, canonicalKey string) *storage.Item {
+	actualGrams := item.Grams
+
+	// For canonical items, we want to store the nutrition data for the actual item
+	// The per-100g values will be used for scaling to different portions
+	normalizedNutrients := nutrients
+	normalizedGrams := actualGrams
+
+	// Handle BaseQuantity normalization if needed
+	if item.BaseQuantity != nil && *item.BaseQuantity > 1.0 {
+		// Normalize to single unit by dividing by base quantity
+		divider := *item.BaseQuantity
+		normalizedGrams = actualGrams / divider
+		normalizedNutrients = scaleNutritionData(nutrients, 1.0/divider)
+	}
+
+	// Generate canonical display name for the item
+	canonicalDisplayName := generateCanonicalFoodName(item.Name, item.Brand)
+	if canonicalDisplayName == "" {
+		canonicalDisplayName = normalizeItemName(item.Name)
+	}
+
+	// Create the canonical cache item
+	cacheItem := &storage.Item{
+		NormalizedName:  canonicalKey, // Use canonical key as normalized name
+		NormalizedBrand: normalizeItemName(getBrandOrEmpty(item.Brand)),
+		DisplayName:     canonicalDisplayName, // Use canonical name for display
+		DisplayBrand:    getBrandOrEmpty(item.Brand),
+		Note:            item.Note,
+
+		// Include ingredients and AI URL when caching items
+		Ingredients: item.Ingredients, // Copy ingredients from the item
+		Url:         item.Url,         // Copy AI URL from the item
+
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	// Use generated helpers to populate nutrition fields
+	ConvertNutrientsToExactCacheFields(cacheItem, normalizedNutrients, normalizedGrams)
+	ConvertNutrientsToPer100gCacheFields(cacheItem, normalizedNutrients, normalizedGrams, s.converter)
+
+	return cacheItem
 }
 
 // convertNutrientsToExactCache stores nutrition data with hybrid approach
