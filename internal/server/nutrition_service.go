@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -53,7 +54,7 @@ func (s *NutritionService) buildCacheKeys(item Item) (exactKey, fallbackKey, nor
 
 // tryCanonicalKey attempts to find a canonical food item and scale it to the requested portion
 func (s *NutritionService) tryCanonicalKey(ctx context.Context, item Item) (*CompleteNutrient, bool, error) {
-	canonicalKey := s.makeCanonicalFoodKey(item.Name, item.Brand)
+	canonicalKey := s.makeCanonicalFoodKey(item)
 	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
 
 	logHydrationDecision("trying_canonical_key", "canonical_key", canonicalKey)
@@ -247,7 +248,7 @@ func (s *NutritionService) cacheNutritionData(ctx context.Context, item Item, nu
 
 	// For deduplication, we store items using canonical food names
 	// All portion variations will reference the same canonical item
-	canonicalKey := s.makeCanonicalFoodKey(item.Name, item.Brand)
+	canonicalKey := s.makeCanonicalFoodKey(item)
 	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
 
 	// Check if canonical item already exists
@@ -578,15 +579,15 @@ func (s *NutritionService) makeExactServingKey(normalizedName, normalizedBrand s
 	return fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, grams)
 }
 
-// makeCanonicalFoodKey creates a cache key based on canonical food name and brand only
-// This enables deduplication by removing portion-specific information
-func (s *NutritionService) makeCanonicalFoodKey(name string, brand *string) string {
-	canonicalName := generateCanonicalFoodName(name, brand)
-	normalizedBrand := normalizeItemName(getBrandOrEmpty(brand))
+// makeCanonicalFoodKey creates a cache key based on LLM-provided canonical food name and brand only
+// This enables deduplication by using the standardized canonical name from the LLM
+func (s *NutritionService) makeCanonicalFoodKey(item Item) string {
+	canonicalName := normalizeItemName(item.CanonicalName)
+	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
 
-	// If canonical name is empty (e.g., input was just a brand), use original name
+	// If canonical name is empty (shouldn't happen with LLM), fall back to normalized name
 	if canonicalName == "" {
-		canonicalName = normalizeItemName(name)
+		canonicalName = normalizeItemName(item.Name)
 	}
 
 	return fmt.Sprintf("%s|%s", canonicalName, normalizedBrand)
@@ -639,8 +640,8 @@ func (s *NutritionService) convertNutrientsToCanonicalCache(item Item, nutrients
 		normalizedNutrients = scaleNutritionData(nutrients, 1.0/divider)
 	}
 
-	// Generate canonical display name for the item
-	canonicalDisplayName := generateCanonicalFoodName(item.Name, item.Brand)
+	// Use LLM-provided canonical name for display
+	canonicalDisplayName := strings.TrimSpace(item.CanonicalName)
 	if canonicalDisplayName == "" {
 		canonicalDisplayName = normalizeItemName(item.Name)
 	}

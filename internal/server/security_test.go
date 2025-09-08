@@ -137,6 +137,9 @@ func TestSanitizeText(t *testing.T) {
 }
 
 func TestValidateParsedItems(t *testing.T) {
+	// Initialize logger for the test
+	InitLogger()
+
 	tests := []struct {
 		name     string
 		items    []Item

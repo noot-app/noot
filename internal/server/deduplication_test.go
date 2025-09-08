@@ -287,16 +287,17 @@ func TestFoodDeduplication(t *testing.T) {
 			}
 
 			item := Item{
-				Name:  tc.itemName,
-				Grams: tc.grams,
-				Brand: tc.brand,
+				Name:          tc.itemName,
+				CanonicalName: "carrot", // LLM would provide this canonical name
+				Grams:         tc.grams,
+				Brand:         tc.brand,
 			}
 
 			err := service.cacheNutritionData(ctx, item, carrotNutrition)
 			require.NoError(t, err, "Failed to cache %s", tc.description)
 
 			// Verify the canonical key was generated correctly
-			actualKey := service.makeCanonicalFoodKey(tc.itemName, tc.brand)
+			actualKey := service.makeCanonicalFoodKey(item)
 			assert.Equal(t, tc.expectedKey, actualKey, "Canonical key mismatch for %s", tc.description)
 		})
 	}
@@ -308,9 +309,10 @@ func TestFoodDeduplication(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run("Retrieve_"+tc.name, func(t *testing.T) {
 			item := Item{
-				Name:  tc.itemName,
-				Grams: tc.grams,
-				Brand: tc.brand,
+				Name:          tc.itemName,
+				CanonicalName: "carrot", // LLM would provide this canonical name
+				Grams:         tc.grams,
+				Brand:         tc.brand,
 			}
 
 			nutrition, err := service.fetchNutritionFromCache(ctx, item)
@@ -340,52 +342,69 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		itemName    string
-		brand       *string
+		item        Item
 		expectedKey string
 	}{
 		{
-			name:        "SimpleFood",
-			itemName:    "apple",
-			brand:       nil,
+			name: "SimpleFood",
+			item: Item{
+				Name:          "apple",
+				CanonicalName: "apple", // LLM canonical name
+				Brand:         nil,
+			},
 			expectedKey: "apple|",
 		},
 		{
-			name:        "PluralFood",
-			itemName:    "apples",
-			brand:       nil,
+			name: "PluralFood",
+			item: Item{
+				Name:          "apples",
+				CanonicalName: "apple", // LLM normalizes plural to singular
+				Brand:         nil,
+			},
 			expectedKey: "apple|",
 		},
 		{
-			name:        "QuantityFood",
-			itemName:    "2 apples",
-			brand:       nil,
+			name: "QuantityFood",
+			item: Item{
+				Name:          "2 apples",
+				CanonicalName: "apple", // LLM strips quantity and normalizes
+				Brand:         nil,
+			},
 			expectedKey: "apple|",
 		},
 		{
-			name:        "ComplexQuantity",
-			itemName:    "a few slices of fresh organic apples",
-			brand:       nil,
+			name: "ComplexQuantity",
+			item: Item{
+				Name:          "a few slices of fresh organic apples",
+				CanonicalName: "apple", // LLM strips all descriptors
+				Brand:         nil,
+			},
 			expectedKey: "apple|",
 		},
 		{
-			name:        "BrandedItem",
-			itemName:    "Ben Jerry vanilla ice cream",
-			brand:       stringPtr("Ben Jerry"),
+			name: "BrandedItem",
+			item: Item{
+				Name:          "Ben Jerry vanilla ice cream",
+				CanonicalName: "vanilla ice cream", // LLM provides canonical name without brand
+				Brand:         stringPtr("Ben Jerry"),
+			},
 			expectedKey: "vanilla ice cream|ben jerry",
 		},
 		{
-			name:        "JustBrand",
-			itemName:    "Coca Cola",
-			brand:       stringPtr("Coca Cola"),
-			expectedKey: "coca cola|coca cola", // Falls back to original when canonical is empty
+			name: "EmptyCanonicalFallback",
+			item: Item{
+				Name:          "Coca Cola",
+				CanonicalName: "", // Empty canonical name, falls back to normalized name
+				Brand:         stringPtr("Coca Cola"),
+			},
+			expectedKey: "coca cola|coca cola",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			key := service.makeCanonicalFoodKey(tc.itemName, tc.brand)
-			assert.Equal(t, tc.expectedKey, key, "Canonical key mismatch for %s", tc.itemName)
+			key := service.makeCanonicalFoodKey(tc.item)
+			assert.Equal(t, tc.expectedKey, key, "Canonical key mismatch for %s", tc.item.Name)
 		})
 	}
 }

@@ -25,6 +25,10 @@
               "type": "string",
               "description": "The food or drink name, including any descriptors but not brand."
             },
+            "canonical_name": {
+              "type": "string",
+              "description": "The canonical base food name for deduplication (e.g., 'a handful of carrots' -> 'carrot', 'fresh organic apples' -> 'apple'). Strip all quantity descriptors, size descriptors, preparation methods, and plural forms to get the singular base food item."
+            },
             "grams": {
               "type": "number",
               "description": "The equivalent weight of this item in grams."
@@ -60,6 +64,7 @@
           },
           "required": [
             "name",
+            "canonical_name",
             "grams",
             "user_quantity",
             "user_unit",
