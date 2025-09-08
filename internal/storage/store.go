@@ -62,10 +62,6 @@ type Store interface {
 	GetUserBiometrics(ctx context.Context, userID string) (*UserBiometrics, error)
 	DeleteUserBiometrics(ctx context.Context, userID string) error
 
-	// Item alias operations
-	CreateItemAlias(ctx context.Context, alias *ItemAlias) error
-	GetCanonicalName(ctx context.Context, aliasName, aliasBrand string) (canonicalName, canonicalBrand string, err error)
-
 	// Label operations
 	CreateLabel(ctx context.Context, label *Label) error
 	UpdateLabel(ctx context.Context, label *Label) error

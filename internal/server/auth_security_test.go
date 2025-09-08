@@ -116,11 +116,7 @@ func (m *mockStore) UpsertUserBiometrics(ctx context.Context, biometrics *storag
 func (m *mockStore) GetUserBiometrics(ctx context.Context, userID string) (*storage.UserBiometrics, error) {
 	return nil, nil
 }
-func (m *mockStore) DeleteUserBiometrics(ctx context.Context, userID string) error       { return nil }
-func (m *mockStore) CreateItemAlias(ctx context.Context, alias *storage.ItemAlias) error { return nil }
-func (m *mockStore) GetCanonicalName(ctx context.Context, aliasName, aliasBrand string) (canonicalName, canonicalBrand string, err error) {
-	return "", "", nil
-}
+func (m *mockStore) DeleteUserBiometrics(ctx context.Context, userID string) error { return nil }
 
 // Label-related mock methods
 func (m *mockStore) CreateLabel(ctx context.Context, label *storage.Label) error { return nil }
