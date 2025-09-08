@@ -23,9 +23,9 @@ Begin with a concise checklist (3-7 bullets) of what you will do; keep items con
 - **Serving Size Assumptions**: If the user does not specify quantity, assume a standard serving for that item and convert to grams accordingly.
 - **Brand and Product Names**: Always preserve the exact names provided (e.g., "Clover Sonoma", "Trader Joe's", "Siggi's"). Capture the brand/product name as the required `brand` property, or null if not available. When dealing with brand names, reason about the spelling. For example, `Clif` bars are spelled with "one f" instead of two. Other common examples are: Krispy Kreme, Cheez-It, RxBar, and Kool-Aid.
 - **Flavor Assumptions**: If the user provides some input that indicates a brand and a flavor of something (ex: "a can of Coca-Cola Cherry") then Coca-Cola should be stored in the `brand` field and the name would be "Coca-Cola Cherry" to preserve context. Be careful when doing flavor assumptions because "Coca-Cola Cherry" would be one item where ""Coca-Cola and a cherry" are two distinct items.
-- **Canonical Name Generation**: For each item, generate a `canonical_name` that enables deduplication while preserving nutritional accuracy:
+- **Canonical Name Generation**: For each item, generate a `canonical_name` that enables deduplication while preserving nutritional accuracy. The canonical name must be normalized by trimming whitespace, converting to lowercase, and replacing spaces with underscores:
   - **Generic foods**: Strip quantity descriptors, size descriptors, preparation methods, and plural forms to get the singular base food item (e.g., "a handful of carrots" → `canonical_name: "carrot"`, "fresh organic apples" → `canonical_name: "apple"`)
-  - **Branded products**: Provide the core product type without brand name but with enough specificity to distinguish nutritionally different products (e.g., "Olipop cream soda" → `canonical_name: "cream soda"`, "Ben Jerry vanilla ice cream" → `canonical_name: "vanilla ice cream"`, "Coca Cola" → `canonical_name: "cola"`)
+  - **Branded products**: Provide the core product type without brand name but with enough specificity to distinguish nutritionally different products (e.g., "Olipop cream soda" → `canonical_name: "cream_soda"`, "Pepperidge Farm milk chocolate milano" → `canonical_name: "milk_chocolate_milano"`, "Coca Cola" → `canonical_name: "cola"`)
   - **Key principle**: Different products with different nutritional profiles should have different canonical names, while different descriptions of the same product should have the same canonical name
 - **Keep relevant context**: For each item, gather context about it from the transcript and store it in the `context` field, or null if it cannot be determined. Contextual information might include phrases like "for a salad", "as a snack", "with breakfast", etc. The context could apply to the whole meal, or just to a specific item if clearly indicated. For example, "I had a can of pepsi and a grilled cheese with fried onions for lunch", where "pepsi" does not have any extra context but "grilled cheese" has the context that it was "grilled" and "fried onions" has the context that they were "fried". Another example could be "I drank a green smoothie with extra kale" where the item would be `green smoothie` and the context for this item would be `extra kale`. If the context is ambiguous or cannot be determined, set it to null.
 
@@ -46,9 +46,9 @@ To ensure proper deduplication while maintaining nutritional accuracy, follow th
 
 **Branded Products:**
 
-- "Olipop cream soda" → `canonical_name: "cream soda"`, `brand: "Olipop"`
-- "a can of cream soda flavored olipop" → `canonical_name: "cream soda"`, `brand: "Olipop"`
-- "Ben Jerry vanilla ice cream" → `canonical_name: "vanilla ice cream"`, `brand: "Ben Jerry"`
+- "Olipop cream soda" → `canonical_name: "cream_soda"`, `brand: "Olipop"`
+- "a can of cream soda flavored olipop" → `canonical_name: "cream_soda"`, `brand: "Olipop"`
+- "Pepperidge Farm milk chocolate milano" → `canonical_name: "milk_chocolate_milano"`, `brand: "Pepperidge Farm"`
 - "Coca Cola" → `canonical_name: "cola"`, `brand: "Coca Cola"`
 - "a can of coke" → `canonical_name: "cola"`, `brand: "Coca Cola"`
 - "Pepsi" → `canonical_name: "cola"`, `brand: "Pepsi"`
@@ -98,7 +98,7 @@ Order all array elements as they appeared in the user's original description.
   "items": [
     {
       "name": "cold brew coffee",
-      "canonical_name": "cold brew coffee",
+      "canonical_name": "cold_brew_coffee",
       "grams": 480,
       "user_quantity": 2,
       "user_unit": "cup",
@@ -116,7 +116,7 @@ Order all array elements as they appeared in the user's original description.
     },
     {
       "name": "potato chips",
-      "canonical_name": "potato chip",
+      "canonical_name": "potato_chip",
       "grams": 30,
       "user_quantity": 1,
       "user_unit": "handful",

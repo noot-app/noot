@@ -582,7 +582,7 @@ func (s *NutritionService) makeExactServingKey(normalizedName, normalizedBrand s
 // makeCanonicalFoodKey creates a cache key based on LLM-provided canonical food name and brand only
 // This enables deduplication by using the standardized canonical name from the LLM
 func (s *NutritionService) makeCanonicalFoodKey(item Item) string {
-	canonicalName := normalizeItemName(item.CanonicalName)
+	canonicalName := normalizeCanonicalName(item.CanonicalName)
 	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
 
 	// If canonical name is empty (shouldn't happen with LLM), fall back to normalized name

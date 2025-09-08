@@ -15,7 +15,7 @@
 - ✅ **LLM-Parsed Brand Intelligence** - Uses brands extracted by the LLM during parsing (no hardcoded brands!)
 - ✅ **Brand+Name Reordering** - `"noosa vanilla yogurt"` ↔ `"vanilla yogurt noosa"`
 - ✅ **Smart Brand Extraction** - Handles brand prefixes/suffixes in item names
-- ✅ **Multi-word Brand Support** - Supports compound brands like `"ben jerry"`
+- ✅ **Multi-word Brand Support** - Supports compound brands like `"Little Debbie"`
 - ✅ **Brand Safety Maintained** - No cross-brand contamination
 - ✅ **Performance Optimized** - Returns first match to keep cache lookups fast
 

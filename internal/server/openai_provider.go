@@ -192,6 +192,8 @@ func validateParsedItems(items []Item) []Item {
 		// Sanitize canonical name if present
 		if len(item.CanonicalName) > 0 {
 			item.CanonicalName = sanitizeText(item.CanonicalName)
+			// Normalize canonical name to ensure consistency (lowercase, trim, spaces to underscores)
+			item.CanonicalName = normalizeCanonicalName(item.CanonicalName)
 		}
 
 		// Validate and sanitize brand if present

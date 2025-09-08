@@ -27,7 +27,7 @@
             },
             "canonical_name": {
               "type": "string",
-              "description": "The canonical base food name for deduplication. For generic foods: strip quantity descriptors, size descriptors, preparation methods, and plural forms to get the singular base food item (e.g., 'a handful of carrots' -> 'carrot', 'fresh organic apples' -> 'apple'). For branded products: provide the core product type without brand name but with enough specificity to distinguish nutritionally different products (e.g., 'Olipop cream soda' -> 'cream soda', 'Ben Jerry vanilla ice cream' -> 'vanilla ice cream', 'Coca Cola' -> 'cola')."
+              "description": "The canonical base food name for deduplication. For generic foods: strip quantity descriptors, size descriptors, preparation methods, and plural forms to get the singular base food item (e.g., 'a handful of carrots' -> 'carrot', 'fresh organic apples' -> 'apple'). For branded products: provide the core product type without brand name but with enough specificity to distinguish nutritionally different products (e.g., 'Olipop cream soda' -> 'cream_soda', 'Pepperidge Farm milk chocolate milano' -> 'milk_chocolate_milano', 'Coca Cola' -> 'cola')."
             },
             "grams": {
               "type": "number",
