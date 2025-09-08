@@ -4,9 +4,19 @@
   import { getAppName } from "$lib/utils/app-info"
   import { onMount } from "svelte"
   import { page } from "$app/stores"
+  import { getStorageJSON, setStorageJSON, removeStorageItem } from "$lib/utils/secure-storage"
 
   // Get app name from runtime environment
   $: appName = getAppName()
+
+  // Storage keys for draft persistence
+  const DRAFT_STORAGE_KEYS = {
+    TEXT: 'record-draft-text',
+    MODE: 'record-draft-mode'
+  }
+
+  // Draft expiration time (24 hours)
+  const DRAFT_EXPIRY_MS = 24 * 60 * 60 * 1000
 
   let isRecording = false
   let mediaRecorder: MediaRecorder | null = null
@@ -114,6 +124,9 @@
       result = data
       consumptionId = data?.id || null
       status = "✅ Complete"
+      
+      // Clear draft state after successful submission
+      clearDraftState()
     } catch (err) {
       error = `Error processing audio: ${err}`
       status = "❌ Error occurred"
@@ -150,8 +163,9 @@
       consumptionId = data?.id || null
       status = "✅ Complete"
 
-      // Clear text input once processing is complete
+      // Clear text input and draft state once processing is complete
       textInput = ""
+      clearDraftState()
     } catch (err) {
       error = `Error processing text: ${err}`
       status = "❌ Error occurred"
@@ -162,38 +176,104 @@
   // Function to toggle between recording and text modes
   function toggleMode() {
     isTextMode = !isTextMode
-    // Reset states when switching modes
+    // Reset error and status when switching modes, but preserve text input
     error = ""
     status = isTextMode ? "Ready to type" : "Ready to record"
-    textInput = ""
-    audioBlob = null
+    // Don't clear textInput or audioBlob - let user keep their work
+    // Draft state will be saved automatically by reactive statements
   }
 
-  // Function to reset the page to initial recording state
+  // Function to persist draft state
+  function saveDraftState() {
+    const timestamp = Date.now()
+    
+    // Only save non-empty text input
+    if (textInput.trim().length > 0) {
+      setStorageJSON(DRAFT_STORAGE_KEYS.TEXT, {
+        text: textInput,
+        timestamp
+      })
+    } else {
+      removeStorageItem(DRAFT_STORAGE_KEYS.TEXT)
+    }
+    
+    // Save mode selection
+    setStorageJSON(DRAFT_STORAGE_KEYS.MODE, {
+      isTextMode,
+      timestamp
+    })
+  }
+
+  // Function to restore draft state
+  function restoreDraftState() {
+    const now = Date.now()
+    
+    // Restore text input
+    const textDraft = getStorageJSON(DRAFT_STORAGE_KEYS.TEXT, { text: '', timestamp: 0 })
+    if (textDraft.text.trim().length > 0 && (now - textDraft.timestamp) <= DRAFT_EXPIRY_MS) {
+      textInput = textDraft.text
+    }
+    
+    // Restore mode selection
+    const modeDraft = getStorageJSON(DRAFT_STORAGE_KEYS.MODE, { isTextMode: false, timestamp: 0 })
+    if ((now - modeDraft.timestamp) <= DRAFT_EXPIRY_MS) {
+      isTextMode = modeDraft.isTextMode
+    }
+  }
+
+  // Function to clear draft state (called after successful submission)
+  function clearDraftState() {
+    removeStorageItem(DRAFT_STORAGE_KEYS.TEXT)
+    removeStorageItem(DRAFT_STORAGE_KEYS.MODE)
+  }
+
+  // Function to reset the page to initial recording state (preserving drafts)
   function resetToRecording() {
     result = null
     transcript = ""
     consumptionId = null
     audioBlob = null
-    textInput = ""
     error = ""
-    isTextMode = false
-    status = "Ready to record"
+    
+    // Only clear input state if there's no draft to restore
+    // This will be handled by restoreDraftState() on mount
+    if (typeof window === 'undefined') {
+      // During SSR, use default values
+      textInput = ""
+      isTextMode = false
+    }
+    
+    status = isTextMode ? "Ready to type" : "Ready to record"
   }
 
   // Clear any existing results when the page loads/mounts
   onMount(() => {
     resetToRecording()
+    restoreDraftState()
   })
 
-  // Reset state when navigating to the record page
+  // Reset state when navigating to the record page (but preserve drafts)
   $: if ($page.route.id === '/record') {
-    resetToRecording()
+    // Only reset if we haven't already mounted
+    if (typeof window !== 'undefined') {
+      resetToRecording()
+      restoreDraftState()
+    }
   }
 
   // Auto-upload when recording stops
   $: if (audioBlob && status === "Processing...") {
     uploadAudio()
+  }
+
+  // Save draft state when text input changes
+  $: if (typeof window !== 'undefined' && textInput !== undefined) {
+    saveDraftState()
+  }
+
+  // Save draft state when mode changes
+  $: if (typeof window !== 'undefined' && isTextMode !== undefined) {
+    saveDraftState()
   }
 
   async function handleRedo() {
