@@ -47,7 +47,7 @@ func (s *NutritionService) buildCacheKeys(item Item) (exactKey, fallbackKey, nor
 
 	exactKey = s.makeExactServingKey(normalizedNameForCache, normalizedBrand, normalizedGrams)
 	fallbackKey = s.makeExactServingKey(fallbackNormalizedName, normalizedBrand, normalizedGrams)
-	
+
 	return exactKey, fallbackKey, normalizedNameForCache, normalizedBrand, normalizedGrams
 }
 
@@ -80,11 +80,11 @@ func (s *NutritionService) findScalableServings(ctx context.Context, item Item, 
 	logHydrationDecision("checking_scalable_servings", "normalized_name", normalizedName, "normalized_brand", normalizedBrand)
 	cachedServings := s.getCachedServingSizes(ctx, normalizedName, normalizedBrand)
 	logHydrationDecision("found_cached_servings", "count", len(cachedServings))
-	
+
 	for _, cachedServing := range cachedServings {
 		if isFresh(cachedServing.item.UpdatedAt, cacheTTL) {
 			logHydrationDecision("scalable_cache_hit", "cached_grams", cachedServing.servingGrams, "age_days", int(time.Since(cachedServing.item.UpdatedAt).Hours()/24))
-			
+
 			// Determine scaling method based on user input and cached data reliability
 			if s.shouldUse100gScaling(item, cachedServing.item) {
 				logHydrationDecision("using_per100g_scaling", "name", item.Name, "requested_grams", item.Grams)
@@ -99,6 +99,7 @@ func (s *NutritionService) findScalableServings(ctx context.Context, item Item, 
 	}
 	return nil, false, nil
 }
+
 // fetchNutritionFromCache attempts to fetch nutrition data from cache
 // Returns nutrition data if found, nil if not found or cache is stale
 func (s *NutritionService) fetchNutritionFromCache(ctx context.Context, item Item) (*CompleteNutrient, error) {
@@ -108,7 +109,7 @@ func (s *NutritionService) fetchNutritionFromCache(ctx context.Context, item Ite
 
 	// Build cache keys
 	exactKey, fallbackKey, normalizedName, normalizedBrand, _ := s.buildCacheKeys(item)
-	
+
 	logHydrationDecision("cache_lookup_start", "original_name", item.Name, "normalized_name", normalizedName,
 		"normalized_brand", normalizedBrand, "grams", item.Grams)
 
@@ -163,23 +164,23 @@ func (s *NutritionService) getAINutrition(ctx context.Context, item Item, provid
 		if err != nil {
 			return CompleteNutrient{}, nil, nil, err
 		}
-		
+
 		logHydrationDecision("ai_complete_response", "item", item.Name, "calories", aiResponse.Nutrients.Calories)
-		
+
 		// Extract ingredients and URL from AI response for generic items
 		var ingredients []storage.OFFIngredient
 		var url *string
-		
+
 		if len(aiResponse.Ingredients) > 0 {
 			ingredients = aiResponse.Ingredients
 			logHydrationDecision("extracted_ingredients", "item", item.Name, "ingredient_count", len(ingredients))
 		}
-		
+
 		if aiResponse.URL != nil && *aiResponse.URL != "" {
 			url = aiResponse.URL
 			logHydrationDecision("extracted_url", "item", item.Name, "url", *url)
 		}
-		
+
 		return aiResponse.Nutrients, ingredients, url, nil
 	} else {
 		// Branded items - use standard nutrition only
@@ -326,14 +327,14 @@ func (s *NutritionService) HydrateNutrition(ctx context.Context, items []Item) (
 
 	// Create errgroup for concurrency control and context cancellation
 	g, ctx := errgroup.WithContext(ctx)
-	
+
 	// Limit concurrent AI calls to 6 (reasonable for API rate limits)
 	const maxConcurrentAICalls = 6
 	semaphore := make(chan struct{}, maxConcurrentAICalls)
-	
+
 	// Results channel to collect hydrated items
 	hydratedItems := make([]Item, len(items))
-	
+
 	// Process each item with concurrency limiting
 	for i, item := range items {
 		i, item := i, item // Capture loop variables
@@ -345,7 +346,7 @@ func (s *NutritionService) HydrateNutrition(ctx context.Context, items []Item) (
 			case <-ctx.Done():
 				return ctx.Err()
 			}
-			
+
 			hydratedItem, err := s.hydrateItemNutrition(ctx, item)
 			if err != nil {
 				logHydrationDecision("hydration_failed", "index", i, "name", item.Name, "error", err.Error())
@@ -353,17 +354,17 @@ func (s *NutritionService) HydrateNutrition(ctx context.Context, items []Item) (
 				hydratedItems[i] = item
 				return nil // Don't fail the entire batch for individual failures
 			}
-			
+
 			hydratedItems[i] = hydratedItem
 			return nil
 		})
 	}
-	
+
 	// Wait for all goroutines to complete
 	if err := g.Wait(); err != nil {
 		return nil, fmt.Errorf("nutrition hydration failed: %w", err)
 	}
-	
+
 	logHydrationDecision("hydration_completed", "hydrated_count", len(hydratedItems))
 	return hydratedItems, nil
 }
@@ -378,14 +379,14 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 
 	// Create errgroup for concurrency control and context cancellation
 	g, ctx := errgroup.WithContext(ctx)
-	
+
 	// Limit concurrent AI calls to 6 (reasonable for API rate limits)
 	const maxConcurrentAICalls = 6
 	semaphore := make(chan struct{}, maxConcurrentAICalls)
-	
+
 	// Results to collect hydrated items
 	hydratedItems := make([]Item, len(items))
-	
+
 	// Process each item with concurrency limiting
 	for i, item := range items {
 		i, item := i, item // Capture loop variables
@@ -397,7 +398,7 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 			case <-ctx.Done():
 				return ctx.Err()
 			}
-			
+
 			// Get nutrition from AI (using extracted helper)
 			nutrition, ingredients, url, err := s.getAINutrition(ctx, item, s.aiProvider)
 			if err != nil {
@@ -406,7 +407,7 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 				hydratedItems[i] = item
 				return nil // Don't fail the entire batch for individual failures
 			}
-			
+
 			// Update item with nutrition and extracted data
 			item.Nutrients = &nutrition
 			if ingredients != nil {
@@ -415,17 +416,17 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 			if url != nil {
 				item.Url = url
 			}
-			
+
 			hydratedItems[i] = item
 			return nil
 		})
 	}
-	
+
 	// Wait for all goroutines to complete
 	if err := g.Wait(); err != nil {
 		return nil, fmt.Errorf("nutrition hydration without cache failed: %w", err)
 	}
-	
+
 	logHydrationDecision("hydration_without_cache_completed", "hydrated_count", len(hydratedItems))
 	return hydratedItems, nil
 }

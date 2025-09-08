@@ -162,15 +162,15 @@ func TestNutritionService_RoundingPrecision(t *testing.T) {
 func TestGeneratedNutrientIteration(t *testing.T) {
 	// Test NutrientMeta contains expected nutrients
 	assert.NotEmpty(t, NutrientMeta, "NutrientMeta should not be empty")
-	
+
 	// Check that we have the expected number of nutrients (should be 40+ nutrients)
 	assert.Greater(t, len(NutrientMeta), 40, "Should have more than 40 nutrients")
-	
+
 	// Check that key nutrients exist
 	foundCalories := false
 	foundProtein := false
 	foundVitaminB12 := false
-	
+
 	for _, nutrient := range NutrientMeta {
 		switch nutrient.Key {
 		case "calories":
@@ -190,7 +190,7 @@ func TestGeneratedNutrientIteration(t *testing.T) {
 			assert.Equal(t, "mcg", nutrient.Unit)
 		}
 	}
-	
+
 	assert.True(t, foundCalories, "Should find calories in NutrientMeta")
 	assert.True(t, foundProtein, "Should find protein in NutrientMeta")
 	assert.True(t, foundVitaminB12, "Should find vitamin B12 in NutrientMeta")
@@ -199,21 +199,21 @@ func TestGeneratedNutrientIteration(t *testing.T) {
 // TestGeneratedScaleFunction tests the generated Scale method
 func TestGeneratedScaleFunction(t *testing.T) {
 	original := CompleteNutrient{
-		Calories: 100,
-		Protein:  20,
-		TotalFat: 5,
+		Calories:   100,
+		Protein:    20,
+		TotalFat:   5,
 		VitaminB12: 2.5,
 	}
-	
+
 	// Scale by 2.0
 	scaled := original
 	scaled.Scale(2.0)
-	
+
 	assert.Equal(t, 200.0, scaled.Calories)
 	assert.Equal(t, 40.0, scaled.Protein)
 	assert.Equal(t, 10.0, scaled.TotalFat)
 	assert.Equal(t, 5.0, scaled.VitaminB12)
-	
+
 	// Original should be unchanged
 	assert.Equal(t, 100.0, original.Calories)
 	assert.Equal(t, 20.0, original.Protein)
@@ -222,15 +222,15 @@ func TestGeneratedScaleFunction(t *testing.T) {
 // TestGeneratedCopyFromFunction tests the generated CopyFrom method
 func TestGeneratedCopyFromFunction(t *testing.T) {
 	source := CompleteNutrient{
-		Calories: 150,
-		Protein:  25,
-		TotalFat: 8,
+		Calories:   150,
+		Protein:    25,
+		TotalFat:   8,
 		VitaminB12: 3.2,
 	}
-	
+
 	var dest CompleteNutrient
 	dest.CopyFrom(&source)
-	
+
 	assert.Equal(t, 150.0, dest.Calories)
 	assert.Equal(t, 25.0, dest.Protein)
 	assert.Equal(t, 8.0, dest.TotalFat)
@@ -240,27 +240,27 @@ func TestGeneratedCopyFromFunction(t *testing.T) {
 // TestGeneratedConversions tests the generated conversion functions
 func TestGeneratedConversions(t *testing.T) {
 	service := NewNutritionService(nil)
-	
+
 	// Create a mock cached item with per-100g values
 	cached := &storage.Item{
-		CaloriesPer100g:      100,
-		ProteinGPer100g:      20,
-		VitaminB12McgPer100g: 2.5,
-		OriginalServingGrams: Ptr(150.0), // 150g serving
-		OriginalCalories:     Ptr(150.0),
-		OriginalProteinG:     Ptr(30.0),
+		CaloriesPer100g:       100,
+		ProteinGPer100g:       20,
+		VitaminB12McgPer100g:  2.5,
+		OriginalServingGrams:  Ptr(150.0), // 150g serving
+		OriginalCalories:      Ptr(150.0),
+		OriginalProteinG:      Ptr(30.0),
 		OriginalVitaminB12Mcg: Ptr(3.75),
 	}
-	
+
 	// Test ConvertPer100gToServing
 	result := ConvertPer100gToServing(cached, 200.0, service.converter)
-	assert.Equal(t, 200.0, result.Calories)   // 100 * 2.0
-	assert.Equal(t, 40.0, result.Protein)     // 20 * 2.0
-	assert.Equal(t, 5.0, result.VitaminB12)   // 2.5 * 2.0
-	
+	assert.Equal(t, 200.0, result.Calories) // 100 * 2.0
+	assert.Equal(t, 40.0, result.Protein)   // 20 * 2.0
+	assert.Equal(t, 5.0, result.VitaminB12) // 2.5 * 2.0
+
 	// Test ConvertExactCachedToNutrients (should use original values)
 	exactResult := ConvertExactCachedToNutrients(cached)
-	assert.Equal(t, 150.0, exactResult.Calories)   // Original serving values
+	assert.Equal(t, 150.0, exactResult.Calories) // Original serving values
 	assert.Equal(t, 30.0, exactResult.Protein)
 	assert.Equal(t, 3.75, exactResult.VitaminB12)
 }
@@ -272,13 +272,13 @@ func TestPtrHelper(t *testing.T) {
 	ptrF := Ptr(f)
 	assert.NotNil(t, ptrF)
 	assert.Equal(t, 42.5, *ptrF)
-	
+
 	// Test with string
 	s := "test"
 	ptrS := Ptr(s)
 	assert.NotNil(t, ptrS)
 	assert.Equal(t, "test", *ptrS)
-	
+
 	// Test with int
 	i := 123
 	ptrI := Ptr(i)
@@ -293,7 +293,7 @@ func TestUtilityHelpers(t *testing.T) {
 	assert.True(t, isFresh(now, time.Hour))
 	assert.True(t, isFresh(now.Add(-30*time.Minute), time.Hour))
 	assert.False(t, isFresh(now.Add(-2*time.Hour), time.Hour))
-	
+
 	// Test isGramUnit
 	assert.True(t, isGramUnit(Ptr("g")))
 	assert.True(t, isGramUnit(Ptr("grams")))
