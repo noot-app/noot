@@ -391,6 +391,51 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 			expectedKey: "vanilla ice cream|ben jerry",
 		},
 		{
+			name: "OlipopCreamSoda",
+			item: Item{
+				Name:          "Olipop cream soda",
+				CanonicalName: "cream soda", // LLM canonical name without brand
+				Brand:         stringPtr("Olipop"),
+			},
+			expectedKey: "cream soda|olipop",
+		},
+		{
+			name: "OlipopCreamSodaVariation",
+			item: Item{
+				Name:          "a can of cream soda flavored olipop",
+				CanonicalName: "cream soda", // Same canonical name for deduplication
+				Brand:         stringPtr("Olipop"),
+			},
+			expectedKey: "cream soda|olipop",
+		},
+		{
+			name: "CocaCola",
+			item: Item{
+				Name:          "Coca Cola",
+				CanonicalName: "cola", // Generic cola type
+				Brand:         stringPtr("Coca Cola"),
+			},
+			expectedKey: "cola|coca cola",
+		},
+		{
+			name: "CokeVariation",
+			item: Item{
+				Name:          "a can of coke",
+				CanonicalName: "cola", // Same canonical name as Coca Cola
+				Brand:         stringPtr("Coca Cola"),
+			},
+			expectedKey: "cola|coca cola",
+		},
+		{
+			name: "PepsiDifferentBrand",
+			item: Item{
+				Name:          "Pepsi",
+				CanonicalName: "cola", // Same canonical as Coke but different brand
+				Brand:         stringPtr("Pepsi"),
+			},
+			expectedKey: "cola|pepsi",
+		},
+		{
 			name: "EmptyCanonicalFallback",
 			item: Item{
 				Name:          "Coca Cola",
@@ -405,6 +450,130 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			key := service.makeCanonicalFoodKey(tc.item)
 			assert.Equal(t, tc.expectedKey, key, "Canonical key mismatch for %s", tc.item.Name)
+		})
+	}
+}
+
+func TestBrandedItemDeduplication(t *testing.T) {
+	// Initialize logger for the test
+	InitLogger()
+
+	ctx := context.Background()
+	store := NewMockStore()
+
+	service := &NutritionService{
+		store:     store,
+		converter: NewUnitConverter(),
+	}
+
+	// Test branded item deduplication - Olipop cream soda example
+	baseCreamSodaCalories := 35.0 // Olipop typically has ~35 calories per can (355ml)
+
+	olipopTestCases := []struct {
+		name        string
+		itemName    string
+		grams       float64
+		brand       string
+		expectedKey string
+		description string
+	}{
+		{
+			name:        "OlipopCreamSoda",
+			itemName:    "Olipop cream soda",
+			grams:       355.0, // 1 can
+			brand:       "Olipop",
+			expectedKey: "cream soda|olipop",
+			description: "Base Olipop cream soda entry",
+		},
+		{
+			name:        "CanOfCreamSodaFlavoredOlipop",
+			itemName:    "a can of cream soda flavored olipop",
+			grams:       355.0, // 1 can
+			brand:       "Olipop",
+			expectedKey: "cream soda|olipop",
+			description: "Should deduplicate to same Olipop cream soda entry",
+		},
+		{
+			name:        "HalfCanOlipop",
+			itemName:    "half a can of Olipop cream soda",
+			grams:       177.5, // half can
+			brand:       "Olipop",
+			expectedKey: "cream soda|olipop",
+			description: "Should deduplicate and scale nutrition correctly",
+		},
+	}
+
+	// Cache the Olipop cream soda variations
+	for _, tc := range olipopTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Calculate nutrition based on actual grams (proportional to base per-can values)
+			actualCalories := baseCreamSodaCalories * (tc.grams / 355.0)
+			creamSodaNutrition := CompleteNutrient{
+				Calories:   actualCalories,
+				Protein:    0,                        // Olipop has minimal protein
+				TotalCarbs: 9.0 * (tc.grams / 355.0), // ~9g carbs per can
+				TotalFat:   0,                        // Olipop has no fat
+			}
+
+			item := Item{
+				Name:          tc.itemName,
+				CanonicalName: "cream soda", // LLM would provide this canonical name
+				Grams:         tc.grams,
+				Brand:         &tc.brand,
+			}
+
+			err := service.cacheNutritionData(ctx, item, creamSodaNutrition)
+			require.NoError(t, err, "Failed to cache %s", tc.description)
+
+			// Verify the canonical key was generated correctly
+			actualKey := service.makeCanonicalFoodKey(item)
+			assert.Equal(t, tc.expectedKey, actualKey, "Canonical key mismatch for %s", tc.description)
+		})
+	}
+
+	// Verify only one item was stored (deduplication worked)
+	assert.Equal(t, 1, len(store.items), "Should have only one deduplicated Olipop cream soda item")
+
+	// Test that different brands create different cache entries
+	pepsiItem := Item{
+		Name:          "Pepsi",
+		CanonicalName: "cola",
+		Grams:         355.0,
+		Brand:         stringPtr("Pepsi"),
+	}
+
+	pepsiNutrition := CompleteNutrient{
+		Calories:   150, // Pepsi has more calories than Olipop
+		Protein:    0,
+		TotalCarbs: 38,
+		TotalFat:   0,
+	}
+
+	err := service.cacheNutritionData(ctx, pepsiItem, pepsiNutrition)
+	require.NoError(t, err, "Failed to cache Pepsi")
+
+	// Now we should have 2 items (Olipop cream soda + Pepsi)
+	assert.Equal(t, 2, len(store.items), "Should have Olipop cream soda and Pepsi as separate items")
+
+	// Verify we can retrieve and scale nutrition for all Olipop variations
+	for _, tc := range olipopTestCases {
+		t.Run("Retrieve_"+tc.name, func(t *testing.T) {
+			item := Item{
+				Name:          tc.itemName,
+				CanonicalName: "cream soda",
+				Grams:         tc.grams,
+				Brand:         &tc.brand,
+			}
+
+			nutrition, err := service.fetchNutritionFromCache(ctx, item)
+			require.NoError(t, err, "Failed to fetch nutrition for %s", tc.description)
+			require.NotNil(t, nutrition, "Should find cached nutrition for %s", tc.description)
+
+			// Verify nutrition is properly scaled
+			expectedCalories := baseCreamSodaCalories * (tc.grams / 355.0)
+			assert.InDelta(t, expectedCalories, nutrition.Calories, 0.5,
+				"Calories should be properly scaled for %s (expected %.1f, got %.1f)",
+				tc.description, expectedCalories, nutrition.Calories)
 		})
 	}
 }
