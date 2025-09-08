@@ -80,20 +80,16 @@ type AIUserLocation struct {
 // AIReasoning represents reasoning configuration
 type AIReasoning struct{}
 
-// AI configuration paths
-const getNutritionAIDir = "ai/GetNutrition"
-const parseItemsAIDir = "ai/ParseItems"
-
 // Package-level AI request builder initialized lazily
-var getNutritionBuilder *AIRequestBuilder
-var parseItemsBuilder *AIRequestBuilder
+var getNutritionBuilder AIRequestBuilderInterface
+var parseItemsBuilder AIRequestBuilderInterface
 
-// GetNutritionBuilder returns the nutrition V2 builder, initializing it if needed
-func GetNutritionBuilder() (*AIRequestBuilder, error) {
+// GetNutritionBuilder returns the nutrition builder, initializing it if needed
+func GetNutritionBuilder() (AIRequestBuilderInterface, error) {
 	if getNutritionBuilder == nil {
-		builder, err := NewAIRequestBuilderSafe(getNutritionAIDir)
+		builder, err := NewEmbeddedAIRequestBuilder("GetNutrition")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to initialize embedded AI builder: %w", err)
 		}
 		getNutritionBuilder = builder
 	}
@@ -101,11 +97,11 @@ func GetNutritionBuilder() (*AIRequestBuilder, error) {
 }
 
 // ParseItemsBuilder returns the parse items builder, initializing it if needed
-func ParseItemsBuilder() (*AIRequestBuilder, error) {
+func ParseItemsBuilder() (AIRequestBuilderInterface, error) {
 	if parseItemsBuilder == nil {
-		builder, err := NewAIRequestBuilderSafe(parseItemsAIDir)
+		builder, err := NewEmbeddedAIRequestBuilder("ParseItems")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to initialize embedded AI builder: %w", err)
 		}
 		parseItemsBuilder = builder
 	}
@@ -253,7 +249,7 @@ func truncateForLog(text string) string {
 }
 
 // makeOpenAIRequest creates and executes an OpenAI API request with common handling
-func (p *OpenAIProvider) makeOpenAIRequest(ctx context.Context, builder *AIRequestBuilder, input string, endpoint string) ([]byte, error) {
+func (p *OpenAIProvider) makeOpenAIRequest(ctx context.Context, builder AIRequestBuilderInterface, input string, endpoint string) ([]byte, error) {
 	payloadStruct, err := builder.BuildRequestPayload(input)
 	if err != nil {
 		return nil, NewAppError("Failed to build request payload", http.StatusInternalServerError, err)
