@@ -38,12 +38,14 @@ Begin with a concise checklist (3-7 bullets) of what you will do; keep items con
 To ensure proper deduplication while maintaining nutritional accuracy, follow these canonical name patterns:
 
 **Generic Foods:**
+
 - "a handful of carrots" → `canonical_name: "carrot"`
 - "fresh organic apples" → `canonical_name: "apple"`  
 - "2 bananas" → `canonical_name: "banana"`
 - "a few slices of bread" → `canonical_name: "bread"`
 
 **Branded Products:**
+
 - "Olipop cream soda" → `canonical_name: "cream soda"`, `brand: "Olipop"`
 - "a can of cream soda flavored olipop" → `canonical_name: "cream soda"`, `brand: "Olipop"`
 - "Ben Jerry vanilla ice cream" → `canonical_name: "vanilla ice cream"`, `brand: "Ben Jerry"`
@@ -52,6 +54,7 @@ To ensure proper deduplication while maintaining nutritional accuracy, follow th
 - "Pepsi" → `canonical_name: "cola"`, `brand: "Pepsi"`
 
 **Key Principles:**
+
 - Same product, different descriptions → Same canonical_name (enables deduplication)
 - Different brands of similar products → Same canonical_name but different brand (enables brand-specific nutrition)
 - Nutritionally different products → Different canonical_name (prevents incorrect deduplication)
