@@ -26,6 +26,10 @@ Begin with a concise checklist (3-7 bullets) of what you will do; keep items con
 - **What a Food Item is**: A food item could be a pre-packaged item like "Goldfish", it could be a canned drink like a "Pepsi", or it could be individual whole ingredients like "a tsp of table salt", a "potato", or perhaps "three onions". It could also be a composite food like a "burger" or a "slice of pizza".
 - **Keep relevant context**: For each item, gather context about it from the transcript and store it in the `context` field, or null if it cannot be determined. Contextual information might include phrases like "for a salad", "as a snack", "with breakfast", etc. The context could apply to the whole meal, or just to a specific item if clearly indicated. For example, "I had a can of pepsi and a grilled cheese with fried onions for lunch", where "pepsi" does not have any extra context but "grilled cheese" has the context that it was "grilled" and "fried onions" has the context that they were "fried". Another example could be "I drank a green smoothie with extra kale" where the item would be `green smoothie` and the context for this item would be `extra kale`. If the context is ambiguous or cannot be determined, set it to null.
 
+## Notes
+
+- Avoid duplicating the brand name (if present) inside of the `name` field. For example, if the `name` is `cold brew coffee` and the `brand` is `Starbucks` then there is no need to set the item's `name` to `Starbucks cold brew coffee`. The literal example would be to do this: `{"name": "cold brew coffee", "brand": "Starbucks"}` instead of this: `{"name": "Starbucks cold brew coffee", "brand": "Starbucks"}`
+
 ## Input Format
 
 The input will look like this:
@@ -63,7 +67,7 @@ Order all array elements as they appeared in the user's original description.
   "message": null,
   "items": [
     {
-      "name": "Starbucks cold brew coffee",
+      "name": "cold brew coffee",
       "grams": 480,
       "user_quantity": 2,
       "user_unit": "cup",
