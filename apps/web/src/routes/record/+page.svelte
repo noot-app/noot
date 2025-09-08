@@ -523,11 +523,7 @@
 
         <!-- Status message -->
         <div class="status-text mt-6">
-          {#if isProcessing}
-            <p class="text-lg text-warning font-medium">
-              Processing your meal...
-            </p>
-          {:else if isRecording}
+          {#if isRecording}
             <p class="text-lg font-medium" style="color: var(--color-dark);">
               Recording... Tap to stop
             </p>

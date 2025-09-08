@@ -207,7 +207,7 @@
       disabled={isProcessing || disabled}
       rows="1"
       on:keydown={(e) => {
-        if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault()
           submitText()
         }
@@ -220,7 +220,7 @@
       aria-label="Submit meal description"
     >
       {#if isProcessing}
-        <div class="loading-spinner"></div>
+        <span class="loading loading-spinner text-primary"></span>
       {:else}
         <ArrowUpCircle className="w-8 h-8" />
       {/if}
@@ -239,7 +239,7 @@
 
   .chat-input-wrapper {
     position: relative;
-    background: var(--color-base-100);
+    background: var(--color-text-box-content);
     border: 1px solid var(--color-base-300);
     border-radius: 16px;
     padding: 14px 60px 14px 20px;
@@ -323,23 +323,5 @@
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
-  }
-
-  .loading-spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid transparent;
-    border-top: 2px solid currentColor;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(-360deg);
-    }
   }
 </style>

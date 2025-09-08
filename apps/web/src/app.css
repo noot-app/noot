@@ -31,9 +31,9 @@
   prefersdark: false; /* set as default dark mode (prefers-color-scheme:dark) */
   color-scheme: light; /* color of browser-provided UI */
 
-  --color-base-100: #fdf8ee;
-  --color-base-200: #f2ede3;
-  --color-base-300: #ddd9d0;
+  --color-base-100: #faf9f5;
+  --color-base-200: #f0efeb;
+  --color-base-300: #dbd9d5;
   --color-base-content: #3c3d42;
   --color-base-content-lighter: #81828a;
   --color-placeholder: #87888a;
@@ -55,6 +55,8 @@
   --color-error-content: #faf9f5;
   --color-dark: #2b2621;
   --color-dark-content: #fdf8ee;
+
+  --color-text-box-content: white;
 
   /* border radius */
   --radius-selector: 1rem;
