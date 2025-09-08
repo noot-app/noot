@@ -152,7 +152,7 @@
           on:click={startEdit}
           disabled={isSubmitting}
         >
-          <PencilSquare class_="w-4 h-4 mr-2" />
+          <PencilSquare className="w-4 h-4 mr-2" />
           Edit
         </button>
         
@@ -173,7 +173,7 @@
             on:click={handleDelete}
             disabled={isSubmitting}
           >
-            <Trash class_="w-4 h-4 mr-2" />
+            <Trash className="w-4 h-4 mr-2" />
             Delete
           </button>
         {/if}

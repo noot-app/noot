@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { writable } from "svelte/store"
 import { initAuth } from "./store"
 
 // Mock the dependencies
@@ -11,8 +10,15 @@ vi.mock("$app/navigation", () => ({
   invalidateAll: vi.fn(),
 }))
 
+// Create a simple mock for the navigating store
+const mockNavigatingState = { value: null as any }
 vi.mock("$app/stores", () => ({
-  navigating: writable(false),
+  navigating: {
+    subscribe: (callback: (value: any) => void) => {
+      callback(mockNavigatingState.value)
+      return () => {} // unsubscribe function
+    },
+  },
 }))
 
 vi.mock("$env/dynamic/public", () => ({
@@ -61,21 +67,28 @@ describe("Auth Store Navigation Handling", () => {
 
   it("should skip invalidation during active navigation", async () => {
     const { invalidateAll } = await import("$app/navigation")
-    const { navigating } = await import("$app/stores")
-    
+
     // Initialize auth
-    initAuth(null)
-    
-    // Simulate first auth event (should be skipped)
+    initAuth(null)    // Simulate first auth event (should be skipped)
     await authStateChangeCallback("INITIAL_SESSION", { user: { id: "123" } })
     expect(invalidateAll).not.toHaveBeenCalled()
     
     // Set navigation state to active
-    navigating.set({
-      from: { url: new URL("http://localhost/record") },
-      to: { url: new URL("http://localhost/profile") },
+    mockNavigatingState.value = {
+      from: { 
+        url: new URL("http://localhost/record"),
+        params: {},
+        route: { id: "/record" }
+      },
+      to: { 
+        url: new URL("http://localhost/profile"),
+        params: {},
+        route: { id: "/profile" }
+      },
       type: "link",
-    })
+      willUnload: false,
+      complete: Promise.resolve(),
+    }
     
     // Trigger a SIGNED_IN event during navigation
     await authStateChangeCallback("SIGNED_IN", { user: { id: "123" } })
@@ -84,19 +97,18 @@ describe("Auth Store Navigation Handling", () => {
     expect(invalidateAll).not.toHaveBeenCalled()
   })
 
-  it("should call invalidation when not navigating", async () => {
+  it("should call invalidateAll when not navigating", async () => {
     const { invalidateAll } = await import("$app/navigation")
-    const { navigating } = await import("$app/stores")
-    
+
     // Initialize auth
     initAuth(null)
-    
+
     // Simulate first auth event (should be skipped)
     await authStateChangeCallback("INITIAL_SESSION", { user: { id: "123" } })
     expect(invalidateAll).not.toHaveBeenCalled()
     
     // Ensure navigation state is cleared
-    navigating.set(null)
+    mockNavigatingState.value = null
     
     // Trigger a SIGNED_IN event when not navigating
     await authStateChangeCallback("SIGNED_IN", { user: { id: "123" } })
@@ -107,7 +119,6 @@ describe("Auth Store Navigation Handling", () => {
 
   it("should handle invalidation errors gracefully", async () => {
     const { invalidateAll } = await import("$app/navigation")
-    const { navigating } = await import("$app/stores")
     
     // Make invalidateAll throw an error
     vi.mocked(invalidateAll).mockRejectedValue(new Error("Network error"))
@@ -122,7 +133,7 @@ describe("Auth Store Navigation Handling", () => {
     await authStateChangeCallback("INITIAL_SESSION", { user: { id: "123" } })
     
     // Ensure navigation state is cleared
-    navigating.set(null)
+    mockNavigatingState.value = null
     
     // Trigger a SIGNED_IN event
     await authStateChangeCallback("SIGNED_IN", { user: { id: "123" } })
@@ -135,7 +146,6 @@ describe("Auth Store Navigation Handling", () => {
 
   it("should prevent concurrent invalidations", async () => {
     const { invalidateAll } = await import("$app/navigation")
-    const { navigating } = await import("$app/stores")
     
     // Make invalidateAll take some time
     let resolveInvalidate: () => void
@@ -151,7 +161,7 @@ describe("Auth Store Navigation Handling", () => {
     await authStateChangeCallback("INITIAL_SESSION", { user: { id: "123" } })
     
     // Ensure navigation state is cleared
-    navigating.set(null)
+    mockNavigatingState.value = null
     
     // Trigger first SIGNED_IN event
     const promise1 = authStateChangeCallback("SIGNED_IN", { user: { id: "123" } })

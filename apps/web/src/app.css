@@ -31,29 +31,32 @@
   prefersdark: false; /* set as default dark mode (prefers-color-scheme:dark) */
   color-scheme: light; /* color of browser-provided UI */
 
-  --color-base-100: #fdf8ee;
-  --color-base-200: #f2ede3;
-  --color-base-300: #ddd9d0;
+  --color-base-100: #faf9f5;
+  --color-base-200: #f0efeb;
+  --color-base-300: #dbd9d5;
   --color-base-content: #3c3d42;
   --color-base-content-lighter: #81828a;
+  --color-placeholder: #87888a;
   --color-primary: #be7454;
-  --color-primary-content: #ffffff;
+  --color-primary-content: #faf9f5;
   --color-secondary: #657280;
-  --color-secondary-content: #ffffff;
+  --color-secondary-content: #faf9f5;
   --color-accent: #74b986;
-  --color-accent-content: #ffffff;
+  --color-accent-content: #faf9f5;
   --color-neutral: #3a3b40;
   --color-neutral-content: #fdf8ee;
   --color-info: #667584;
-  --color-info-content: #ffffff;
+  --color-info-content: #faf9f5;
   --color-success: #74b986;
-  --color-success-content: #ffffff;
+  --color-success-content: #faf9f5;
   --color-warning: #bb704f;
-  --color-warning-content: #ffffff;
+  --color-warning-content: #faf9f5;
   --color-error: #b94e48;
-  --color-error-content: #ffffff;
+  --color-error-content: #faf9f5;
   --color-dark: #2b2621;
   --color-dark-content: #fdf8ee;
+
+  --color-text-box-content: white;
 
   /* border radius */
   --radius-selector: 1rem;

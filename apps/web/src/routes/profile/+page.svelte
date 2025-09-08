@@ -1519,7 +1519,7 @@
                     href="/api-keys"
                     class="btn btn-outline btn-sm w-full flex items-center gap-2"
                   >
-                    <KeyIcon class_="w-4 h-4" />
+                    <KeyIcon className="w-4 h-4" />
                     API Keys
                     {#if !isProUser}
                       <span class="badge badge-primary badge-xs ml-auto">Pro</span>
