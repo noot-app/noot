@@ -1436,42 +1436,6 @@ func (s *PostgreSQLStore) DeleteUserBiometrics(ctx context.Context, userID strin
 	return nil
 }
 
-// CreateItemAlias creates a new item alias
-func (s *PostgreSQLStore) CreateItemAlias(ctx context.Context, alias *ItemAlias) error {
-	query := `
-		INSERT INTO item_aliases (id, alias_name, alias_brand, canonical_name, canonical_brand, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)`
-
-	now := time.Now().UTC()
-	alias.ID = generateUUID()
-	alias.CreatedAt = now
-
-	_, err := s.db.ExecContext(ctx, query, alias.ID, alias.AliasName, alias.AliasBrand,
-		alias.CanonicalName, alias.CanonicalBrand, now)
-	if err != nil {
-		return fmt.Errorf("failed to create item alias: %w", err)
-	}
-
-	return nil
-}
-
-// GetCanonicalName retrieves canonical name and brand for an alias
-func (s *PostgreSQLStore) GetCanonicalName(ctx context.Context, aliasName, aliasBrand string) (canonicalName, canonicalBrand string, err error) {
-	query := `SELECT canonical_name, canonical_brand FROM item_aliases WHERE alias_name = $1 AND alias_brand = $2`
-
-	err = s.db.QueryRowContext(ctx, query, aliasName, aliasBrand).
-		Scan(&canonicalName, &canonicalBrand)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			// No alias found, return the original name and brand
-			return aliasName, aliasBrand, nil
-		}
-		return "", "", fmt.Errorf("failed to get canonical name: %w", err)
-	}
-
-	return canonicalName, canonicalBrand, nil
-}
-
 // Color normalization helper
 func normalizeColor(color string) string {
 	// Add # prefix if not present

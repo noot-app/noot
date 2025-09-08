@@ -688,33 +688,6 @@ export type Database = {
           },
         ]
       }
-      item_aliases: {
-        Row: {
-          alias_brand: string
-          alias_name: string
-          canonical_brand: string
-          canonical_name: string
-          created_at: string
-          id: string
-        }
-        Insert: {
-          alias_brand?: string
-          alias_name: string
-          canonical_brand?: string
-          canonical_name: string
-          created_at?: string
-          id?: string
-        }
-        Update: {
-          alias_brand?: string
-          alias_name?: string
-          canonical_brand?: string
-          canonical_name?: string
-          created_at?: string
-          id?: string
-        }
-        Relationships: []
-      }
       items: {
         Row: {
           added_sugars_g_per_100g: number
