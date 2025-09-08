@@ -157,3 +157,148 @@ func TestNutritionService_RoundingPrecision(t *testing.T) {
 	assert.Equal(t, 3.52, result.VitaminB12)  // 2.3456789 * 1.5 = 3.5185... rounded to 2 decimals
 	assert.Equal(t, 1.85, result.Zinc)        // 1.23456789 * 1.5 = 1.8518... rounded to 2 decimals
 }
+
+// TestGeneratedNutrientIteration tests that generated helpers process all nutrient fields
+func TestGeneratedNutrientIteration(t *testing.T) {
+	// Test NutrientMeta contains expected nutrients
+	assert.NotEmpty(t, NutrientMeta, "NutrientMeta should not be empty")
+
+	// Check that we have the expected number of nutrients (should be 40+ nutrients)
+	assert.Greater(t, len(NutrientMeta), 40, "Should have more than 40 nutrients")
+
+	// Check that key nutrients exist
+	foundCalories := false
+	foundProtein := false
+	foundVitaminB12 := false
+
+	for _, nutrient := range NutrientMeta {
+		switch nutrient.Key {
+		case "calories":
+			foundCalories = true
+			assert.Equal(t, "Calories", nutrient.GoField)
+			assert.Equal(t, 3, nutrient.Precision) // Calories should have 3 decimal precision
+			assert.Equal(t, "kcal", nutrient.Unit)
+		case "protein_g":
+			foundProtein = true
+			assert.Equal(t, "Protein", nutrient.GoField)
+			assert.Equal(t, 2, nutrient.Precision)
+			assert.Equal(t, "g", nutrient.Unit)
+		case "vitamin_b12_mcg":
+			foundVitaminB12 = true
+			assert.Equal(t, "VitaminB12", nutrient.GoField)
+			assert.Equal(t, 2, nutrient.Precision) // B12 should have 2 decimal precision
+			assert.Equal(t, "mcg", nutrient.Unit)
+		}
+	}
+
+	assert.True(t, foundCalories, "Should find calories in NutrientMeta")
+	assert.True(t, foundProtein, "Should find protein in NutrientMeta")
+	assert.True(t, foundVitaminB12, "Should find vitamin B12 in NutrientMeta")
+}
+
+// TestGeneratedScaleFunction tests the generated Scale method
+func TestGeneratedScaleFunction(t *testing.T) {
+	original := CompleteNutrient{
+		Calories:   100,
+		Protein:    20,
+		TotalFat:   5,
+		VitaminB12: 2.5,
+	}
+
+	// Scale by 2.0
+	scaled := original
+	scaled.Scale(2.0)
+
+	assert.Equal(t, 200.0, scaled.Calories)
+	assert.Equal(t, 40.0, scaled.Protein)
+	assert.Equal(t, 10.0, scaled.TotalFat)
+	assert.Equal(t, 5.0, scaled.VitaminB12)
+
+	// Original should be unchanged
+	assert.Equal(t, 100.0, original.Calories)
+	assert.Equal(t, 20.0, original.Protein)
+}
+
+// TestGeneratedCopyFromFunction tests the generated CopyFrom method
+func TestGeneratedCopyFromFunction(t *testing.T) {
+	source := CompleteNutrient{
+		Calories:   150,
+		Protein:    25,
+		TotalFat:   8,
+		VitaminB12: 3.2,
+	}
+
+	var dest CompleteNutrient
+	dest.CopyFrom(&source)
+
+	assert.Equal(t, 150.0, dest.Calories)
+	assert.Equal(t, 25.0, dest.Protein)
+	assert.Equal(t, 8.0, dest.TotalFat)
+	assert.Equal(t, 3.2, dest.VitaminB12)
+}
+
+// TestGeneratedConversions tests the generated conversion functions
+func TestGeneratedConversions(t *testing.T) {
+	service := NewNutritionService(nil)
+
+	// Create a mock cached item with per-100g values
+	cached := &storage.Item{
+		CaloriesPer100g:       100,
+		ProteinGPer100g:       20,
+		VitaminB12McgPer100g:  2.5,
+		OriginalServingGrams:  Ptr(150.0), // 150g serving
+		OriginalCalories:      Ptr(150.0),
+		OriginalProteinG:      Ptr(30.0),
+		OriginalVitaminB12Mcg: Ptr(3.75),
+	}
+
+	// Test ConvertPer100gToServing
+	result := ConvertPer100gToServing(cached, 200.0, service.converter)
+	assert.Equal(t, 200.0, result.Calories) // 100 * 2.0
+	assert.Equal(t, 40.0, result.Protein)   // 20 * 2.0
+	assert.Equal(t, 5.0, result.VitaminB12) // 2.5 * 2.0
+
+	// Test ConvertExactCachedToNutrients (should use original values)
+	exactResult := ConvertExactCachedToNutrients(cached)
+	assert.Equal(t, 150.0, exactResult.Calories) // Original serving values
+	assert.Equal(t, 30.0, exactResult.Protein)
+	assert.Equal(t, 3.75, exactResult.VitaminB12)
+}
+
+// TestPtrHelper tests the generic Ptr helper function
+func TestPtrHelper(t *testing.T) {
+	// Test with float64
+	f := 42.5
+	ptrF := Ptr(f)
+	assert.NotNil(t, ptrF)
+	assert.Equal(t, 42.5, *ptrF)
+
+	// Test with string
+	s := "test"
+	ptrS := Ptr(s)
+	assert.NotNil(t, ptrS)
+	assert.Equal(t, "test", *ptrS)
+
+	// Test with int
+	i := 123
+	ptrI := Ptr(i)
+	assert.NotNil(t, ptrI)
+	assert.Equal(t, 123, *ptrI)
+}
+
+// TestUtilityHelpers tests the new utility helper functions
+func TestUtilityHelpers(t *testing.T) {
+	// Test isFresh
+	now := time.Now()
+	assert.True(t, isFresh(now, time.Hour))
+	assert.True(t, isFresh(now.Add(-30*time.Minute), time.Hour))
+	assert.False(t, isFresh(now.Add(-2*time.Hour), time.Hour))
+
+	// Test isGramUnit
+	assert.True(t, isGramUnit(Ptr("g")))
+	assert.True(t, isGramUnit(Ptr("grams")))
+	assert.True(t, isGramUnit(Ptr("gram")))
+	assert.False(t, isGramUnit(Ptr("kg")))
+	assert.False(t, isGramUnit(Ptr("oz")))
+	assert.False(t, isGramUnit(nil))
+}
