@@ -1,6 +1,7 @@
 import { writable, derived } from "svelte/store"
 import { browser } from "$app/environment"
 import { invalidateAll } from "$app/navigation"
+import { navigating } from "$app/stores"
 import { createBrowserClient } from "@supabase/ssr"
 import { env } from "$env/dynamic/public"
 import type { Session, AuthError } from "@supabase/supabase-js"
@@ -15,6 +16,9 @@ import type { Session, AuthError } from "@supabase/supabase-js"
 let browserClient: ReturnType<typeof createBrowserClient> | null = null
 let sessionPromise: Promise<Session | null> | null = null
 let sawFirstAuthEvent = false
+
+// Track invalidation state to prevent race conditions
+let invalidationInProgress = false
 
 // Create/get browser client for auth actions (sign in, sign out, etc.)
 const getBrowserClient = () => {
@@ -98,7 +102,33 @@ export function initAuth(initialSession: Session | null = null) {
     }
 
     if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-      await invalidateAll()
+      try {
+        // Don't invalidate if invalidation is already happening
+        if (invalidationInProgress) {
+          console.debug("Skipping invalidation - already in progress")
+          return
+        }
+
+        invalidationInProgress = true
+        
+        // Get current navigation state
+        let isNavigating = false
+        const unsubscribe = navigating.subscribe((value) => {
+          isNavigating = !!value
+        })
+        unsubscribe()
+
+        if (isNavigating) {
+          console.debug("Skipping invalidation - navigation in progress")
+          return
+        }
+
+        await invalidateAll()
+      } catch (error) {
+        console.error("Error during data invalidation:", error)
+      } finally {
+        invalidationInProgress = false
+      }
     }
   })
 
