@@ -148,6 +148,12 @@ type APIKeysResponse struct {
 	ApiKeys []APIKey `json:"api_keys"`
 }
 
+// AddFavoriteRequest defines model for AddFavoriteRequest.
+type AddFavoriteRequest struct {
+	// ConsumptionId ID of the consumption to add to favorites
+	ConsumptionId string `json:"consumption_id"`
+}
+
 // AssignLabelsRequest defines model for AssignLabelsRequest.
 type AssignLabelsRequest struct {
 	// Ids Array of label IDs to assign
@@ -681,6 +687,43 @@ type ExportResponse struct {
 // ExportResponseFormat Export format used
 type ExportResponseFormat string
 
+// Favorite defines model for Favorite.
+type Favorite struct {
+	// ConsumptionId Consumption ID that was favorited
+	ConsumptionId string `json:"consumption_id"`
+
+	// CreatedAt When the favorite was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// Id Favorite ID
+	Id string `json:"id"`
+
+	// UserId User ID who created the favorite
+	UserId string `json:"user_id"`
+}
+
+// FavoriteWithConsumption defines model for FavoriteWithConsumption.
+type FavoriteWithConsumption struct {
+	Consumption Consumption `json:"consumption"`
+
+	// ConsumptionId Consumption ID that was favorited
+	ConsumptionId string `json:"consumption_id"`
+
+	// CreatedAt When the favorite was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// Id Favorite ID
+	Id string `json:"id"`
+
+	// UserId User ID who created the favorite
+	UserId string `json:"user_id"`
+}
+
+// FavoritesResponse defines model for FavoritesResponse.
+type FavoritesResponse struct {
+	Favorites []FavoriteWithConsumption `json:"favorites"`
+}
+
 // GoalSetSummary defines model for GoalSetSummary.
 type GoalSetSummary struct {
 	// CreatedAt When the goal set was created
@@ -1169,6 +1212,9 @@ type AssignEventLabelsJSONRequestBody = AssignLabelsRequest
 
 // CreateEventLinkJSONRequestBody defines body for CreateEventLink for application/json ContentType.
 type CreateEventLinkJSONRequestBody = EventLinkCreateRequest
+
+// AddToFavoritesJSONRequestBody defines body for AddToFavorites for application/json ContentType.
+type AddToFavoritesJSONRequestBody = AddFavoriteRequest
 
 // UpdateGoalsJSONRequestBody defines body for UpdateGoals for application/json ContentType.
 type UpdateGoalsJSONRequestBody = UpdateGoalsRequest

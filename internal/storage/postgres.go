@@ -1101,6 +1101,146 @@ func buildPostgreSQLUpdateQuery() string {
 		UPDATE items SET %s WHERE id = $%d`, strings.Join(updateColumns, ", "), paramIndex)
 }
 
+// Favorites operations
+// CreateFavorite adds a consumption to user's favorites
+func (s *PostgreSQLStore) CreateFavorite(ctx context.Context, userID, consumptionID string) (*UserFavorite, error) {
+	id := generateUUID()
+	now := time.Now().UTC()
+
+	query := `
+		INSERT INTO user_favorites (id, user_id, consumption_id, created_at)
+		VALUES ($1, $2, $3, $4)`
+
+	_, err := s.db.ExecContext(ctx, query, id, userID, consumptionID, now)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key") {
+			return nil, fmt.Errorf("consumption is already favorited")
+		}
+		return nil, fmt.Errorf("failed to create favorite: %w", err)
+	}
+
+	return &UserFavorite{
+		ID:            id,
+		UserID:        userID,
+		ConsumptionID: consumptionID,
+		CreatedAt:     now,
+	}, nil
+}
+
+// DeleteFavorite removes a consumption from user's favorites
+func (s *PostgreSQLStore) DeleteFavorite(ctx context.Context, userID, consumptionID string) error {
+	query := `DELETE FROM user_favorites WHERE user_id = $1 AND consumption_id = $2`
+
+	result, err := s.db.ExecContext(ctx, query, userID, consumptionID)
+	if err != nil {
+		return fmt.Errorf("failed to delete favorite: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("favorite not found")
+	}
+
+	return nil
+}
+
+// GetUserFavorites retrieves all favorites for a user with consumption data
+func (s *PostgreSQLStore) GetUserFavorites(ctx context.Context, userID string) ([]*UserFavoriteWithConsumption, error) {
+	query := `
+		SELECT 
+			f.id, f.user_id, f.consumption_id, f.created_at,
+			c.id, c.user_id, c.transcript, c.total_calories, c.total_protein_g, 
+			c.total_fat_g, c.total_carbs_g, c.dietary_fiber_g, c.total_sodium_mg,
+			c.saturated_fat_g, c.trans_fat_g, c.cholesterol_mg, c.total_sugars_g, 
+			c.added_sugars_g, c.vitamin_a_mcg, c.vitamin_c_mg, c.vitamin_d_mcg, 
+			c.vitamin_e_mg, c.vitamin_k_mcg, c.thiamine_mg, c.riboflavin_mg, 
+			c.niacin_mg, c.vitamin_b6_mg, c.folate_mcg, c.vitamin_b12_mcg, 
+			c.biotin_mcg, c.pantothenic_acid_mg, c.choline_mg, c.calcium_mg, 
+			c.iron_mg, c.magnesium_mg, c.phosphorus_mg, c.potassium_mg, c.zinc_mg, 
+			c.copper_mg, c.manganese_mg, c.selenium_mcg, c.iodine_mcg, c.molybdenum_mcg, 
+			c.chromium_mcg, c.fluoride_mg, c.chloride_mg, c.omega3_ala_g, c.omega3_epa_g, 
+			c.omega3_dha_g, c.omega6_g, c.creatine_mg, c.caffeine_mg, c.alcohol_g, 
+			c.polyunsaturated_fat_g, c.monounsaturated_fat_g, c.note, c.is_public,
+			c.created_at, c.updated_at, c.consumed_at
+		FROM user_favorites f
+		JOIN consumptions c ON f.consumption_id = c.id
+		WHERE f.user_id = $1
+		ORDER BY f.created_at DESC`
+
+	rows, err := s.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query favorites: %w", err)
+	}
+	defer rows.Close()
+
+	var favorites []*UserFavoriteWithConsumption
+	for rows.Next() {
+		favorite := &UserFavoriteWithConsumption{
+			Consumption: &Consumption{},
+		}
+
+		err := rows.Scan(
+			&favorite.ID, &favorite.UserID, &favorite.ConsumptionID, &favorite.CreatedAt,
+			&favorite.Consumption.ID, &favorite.Consumption.UserID, &favorite.Consumption.Transcript,
+			&favorite.Consumption.TotalCalories, &favorite.Consumption.TotalProtein,
+			&favorite.Consumption.TotalFat, &favorite.Consumption.TotalCarbs,
+			&favorite.Consumption.DietaryFiber, &favorite.Consumption.TotalSodium,
+			&favorite.Consumption.SaturatedFat, &favorite.Consumption.TransFat,
+			&favorite.Consumption.Cholesterol, &favorite.Consumption.TotalSugars,
+			&favorite.Consumption.AddedSugars, &favorite.Consumption.VitaminA,
+			&favorite.Consumption.VitaminC, &favorite.Consumption.VitaminD,
+			&favorite.Consumption.VitaminE, &favorite.Consumption.VitaminK,
+			&favorite.Consumption.Thiamine, &favorite.Consumption.Riboflavin,
+			&favorite.Consumption.Niacin, &favorite.Consumption.VitaminB6,
+			&favorite.Consumption.Folate, &favorite.Consumption.VitaminB12,
+			&favorite.Consumption.Biotin, &favorite.Consumption.PantothenicAcid,
+			&favorite.Consumption.Choline, &favorite.Consumption.Calcium,
+			&favorite.Consumption.Iron, &favorite.Consumption.Magnesium,
+			&favorite.Consumption.Phosphorus, &favorite.Consumption.Potassium,
+			&favorite.Consumption.Zinc, &favorite.Consumption.Copper,
+			&favorite.Consumption.Manganese, &favorite.Consumption.Selenium,
+			&favorite.Consumption.Iodine, &favorite.Consumption.Molybdenum,
+			&favorite.Consumption.Chromium, &favorite.Consumption.Fluoride,
+			&favorite.Consumption.Chloride, &favorite.Consumption.Omega3Ala,
+			&favorite.Consumption.Omega3Epa, &favorite.Consumption.Omega3Dha,
+			&favorite.Consumption.Omega6, &favorite.Consumption.Creatine,
+			&favorite.Consumption.Caffeine, &favorite.Consumption.Alcohol,
+			&favorite.Consumption.PolyunsaturatedFat, &favorite.Consumption.MonounsaturatedFat,
+			&favorite.Consumption.Note, &favorite.Consumption.IsPublic,
+			&favorite.Consumption.CreatedAt, &favorite.Consumption.UpdatedAt,
+			&favorite.Consumption.ConsumedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan favorite: %w", err)
+		}
+
+		favorites = append(favorites, favorite)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating favorites: %w", err)
+	}
+
+	return favorites, nil
+}
+
+// IsFavorited checks if a consumption is favorited by a user
+func (s *PostgreSQLStore) IsFavorited(ctx context.Context, userID, consumptionID string) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM user_favorites WHERE user_id = $1 AND consumption_id = $2)`
+
+	err := s.db.QueryRowContext(ctx, query, userID, consumptionID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if favorited: %w", err)
+	}
+
+	return exists, nil
+}
+
 // CreateItem creates a new item
 func (s *PostgreSQLStore) CreateItem(ctx context.Context, item *Item) error {
 	now := time.Now().UTC()
