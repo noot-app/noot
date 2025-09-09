@@ -133,7 +133,6 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	apiSummary := convertInternalSummaryToAPI(summary)
 
 	// 6) Save consumption to database if store is available
-	var consumptionID string
 	if s.store != nil {
 		// For now, use the default user if no authentication
 		// In the future, this would come from authentication middleware
@@ -142,12 +141,12 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 			LogError("Failed to get user for consumption storage", err)
 		} else if user != nil {
 			consumption := itemWithNutritionToConsumption(user.ID, transcript, summary)
-			if err := s.store.CreateConsumption(ctx, consumption); err != nil {
+			createdConsumption, err := s.store.CreateConsumption(ctx, consumption)
+			if err != nil {
 				LogError("Failed to save consumption to database", err)
 				// Don't fail the request if storage fails
 			} else {
-				consumptionID = consumption.ID
-				LogInfo("Consumption saved to database", "consumption_id", consumption.ID, "user_id", user.ID, "request_id", requestID)
+				LogInfo("Consumption saved to database", "consumption_id", createdConsumption.ID, "user_id", user.ID, "request_id", requestID)
 
 				// Save individual consumption items for historic breakdown
 				for i, itemWithNutrition := range itemsWithNutrition {
@@ -169,41 +168,33 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 						}
 					}
 
-					consumptionItem := apiItemWithNutritionToConsumptionItem(consumption.ID, itemWithNutrition, itemID)
+					consumptionItem := apiItemWithNutritionToConsumptionItem(createdConsumption.ID, itemWithNutrition, itemID)
 					if err := s.store.CreateConsumptionItem(ctx, consumptionItem); err != nil {
-						LogError("Failed to save consumption item", err, "item_name", itemWithNutrition.Item.Name, "consumption_id", consumption.ID)
+						LogError("Failed to save consumption item", err, "item_name", itemWithNutrition.Item.Name, "consumption_id", createdConsumption.ID)
 						// Continue with other items even if one fails
 					}
 				}
+
+				// Convert to API format for response using the created consumption directly
+				apiConsumption, err := storageConsumptionToAPI(ctx, s.store, createdConsumption)
+				if err != nil {
+					appErr := NewAppError("Failed to convert created consumption", http.StatusInternalServerError, err)
+					s.handleAppError(c, appErr, requestID)
+					return
+				}
+
+				LogInfo("Consumption request completed successfully",
+					"transcript_length", len(transcript),
+					"items_count", len(itemsWithNutrition),
+					"total_calories", apiSummary.Totals.Calories,
+					"request_id", requestID,
+				)
+
+				c.JSON(http.StatusOK, apiConsumption)
+				return
 			}
 		}
 	}
-
-	// Create the API response
-	var inputSource api.ConsumptionResponseInputSource
-	if input.Source == "audio" {
-		inputSource = api.Audio
-	} else {
-		inputSource = api.Text
-	}
-
-	resp := api.ConsumptionResponse{
-		Id:          consumptionID, // Include consumption ID for editing
-		Transcript:  transcript,
-		Items:       itemsWithNutrition,
-		Summary:     apiSummary,
-		RequestId:   requestID,
-		InputSource: &inputSource, // Track whether this came from audio or text
-	}
-
-	LogInfo("Consumption request completed successfully",
-		"transcript_length", len(transcript),
-		"items_count", len(itemsWithNutrition),
-		"total_calories", apiSummary.Totals.Calories,
-		"request_id", requestID,
-	)
-
-	c.JSON(http.StatusOK, resp)
 }
 
 // GetConsumption implements ServerInterface.GetConsumption
@@ -310,10 +301,16 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 	// Recalculate summary from updated items
 	summary := summarize(internalItems)
 
-	// Update the consumption record (keep original transcript, user_id, created_at)
+	// Update the consumption record (keep original transcript, user_id)
 	updatedConsumption := itemWithNutritionToConsumption(existingConsumption.UserID, existingConsumption.Transcript, summary)
 	updatedConsumption.ID = existingConsumption.ID
-	updatedConsumption.CreatedAt = existingConsumption.CreatedAt
+
+	// Handle timestamp update - use new timestamp if provided, otherwise keep existing created_at
+	if updateReq.ConsumedAt != nil {
+		updatedConsumption.ConsumedAt = *updateReq.ConsumedAt
+	} else {
+		updatedConsumption.CreatedAt = existingConsumption.CreatedAt
+	}
 
 	// Handle note update - use new note if provided, otherwise keep existing note
 	if updateReq.Note != nil {
@@ -358,21 +355,25 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 		}
 	}
 
-	// Convert updated consumption back to API format for response
-	apiSummary := convertInternalSummaryToAPI(summary)
+	// After updating the consumption and items, get the full updated consumption data
+	// This ensures we have all the latest data including labels and proper timestamps
+	updatedConsumptionWithItems, err := s.store.GetConsumptionForUser(ctx, user.ID, updatedConsumption.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve updated consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
 
-	// Create the API response
-	resp := api.ConsumptionResponse{
-		Id:         updatedConsumption.ID,
-		Transcript: updatedConsumption.Transcript,
-		Note:       updatedConsumption.Note,
-		Items:      updateReq.Items,
-		Summary:    apiSummary,
-		RequestId:  requestID,
+	// Convert to API format for response
+	apiConsumption, err := storageConsumptionToAPI(ctx, s.store, updatedConsumptionWithItems)
+	if err != nil {
+		appErr := NewAppError("Failed to convert updated consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
 	}
 
 	LogInfo("Consumption updated successfully", "consumption_id", id, "request_id", requestID)
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, apiConsumption)
 }
 
 // DeleteConsumption implements ServerInterface.DeleteConsumption

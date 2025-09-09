@@ -24,6 +24,28 @@
   let isSubmitting = false
   let error = ""
   let editableNote = ""
+  let editableTimestamp = ""
+
+  // Helper functions for local time handling
+  function toLocalDateTimeString(utcDate: Date): string {
+    // Convert UTC date to local datetime-local input format
+    const localDate = new Date(utcDate.getTime() - (utcDate.getTimezoneOffset() * 60000))
+    return localDate.toISOString().slice(0, 16)
+  }
+
+  function fromLocalDateTimeString(localDateTimeString: string): Date {
+    // Convert local datetime-local input to UTC Date
+    return new Date(localDateTimeString)
+  }
+
+  function setCurrentTime() {
+    const now = new Date()
+    editableTimestamp = toLocalDateTimeString(now)
+  }
+
+  // Form validation
+  $: isValidTimestamp = !editableTimestamp || fromLocalDateTimeString(editableTimestamp) <= new Date()
+  $: isTimestampInFuture = Boolean(editableTimestamp && fromLocalDateTimeString(editableTimestamp) > new Date())
 
     // Event dispatcher
   const dispatch = createEventDispatcher()
@@ -45,26 +67,45 @@
   function startEdit() {
     isEditing = true
     editableNote = consumption?.note || ""
+    // Initialize timestamp from consumption's created_at
+    if (consumption?.created_at) {
+      editableTimestamp = toLocalDateTimeString(new Date(consumption.created_at))
+    }
     dispatch('edit')
   }
 
   function cancelEdit() {
     isEditing = false
+    editableTimestamp = "" // Clear the editable timestamp when canceling
   }
 
   async function saveEdit() {
     if (!consumption?.id || !consumption?.items) return
 
+    // Validate timestamp if provided
+    if (editableTimestamp && isTimestampInFuture) {
+      error = "Consumption timestamp cannot be in the future"
+      return
+    }
+
     try {
       isSubmitting = true
       error = ""
 
+      // Prepare the update request body
+      const updateBody: any = { 
+        items: consumption.items,
+        note: editableNote.trim() || null
+      }
+
+      // Add timestamp if it was edited
+      if (editableTimestamp) {
+        updateBody.consumed_at = fromLocalDateTimeString(editableTimestamp).toISOString()
+      }
+
       const updateResponse = await apiClient.PUT("/consumption/{id}", {
         params: { path: { id: consumption.id } },
-        body: { 
-          items: consumption.items,
-          note: editableNote.trim() || null
-        },
+        body: updateBody,
       })
 
       if (updateResponse.error) {
@@ -73,6 +114,7 @@
 
       consumption = updateResponse.data
       isEditing = false
+      editableTimestamp = "" // Clear the editable timestamp after successful save
       dispatch('save', { consumption })
     } catch (err) {
       error = `Error updating consumption: ${err}`
@@ -181,7 +223,7 @@
         <button
           class="btn btn-primary"
           on:click={saveEdit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isTimestampInFuture}
         >
           {#if isSubmitting}
             <span class="loading loading-spinner loading-sm mr-2"></span>
@@ -224,6 +266,44 @@
   {#if transcript}
     <Card title="What you said:" compact>
       <p class="text-lg italic">"{transcript}"</p>
+    </Card>
+  {/if}
+
+  <!-- Timestamp editing (only shown when editing) -->
+  {#if isEditing && editable}
+    <Card title="When:" compact>
+      <div class="space-y-2">
+        <label for="consumption-timestamp" class="block text-sm font-medium">
+          Date & Time
+        </label>
+        <div class="flex gap-2 items-start">
+          <input
+            id="consumption-timestamp"
+            type="datetime-local"
+            class="input input-bordered flex-1 max-w-sm"
+            class:input-error={!isValidTimestamp || isTimestampInFuture}
+            bind:value={editableTimestamp}
+            required
+          />
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            on:click={setCurrentTime}
+            title="Set to current time"
+          >
+            Now
+          </button>
+        </div>
+        {#if isTimestampInFuture}
+          <div class="text-xs text-error">
+            Consumption time cannot be in the future
+          </div>
+        {:else}
+          <div class="text-xs text-base-content/60">
+            Enter the date and time when this meal was consumed
+          </div>
+        {/if}
+      </div>
     </Card>
   {/if}
 

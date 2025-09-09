@@ -79,10 +79,10 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 		}
 
 		// Create consumption
-		err = store.CreateConsumption(ctx, consumption)
+		createdConsumption, err := store.CreateConsumption(ctx, consumption)
 		require.NoError(t, err)
-		assert.NotZero(t, consumption.ID)
-		assert.False(t, consumption.CreatedAt.IsZero())
+		assert.NotZero(t, createdConsumption.ID)
+		assert.False(t, createdConsumption.CreatedAt.IsZero())
 
 		// Get consumption by ID
 		retrieved, err := store.GetConsumption(ctx, consumption.ID)
@@ -121,7 +121,7 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 				Transcript:    "Test consumption",
 				TotalCalories: float64(100 + i*10),
 			}
-			err := store.CreateConsumption(ctx, consumption)
+			_, err := store.CreateConsumption(ctx, consumption)
 			require.NoError(t, err)
 		}
 
@@ -146,7 +146,7 @@ func TestPostgreSQLStoreBasic(t *testing.T) {
 			Transcript:    "Recent consumption",
 			TotalCalories: 150,
 		}
-		err = store.CreateConsumption(ctx, consumption)
+		_, err = store.CreateConsumption(ctx, consumption)
 		require.NoError(t, err)
 
 		// Get consumptions since 1 hour ago

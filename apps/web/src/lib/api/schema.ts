@@ -1370,6 +1370,11 @@ export interface components {
             items: components["schemas"]["ItemWithNutrition"][];
             /** @description Additional note about the consumption */
             note?: string | null;
+            /**
+             * Format: date-time
+             * @description Timestamp when the consumption occurred (optional, defaults to current created_at)
+             */
+            consumed_at?: string | null;
         };
         DeleteResponse: {
             /**
@@ -1545,7 +1550,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConsumptionResponse"];
+                    "application/json": components["schemas"]["Consumption"];
                 };
             };
             /** @description Bad request (invalid multipart form, no audio file, no text provided, etc.) */
@@ -1640,7 +1645,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConsumptionResponse"];
+                    "application/json": components["schemas"]["Consumption"];
                 };
             };
             /** @description Bad request (invalid request body, validation errors) */

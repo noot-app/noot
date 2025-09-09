@@ -20,12 +20,6 @@ const (
 	APIKeyScopeReadWrite APIKeyScope = "read_write"
 )
 
-// Defines values for ConsumptionResponseInputSource.
-const (
-	Audio ConsumptionResponseInputSource = "audio"
-	Text  ConsumptionResponseInputSource = "text"
-)
-
 // Defines values for CreateAPIKeyRequestScope.
 const (
 	CreateAPIKeyRequestScopeRead      CreateAPIKeyRequestScope = "read"
@@ -347,34 +341,6 @@ type Consumption struct {
 	// UserId User ID who logged this consumption
 	UserId string `json:"user_id"`
 }
-
-// ConsumptionResponse defines model for ConsumptionResponse.
-type ConsumptionResponse struct {
-	// Id Consumption ID (for future edits/deletes)
-	Id string `json:"id"`
-
-	// InputSource Source of the input data (audio transcription or direct text)
-	InputSource *ConsumptionResponseInputSource `json:"input_source,omitempty"`
-
-	// Items Items with complete nutrition information
-	Items []ItemWithNutrition `json:"items"`
-
-	// Labels Labels assigned to this consumption
-	Labels *[]Label `json:"labels,omitempty"`
-
-	// Note Additional note about the consumption
-	Note *string `json:"note"`
-
-	// RequestId Request identifier for tracking
-	RequestId string  `json:"request_id"`
-	Summary   Summary `json:"summary"`
-
-	// Transcript Transcribed text from audio
-	Transcript string `json:"transcript"`
-}
-
-// ConsumptionResponseInputSource Source of the input data (audio transcription or direct text)
-type ConsumptionResponseInputSource string
 
 // ConsumptionsResponse defines model for ConsumptionsResponse.
 type ConsumptionsResponse struct {
@@ -975,6 +941,9 @@ type UpdateBiometricsRequestSex string
 
 // UpdateConsumptionRequest defines model for UpdateConsumptionRequest.
 type UpdateConsumptionRequest struct {
+	// ConsumedAt Timestamp when the consumption occurred (optional, defaults to current created_at)
+	ConsumedAt *time.Time `json:"consumed_at"`
+
 	// Items Updated items with nutrition information
 	Items []ItemWithNutrition `json:"items"`
 

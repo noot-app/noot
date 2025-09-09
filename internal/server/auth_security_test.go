@@ -50,8 +50,8 @@ func (m *mockStore) UpdateUser(ctx context.Context, user *storage.User) error {
 func (m *mockStore) GetUserByEmail(ctx context.Context, email string) (*storage.User, error) {
 	return nil, nil
 }
-func (m *mockStore) CreateConsumption(ctx context.Context, consumption *storage.Consumption) error {
-	return nil
+func (m *mockStore) CreateConsumption(ctx context.Context, consumption *storage.Consumption) (*storage.Consumption, error) {
+	return consumption, nil
 }
 func (m *mockStore) GetConsumption(ctx context.Context, id string) (*storage.Consumption, error) {
 	return nil, nil
