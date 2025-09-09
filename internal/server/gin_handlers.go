@@ -438,6 +438,13 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 		updatedConsumption.Note = existingConsumption.Note
 	}
 
+	// Handle title update - use new title if provided, otherwise keep existing title
+	if updateReq.Title != nil {
+		updatedConsumption.Title = updateReq.Title
+	} else {
+		updatedConsumption.Title = existingConsumption.Title
+	}
+
 	if err := s.store.UpdateConsumption(ctx, updatedConsumption); err != nil {
 		appErr := NewAppError("Failed to update consumption", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)

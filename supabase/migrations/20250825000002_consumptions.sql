@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS consumptions (
     monounsaturated_fat_g REAL NOT NULL DEFAULT 0,
     -- Additional metadata fields
     note TEXT CONSTRAINT consumptions_note_length_check CHECK (LENGTH(note) <= 1000),
+    title TEXT CONSTRAINT consumptions_title_length_check CHECK (LENGTH(title) <= 100),
     is_public BOOLEAN NOT NULL DEFAULT FALSE, -- Allow users to make consumptions publicly viewable
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE, -- When the consumption was last modified
