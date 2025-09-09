@@ -5,6 +5,7 @@
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import TimelineIcon from "$lib/components/icons/Timeline.svelte"
   import Plus from "$lib/components/icons/Plus.svelte"
+  import Eye from "$lib/components/icons/Eye.svelte"
   import QuickConsumptionDisplay from "$lib/components/QuickConsumptionDisplay.svelte"
   import type { paths } from "$lib/api/schema"
 
@@ -238,6 +239,14 @@
                     <QuickConsumptionDisplay consumption={favorite.consumption} />
                   </div>
                   <div class="flex gap-2 ml-4">
+                    <!-- View button -->
+                    <a
+                      href="/consumptions/{favorite.consumption.id}"
+                      class="btn btn-outline btn-sm"
+                      title="View full consumption details"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </a>
                     <!-- Quick re-log button -->
                     <button
                       class="btn btn-primary btn-sm"
@@ -282,6 +291,14 @@
                     <QuickConsumptionDisplay {consumption} />
                   </div>
                   <div class="flex gap-2 ml-4">
+                    <!-- View button -->
+                    <a
+                      href="/consumptions/{consumption.id}"
+                      class="btn btn-outline btn-sm"
+                      title="View full consumption details"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </a>
                     <!-- Quick re-log button -->
                     <button
                       class="btn btn-primary btn-sm"

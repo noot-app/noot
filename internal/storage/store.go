@@ -204,6 +204,7 @@ type Consumption struct {
 	PolyunsaturatedFat float64    `json:"polyunsaturated_fat_g"`
 	MonounsaturatedFat float64    `json:"monounsaturated_fat_g"`
 	Note               *string    `json:"note,omitempty"`
+	Title              *string    `json:"title,omitempty"`
 	IsPublic           bool       `json:"is_public"`
 	Labels             []*Label   `json:"labels,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`

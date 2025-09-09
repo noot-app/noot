@@ -367,7 +367,7 @@
                   <!-- Meal description -->
                   <div class="mb-4">
                     <p class="text-base-content/80 leading-relaxed">
-                      {consumption.transcript}
+                      {consumption.title || consumption.transcript}
                     </p>
                   </div>
                   

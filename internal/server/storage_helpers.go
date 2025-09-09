@@ -320,6 +320,7 @@ func storageConsumptionToAPI(ctx context.Context, store storage.Store, consumpti
 		UserId:     consumption.UserID,
 		Transcript: consumption.Transcript,
 		Note:       consumption.Note,
+		Title:      consumption.Title,
 		Labels:     convertStorageLabelsToAPI(consumption.Labels),
 		Items:      apiItems,
 		Summary:    summary,

@@ -12,8 +12,23 @@
 </script>
 
 <div class="space-y-3">
-  <!-- Transcript/Summary -->
-  {#if consumption?.transcript}
+  <!-- Title/Transcript -->
+  {#if consumption?.title && consumption?.transcript}
+    <div>
+      <p class="text-lg font-medium text-base-content line-clamp-2">
+        {consumption.title}
+      </p>
+      <p class="text-sm text-base-content/70 line-clamp-2 mt-1">
+        {consumption.transcript}
+      </p>
+    </div>
+  {:else if consumption?.title}
+    <div>
+      <p class="text-lg font-medium text-base-content line-clamp-2">
+        {consumption.title}
+      </p>
+    </div>
+  {:else if consumption?.transcript}
     <div>
       <p class="text-lg font-medium text-base-content line-clamp-2">
         {consumption.transcript}

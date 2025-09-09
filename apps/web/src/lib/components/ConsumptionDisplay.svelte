@@ -24,6 +24,7 @@
   let isSubmitting = false
   let error = ""
   let editableNote = ""
+  let editableTitle = ""
   let editableTimestamp = ""
 
   // Helper functions for local time handling
@@ -67,6 +68,7 @@
   function startEdit() {
     isEditing = true
     editableNote = consumption?.note || ""
+    editableTitle = consumption?.title || ""
     // Initialize timestamp from consumption's created_at
     if (consumption?.created_at) {
       editableTimestamp = toLocalDateTimeString(new Date(consumption.created_at))
@@ -95,7 +97,8 @@
       // Prepare the update request body
       const updateBody: any = { 
         items: consumption.items,
-        note: editableNote.trim() || null
+        note: editableNote.trim() || null,
+        title: editableTitle.trim() || null
       }
 
       // Add timestamp if it was edited
@@ -266,6 +269,30 @@
   {#if transcript}
     <Card title="What you said:" compact>
       <p class="text-lg italic">"{transcript}"</p>
+    </Card>
+  {/if}
+
+  <!-- Title -->
+  {#if consumption?.title || (editable && isEditing)}
+    <Card title="Title:" compact>
+      {#if isEditing && editable}
+        <div class="space-y-2">
+          <input
+            type="text"
+            class="input input-bordered w-full"
+            placeholder="Give this meal a custom title..."
+            maxlength="100"
+            bind:value={editableTitle}
+          />
+          <div class="text-xs text-base-content/60">
+            {editableTitle.length}/100 characters
+          </div>
+        </div>
+      {:else if consumption?.title}
+        <p class="text-lg font-semibold">{consumption.title}</p>
+      {:else}
+        <p class="text-base-content/60 italic">No title added</p>
+      {/if}
     </Card>
   {/if}
 

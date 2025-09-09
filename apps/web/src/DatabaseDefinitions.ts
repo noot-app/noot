@@ -369,6 +369,7 @@ export type Database = {
           saturated_fat_g: number
           selenium_mcg: number
           thiamine_mg: number
+          title: string | null
           total_calories: number
           total_carbs_g: number
           total_fat_g: number
@@ -427,6 +428,7 @@ export type Database = {
           saturated_fat_g?: number
           selenium_mcg?: number
           thiamine_mg?: number
+          title?: string | null
           total_calories?: number
           total_carbs_g?: number
           total_fat_g?: number
@@ -485,6 +487,7 @@ export type Database = {
           saturated_fat_g?: number
           selenium_mcg?: number
           thiamine_mg?: number
+          title?: string | null
           total_calories?: number
           total_carbs_g?: number
           total_fat_g?: number

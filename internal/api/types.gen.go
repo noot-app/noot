@@ -342,6 +342,9 @@ type Consumption struct {
 	Note    *string `json:"note"`
 	Summary Summary `json:"summary"`
 
+	// Title Custom title for the consumption
+	Title *string `json:"title"`
+
 	// Transcript Original transcribed text
 	Transcript string `json:"transcript"`
 
@@ -993,6 +996,9 @@ type UpdateConsumptionRequest struct {
 
 	// Note Additional note about the consumption
 	Note *string `json:"note"`
+
+	// Title Custom title for the consumption
+	Title *string `json:"title"`
 }
 
 // UpdateGoalsRequest defines model for UpdateGoalsRequest.

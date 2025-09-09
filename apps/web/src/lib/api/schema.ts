@@ -1032,6 +1032,8 @@ export interface components {
             transcript: string;
             /** @description Additional note about the consumption */
             note?: string | null;
+            /** @description Custom title for the consumption */
+            title?: string | null;
             /** @description Labels assigned to this consumption */
             labels?: components["schemas"]["Label"][];
             /** @description Items with complete nutrition information */
@@ -1229,6 +1231,8 @@ export interface components {
             transcript: string;
             /** @description Additional note about the consumption */
             note?: string | null;
+            /** @description Custom title for the consumption */
+            title?: string | null;
             /** @description Labels assigned to this consumption */
             labels?: components["schemas"]["Label"][];
             items: components["schemas"]["ItemWithNutrition"][];
@@ -1414,6 +1418,8 @@ export interface components {
             items: components["schemas"]["ItemWithNutrition"][];
             /** @description Additional note about the consumption */
             note?: string | null;
+            /** @description Custom title for the consumption */
+            title?: string | null;
             /**
              * Format: date-time
              * @description Timestamp when the consumption occurred (optional, defaults to current created_at)
