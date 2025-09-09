@@ -5,6 +5,7 @@
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import TimelineIcon from "$lib/components/icons/Timeline.svelte"
   import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
+  import QuickConsumptionDisplay from "$lib/components/QuickConsumptionDisplay.svelte"
   import type { paths } from "$lib/api/schema"
 
   // Type definitions
@@ -230,11 +231,11 @@
       {:else}
         <div class="grid gap-4">
           {#each favorites as favorite (favorite.id)}
-            <div class="card bg-base-200 hover:bg-base-300 transition-colors">
+            <div class="card bg-base-200">
               <div class="card-body">
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
-                    <ConsumptionDisplay consumption={favorite.consumption} />
+                    <QuickConsumptionDisplay consumption={favorite.consumption} />
                   </div>
                   <div class="flex gap-2 ml-4">
                     <!-- Star button (remove from favorites) -->
@@ -282,11 +283,11 @@
       {:else}
         <div class="grid gap-4">
           {#each recentConsumptions as consumption (consumption.id)}
-            <div class="card bg-base-200 hover:bg-base-300 transition-colors">
+            <div class="card bg-base-200">
               <div class="card-body">
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
-                    <ConsumptionDisplay {consumption} />
+                    <QuickConsumptionDisplay {consumption} />
                   </div>
                   <div class="flex gap-2 ml-4">
                     <!-- Star button (add/remove from favorites) -->

@@ -138,22 +138,35 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 		for _, itemWithNutrition := range existingAPIConsumption.Items {
 			// Try to find existing item in global cache for linking (optional)
 			var itemID *string
-			if existingConsumption != nil {
-				// Use the same normalization as the original creation logic
-				normalizedName := normalizeItemNameForCache(itemWithNutrition.Item.Name, itemWithNutrition.Item.Brand)
-				normalizedBrand := normalizeItemName(getBrandOrEmpty(itemWithNutrition.Item.Brand))
+			// Use the same normalization as the original creation logic
+			normalizedName := normalizeItemNameForCache(itemWithNutrition.Item.Name, itemWithNutrition.Item.Brand)
+			normalizedBrand := normalizeItemName(getBrandOrEmpty(itemWithNutrition.Item.Brand))
 
-				// Create exact serving key to match how items are stored
-				exactKey := fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, itemWithNutrition.Item.Grams)
-				if existingItem, err := s.store.GetItemByName(ctx, exactKey, normalizedBrand); err == nil && existingItem != nil {
-					itemID = &existingItem.ID
-				}
+			// Create exact serving key to match how items are stored
+			exactKey := fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, itemWithNutrition.Item.Grams)
+			if existingItem, err := s.store.GetItemByName(ctx, exactKey, normalizedBrand); err == nil && existingItem != nil {
+				itemID = &existingItem.ID
 			}
 
 			consumptionItem := apiItemWithNutritionToConsumptionItem(createdConsumption.ID, itemWithNutrition, itemID)
 			if err := s.store.CreateConsumptionItem(ctx, consumptionItem); err != nil {
 				LogError("Failed to save duplicated consumption item", err, "item_name", itemWithNutrition.Item.Name, "consumption_id", createdConsumption.ID)
 				// Continue with other items even if one fails
+			}
+		}
+
+		// Copy labels from the original consumption to the new one
+		if len(existingConsumption.Labels) > 0 {
+			labelIDs := make([]string, len(existingConsumption.Labels))
+			for i, label := range existingConsumption.Labels {
+				labelIDs[i] = label.ID
+			}
+
+			if err := s.store.AssignConsumptionLabels(ctx, user.ID, createdConsumption.ID, labelIDs); err != nil {
+				LogError("Failed to copy labels to duplicated consumption", err, "original_consumption_id", input.ConsumptionID, "new_consumption_id", createdConsumption.ID, "label_count", len(labelIDs))
+				// Continue even if label copying fails - the consumption itself was created successfully
+			} else {
+				LogDebug("Successfully copied labels to duplicated consumption", "label_count", len(labelIDs), "new_consumption_id", createdConsumption.ID)
 			}
 		}
 
