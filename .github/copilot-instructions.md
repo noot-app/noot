@@ -43,3 +43,4 @@ This is a Go based repository that is a minimal web app to log meals by voice. T
 ## Helpful Tips
 
 - Since you are an AI, you cannot run, view, and interact with the API/Webapp UI very well. For this reason, simply ensuring that tests pass and builds succeed is sufficient for you to verify that the code changes are correct.
+- If any changes to the database sql/migration files are required, please edit exitising migrations directly rather than creating new ones. The reason that I ask for this is that nothing is deployed yet to production so there is no need for backwards compatibility or legacy support.
