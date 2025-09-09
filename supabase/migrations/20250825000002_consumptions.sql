@@ -59,12 +59,14 @@ CREATE TABLE IF NOT EXISTS consumptions (
     is_public BOOLEAN NOT NULL DEFAULT FALSE, -- Allow users to make consumptions publicly viewable
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE, -- When the consumption was last modified
+    consumed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- When the food was actually consumed
     FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_consumptions_user_id ON consumptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_consumptions_created_at ON consumptions(created_at);
-CREATE INDEX IF NOT EXISTS idx_consumptions_user_created ON consumptions(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_consumptions_consumed_at ON consumptions(consumed_at);
+CREATE INDEX IF NOT EXISTS idx_consumptions_user_consumed_at ON consumptions(user_id, consumed_at);
 CREATE INDEX IF NOT EXISTS idx_consumptions_public ON consumptions (is_public) WHERE is_public = TRUE;
 
 -- Enable RLS for consumptions table
