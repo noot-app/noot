@@ -3,11 +3,11 @@
   import { apiClient } from "$lib/api/client"
   import { toast } from "$lib/stores/toast"
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
-  import TimelineIcon from "$lib/components/icons/Timeline.svelte"
   import Plus from "$lib/components/icons/Plus.svelte"
   import Eye from "$lib/components/icons/Eye.svelte"
   import QuickConsumptionDisplay from "$lib/components/QuickConsumptionDisplay.svelte"
   import type { paths } from "$lib/api/schema"
+  import CursorArrowRays from "$lib/components/icons/CursorArrowRays.svelte"
 
   // Type definitions
   type FavoritesResponse = paths["/favorites"]["get"]["responses"]["200"]["content"]["application/json"]
@@ -145,7 +145,7 @@
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-3xl font-bold flex items-center gap-2">
-        <TimelineIcon className="w-8 h-8" />
+        <CursorArrowRays className="w-8 h-8" />
         Quick Add
       </h1>
       <p class="text-base-content/70 mt-2">
