@@ -356,7 +356,7 @@
                       >
                         <div class="flex-1">
                           <p class="font-medium mb-1">
-                            "{consumption.transcript}"
+                            "{consumption.title || consumption.transcript}"
                           </p>
                           <div class="flex items-center gap-4 text-sm text-base-content/60">
                             <span>

@@ -12,8 +12,14 @@
 </script>
 
 <div class="space-y-3">
-  <!-- Transcript/Summary -->
-  {#if consumption?.transcript}
+  <!-- Title/Transcript -->
+  {#if consumption?.title}
+    <div>
+      <p class="text-lg font-medium text-base-content line-clamp-2">
+        {consumption.title}
+      </p>
+    </div>
+  {:else if consumption?.transcript}
     <div>
       <p class="text-lg font-medium text-base-content line-clamp-2">
         {consumption.transcript}
