@@ -38,15 +38,20 @@ func (s *APIServer) GetFavorites(c *gin.Context) {
 	// Convert to API format
 	apiFavorites := make([]api.FavoriteWithConsumption, len(favorites))
 	for i, fav := range favorites {
-		// Convert consumption to API format
-		apiConsumption := consumptionToAPI(fav.Consumption)
+		// Convert consumption to API format with all details including labels
+		apiConsumption, err := storageConsumptionToAPI(ctx, s.store, fav.Consumption)
+		if err != nil {
+			appErr := NewAppError("Failed to convert favorite consumption", http.StatusInternalServerError, err)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
 
 		apiFavorites[i] = api.FavoriteWithConsumption{
 			Id:            fav.ID,
 			UserId:        fav.UserID,
 			ConsumptionId: fav.ConsumptionID,
 			CreatedAt:     fav.CreatedAt,
-			Consumption:   apiConsumption,
+			Consumption:   *apiConsumption,
 		}
 	}
 

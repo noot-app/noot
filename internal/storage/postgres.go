@@ -1225,6 +1225,15 @@ func (s *PostgreSQLStore) GetUserFavorites(ctx context.Context, userID string) (
 		return nil, fmt.Errorf("error iterating favorites: %w", err)
 	}
 
+	// Load labels for each consumption
+	for _, favorite := range favorites {
+		labels, err := s.ListConsumptionLabels(ctx, userID, favorite.Consumption.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load consumption labels: %w", err)
+		}
+		favorite.Consumption.Labels = labels
+	}
+
 	return favorites, nil
 }
 
