@@ -4,7 +4,7 @@
   import { toast } from "$lib/stores/toast"
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import TimelineIcon from "$lib/components/icons/Timeline.svelte"
-  import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
+  import Plus from "$lib/components/icons/Plus.svelte"
   import QuickConsumptionDisplay from "$lib/components/QuickConsumptionDisplay.svelte"
   import type { paths } from "$lib/api/schema"
 
@@ -238,21 +238,13 @@
                     <QuickConsumptionDisplay consumption={favorite.consumption} />
                   </div>
                   <div class="flex gap-2 ml-4">
-                    <!-- Star button (remove from favorites) -->
-                    <button
-                      class="btn btn-ghost btn-sm"
-                      on:click={() => toggleFavorite(favorite.consumption)}
-                      title="Remove from favorites"
-                    >
-                      ⭐
-                    </button>
                     <!-- Quick re-log button -->
                     <button
                       class="btn btn-primary btn-sm"
                       on:click={() => quickRelogConsumption(favorite.consumption)}
                       title="Re-log this consumption"
                     >
-                      🔄 Re-log
+                      <Plus className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -290,21 +282,13 @@
                     <QuickConsumptionDisplay {consumption} />
                   </div>
                   <div class="flex gap-2 ml-4">
-                    <!-- Star button (add/remove from favorites) -->
-                    <button
-                      class="btn btn-ghost btn-sm"
-                      on:click={() => toggleFavorite(consumption)}
-                      title={isFavorited(consumption) ? "Remove from favorites" : "Add to favorites"}
-                    >
-                      {isFavorited(consumption) ? "⭐" : "☆"}
-                    </button>
                     <!-- Quick re-log button -->
                     <button
                       class="btn btn-primary btn-sm"
                       on:click={() => quickRelogConsumption(consumption)}
                       title="Re-log this consumption"
                     >
-                      🔄 Re-log
+                      <Plus className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
