@@ -1,5 +1,5 @@
--- Migration 013: Create event join tables for label assignments and consumption linking (PostgreSQL)
--- These tables enable many-to-many relationships between events and labels/consumptions/items
+-- Migration 013: Create event join tables for label assignments and consumption linking, and user favorites table (PostgreSQL)
+-- These tables enable many-to-many relationships between events and labels/consumptions/items, and favorites functionality
 
 -- Join table for event labels (reuse existing labels)
 CREATE TABLE IF NOT EXISTS public.event_labels (
@@ -105,3 +105,33 @@ CREATE POLICY "Owner can delete event_links" ON public.event_links
             ))
         )
     );
+
+-- User favorites table for favoriting consumptions
+CREATE TABLE IF NOT EXISTS public.user_favorites (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    consumption_id uuid NOT NULL REFERENCES public.consumptions(id) ON DELETE CASCADE,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE(user_id, consumption_id)
+);
+
+-- Indexes for efficient queries
+CREATE INDEX IF NOT EXISTS idx_user_favorites_user ON public.user_favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_favorites_consumption ON public.user_favorites(consumption_id);
+CREATE INDEX IF NOT EXISTS idx_user_favorites_created_at ON public.user_favorites(user_id, created_at);
+
+-- Enable RLS
+ALTER TABLE public.user_favorites ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies: users can only manage their own favorites
+CREATE POLICY "Users can view own favorites" ON public.user_favorites
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own favorites" ON public.user_favorites
+    FOR INSERT WITH CHECK (
+        auth.uid() = user_id 
+        AND EXISTS (SELECT 1 FROM public.consumptions c WHERE c.id = consumption_id AND c.user_id = auth.uid())
+    );
+
+CREATE POLICY "Users can delete own favorites" ON public.user_favorites
+    FOR DELETE USING (auth.uid() = user_id);

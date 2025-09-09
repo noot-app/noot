@@ -4,6 +4,7 @@
 package api
 
 import (
+	"encoding/json"
 	"time"
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -146,6 +147,12 @@ type APIKeyScope string
 type APIKeysResponse struct {
 	// ApiKeys List of API keys (secrets not included)
 	ApiKeys []APIKey `json:"api_keys"`
+}
+
+// AddFavoriteRequest defines model for AddFavoriteRequest.
+type AddFavoriteRequest struct {
+	// ConsumptionId ID of the consumption to add to favorites
+	ConsumptionId string `json:"consumption_id"`
 }
 
 // AssignLabelsRequest defines model for AssignLabelsRequest.
@@ -681,6 +688,43 @@ type ExportResponse struct {
 // ExportResponseFormat Export format used
 type ExportResponseFormat string
 
+// Favorite defines model for Favorite.
+type Favorite struct {
+	// ConsumptionId Consumption ID that was favorited
+	ConsumptionId string `json:"consumption_id"`
+
+	// CreatedAt When the favorite was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// Id Favorite ID
+	Id string `json:"id"`
+
+	// UserId User ID who created the favorite
+	UserId string `json:"user_id"`
+}
+
+// FavoriteWithConsumption defines model for FavoriteWithConsumption.
+type FavoriteWithConsumption struct {
+	Consumption Consumption `json:"consumption"`
+
+	// ConsumptionId Consumption ID that was favorited
+	ConsumptionId string `json:"consumption_id"`
+
+	// CreatedAt When the favorite was created
+	CreatedAt time.Time `json:"created_at"`
+
+	// Id Favorite ID
+	Id string `json:"id"`
+
+	// UserId User ID who created the favorite
+	UserId string `json:"user_id"`
+}
+
+// FavoritesResponse defines model for FavoritesResponse.
+type FavoritesResponse struct {
+	Favorites []FavoriteWithConsumption `json:"favorites"`
+}
+
 // GoalSetSummary defines model for GoalSetSummary.
 type GoalSetSummary struct {
 	// CreatedAt When the goal set was created
@@ -1013,8 +1057,7 @@ type UserBiometricsSex string
 
 // CreateConsumptionJSONBody defines parameters for CreateConsumption.
 type CreateConsumptionJSONBody struct {
-	// Text Text description of consumption
-	Text string `json:"text"`
+	union json.RawMessage
 }
 
 // CreateConsumptionMultipartBody defines parameters for CreateConsumption.
@@ -1024,6 +1067,18 @@ type CreateConsumptionMultipartBody struct {
 
 	// Text Text description of consumption (optional, takes precedence over audio if both provided)
 	Text *string `json:"text,omitempty"`
+}
+
+// CreateConsumptionJSONBody0 defines parameters for CreateConsumption.
+type CreateConsumptionJSONBody0 struct {
+	// Text Text description of consumption for AI processing
+	Text string `json:"text"`
+}
+
+// CreateConsumptionJSONBody1 defines parameters for CreateConsumption.
+type CreateConsumptionJSONBody1 struct {
+	// ConsumptionId ID of an existing consumption to duplicate (skips AI processing)
+	ConsumptionId string `json:"consumption_id"`
 }
 
 // GetConsumptionsParams defines parameters for GetConsumptions.
@@ -1169,6 +1224,9 @@ type AssignEventLabelsJSONRequestBody = AssignLabelsRequest
 
 // CreateEventLinkJSONRequestBody defines body for CreateEventLink for application/json ContentType.
 type CreateEventLinkJSONRequestBody = EventLinkCreateRequest
+
+// AddToFavoritesJSONRequestBody defines body for AddToFavorites for application/json ContentType.
+type AddToFavoritesJSONRequestBody = AddFavoriteRequest
 
 // UpdateGoalsJSONRequestBody defines body for UpdateGoals for application/json ContentType.
 type UpdateGoalsJSONRequestBody = UpdateGoalsRequest

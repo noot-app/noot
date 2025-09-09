@@ -14,8 +14,8 @@ servers:
 paths:
   /consumption:
     post:
-      summary: Log a consumption via audio or text
-      description: Upload an audio file of spoken consumption data to be transcribed, or provide text directly, then parse and analyze for nutrition information
+      summary: Log a consumption via audio, text, or duplicate existing consumption
+      description: Upload an audio file of spoken consumption data to be transcribed, provide text directly for AI processing, or duplicate an existing consumption by ID to skip AI processing
       operationId: createConsumption
       requestBody:
         required: true
@@ -35,13 +35,21 @@ paths:
                 - audio
           application/json:
             schema:
-              type: object
-              properties:
-                text:
-                  type: string
-                  description: Text description of consumption
-              required:
-                - text
+              oneOf:
+                - type: object
+                  properties:
+                    text:
+                      type: string
+                      description: Text description of consumption for AI processing
+                  required:
+                    - text
+                - type: object
+                  properties:
+                    consumption_id:
+                      type: string
+                      description: ID of an existing consumption to duplicate (skips AI processing)
+                  required:
+                    - consumption_id
       responses:
         "200":
           description: Successful consumption analysis
@@ -450,6 +458,92 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Goal set not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /favorites:
+    get:
+      summary: List user favorites
+      description: Get all consumptions favorited by the current user
+      operationId: getFavorites
+      responses:
+        "200":
+          description: List of favorited consumptions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FavoritesResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Add consumption to favorites
+      description: Add a consumption to the user's favorites list
+      operationId: addToFavorites
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddFavoriteRequest"
+      responses:
+        "201":
+          description: Consumption added to favorites successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Favorite"
+        "400":
+          description: Bad request (consumption already favorited, invalid ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Consumption not found or not owned by user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /favorites/{consumption_id}:
+    delete:
+      summary: Remove consumption from favorites
+      description: Remove a consumption from the user's favorites list
+      operationId: removeFromFavorites
+      parameters:
+        - name: consumption_id
+          in: path
+          required: true
+          description: Consumption ID to remove from favorites
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Consumption removed from favorites successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Favorite not found
           content:
             application/json:
               schema:
@@ -2974,6 +3068,72 @@ components:
         id:
           type: string
           description: ID of the deleted consumption
+
+    FavoritesResponse:
+      type: object
+      required:
+        - favorites
+      properties:
+        favorites:
+          type: array
+          items:
+            $ref: "#/components/schemas/FavoriteWithConsumption"
+
+    Favorite:
+      type: object
+      required:
+        - id
+        - user_id
+        - consumption_id
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Favorite ID
+        user_id:
+          type: string
+          description: User ID who created the favorite
+        consumption_id:
+          type: string
+          description: Consumption ID that was favorited
+        created_at:
+          type: string
+          format: date-time
+          description: When the favorite was created
+
+    FavoriteWithConsumption:
+      type: object
+      required:
+        - id
+        - user_id
+        - consumption_id
+        - created_at
+        - consumption
+      properties:
+        id:
+          type: string
+          description: Favorite ID
+        user_id:
+          type: string
+          description: User ID who created the favorite
+        consumption_id:
+          type: string
+          description: Consumption ID that was favorited
+        created_at:
+          type: string
+          format: date-time
+          description: When the favorite was created
+        consumption:
+          $ref: "#/components/schemas/Consumption"
+
+    AddFavoriteRequest:
+      type: object
+      required:
+        - consumption_id
+      properties:
+        consumption_id:
+          type: string
+          description: ID of the consumption to add to favorites
 
     BiometricsResponse:
       type: object

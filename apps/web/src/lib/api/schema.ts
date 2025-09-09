@@ -14,8 +14,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Log a consumption via audio or text
-         * @description Upload an audio file of spoken consumption data to be transcribed, or provide text directly, then parse and analyze for nutrition information
+         * Log a consumption via audio, text, or duplicate existing consumption
+         * @description Upload an audio file of spoken consumption data to be transcribed, provide text directly for AI processing, or duplicate an existing consumption by ID to skip AI processing
          */
         post: operations["createConsumption"];
         delete?: never;
@@ -171,6 +171,50 @@ export interface paths {
         put: operations["setActiveGoalSet"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List user favorites
+         * @description Get all consumptions favorited by the current user
+         */
+        get: operations["getFavorites"];
+        put?: never;
+        /**
+         * Add consumption to favorites
+         * @description Add a consumption to the user's favorites list
+         */
+        post: operations["addToFavorites"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/favorites/{consumption_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove consumption from favorites
+         * @description Remove a consumption from the user's favorites list
+         */
+        delete: operations["removeFromFavorites"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1385,6 +1429,40 @@ export interface components {
             /** @description ID of the deleted consumption */
             id: string;
         };
+        FavoritesResponse: {
+            favorites: components["schemas"]["FavoriteWithConsumption"][];
+        };
+        Favorite: {
+            /** @description Favorite ID */
+            id: string;
+            /** @description User ID who created the favorite */
+            user_id: string;
+            /** @description Consumption ID that was favorited */
+            consumption_id: string;
+            /**
+             * Format: date-time
+             * @description When the favorite was created
+             */
+            created_at: string;
+        };
+        FavoriteWithConsumption: {
+            /** @description Favorite ID */
+            id: string;
+            /** @description User ID who created the favorite */
+            user_id: string;
+            /** @description Consumption ID that was favorited */
+            consumption_id: string;
+            /**
+             * Format: date-time
+             * @description When the favorite was created
+             */
+            created_at: string;
+            consumption: components["schemas"]["Consumption"];
+        };
+        AddFavoriteRequest: {
+            /** @description ID of the consumption to add to favorites */
+            consumption_id: string;
+        };
         BiometricsResponse: {
             biometrics?: components["schemas"]["UserBiometrics"];
             calculated_metrics?: {
@@ -1538,8 +1616,11 @@ export interface operations {
                     text?: string;
                 };
                 "application/json": {
-                    /** @description Text description of consumption */
+                    /** @description Text description of consumption for AI processing */
                     text: string;
+                } | {
+                    /** @description ID of an existing consumption to duplicate (skips AI processing) */
+                    consumption_id: string;
                 };
             };
         };
@@ -2048,6 +2129,127 @@ export interface operations {
                 };
             };
             /** @description Goal set not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getFavorites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of favorited consumptions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoritesResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    addToFavorites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddFavoriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Consumption added to favorites successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Favorite"];
+                };
+            };
+            /** @description Bad request (consumption already favorited, invalid ID) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Consumption not found or not owned by user */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    removeFromFavorites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Consumption ID to remove from favorites */
+                consumption_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Consumption removed from favorites successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteResponse"];
+                };
+            };
+            /** @description Favorite not found */
             404: {
                 headers: {
                     [name: string]: unknown;

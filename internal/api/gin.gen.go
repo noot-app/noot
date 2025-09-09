@@ -34,7 +34,7 @@ type ServerInterface interface {
 	// Update user biometrics
 	// (PUT /biometrics)
 	UpdateUserBiometrics(c *gin.Context)
-	// Log a consumption via audio or text
+	// Log a consumption via audio, text, or duplicate existing consumption
 	// (POST /consumption)
 	CreateConsumption(c *gin.Context)
 	// Get labels assigned to a consumption item
@@ -115,6 +115,15 @@ type ServerInterface interface {
 	// Export nutrition data (Pro only)
 	// (GET /export)
 	ExportData(c *gin.Context, params ExportDataParams)
+	// List user favorites
+	// (GET /favorites)
+	GetFavorites(c *gin.Context)
+	// Add consumption to favorites
+	// (POST /favorites)
+	AddToFavorites(c *gin.Context)
+	// Remove consumption from favorites
+	// (DELETE /favorites/{consumption_id})
+	RemoveFromFavorites(c *gin.Context, consumptionId string)
 	// Get nutrition goals
 	// (GET /goals)
 	GetGoals(c *gin.Context, params GetGoalsParams)
@@ -1197,6 +1206,68 @@ func (siw *ServerInterfaceWrapper) ExportData(c *gin.Context) {
 	siw.Handler.ExportData(c, params)
 }
 
+// GetFavorites operation middleware
+func (siw *ServerInterfaceWrapper) GetFavorites(c *gin.Context) {
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetFavorites(c)
+}
+
+// AddToFavorites operation middleware
+func (siw *ServerInterfaceWrapper) AddToFavorites(c *gin.Context) {
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.AddToFavorites(c)
+}
+
+// RemoveFromFavorites operation middleware
+func (siw *ServerInterfaceWrapper) RemoveFromFavorites(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "consumption_id" -------------
+	var consumptionId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "consumption_id", c.Param("consumption_id"), &consumptionId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter consumption_id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.RemoveFromFavorites(c, consumptionId)
+}
+
 // GetGoals operation middleware
 func (siw *ServerInterfaceWrapper) GetGoals(c *gin.Context) {
 
@@ -1536,6 +1607,9 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/events/:id/links", wrapper.CreateEventLink)
 	router.DELETE(options.BaseURL+"/events/:id/links/:linkId", wrapper.DeleteEventLink)
 	router.GET(options.BaseURL+"/export", wrapper.ExportData)
+	router.GET(options.BaseURL+"/favorites", wrapper.GetFavorites)
+	router.POST(options.BaseURL+"/favorites", wrapper.AddToFavorites)
+	router.DELETE(options.BaseURL+"/favorites/:consumption_id", wrapper.RemoveFromFavorites)
 	router.GET(options.BaseURL+"/goals", wrapper.GetGoals)
 	router.PUT(options.BaseURL+"/goals", wrapper.UpdateGoals)
 	router.PUT(options.BaseURL+"/goals/active", wrapper.SetActiveGoalSet)

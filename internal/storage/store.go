@@ -34,6 +34,12 @@ type Store interface {
 	GetConsumptionsByUserDateRange(ctx context.Context, userID string, start, end time.Time, limit, offset int) ([]*Consumption, error)
 	GetNutritionSummary(ctx context.Context, userID string, start, end time.Time) (*NutritionSummary, error)
 
+	// User favorites operations
+	CreateFavorite(ctx context.Context, userID, consumptionID string) (*UserFavorite, error)
+	DeleteFavorite(ctx context.Context, userID, consumptionID string) error
+	GetUserFavorites(ctx context.Context, userID string) ([]*UserFavoriteWithConsumption, error)
+	IsFavorited(ctx context.Context, userID, consumptionID string) (bool, error)
+
 	// ConsumptionItem operations
 	CreateConsumptionItem(ctx context.Context, item *ConsumptionItem) error
 	GetConsumptionItems(ctx context.Context, consumptionID string) ([]*ConsumptionItem, error)
@@ -198,10 +204,28 @@ type Consumption struct {
 	PolyunsaturatedFat float64    `json:"polyunsaturated_fat_g"`
 	MonounsaturatedFat float64    `json:"monounsaturated_fat_g"`
 	Note               *string    `json:"note,omitempty"`
+	IsPublic           bool       `json:"is_public"`
 	Labels             []*Label   `json:"labels,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          *time.Time `json:"updated_at,omitempty"`
 	ConsumedAt         time.Time  `json:"consumed_at"`
+}
+
+// UserFavorite represents a user's favorited consumption
+type UserFavorite struct {
+	ID            string    `json:"id"`
+	UserID        string    `json:"user_id"`
+	ConsumptionID string    `json:"consumption_id"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+// UserFavoriteWithConsumption represents a favorite with the full consumption data
+type UserFavoriteWithConsumption struct {
+	ID            string       `json:"id"`
+	UserID        string       `json:"user_id"`
+	ConsumptionID string       `json:"consumption_id"`
+	CreatedAt     time.Time    `json:"created_at"`
+	Consumption   *Consumption `json:"consumption"`
 }
 
 // Item represents permanent nutrition data for a food item (evolved from ItemCache)

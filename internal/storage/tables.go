@@ -8,6 +8,7 @@ var TableNames = struct {
 	Items            string
 	UserGoals        string
 	APIKeys          string
+	UserFavorites    string
 }{
 	Profiles:         "profiles",
 	Consumptions:     "consumptions",
@@ -15,4 +16,5 @@ var TableNames = struct {
 	Items:            "items",
 	UserGoals:        "user_goals",
 	APIKeys:          "api_keys",
+	UserFavorites:    "user_favorites",
 }

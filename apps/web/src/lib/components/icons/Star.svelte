@@ -2,11 +2,12 @@
   export let className: string = "w-6 h-6"
   export let strokeWidth: number = 1.8
   export let title: string | undefined = undefined
+  export let fill: string = "none"
 </script>
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  fill="none"
+  fill={fill}
   viewBox="0 0 24 24"
   stroke-width={strokeWidth}
   stroke="currentColor"

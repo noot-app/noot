@@ -1,5 +1,7 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client"
+  import { toast } from "$lib/stores/toast"
+  import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
   import ConsumptionTextSubmit from "$lib/components/ConsumptionTextSubmit.svelte"
   import { getAppName } from "$lib/utils/app-info"
@@ -40,10 +42,83 @@
   // Component references
   let textSubmitComponent: ConsumptionTextSubmit
   
+  // Favorites state
+  let isFavorited = false
+  let isUpdatingFavorite = false
+  
   // OS detection for keyboard shortcuts
   let isMac = false
   if (browser) {
     isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0 || navigator.userAgent.includes('Mac')
+  }
+
+  // Check if consumption is favorited
+  async function checkFavoriteStatus() {
+    if (!consumptionId) return
+
+    try {
+      const result = await handleApiCallWithAuthRedirect(async () => {
+        return await apiClient.GET("/favorites")
+      })
+
+      if (result.error) {
+        console.error("Failed to check favorite status:", result.error)
+        return
+      }
+
+      const favorites = result.data?.favorites || []
+      isFavorited = favorites.some(fav => fav.consumption_id === consumptionId)
+    } catch (err) {
+      console.error("Failed to check favorite status:", err)
+    }
+  }
+
+  // Toggle favorite status
+  async function toggleFavorite() {
+    if (!consumptionId || isUpdatingFavorite) return
+
+    isUpdatingFavorite = true
+
+    try {
+      if (isFavorited) {
+        // Remove from favorites
+        const result = await handleApiCallWithAuthRedirect(async () => {
+          return await apiClient.DELETE("/favorites/{consumption_id}", {
+            params: { path: { consumption_id: consumptionId! } }
+          })
+        })
+
+        if (result.error) {
+          toast.error(formatErrorForUser(result.error))
+          return
+        }
+
+        isFavorited = false
+        toast.success("Removed from favorites")
+      } else {
+        // Add to favorites
+        const result = await handleApiCallWithAuthRedirect(async () => {
+          return await apiClient.POST("/favorites", {
+            body: {
+              consumption_id: consumptionId!
+            }
+          })
+        })
+
+        if (result.error) {
+          toast.error(formatErrorForUser(result.error))
+          return
+        }
+
+        isFavorited = true
+        toast.success("Added to favorites")
+      }
+    } catch (err) {
+      console.error("Failed to toggle favorite:", err)
+      toast.error("Failed to update favorites. Please try again.")
+    } finally {
+      isUpdatingFavorite = false
+    }
   }
 
   async function startRecording() {
@@ -139,6 +214,11 @@
       status = "✅ Complete"
       hasSubmitted = true
       
+      // Check favorite status for the new consumption
+      if (consumptionId) {
+        checkFavoriteStatus()
+      }
+      
       // Clear audio state after successful submission
       audioBlob = null
     } catch (err) {
@@ -173,6 +253,7 @@
     transcript = ""
     result = null
     consumptionId = null
+    isFavorited = false
   }
 
   function updateStatus() {
@@ -303,6 +384,11 @@
     lastSubmissionMode = true // Text submission
     status = "✅ Complete"
     hasSubmitted = true
+    
+    // Check favorite status for the new consumption
+    if (consumptionId) {
+      checkFavoriteStatus()
+    }
   }
 
   function handleTextError(event: CustomEvent<{ message: string }>) {
@@ -576,6 +662,24 @@
         <!-- Navigation buttons -->
         {#if status === "✅ Complete" || status === "✅ Updated"}
           <div class="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+            <!-- Star button for favorites -->
+            {#if consumptionId}
+              <button
+                class="btn btn-ghost min-h-[44px]"
+                class:loading={isUpdatingFavorite}
+                on:click={toggleFavorite}
+                disabled={isUpdatingFavorite}
+                title={isFavorited ? "Remove from favorites" : "Add to favorites"}
+              >
+                {#if isUpdatingFavorite}
+                  <span class="loading loading-spinner loading-sm mr-2"></span>
+                {:else}
+                  <span class="text-xl mr-2">{isFavorited ? "⭐" : "☆"}</span>
+                {/if}
+                {isFavorited ? "Remove from Favorites" : "Add to Favorites"}
+              </button>
+            {/if}
+            
             <a href="/summary" class="btn btn-outline min-h-[44px]">
               <svg
                 class="w-4 h-4 mr-2"

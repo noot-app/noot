@@ -206,6 +206,18 @@ func (m *MockStore) RevokeAPIKey(ctx context.Context, userID, id string) error  
 func (m *MockStore) UpdateAPIKeyLastUsed(ctx context.Context, id string, lastUsed time.Time) error {
 	return nil
 }
+func (m *MockStore) CreateFavorite(ctx context.Context, userID, consumptionID string) (*storage.UserFavorite, error) {
+	return nil, nil
+}
+func (m *MockStore) DeleteFavorite(ctx context.Context, userID, consumptionID string) error {
+	return nil
+}
+func (m *MockStore) GetUserFavorites(ctx context.Context, userID string) ([]*storage.UserFavoriteWithConsumption, error) {
+	return nil, nil
+}
+func (m *MockStore) IsFavorited(ctx context.Context, userID, consumptionID string) (bool, error) {
+	return false, nil
+}
 func (m *MockStore) Close() error { return nil }
 
 func TestFoodDeduplication(t *testing.T) {
