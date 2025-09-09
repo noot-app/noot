@@ -975,6 +975,9 @@ type UpdateBiometricsRequestSex string
 
 // UpdateConsumptionRequest defines model for UpdateConsumptionRequest.
 type UpdateConsumptionRequest struct {
+	// ConsumedAt Timestamp when the consumption occurred (optional, defaults to current created_at)
+	ConsumedAt *time.Time `json:"consumed_at"`
+
 	// Items Updated items with nutrition information
 	Items []ItemWithNutrition `json:"items"`
 

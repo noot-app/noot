@@ -2955,6 +2955,11 @@ components:
           nullable: true
           maxLength: 1000
           description: Additional note about the consumption
+        consumed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when the consumption occurred (optional, defaults to current created_at)
 
     DeleteResponse:
       type: object

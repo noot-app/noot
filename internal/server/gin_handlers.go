@@ -310,10 +310,16 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 	// Recalculate summary from updated items
 	summary := summarize(internalItems)
 
-	// Update the consumption record (keep original transcript, user_id, created_at)
+	// Update the consumption record (keep original transcript, user_id)
 	updatedConsumption := itemWithNutritionToConsumption(existingConsumption.UserID, existingConsumption.Transcript, summary)
 	updatedConsumption.ID = existingConsumption.ID
-	updatedConsumption.CreatedAt = existingConsumption.CreatedAt
+
+	// Handle timestamp update - use new timestamp if provided, otherwise keep existing created_at
+	if updateReq.ConsumedAt != nil {
+		updatedConsumption.CreatedAt = *updateReq.ConsumedAt
+	} else {
+		updatedConsumption.CreatedAt = existingConsumption.CreatedAt
+	}
 
 	// Handle note update - use new note if provided, otherwise keep existing note
 	if updateReq.Note != nil {

@@ -24,6 +24,19 @@
   let isSubmitting = false
   let error = ""
   let editableNote = ""
+  let editableTimestamp = ""
+
+  // Helper functions for local time handling
+  function toLocalDateTimeString(utcDate: Date): string {
+    // Convert UTC date to local datetime-local input format
+    const localDate = new Date(utcDate.getTime() - (utcDate.getTimezoneOffset() * 60000))
+    return localDate.toISOString().slice(0, 16)
+  }
+
+  function fromLocalDateTimeString(localDateTimeString: string): Date {
+    // Convert local datetime-local input to UTC Date
+    return new Date(localDateTimeString)
+  }
 
     // Event dispatcher
   const dispatch = createEventDispatcher()
@@ -45,6 +58,10 @@
   function startEdit() {
     isEditing = true
     editableNote = consumption?.note || ""
+    // Initialize timestamp from consumption's created_at
+    if (consumption?.created_at) {
+      editableTimestamp = toLocalDateTimeString(new Date(consumption.created_at))
+    }
     dispatch('edit')
   }
 
@@ -59,12 +76,20 @@
       isSubmitting = true
       error = ""
 
+      // Prepare the update request body
+      const updateBody: any = { 
+        items: consumption.items,
+        note: editableNote.trim() || null
+      }
+
+      // Add timestamp if it was edited
+      if (editableTimestamp) {
+        updateBody.consumed_at = fromLocalDateTimeString(editableTimestamp).toISOString()
+      }
+
       const updateResponse = await apiClient.PUT("/consumption/{id}", {
         params: { path: { id: consumption.id } },
-        body: { 
-          items: consumption.items,
-          note: editableNote.trim() || null
-        },
+        body: updateBody,
       })
 
       if (updateResponse.error) {
@@ -224,6 +249,33 @@
   {#if transcript}
     <Card title="What you said:" compact>
       <p class="text-lg italic">"{transcript}"</p>
+    </Card>
+  {/if}
+
+  <!-- Timestamp -->
+  {#if consumption?.created_at}
+    <Card title="When:" compact>
+      {#if isEditing && editable}
+        <div class="space-y-2">
+          <label for="consumption-timestamp" class="block text-sm font-medium">
+            Date & Time
+          </label>
+          <input
+            id="consumption-timestamp"
+            type="datetime-local"
+            class="input input-bordered w-full max-w-sm"
+            bind:value={editableTimestamp}
+            required
+          />
+          <div class="text-xs text-base-content/60">
+            Enter the date and time when this meal was consumed
+          </div>
+        </div>
+      {:else}
+        <p class="text-lg">
+          {new Date(consumption.created_at).toLocaleString()}
+        </p>
+      {/if}
     </Card>
   {/if}
 

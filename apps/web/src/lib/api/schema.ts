@@ -1370,6 +1370,11 @@ export interface components {
             items: components["schemas"]["ItemWithNutrition"][];
             /** @description Additional note about the consumption */
             note?: string | null;
+            /**
+             * Format: date-time
+             * @description Timestamp when the consumption occurred (optional, defaults to current created_at)
+             */
+            consumed_at?: string | null;
         };
         DeleteResponse: {
             /**
