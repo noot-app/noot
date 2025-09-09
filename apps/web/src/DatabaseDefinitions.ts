@@ -1142,6 +1142,42 @@ export type Database = {
           },
         ]
       }
+      user_favorites: {
+        Row: {
+          consumption_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          consumption_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          consumption_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_consumption_id_fkey"
+            columns: ["consumption_id"]
+            isOneToOne: false
+            referencedRelation: "consumptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_goals: {
         Row: {
           created_at: string
