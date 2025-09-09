@@ -340,6 +340,7 @@ export type Database = {
           cholesterol_mg: number
           choline_mg: number
           chromium_mcg: number
+          consumed_at: string
           copper_mg: number
           created_at: string
           creatine_mg: number
@@ -397,6 +398,7 @@ export type Database = {
           cholesterol_mg?: number
           choline_mg?: number
           chromium_mcg?: number
+          consumed_at?: string
           copper_mg?: number
           created_at?: string
           creatine_mg?: number
@@ -454,6 +456,7 @@ export type Database = {
           cholesterol_mg?: number
           choline_mg?: number
           chromium_mcg?: number
+          consumed_at?: string
           copper_mg?: number
           created_at?: string
           creatine_mg?: number
