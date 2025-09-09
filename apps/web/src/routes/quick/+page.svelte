@@ -127,58 +127,6 @@
     }
   }
 
-  // Toggle favorite status
-  async function toggleFavorite(consumption: Consumption) {
-    // Check if this consumption is already favorited
-    const isFavorited = favorites.some(fav => fav.consumption_id === consumption.id)
-    
-    try {
-      if (isFavorited) {
-        // Remove from favorites
-        const result = await handleApiCallWithAuthRedirect(async () => {
-          return await apiClient.DELETE("/favorites/{consumption_id}", {
-            params: { path: { consumption_id: consumption.id } }
-          })
-        })
-
-        if (result.error) {
-          toast.error(formatErrorForUser(result.error))
-          return
-        }
-
-        // Remove from local favorites list
-        favorites = favorites.filter(fav => fav.consumption_id !== consumption.id)
-        toast.success("Removed from favorites")
-      } else {
-        // Add to favorites
-        const result = await handleApiCallWithAuthRedirect(async () => {
-          return await apiClient.POST("/favorites", {
-            body: {
-              consumption_id: consumption.id
-            }
-          })
-        })
-
-        if (result.error) {
-          toast.error(formatErrorForUser(result.error))
-          return
-        }
-
-        // Reload favorites to get the updated list
-        await loadFavorites()
-        toast.success("Added to favorites")
-      }
-    } catch (err) {
-      console.error("Failed to toggle favorite:", err)
-      toast.error("Failed to update favorites. Please try again.")
-    }
-  }
-
-  // Check if consumption is favorited
-  function isFavorited(consumption: Consumption): boolean {
-    return favorites.some(fav => fav.consumption_id === consumption.id)
-  }
-
   // Load data on mount
   onMount(async () => {
     await Promise.all([
