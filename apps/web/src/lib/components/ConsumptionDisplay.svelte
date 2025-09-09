@@ -38,6 +38,15 @@
     return new Date(localDateTimeString)
   }
 
+  function setCurrentTime() {
+    const now = new Date()
+    editableTimestamp = toLocalDateTimeString(now)
+  }
+
+  // Form validation
+  $: isValidTimestamp = !editableTimestamp || fromLocalDateTimeString(editableTimestamp) <= new Date()
+  $: isTimestampInFuture = editableTimestamp && fromLocalDateTimeString(editableTimestamp) > new Date()
+
     // Event dispatcher
   const dispatch = createEventDispatcher()
 
@@ -71,6 +80,12 @@
 
   async function saveEdit() {
     if (!consumption?.id || !consumption?.items) return
+
+    // Validate timestamp if provided
+    if (editableTimestamp && isTimestampInFuture) {
+      error = "Consumption timestamp cannot be in the future"
+      return
+    }
 
     try {
       isSubmitting = true
@@ -206,7 +221,7 @@
         <button
           class="btn btn-primary"
           on:click={saveEdit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isTimestampInFuture}
         >
           {#if isSubmitting}
             <span class="loading loading-spinner loading-sm mr-2"></span>
@@ -260,16 +275,33 @@
           <label for="consumption-timestamp" class="block text-sm font-medium">
             Date & Time
           </label>
-          <input
-            id="consumption-timestamp"
-            type="datetime-local"
-            class="input input-bordered w-full max-w-sm"
-            bind:value={editableTimestamp}
-            required
-          />
-          <div class="text-xs text-base-content/60">
-            Enter the date and time when this meal was consumed
+          <div class="flex gap-2 items-start">
+            <input
+              id="consumption-timestamp"
+              type="datetime-local"
+              class="input input-bordered flex-1 max-w-sm"
+              class:input-error={!isValidTimestamp || isTimestampInFuture}
+              bind:value={editableTimestamp}
+              required
+            />
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              on:click={setCurrentTime}
+              title="Set to current time"
+            >
+              Now
+            </button>
           </div>
+          {#if isTimestampInFuture}
+            <div class="text-xs text-error">
+              Consumption time cannot be in the future
+            </div>
+          {:else}
+            <div class="text-xs text-base-content/60">
+              Enter the date and time when this meal was consumed
+            </div>
+          {/if}
         </div>
       {:else}
         <p class="text-lg">
