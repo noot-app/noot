@@ -45,12 +45,6 @@
   // Favorites state
   let isFavorited = false
   let isUpdatingFavorite = false
-  
-  // OS detection for keyboard shortcuts
-  let isMac = false
-  if (browser) {
-    isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0 || navigator.userAgent.includes('Mac')
-  }
 
   // Check if consumption is favorited
   async function checkFavoriteStatus() {
