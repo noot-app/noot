@@ -27,14 +27,18 @@
 
   // Determine styles based on variant
   $: containerClasses = [
-    'space-y-3 transition-all duration-200',
-    clickable ? 'cursor-pointer hover:bg-base-200/50 focus:bg-base-200/50 focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-lg p-3' : '',
-    variant === 'compact' ? 'space-y-2' : '',
-    variant === 'minimal' ? 'space-y-1' : '',
+    'group relative overflow-hidden transition-all duration-300 ease-out',
+    'bg-white/50 backdrop-blur-sm border border-black/[0.08] rounded-2xl',
+    'hover:shadow-lg hover:shadow-black/5 hover:border-black/[0.12]',
+    clickable ? 'cursor-pointer' : '',
+    variant === 'default' ? 'p-6' : '',
+    variant === 'compact' ? 'p-4' : '',
+    variant === 'minimal' ? 'p-3' : '',
     className
   ].filter(Boolean).join(' ')
 
-  $: nutritionSize = (variant === 'compact' || variant === 'minimal') ? 'compact' as const : 'normal' as const
+  $: spacingClass = variant === 'minimal' ? 'space-y-2' : variant === 'compact' ? 'space-y-3' : 'space-y-4'
+  $: nutritionSize = variant === 'minimal' ? 'minimal' as const : 'compact' as const
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -46,75 +50,94 @@
   role={clickable ? 'button' : undefined}
   tabindex={clickable ? 0 : undefined}
 >
-  <!-- Title/Transcript -->
-  {#if consumption?.title && consumption?.transcript}
-    <div>
-      <p class="text-lg font-medium text-base-content line-clamp-2">
-        {consumption.title}
-      </p>
-      {#if variant !== 'minimal'}
-        <p class="text-sm text-base-content/70 line-clamp-2 mt-1">
+  <!-- Subtle hover gradient overlay -->
+  {#if clickable}
+    <div class="absolute inset-0 bg-gradient-to-br from-black/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+  {/if}
+
+  <div class={spacingClass}>
+    <!-- Title/Transcript Section -->
+    {#if consumption?.title && consumption?.transcript}
+      <div class="space-y-1">
+        <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 text-{variant === 'minimal' ? 'sm' : 'base'}">
+          {consumption.title}
+        </h3>
+        {#if variant !== 'minimal'}
+          <p class="text-gray-600 text-sm leading-relaxed line-clamp-2">
+            {consumption.transcript}
+          </p>
+        {/if}
+      </div>
+    {:else if consumption?.title}
+      <div>
+        <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 text-{variant === 'minimal' ? 'sm' : 'base'}">
+          {consumption.title}
+        </h3>
+      </div>
+    {:else if consumption?.transcript}
+      <div>
+        <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 text-{variant === 'minimal' ? 'sm' : 'base'}">
           {consumption.transcript}
+        </h3>
+      </div>
+    {/if}
+
+    <!-- Note Section -->
+    {#if showNote && consumption?.note && variant !== 'minimal'}
+      <div class="px-3 py-2 bg-gray-50/80 rounded-lg border border-gray-100">
+        <p class="text-xs text-gray-600 italic leading-relaxed line-clamp-2">
+          {consumption.note}
         </p>
-      {/if}
-    </div>
-  {:else if consumption?.title}
-    <div>
-      <p class="text-lg font-medium text-base-content line-clamp-2">
-        {consumption.title}
-      </p>
-    </div>
-  {:else if consumption?.transcript}
-    <div>
-      <p class="text-lg font-medium text-base-content line-clamp-2">
-        {consumption.transcript}
-      </p>
-    </div>
-  {/if}
+      </div>
+    {/if}
 
-  <!-- Note -->
-  {#if showNote && consumption?.note && variant !== 'minimal'}
-    <div>
-      <p class="text-xs text-base-content/60 italic line-clamp-1">
-        {consumption.note}
-      </p>
-    </div>
-  {/if}
-
-  <!-- Nutrition Summary -->
-  {#if showNutrition && consumption?.summary}
-    <div class="bg-base-100 rounded-lg p-3">
-      <NutritionStats
-        calories={consumption.summary.totals.calories}
-        protein={consumption.summary.totals.protein_g}
-        carbs={consumption.summary.totals.total_carbs_g}
-        fat={consumption.summary.totals.total_fat_g}
-        size={nutritionSize}
-        className="bg-transparent shadow-none"
-      />
-    </div>
-  {/if}
-
-  <!-- Labels -->
-  {#if showLabels && consumption?.id && consumption?.labels && consumption.labels.length > 0}
-    <div class="flex items-center gap-2 flex-wrap">
-      <span class="text-xs text-base-content/60 font-medium">Labels:</span>
-      {#each consumption.labels as label}
-        <Label 
-          name={label.name} 
-          color={label.color} 
-          size={variant === 'minimal' ? 'xs' : 'xs'} 
+    <!-- Nutrition Section -->
+    {#if showNutrition && consumption?.summary}
+      <div class="pt-2 border-t border-gray-100">
+        <NutritionStats
+          calories={consumption.summary.totals.calories}
+          protein={consumption.summary.totals.protein_g}
+          carbs={consumption.summary.totals.total_carbs_g}
+          fat={consumption.summary.totals.total_fat_g}
+          size={nutritionSize}
         />
-      {/each}
-    </div>
-  {/if}
+      </div>
+    {/if}
 
-  <!-- Timestamp -->
-  {#if showTimestamp && consumption?.created_at}
-    <div>
-      <p class="text-xs text-base-content/50">
-        {new Date(consumption.created_at).toLocaleDateString()} at {new Date(consumption.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-      </p>
-    </div>
-  {/if}
+    <!-- Labels and Timestamp Section -->
+    {#if (showLabels && consumption?.labels && consumption.labels.length > 0) || (showTimestamp && consumption?.created_at)}
+      <div class="flex items-center justify-between gap-3 pt-1">
+        <!-- Labels -->
+        {#if showLabels && consumption?.labels && consumption.labels.length > 0}
+          <div class="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+            {#each consumption.labels.slice(0, variant === 'minimal' ? 2 : 4) as label}
+              <Label 
+                name={label.name} 
+                color={label.color} 
+                size="xs"
+              />
+            {/each}
+            {#if consumption.labels.length > (variant === 'minimal' ? 2 : 4)}
+              <span class="text-xs text-gray-400 font-medium">
+                +{consumption.labels.length - (variant === 'minimal' ? 2 : 4)}
+              </span>
+            {/if}
+          </div>
+        {/if}
+
+        <!-- Timestamp -->
+        {#if showTimestamp && consumption?.created_at}
+          <div class="flex-shrink-0">
+            <time class="text-xs text-gray-400 font-medium tabular-nums">
+              {new Date(consumption.created_at).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric',
+                ...(variant !== 'minimal' && { hour: '2-digit', minute: '2-digit' })
+              })}
+            </time>
+          </div>
+        {/if}
+      </div>
+    {/if}
+  </div>
 </div>
