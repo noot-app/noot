@@ -53,6 +53,15 @@
   --color-warning-content: #faf9f5;
   --color-error: #b94e48;
   --color-error-content: #faf9f5;
+  --color-purple: #8b5fbf;
+  --color-purple-content: #faf9f5;
+  --color-honey: #BF8711;
+  --color-honey-content: #faf9f5;
+  --color-burgundy: #7a3e3e;
+  --color-teal: #4d9e9e;
+  --color-teal-content: #faf9f5;
+  --color-forest-content: #faf9f5;
+  --color-burgundy-content: #faf9f5;
   --color-dark: #2b2621;
   --color-dark-content: #fdf8ee;
 
@@ -111,6 +120,34 @@
   ::backdrop,
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
+  }
+}
+
+/* Custom purple utilities for DaisyUI theme colors */
+@layer utilities {
+  .text-purple {
+    color: var(--color-purple);
+  }
+  .bg-purple {
+    background-color: var(--color-purple);
+  }
+  .text-honey {
+    color: var(--color-honey);
+  }
+  .bg-honey {
+    background-color: var(--color-honey);
+  }
+  .text-burgundy {
+    color: var(--color-burgundy);
+  }
+  .bg-burgundy {
+    background-color: var(--color-burgundy);
+  }
+  .text-teal {
+    color: var(--color-teal);
+  }
+  .bg-teal {
+    background-color: var(--color-teal);
   }
 }
 

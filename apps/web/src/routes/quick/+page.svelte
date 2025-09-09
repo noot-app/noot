@@ -186,23 +186,23 @@
                   <div class="flex-1">
                     <QuickConsumptionDisplay consumption={favorite.consumption} />
                   </div>
-                  <div class="flex gap-2 ml-4">
-                    <!-- View button -->
-                    <a
-                      href="/consumptions/{favorite.consumption.id}"
-                      class="btn btn-outline btn-sm"
-                      title="View full consumption details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </a>
-                    <!-- Quick re-log button -->
+                  <div class="flex flex-col gap-2 ml-4">
+                    <!-- Quick re-log button (top) -->
                     <button
-                      class="btn btn-primary btn-sm"
+                      class="btn btn-primary"
                       on:click={() => quickRelogConsumption(favorite.consumption)}
                       title="Re-log this consumption"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-5 h-5" />
                     </button>
+                    <!-- View button (bottom) -->
+                    <a
+                      href="/consumptions/{favorite.consumption.id}"
+                      class="btn btn-outline"
+                      title="View full consumption details"
+                    >
+                      <Eye className="w-5 h-5" />
+                    </a>
                   </div>
                 </div>
               </div>
@@ -238,23 +238,23 @@
                   <div class="flex-1">
                     <QuickConsumptionDisplay {consumption} />
                   </div>
-                  <div class="flex gap-2 ml-4">
-                    <!-- View button -->
-                    <a
-                      href="/consumptions/{consumption.id}"
-                      class="btn btn-outline btn-sm"
-                      title="View full consumption details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </a>
-                    <!-- Quick re-log button -->
+                  <div class="flex flex-col gap-2 ml-4">
+                    <!-- Quick re-log button (top) -->
                     <button
-                      class="btn btn-primary btn-sm"
+                      class="btn btn-primary"
                       on:click={() => quickRelogConsumption(consumption)}
                       title="Re-log this consumption"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-5 h-5" />
                     </button>
+                    <!-- View button (bottom) -->
+                    <a
+                      href="/consumptions/{consumption.id}"
+                      class="btn btn-outline"
+                      title="View full consumption details"
+                    >
+                      <Eye className="w-5 h-5" />
+                    </a>
                   </div>
                 </div>
               </div>

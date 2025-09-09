@@ -11,27 +11,27 @@
 
 {#if size === "minimal"}
   <!-- Minimal version for cards -->
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 {className}">
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 {className}">
     <div class="flex flex-col items-center text-center">
-      <Icon name="zap" size="sm" className="text-primary mb-1" />
-      <div class="text-sm font-semibold text-primary">{calories}</div>
+      <Icon name="zap" size="md" className="text-honey mb-2" />
+      <div class="text-sm font-semibold text-honey">{calories}</div>
       <div class="text-xs text-gray-500">calories</div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Icon name="dumbbell" size="sm" className="text-secondary mb-1" />
+      <Icon name="dumbbell" size="md" className="text-secondary mb-2" />
       <div class="text-sm font-semibold text-secondary">{protein.toFixed(1)}g</div>
       <div class="text-xs text-gray-500">protein</div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Icon name="avocado" size="sm" className="text-accent mb-1" />
+      <Icon name="avocado" size="md" className="text-accent mb-2" />
       <div class="text-sm font-semibold text-accent">{fat.toFixed(1)}g</div>
       <div class="text-xs text-gray-500">fat</div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Icon name="wheat" size="sm" className="text-warning mb-1" />
+      <Icon name="wheat" size="md" className="text-warning mb-2" />
       <div class="text-sm font-semibold text-warning">{carbs.toFixed(1)}g</div>
       <div class="text-xs text-gray-500">carbs</div>
     </div>
@@ -42,11 +42,11 @@
     class="stats stats-vertical lg:stats-horizontal {size === 'normal' ? 'shadow-xl' : ''} w-full {className}"
   >
     <div class="stat">
-      <div class="stat-figure text-primary">
+      <div class="stat-figure text-honey">
         <Icon name="zap" size="lg" />
       </div>
       <div class="stat-title">Calories</div>
-      <div class="stat-value text-primary {size === 'compact' ? 'text-lg' : ''}">
+      <div class="stat-value text-honey {size === 'compact' ? 'text-lg' : ''}">
         {calories}
       </div>
       {#if size === "normal"}
