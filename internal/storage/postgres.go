@@ -149,7 +149,7 @@ func (s *PostgreSQLStore) UpdateUser(ctx context.Context, user *User) error {
 }
 
 // CreateConsumption creates a new consumption
-func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Consumption) error {
+func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Consumption) (*Consumption, error) {
 	// Generate UUID if not provided
 	if consumption.ID == "" {
 		consumption.ID = generateUUID()
@@ -207,10 +207,10 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 		consumption.PolyunsaturatedFat, consumption.MonounsaturatedFat,
 		consumption.Note, consumption.CreatedAt, consumption.UpdatedAt, consumption.ConsumedAt)
 	if err != nil {
-		return fmt.Errorf("failed to create consumption: %w", err)
+		return nil, fmt.Errorf("failed to create consumption: %w", err)
 	}
 
-	return nil
+	return consumption, nil
 }
 
 // GetConsumption retrieves a consumption by ID (no authorization checks - use GetConsumptionForUser for user-scoped access)

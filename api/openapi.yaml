@@ -48,7 +48,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ConsumptionResponse"
+                $ref: "#/components/schemas/Consumption"
         "400":
           description: Bad request (invalid multipart form, no audio file, no text provided, etc.)
           content:

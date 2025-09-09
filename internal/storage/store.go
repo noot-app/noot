@@ -23,7 +23,7 @@ type Store interface {
 	UpdateUser(ctx context.Context, user *User) error
 
 	// Consumption operations
-	CreateConsumption(ctx context.Context, consumption *Consumption) error
+	CreateConsumption(ctx context.Context, consumption *Consumption) (*Consumption, error)
 	GetConsumption(ctx context.Context, id string) (*Consumption, error)
 	GetConsumptionForUser(ctx context.Context, userID, id string) (*Consumption, error)
 	GetPublicConsumption(ctx context.Context, id string) (*Consumption, error)

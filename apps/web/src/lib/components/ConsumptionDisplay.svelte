@@ -270,7 +270,7 @@
   {/if}
 
   <!-- Timestamp editing (only shown when editing) -->
-  {#if consumption?.created_at && isEditing && editable}
+  {#if isEditing && editable}
     <Card title="When:" compact>
       <div class="space-y-2">
         <label for="consumption-timestamp" class="block text-sm font-medium">
