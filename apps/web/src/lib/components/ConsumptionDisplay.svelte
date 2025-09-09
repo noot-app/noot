@@ -76,6 +76,7 @@
 
   function cancelEdit() {
     isEditing = false
+    editableTimestamp = "" // Clear the editable timestamp when canceling
   }
 
   async function saveEdit() {
@@ -113,6 +114,7 @@
 
       consumption = updateResponse.data
       isEditing = false
+      editableTimestamp = "" // Clear the editable timestamp after successful save
       dispatch('save', { consumption })
     } catch (err) {
       error = `Error updating consumption: ${err}`
@@ -267,47 +269,41 @@
     </Card>
   {/if}
 
-  <!-- Timestamp -->
-  {#if consumption?.created_at}
+  <!-- Timestamp editing (only shown when editing) -->
+  {#if consumption?.created_at && isEditing && editable}
     <Card title="When:" compact>
-      {#if isEditing && editable}
-        <div class="space-y-2">
-          <label for="consumption-timestamp" class="block text-sm font-medium">
-            Date & Time
-          </label>
-          <div class="flex gap-2 items-start">
-            <input
-              id="consumption-timestamp"
-              type="datetime-local"
-              class="input input-bordered flex-1 max-w-sm"
-              class:input-error={!isValidTimestamp || isTimestampInFuture}
-              bind:value={editableTimestamp}
-              required
-            />
-            <button
-              type="button"
-              class="btn btn-outline btn-sm"
-              on:click={setCurrentTime}
-              title="Set to current time"
-            >
-              Now
-            </button>
-          </div>
-          {#if isTimestampInFuture}
-            <div class="text-xs text-error">
-              Consumption time cannot be in the future
-            </div>
-          {:else}
-            <div class="text-xs text-base-content/60">
-              Enter the date and time when this meal was consumed
-            </div>
-          {/if}
+      <div class="space-y-2">
+        <label for="consumption-timestamp" class="block text-sm font-medium">
+          Date & Time
+        </label>
+        <div class="flex gap-2 items-start">
+          <input
+            id="consumption-timestamp"
+            type="datetime-local"
+            class="input input-bordered flex-1 max-w-sm"
+            class:input-error={!isValidTimestamp || isTimestampInFuture}
+            bind:value={editableTimestamp}
+            required
+          />
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            on:click={setCurrentTime}
+            title="Set to current time"
+          >
+            Now
+          </button>
         </div>
-      {:else}
-        <p class="text-lg">
-          {new Date(consumption.created_at).toLocaleString()}
-        </p>
-      {/if}
+        {#if isTimestampInFuture}
+          <div class="text-xs text-error">
+            Consumption time cannot be in the future
+          </div>
+        {:else}
+          <div class="text-xs text-base-content/60">
+            Enter the date and time when this meal was consumed
+          </div>
+        {/if}
+      </div>
     </Card>
   {/if}
 

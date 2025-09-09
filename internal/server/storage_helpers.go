@@ -323,7 +323,7 @@ func storageConsumptionToAPI(ctx context.Context, store storage.Store, consumpti
 		Labels:     convertStorageLabelsToAPI(consumption.Labels),
 		Items:      apiItems,
 		Summary:    summary,
-		CreatedAt:  consumption.CreatedAt,
+		CreatedAt:  consumption.ConsumedAt,
 	}, nil
 }
 

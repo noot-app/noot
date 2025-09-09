@@ -1645,7 +1645,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConsumptionResponse"];
+                    "application/json": components["schemas"]["Consumption"];
                 };
             };
             /** @description Bad request (invalid request body, validation errors) */

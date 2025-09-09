@@ -316,7 +316,7 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 
 	// Handle timestamp update - use new timestamp if provided, otherwise keep existing created_at
 	if updateReq.ConsumedAt != nil {
-		updatedConsumption.CreatedAt = *updateReq.ConsumedAt
+		updatedConsumption.ConsumedAt = *updateReq.ConsumedAt
 	} else {
 		updatedConsumption.CreatedAt = existingConsumption.CreatedAt
 	}
@@ -364,21 +364,25 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 		}
 	}
 
-	// Convert updated consumption back to API format for response
-	apiSummary := convertInternalSummaryToAPI(summary)
+	// After updating the consumption and items, get the full updated consumption data
+	// This ensures we have all the latest data including labels and proper timestamps
+	updatedConsumptionWithItems, err := s.store.GetConsumptionForUser(ctx, user.ID, updatedConsumption.ID)
+	if err != nil {
+		appErr := NewAppError("Failed to retrieve updated consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
 
-	// Create the API response
-	resp := api.ConsumptionResponse{
-		Id:         updatedConsumption.ID,
-		Transcript: updatedConsumption.Transcript,
-		Note:       updatedConsumption.Note,
-		Items:      updateReq.Items,
-		Summary:    apiSummary,
-		RequestId:  requestID,
+	// Convert to API format for response
+	apiConsumption, err := storageConsumptionToAPI(ctx, s.store, updatedConsumptionWithItems)
+	if err != nil {
+		appErr := NewAppError("Failed to convert updated consumption", http.StatusInternalServerError, err)
+		s.handleAppError(c, appErr, requestID)
+		return
 	}
 
 	LogInfo("Consumption updated successfully", "consumption_id", id, "request_id", requestID)
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, apiConsumption)
 }
 
 // DeleteConsumption implements ServerInterface.DeleteConsumption

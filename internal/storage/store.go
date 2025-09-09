@@ -201,6 +201,7 @@ type Consumption struct {
 	Labels             []*Label   `json:"labels,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          *time.Time `json:"updated_at,omitempty"`
+	ConsumedAt         time.Time  `json:"consumed_at"`
 }
 
 // Item represents permanent nutrition data for a food item (evolved from ItemCache)

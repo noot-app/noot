@@ -122,7 +122,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ConsumptionResponse"
+                $ref: "#/components/schemas/Consumption"
         "400":
           description: Bad request (invalid request body, validation errors)
           content:

@@ -160,6 +160,11 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 		consumption.CreatedAt = time.Now().UTC()
 	}
 
+	// Set consumed_at if not provided - defaults to same time as created_at
+	if consumption.ConsumedAt.IsZero() {
+		consumption.ConsumedAt = consumption.CreatedAt
+	}
+
 	query := `
 		INSERT INTO consumptions (
 			id, user_id, transcript, total_calories, total_protein_g, total_fat_g, 
@@ -174,12 +179,12 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 			omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 			creatine_mg, caffeine_mg, alcohol_g,
 			polyunsaturated_fat_g, monounsaturated_fat_g,
-			note, created_at, updated_at
+			note, created_at, updated_at, consumed_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
 			$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
 			$31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44,
-			$45, $46, $47, $48, $49, $50, $51, $52, $53, $54
+			$45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55
 		)`
 
 	_, err := s.db.ExecContext(ctx, query,
@@ -200,7 +205,7 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 		consumption.Omega3Ala, consumption.Omega3Epa, consumption.Omega3Dha,
 		consumption.Omega6, consumption.Creatine, consumption.Caffeine, consumption.Alcohol,
 		consumption.PolyunsaturatedFat, consumption.MonounsaturatedFat,
-		consumption.Note, consumption.CreatedAt, consumption.UpdatedAt)
+		consumption.Note, consumption.CreatedAt, consumption.UpdatedAt, consumption.ConsumedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create consumption: %w", err)
 	}
@@ -223,7 +228,7 @@ func (s *PostgreSQLStore) GetConsumption(ctx context.Context, id string) (*Consu
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 			   creatine_mg, caffeine_mg, alcohol_g,
 			   polyunsaturated_fat_g, monounsaturated_fat_g,
-			   note, created_at, updated_at
+			   note, created_at, updated_at, consumed_at
 		FROM consumptions WHERE id = $1`
 
 	var consumption Consumption
@@ -245,7 +250,7 @@ func (s *PostgreSQLStore) GetConsumption(ctx context.Context, id string) (*Consu
 		&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 		&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 		&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-		&consumption.Note, &consumption.CreatedAt, &consumption.UpdatedAt)
+		&consumption.Note, &consumption.CreatedAt, &consumption.UpdatedAt, &consumption.ConsumedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -277,8 +282,8 @@ func (s *PostgreSQLStore) GetConsumptionForUser(ctx context.Context, userID, id 
 			   molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg,
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 			   creatine_mg, caffeine_mg, alcohol_g,
-			   polyunsaturated_fat_g, monounsaturated_fat_g,
-			   note, created_at, updated_at
+		   polyunsaturated_fat_g, monounsaturated_fat_g,
+		   note, consumed_at, created_at, updated_at
 		FROM consumptions WHERE id = $1 AND user_id = $2`
 
 	var consumption Consumption
@@ -300,7 +305,7 @@ func (s *PostgreSQLStore) GetConsumptionForUser(ctx context.Context, userID, id 
 		&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 		&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 		&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-		&consumption.Note, &consumption.CreatedAt, &consumption.UpdatedAt)
+		&consumption.Note, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Not found or access denied
@@ -319,6 +324,7 @@ func (s *PostgreSQLStore) GetConsumptionForUser(ctx context.Context, userID, id 
 }
 
 // GetPublicConsumption retrieves a public consumption by ID (limited data for non-owners)
+// This function should never expose or return user data. The user_id and note fields are an exception
 func (s *PostgreSQLStore) GetPublicConsumption(ctx context.Context, id string) (*Consumption, error) {
 	query := `
 		SELECT id, user_id, transcript, total_calories, total_protein_g, total_fat_g,
@@ -387,7 +393,7 @@ func (s *PostgreSQLStore) UpdateConsumption(ctx context.Context, consumption *Co
 			choline_mg = $27, calcium_mg = $28, iron_mg = $29, magnesium_mg = $30,
 			phosphorus_mg = $31, potassium_mg = $32, zinc_mg = $33, copper_mg = $34,
 			manganese_mg = $35, selenium_mcg = $36, iodine_mcg = $37, molybdenum_mcg = $38,
-			chromium_mcg = $39, fluoride_mg = $40, chloride_mg = $41, note = $42, updated_at = $43
+			chromium_mcg = $39, fluoride_mg = $40, chloride_mg = $41, note = $42, consumed_at = $43, updated_at = $44
 		WHERE id = $1`
 
 	_, err := s.db.ExecContext(ctx, query, consumption.ID, consumption.Transcript,
@@ -404,7 +410,7 @@ func (s *PostgreSQLStore) UpdateConsumption(ctx context.Context, consumption *Co
 		consumption.Zinc, consumption.Copper, consumption.Manganese,
 		consumption.Selenium, consumption.Iodine, consumption.Molybdenum,
 		consumption.Chromium, consumption.Fluoride, consumption.Chloride,
-		consumption.Note, consumption.UpdatedAt)
+		consumption.Note, consumption.ConsumedAt, consumption.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update consumption: %w", err)
 	}
@@ -438,12 +444,12 @@ func (s *PostgreSQLStore) GetConsumptionsByUser(ctx context.Context, userID stri
 			   molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg,
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 			   creatine_mg, caffeine_mg, alcohol_g,
-			   polyunsaturated_fat_g, monounsaturated_fat_g,
-			   note, created_at, updated_at
-		FROM consumptions
-		WHERE user_id = $1
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3`
+		   polyunsaturated_fat_g, monounsaturated_fat_g,
+		   note, consumed_at, created_at, updated_at
+	FROM consumptions
+	WHERE user_id = $1
+	ORDER BY created_at DESC
+	LIMIT $2 OFFSET $3`
 
 	rows, err := s.db.QueryContext(ctx, query, userID, limit, offset)
 	if err != nil {
@@ -472,7 +478,7 @@ func (s *PostgreSQLStore) GetConsumptionsByUser(ctx context.Context, userID stri
 			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 			&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-			&consumption.Note, &consumption.CreatedAt, &consumption.UpdatedAt)
+			&consumption.Note, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
@@ -508,12 +514,12 @@ func (s *PostgreSQLStore) GetConsumptionsByUserSince(ctx context.Context, userID
 			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg,
 			   molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg,
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
-			   creatine_mg, caffeine_mg, alcohol_g,
-			   polyunsaturated_fat_g, monounsaturated_fat_g,
-			   created_at, updated_at
-		FROM consumptions 
-		WHERE user_id = $1 AND created_at >= $2
-		ORDER BY created_at DESC`
+		   creatine_mg, caffeine_mg, alcohol_g,
+		   polyunsaturated_fat_g, monounsaturated_fat_g,
+		   note, consumed_at, created_at, updated_at
+	FROM consumptions 
+	WHERE user_id = $1 AND created_at >= $2
+	ORDER BY created_at DESC`
 
 	rows, err := s.db.QueryContext(ctx, query, userID, since)
 	if err != nil {
@@ -542,7 +548,7 @@ func (s *PostgreSQLStore) GetConsumptionsByUserSince(ctx context.Context, userID
 			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 			&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-			&consumption.CreatedAt, &consumption.UpdatedAt)
+			&consumption.Note, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
@@ -569,13 +575,13 @@ func (s *PostgreSQLStore) GetConsumptionsByUserDateRange(ctx context.Context, us
 			   zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg,
 			   molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg,
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
-			   creatine_mg, caffeine_mg, alcohol_g,
-			   polyunsaturated_fat_g, monounsaturated_fat_g,
-			   created_at, updated_at
-		FROM consumptions 
-		WHERE user_id = $1 AND created_at >= $2 AND created_at <= $3
-		ORDER BY created_at DESC
-		LIMIT $4 OFFSET $5`
+		   creatine_mg, caffeine_mg, alcohol_g,
+		   polyunsaturated_fat_g, monounsaturated_fat_g,
+		   note, consumed_at, created_at, updated_at
+	FROM consumptions 
+	WHERE user_id = $1 AND created_at >= $2 AND created_at <= $3
+	ORDER BY created_at DESC
+	LIMIT $4 OFFSET $5`
 
 	rows, err := s.db.QueryContext(ctx, query, userID, start, end, limit, offset)
 	if err != nil {
@@ -604,7 +610,7 @@ func (s *PostgreSQLStore) GetConsumptionsByUserDateRange(ctx context.Context, us
 			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 			&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-			&consumption.CreatedAt, &consumption.UpdatedAt)
+			&consumption.Note, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
@@ -1888,7 +1894,7 @@ func (s *PostgreSQLStore) GetConsumptionsByLabels(ctx context.Context, userID st
 			zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg,
 			chromium_mcg, fluoride_mg, chloride_mg, omega3_ala_g, omega3_epa_g,
 			omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, alcohol_g,
-			polyunsaturated_fat_g, monounsaturated_fat_g, note, created_at, updated_at
+			polyunsaturated_fat_g, monounsaturated_fat_g, note, consumed_at, created_at, updated_at
 		FROM consumptions
 		WHERE user_id = $1 AND id IN (%s)
 		ORDER BY created_at DESC
@@ -1924,7 +1930,7 @@ func (s *PostgreSQLStore) GetConsumptionsByLabels(ctx context.Context, userID st
 			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine,
 			&consumption.Alcohol, &consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-			&consumption.Note, &consumption.CreatedAt, &consumption.UpdatedAt)
+			&consumption.Note, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}

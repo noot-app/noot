@@ -693,9 +693,11 @@ export type Database = {
           added_sugars_g_per_100g: number
           alcohol_g_per_100g: number
           biotin_mcg_per_100g: number
+          brand: string
           caffeine_mg_per_100g: number
           calcium_mg_per_100g: number
           calories_per_100g: number
+          canonical_name: string
           chloride_mg_per_100g: number
           cholesterol_mg_per_100g: number
           choline_mg_per_100g: number
@@ -718,8 +720,6 @@ export type Database = {
           molybdenum_mcg_per_100g: number
           monounsaturated_fat_g_per_100g: number
           niacin_mg_per_100g: number
-          normalized_brand: string
-          normalized_name: string
           note: string | null
           omega3_ala_g_per_100g: number
           omega3_dha_g_per_100g: number
@@ -803,9 +803,11 @@ export type Database = {
           added_sugars_g_per_100g?: number
           alcohol_g_per_100g?: number
           biotin_mcg_per_100g?: number
+          brand?: string
           caffeine_mg_per_100g?: number
           calcium_mg_per_100g?: number
           calories_per_100g?: number
+          canonical_name: string
           chloride_mg_per_100g?: number
           cholesterol_mg_per_100g?: number
           choline_mg_per_100g?: number
@@ -828,8 +830,6 @@ export type Database = {
           molybdenum_mcg_per_100g?: number
           monounsaturated_fat_g_per_100g?: number
           niacin_mg_per_100g?: number
-          normalized_brand?: string
-          normalized_name: string
           note?: string | null
           omega3_ala_g_per_100g?: number
           omega3_dha_g_per_100g?: number
@@ -913,9 +913,11 @@ export type Database = {
           added_sugars_g_per_100g?: number
           alcohol_g_per_100g?: number
           biotin_mcg_per_100g?: number
+          brand?: string
           caffeine_mg_per_100g?: number
           calcium_mg_per_100g?: number
           calories_per_100g?: number
+          canonical_name?: string
           chloride_mg_per_100g?: number
           cholesterol_mg_per_100g?: number
           choline_mg_per_100g?: number
@@ -938,8 +940,6 @@ export type Database = {
           molybdenum_mcg_per_100g?: number
           monounsaturated_fat_g_per_100g?: number
           niacin_mg_per_100g?: number
-          normalized_brand?: string
-          normalized_name?: string
           note?: string | null
           omega3_ala_g_per_100g?: number
           omega3_dha_g_per_100g?: number

@@ -31,8 +31,8 @@
   }
 
   function handleSave(event: CustomEvent) {
-    // Update consumption data with saved changes
-    data.consumption = event.detail.consumption
+    // Update consumption data with saved changes and trigger reactivity
+    data = { ...data, consumption: event.detail.consumption }
   }
 </script>
 
