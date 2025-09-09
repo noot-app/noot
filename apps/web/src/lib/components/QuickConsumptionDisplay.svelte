@@ -1,6 +1,6 @@
 <script lang="ts">
   import NutritionStats from "./NutritionStats.svelte"
-  import ConsumptionLabels from "./ConsumptionLabels.svelte"
+  import Label from "./Label.svelte"
   import type { paths } from "$lib/api/schema"
 
   // Type definitions
@@ -15,7 +15,7 @@
   <!-- Transcript/Summary -->
   {#if consumption?.transcript}
     <div>
-      <p class="text-sm text-base-content/70 line-clamp-2">
+      <p class="text-lg font-medium text-base-content line-clamp-2">
         {consumption.transcript}
       </p>
     </div>
@@ -44,15 +44,13 @@
     </div>
   {/if}
 
-  <!-- Labels (read-only) -->
+  <!-- Labels (read-only, inline) -->
   {#if consumption?.id && consumption?.labels && consumption.labels.length > 0}
-    <div>
-      <ConsumptionLabels
-        consumptionId={consumption.id}
-        initialLabels={consumption.labels}
-        autoShowEdit={false}
-        editable={false}
-      />
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs text-base-content/60 font-medium">Labels:</span>
+      {#each consumption.labels as label}
+        <Label name={label.name} color={label.color} size="xs" />
+      {/each}
     </div>
   {/if}
 
