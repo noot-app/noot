@@ -15,7 +15,7 @@ type NutrientField struct {
 // GetItemColumns returns all column names for the items table in the correct order
 func GetItemColumns() []string {
 	baseColumns := []string{
-		"id", "normalized_name", "normalized_brand", "display_name", "display_brand",
+		"id", "canonical_name", "brand", "display_name", "display_brand",
 	}
 
 	nutrientFields := GetNutrientFields()
@@ -52,7 +52,7 @@ func extractItemValues(item *Item, includeID bool, includeCreatedAt bool) []inte
 		values = append(values, item.ID)
 	}
 	values = append(values,
-		item.NormalizedName, item.NormalizedBrand, item.DisplayName, item.DisplayBrand,
+		item.CanonicalName, item.Brand, item.DisplayName, item.DisplayBrand,
 	)
 
 	// Use reflection to get nutrition field values
@@ -100,8 +100,8 @@ func scanItemRow(row scannable, item *Item) error {
 
 	// Base columns
 	scanArgs[0] = &item.ID
-	scanArgs[1] = &item.NormalizedName
-	scanArgs[2] = &item.NormalizedBrand
+	scanArgs[1] = &item.CanonicalName
+	scanArgs[2] = &item.Brand
 	scanArgs[3] = &item.DisplayName
 	scanArgs[4] = &item.DisplayBrand
 

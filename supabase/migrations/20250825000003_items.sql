@@ -1,8 +1,8 @@
 -- Migration 003: Create items table for reusable nutrition data with soft TTL (PostgreSQL)
 CREATE TABLE IF NOT EXISTS items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    normalized_name TEXT NOT NULL,
-    normalized_brand TEXT NOT NULL DEFAULT '',
+    canonical_name TEXT NOT NULL,
+    brand TEXT NOT NULL DEFAULT '',
     display_name TEXT NOT NULL,
     display_brand TEXT DEFAULT '',
     -- Nutrition data in canonical units (grams/mg/kcal)
@@ -114,10 +114,10 @@ CREATE TABLE IF NOT EXISTS items (
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    UNIQUE(normalized_name, normalized_brand)
+    UNIQUE(canonical_name, brand)
 );
 
-CREATE INDEX IF NOT EXISTS idx_items_normalized ON items(normalized_name, normalized_brand);
+CREATE INDEX IF NOT EXISTS idx_items_canonical ON items(canonical_name, brand);
 CREATE INDEX IF NOT EXISTS idx_items_display_name ON items(display_name);
 CREATE INDEX IF NOT EXISTS idx_items_ingredients ON items USING GIN (ingredients);
 CREATE INDEX IF NOT EXISTS idx_items_url ON items(url) WHERE url IS NOT NULL;

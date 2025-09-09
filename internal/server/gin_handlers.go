@@ -150,17 +150,21 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 				LogInfo("Consumption saved to database", "consumption_id", consumption.ID, "user_id", user.ID, "request_id", requestID)
 
 				// Save individual consumption items for historic breakdown
-				for _, itemWithNutrition := range itemsWithNutrition {
+				for i, itemWithNutrition := range itemsWithNutrition {
 					// Try to find existing item in global cache for linking (optional)
 					var itemID *string
-					if s.store != nil {
-						// Use the same normalization as the caching logic for consistent keys
-						normalizedName := normalizeItemNameForCache(itemWithNutrition.Item.Name, itemWithNutrition.Item.Brand)
-						normalizedBrand := normalizeItemName(getBrandOrEmpty(itemWithNutrition.Item.Brand))
 
-						// Create exact serving key to match how items are stored
-						exactKey := fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, itemWithNutrition.Item.Grams)
-						if existingItem, err := s.store.GetItemByName(ctx, exactKey, normalizedBrand); err == nil && existingItem != nil {
+					// Use the corresponding hydrated item for canonical name lookup
+					if i < len(hydratedItems) {
+						hydratedItem := hydratedItems[i]
+						canonicalName := normalizeCanonicalName(hydratedItem.CanonicalName)
+						if canonicalName == "" {
+							canonicalName = normalizeCanonicalName(hydratedItem.Name)
+						}
+						normalizedBrand := normalizeItemName(getBrandOrEmpty(hydratedItem.Brand))
+
+						// Look up item using canonical name and brand
+						if existingItem, err := s.store.GetItemByName(ctx, canonicalName, normalizedBrand); err == nil && existingItem != nil {
 							itemID = &existingItem.ID
 						}
 					}

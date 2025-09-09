@@ -301,7 +301,7 @@ func TestRoundToDecimalPlaces(t *testing.T) {
 	}
 }
 
-func TestRoundCaloriesUp(t *testing.T) {
+func TestRoundCalories(t *testing.T) {
 	tests := []struct {
 		name     string
 		calories float64
@@ -313,9 +313,9 @@ func TestRoundCaloriesUp(t *testing.T) {
 			expected: 150,
 		},
 		{
-			name:     "decimal less than 0.5 - round up",
+			name:     "decimal less than 0.5 - round down",
 			calories: 150.2,
-			expected: 151,
+			expected: 150,
 		},
 		{
 			name:     "decimal equal to 0.5 - round up",
@@ -328,9 +328,9 @@ func TestRoundCaloriesUp(t *testing.T) {
 			expected: 151,
 		},
 		{
-			name:     "very small decimal - round up",
+			name:     "very small decimal - round down",
 			calories: 150.001,
-			expected: 151,
+			expected: 150,
 		},
 		{
 			name:     "zero calories",
@@ -338,15 +338,20 @@ func TestRoundCaloriesUp(t *testing.T) {
 			expected: 0,
 		},
 		{
-			name:     "fractional under 1 - round up to 1",
+			name:     "fractional under 1 - round down to 0",
 			calories: 0.3,
-			expected: 1,
+			expected: 0,
+		},
+		{
+			name:     "our specific case - 40.009 rounds to 40",
+			calories: 40.009,
+			expected: 40,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := RoundCaloriesUp(tt.calories)
+			result := RoundCalories(tt.calories)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

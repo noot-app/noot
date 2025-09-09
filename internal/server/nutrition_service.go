@@ -579,18 +579,17 @@ func (s *NutritionService) makeExactServingKey(normalizedName, normalizedBrand s
 	return fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, grams)
 }
 
-// makeCanonicalFoodKey creates a cache key based on LLM-provided canonical food name and brand only
+// makeCanonicalFoodKey creates a cache key based on LLM-provided canonical food name only
 // This enables deduplication by using the standardized canonical name from the LLM
 func (s *NutritionService) makeCanonicalFoodKey(item Item) string {
 	canonicalName := normalizeCanonicalName(item.CanonicalName)
-	normalizedBrand := normalizeItemName(getBrandOrEmpty(item.Brand))
 
 	// If canonical name is empty (shouldn't happen with LLM), fall back to normalized name
 	if canonicalName == "" {
-		canonicalName = normalizeItemName(item.Name)
+		canonicalName = normalizeCanonicalName(item.Name)
 	}
 
-	return fmt.Sprintf("%s|%s", canonicalName, normalizedBrand)
+	return canonicalName
 }
 
 // getNormalizedGrams returns the normalized grams for cache key generation
@@ -648,11 +647,11 @@ func (s *NutritionService) convertNutrientsToCanonicalCache(item Item, nutrients
 
 	// Create the canonical cache item
 	cacheItem := &storage.Item{
-		NormalizedName:  canonicalKey, // Use canonical key as normalized name
-		NormalizedBrand: normalizeItemName(getBrandOrEmpty(item.Brand)),
-		DisplayName:     canonicalDisplayName, // Use canonical name for display
-		DisplayBrand:    getBrandOrEmpty(item.Brand),
-		Note:            item.Note,
+		CanonicalName: normalizeCanonicalName(item.CanonicalName), // Use canonical name as field
+		Brand:         normalizeItemName(getBrandOrEmpty(item.Brand)),
+		DisplayName:   canonicalDisplayName, // Use canonical name for display
+		DisplayBrand:  getBrandOrEmpty(item.Brand),
+		Note:          item.Note,
 
 		// Include ingredients and AI URL when caching items
 		Ingredients: item.Ingredients, // Copy ingredients from the item
@@ -687,11 +686,11 @@ func (s *NutritionService) convertNutrientsToExactCache(item Item, nutrients Com
 
 	// Create the cache item with metadata
 	cacheItem := &storage.Item{
-		NormalizedName:  exactKey, // Use the special key as the normalized name
-		NormalizedBrand: normalizeItemName(getBrandOrEmpty(item.Brand)),
-		DisplayName:     item.Name,
-		DisplayBrand:    getBrandOrEmpty(item.Brand),
-		Note:            item.Note,
+		CanonicalName: exactKey, // Use the special key as the canonical name
+		Brand:         normalizeItemName(getBrandOrEmpty(item.Brand)),
+		DisplayName:   item.Name,
+		DisplayBrand:  getBrandOrEmpty(item.Brand),
+		Note:          item.Note,
 
 		// Include ingredients and AI URL when caching items
 		Ingredients: item.Ingredients, // Copy ingredients from the item

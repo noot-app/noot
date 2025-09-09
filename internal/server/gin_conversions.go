@@ -67,7 +67,7 @@ func convertInternalItemToAPI(internal Item) api.Item {
 // convertInternalCompleteNutrientToAPI converts internal CompleteNutrient to API CompleteNutrient
 func convertInternalCompleteNutrientToAPI(internal CompleteNutrient) *api.CompleteNutrient {
 	return &api.CompleteNutrient{
-		Calories:            RoundCaloriesUp(internal.Calories),
+		Calories:            RoundCalories(internal.Calories),
 		ProteinG:            float32(internal.Protein),
 		TotalFatG:           float32(internal.TotalFat),
 		SaturatedFatG:       float32(internal.SaturatedFat),

@@ -22,13 +22,13 @@ func NewMockStore() *MockStore {
 }
 
 func (m *MockStore) CreateItem(ctx context.Context, item *storage.Item) error {
-	key := item.NormalizedName + "|" + item.NormalizedBrand
+	key := item.CanonicalName + "|" + item.Brand
 	m.items[key] = item
 	return nil
 }
 
-func (m *MockStore) GetItemByName(ctx context.Context, normalizedName, normalizedBrand string) (*storage.Item, error) {
-	key := normalizedName + "|" + normalizedBrand
+func (m *MockStore) GetItemByName(ctx context.Context, canonicalName, brand string) (*storage.Item, error) {
+	key := canonicalName + "|" + brand
 	if item, exists := m.items[key]; exists {
 		return item, nil
 	}
@@ -46,7 +46,7 @@ func (m *MockStore) GetItem(ctx context.Context, id string) (*storage.Item, erro
 }
 
 func (m *MockStore) UpdateItem(ctx context.Context, item *storage.Item) error {
-	key := item.NormalizedName + "|" + item.NormalizedBrand
+	key := item.CanonicalName + "|" + item.Brand
 	m.items[key] = item
 	return nil
 }
@@ -237,7 +237,7 @@ func TestFoodDeduplication(t *testing.T) {
 			itemName:    "carrots",
 			grams:       100.0,
 			brand:       nil,
-			expectedKey: "carrot|",
+			expectedKey: "carrot",
 			description: "Base carrot entry",
 		},
 		{
@@ -245,7 +245,7 @@ func TestFoodDeduplication(t *testing.T) {
 			itemName:    "a handful of carrots",
 			grams:       60.0,
 			brand:       nil,
-			expectedKey: "carrot|",
+			expectedKey: "carrot",
 			description: "Should deduplicate to same carrot entry",
 		},
 		{
@@ -253,7 +253,7 @@ func TestFoodDeduplication(t *testing.T) {
 			itemName:    "a few slices of carrots",
 			grams:       80.0,
 			brand:       nil,
-			expectedKey: "carrot|",
+			expectedKey: "carrot",
 			description: "Should deduplicate to same carrot entry",
 		},
 		{
@@ -261,7 +261,7 @@ func TestFoodDeduplication(t *testing.T) {
 			itemName:    "fresh organic carrots",
 			grams:       150.0,
 			brand:       nil,
-			expectedKey: "carrot|",
+			expectedKey: "carrot",
 			description: "Should deduplicate to same carrot entry",
 		},
 		{
@@ -269,7 +269,7 @@ func TestFoodDeduplication(t *testing.T) {
 			itemName:    "2 carrots",
 			grams:       200.0,
 			brand:       nil,
-			expectedKey: "carrot|",
+			expectedKey: "carrot",
 			description: "Should deduplicate to same carrot entry",
 		},
 	}
@@ -352,7 +352,7 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 				CanonicalName: "apple", // LLM canonical name
 				Brand:         nil,
 			},
-			expectedKey: "apple|",
+			expectedKey: "apple",
 		},
 		{
 			name: "PluralFood",
@@ -361,7 +361,7 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 				CanonicalName: "apple", // LLM normalizes plural to singular
 				Brand:         nil,
 			},
-			expectedKey: "apple|",
+			expectedKey: "apple",
 		},
 		{
 			name: "QuantityFood",
@@ -370,7 +370,7 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 				CanonicalName: "apple", // LLM strips quantity and normalizes
 				Brand:         nil,
 			},
-			expectedKey: "apple|",
+			expectedKey: "apple",
 		},
 		{
 			name: "ComplexQuantity",
@@ -379,7 +379,7 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 				CanonicalName: "apple", // LLM strips all descriptors
 				Brand:         nil,
 			},
-			expectedKey: "apple|",
+			expectedKey: "apple",
 		},
 		{
 			name: "BrandedItem",
@@ -388,7 +388,7 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 				CanonicalName: "vanilla ice cream", // LLM provides canonical name without brand
 				Brand:         stringPtr("Ben Jerry"),
 			},
-			expectedKey: "vanilla_ice_cream|ben jerry",
+			expectedKey: "vanilla_ice_cream",
 		},
 		{
 			name: "OlipopCreamSoda",
@@ -397,7 +397,7 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 				CanonicalName: "cream soda", // LLM canonical name without brand
 				Brand:         stringPtr("Olipop"),
 			},
-			expectedKey: "cream_soda|olipop",
+			expectedKey: "cream_soda",
 		},
 		{
 			name: "OlipopCreamSodaVariation",
@@ -406,7 +406,7 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 				CanonicalName: "cream soda", // Same canonical name for deduplication
 				Brand:         stringPtr("Olipop"),
 			},
-			expectedKey: "cream_soda|olipop",
+			expectedKey: "cream_soda",
 		},
 		{
 			name: "CocaCola",
@@ -415,7 +415,7 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 				CanonicalName: "cola", // Generic cola type
 				Brand:         stringPtr("Coca Cola"),
 			},
-			expectedKey: "cola|coca cola",
+			expectedKey: "cola",
 		},
 		{
 			name: "CokeVariation",
@@ -424,7 +424,7 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 				CanonicalName: "cola", // Same canonical name as Coca Cola
 				Brand:         stringPtr("Coca Cola"),
 			},
-			expectedKey: "cola|coca cola",
+			expectedKey: "cola",
 		},
 		{
 			name: "PepsiDifferentBrand",
@@ -433,7 +433,7 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 				CanonicalName: "cola", // Same canonical as Coke but different brand
 				Brand:         stringPtr("Pepsi"),
 			},
-			expectedKey: "cola|pepsi",
+			expectedKey: "cola",
 		},
 		{
 			name: "EmptyCanonicalFallback",
@@ -442,7 +442,7 @@ func TestCanonicalKeyGeneration(t *testing.T) {
 				CanonicalName: "", // Empty canonical name, falls back to normalized name
 				Brand:         stringPtr("Coca Cola"),
 			},
-			expectedKey: "coca cola|coca cola",
+			expectedKey: "coca_cola",
 		},
 	}
 
@@ -482,7 +482,7 @@ func TestBrandedItemDeduplication(t *testing.T) {
 			itemName:    "Olipop cream soda",
 			grams:       355.0, // 1 can
 			brand:       "Olipop",
-			expectedKey: "cream_soda|olipop",
+			expectedKey: "cream_soda",
 			description: "Base Olipop cream soda entry",
 		},
 		{
@@ -490,7 +490,7 @@ func TestBrandedItemDeduplication(t *testing.T) {
 			itemName:    "a can of cream soda flavored olipop",
 			grams:       355.0, // 1 can
 			brand:       "Olipop",
-			expectedKey: "cream_soda|olipop",
+			expectedKey: "cream_soda",
 			description: "Should deduplicate to same Olipop cream soda entry",
 		},
 		{
@@ -498,7 +498,7 @@ func TestBrandedItemDeduplication(t *testing.T) {
 			itemName:    "half a can of Olipop cream soda",
 			grams:       177.5, // half can
 			brand:       "Olipop",
-			expectedKey: "cream_soda|olipop",
+			expectedKey: "cream_soda",
 			description: "Should deduplicate and scale nutrition correctly",
 		},
 	}
