@@ -72,9 +72,115 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
+
+	LogDebug("Input normalized", "source", input.Source, "request_id", requestID)
+
+	// Handle consumption duplication (skip AI/LLM processing)
+	if input.Source == "duplicate" && input.ConsumptionID != "" {
+		if s.store == nil {
+			appErr := NewAppError("Storage not available for consumption duplication", http.StatusInternalServerError, nil)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+
+		// Get authenticated user for authorization
+		user, err := getCurrentUser(c)
+		if err != nil {
+			if appErr, ok := err.(*AppError); ok {
+				s.handleAppError(c, appErr, requestID)
+			} else {
+				appErr := NewAppError("Failed to get user", http.StatusInternalServerError, err)
+				s.handleAppError(c, appErr, requestID)
+			}
+			return
+		}
+
+		LogDebug("Processing consumption duplication", "consumption_id", input.ConsumptionID, "user_id", user.ID, "request_id", requestID)
+
+		// Fetch the existing consumption with ownership check
+		existingConsumption, err := s.store.GetConsumptionForUser(ctx, user.ID, input.ConsumptionID)
+		if err != nil {
+			appErr := NewAppError("Failed to get consumption for duplication", http.StatusInternalServerError, err)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+		if existingConsumption == nil {
+			appErr := NewAppError("Consumption not found or access denied", http.StatusNotFound, nil)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+
+		// Convert the existing consumption to API format to get all items and nutrition data
+		existingAPIConsumption, err := storageConsumptionToAPI(ctx, s.store, existingConsumption)
+		if err != nil {
+			appErr := NewAppError("Failed to convert existing consumption", http.StatusInternalServerError, err)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+
+		// Create a new consumption using the existing data
+		// Calculate summary from the existing items
+		internalItems := convertAPIItemsToInternal(existingAPIConsumption.Items)
+		summary := summarize(internalItems)
+
+		// Create new consumption record (same transcript, but new timestamp)
+		newConsumption := itemWithNutritionToConsumption(user.ID, existingConsumption.Transcript, summary)
+		createdConsumption, err := s.store.CreateConsumption(ctx, newConsumption)
+		if err != nil {
+			appErr := NewAppError("Failed to save duplicated consumption", http.StatusInternalServerError, err)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+
+		LogInfo("Consumption duplicated successfully", "original_consumption_id", input.ConsumptionID, "new_consumption_id", createdConsumption.ID, "user_id", user.ID, "request_id", requestID)
+
+		// Save individual consumption items by duplicating the existing ones
+		for _, itemWithNutrition := range existingAPIConsumption.Items {
+			// Try to find existing item in global cache for linking (optional)
+			var itemID *string
+			if existingConsumption != nil {
+				// Use the same normalization as the original creation logic
+				normalizedName := normalizeItemNameForCache(itemWithNutrition.Item.Name, itemWithNutrition.Item.Brand)
+				normalizedBrand := normalizeItemName(getBrandOrEmpty(itemWithNutrition.Item.Brand))
+
+				// Create exact serving key to match how items are stored
+				exactKey := fmt.Sprintf("%s|%s|%.1fg", normalizedName, normalizedBrand, itemWithNutrition.Item.Grams)
+				if existingItem, err := s.store.GetItemByName(ctx, exactKey, normalizedBrand); err == nil && existingItem != nil {
+					itemID = &existingItem.ID
+				}
+			}
+
+			consumptionItem := apiItemWithNutritionToConsumptionItem(createdConsumption.ID, itemWithNutrition, itemID)
+			if err := s.store.CreateConsumptionItem(ctx, consumptionItem); err != nil {
+				LogError("Failed to save duplicated consumption item", err, "item_name", itemWithNutrition.Item.Name, "consumption_id", createdConsumption.ID)
+				// Continue with other items even if one fails
+			}
+		}
+
+		// Convert to API format for response using the created consumption directly
+		apiConsumption, err := storageConsumptionToAPI(ctx, s.store, createdConsumption)
+		if err != nil {
+			appErr := NewAppError("Failed to convert duplicated consumption", http.StatusInternalServerError, err)
+			s.handleAppError(c, appErr, requestID)
+			return
+		}
+
+		LogInfo("Consumption duplication completed successfully",
+			"original_consumption_id", input.ConsumptionID,
+			"new_consumption_id", createdConsumption.ID,
+			"items_count", len(existingAPIConsumption.Items),
+			"total_calories", summary.Totals.Calories,
+			"request_id", requestID,
+		)
+
+		c.JSON(http.StatusOK, apiConsumption)
+		return
+	}
+
+	// Original AI/LLM processing flow for text/audio input
 	transcript := input.Text
 
-	LogDebug("Input normalized", "source", input.Source, "text_length", len(transcript), "request_id", requestID)
+	LogDebug("Starting AI/LLM processing", "source", input.Source, "text_length", len(transcript), "request_id", requestID)
 
 	// Create nutrition service
 	nutritionService := NewNutritionService(s.store)

@@ -36,7 +36,8 @@ type Summary struct {
 
 // ConsumptionInput represents the normalized input for consumption processing
 type ConsumptionInput struct {
-	Text      string // The text to process (from audio transcription or direct input)
-	Source    string // "audio" or "text" to track the input source
-	RequestID string // For logging purposes
+	Text          string // The text to process (from audio transcription or direct input)
+	ConsumptionID string // ID of existing consumption to duplicate (alternative to Text)
+	Source        string // "audio", "text", or "duplicate" to track the input source
+	RequestID     string // For logging purposes
 }

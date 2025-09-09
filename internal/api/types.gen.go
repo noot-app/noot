@@ -4,6 +4,7 @@
 package api
 
 import (
+	"encoding/json"
 	"time"
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -1056,8 +1057,7 @@ type UserBiometricsSex string
 
 // CreateConsumptionJSONBody defines parameters for CreateConsumption.
 type CreateConsumptionJSONBody struct {
-	// Text Text description of consumption
-	Text string `json:"text"`
+	union json.RawMessage
 }
 
 // CreateConsumptionMultipartBody defines parameters for CreateConsumption.
@@ -1067,6 +1067,18 @@ type CreateConsumptionMultipartBody struct {
 
 	// Text Text description of consumption (optional, takes precedence over audio if both provided)
 	Text *string `json:"text,omitempty"`
+}
+
+// CreateConsumptionJSONBody0 defines parameters for CreateConsumption.
+type CreateConsumptionJSONBody0 struct {
+	// Text Text description of consumption for AI processing
+	Text string `json:"text"`
+}
+
+// CreateConsumptionJSONBody1 defines parameters for CreateConsumption.
+type CreateConsumptionJSONBody1 struct {
+	// ConsumptionId ID of an existing consumption to duplicate (skips AI processing)
+	ConsumptionId string `json:"consumption_id"`
 }
 
 // GetConsumptionsParams defines parameters for GetConsumptions.

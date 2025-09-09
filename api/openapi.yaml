@@ -14,8 +14,8 @@ servers:
 paths:
   /consumption:
     post:
-      summary: Log a consumption via audio or text
-      description: Upload an audio file of spoken consumption data to be transcribed, or provide text directly, then parse and analyze for nutrition information
+      summary: Log a consumption via audio, text, or duplicate existing consumption
+      description: Upload an audio file of spoken consumption data to be transcribed, provide text directly for AI processing, or duplicate an existing consumption by ID to skip AI processing
       operationId: createConsumption
       requestBody:
         required: true
@@ -35,13 +35,21 @@ paths:
                 - audio
           application/json:
             schema:
-              type: object
-              properties:
-                text:
-                  type: string
-                  description: Text description of consumption
-              required:
-                - text
+              oneOf:
+                - type: object
+                  properties:
+                    text:
+                      type: string
+                      description: Text description of consumption for AI processing
+                  required:
+                    - text
+                - type: object
+                  properties:
+                    consumption_id:
+                      type: string
+                      description: ID of an existing consumption to duplicate (skips AI processing)
+                  required:
+                    - consumption_id
       responses:
         "200":
           description: Successful consumption analysis

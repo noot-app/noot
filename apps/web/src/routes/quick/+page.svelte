@@ -100,11 +100,11 @@
   // Quick re-log consumption
   async function quickRelogConsumption(consumption: Consumption) {
     try {
-      // Create a new consumption with the same transcript
+      // Create a new consumption by duplicating the existing one using consumption_id
       const result = await handleApiCallWithAuthRedirect(async () => {
         return await apiClient.POST("/consumption", {
           body: {
-            text: consumption.transcript
+            consumption_id: consumption.id
           }
         })
       })

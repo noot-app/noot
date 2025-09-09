@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -392,27 +393,46 @@ func normalizeConsumptionInput(c *gin.Context, requestID string, maxFormSize int
 
 	// Handle JSON input (application/json)
 	if strings.HasPrefix(contentType, "application/json") {
-		var jsonInput struct {
-			Text string `json:"text" binding:"required"`
+		// Try to parse as raw JSON first to determine the payload type
+		var rawBody json.RawMessage
+		if err := c.ShouldBindJSON(&rawBody); err != nil {
+			return nil, NewAppError("Invalid JSON payload", http.StatusBadRequest, err)
 		}
 
-		if err := c.ShouldBindJSON(&jsonInput); err != nil {
-			return nil, NewAppError("Invalid JSON or missing text field", http.StatusBadRequest, err)
+		// Try to parse as consumption_id payload
+		var consumptionIDInput struct {
+			ConsumptionID string `json:"consumption_id"`
+		}
+		if err := json.Unmarshal(rawBody, &consumptionIDInput); err == nil && consumptionIDInput.ConsumptionID != "" {
+			LogDebug("JSON consumption_id input received", "consumption_id", consumptionIDInput.ConsumptionID, "request_id", requestID)
+			return &ConsumptionInput{
+				ConsumptionID: consumptionIDInput.ConsumptionID,
+				Source:        "duplicate",
+				RequestID:     requestID,
+			}, nil
 		}
 
-		// Sanitize the text input for security
-		sanitizedText := sanitizeTranscriptOutput(jsonInput.Text)
-		if len(strings.TrimSpace(sanitizedText)) == 0 {
-			return nil, NewAppError("Text field cannot be empty", http.StatusBadRequest, nil)
+		// Try to parse as text payload
+		var textInput struct {
+			Text string `json:"text"`
+		}
+		if err := json.Unmarshal(rawBody, &textInput); err == nil && textInput.Text != "" {
+			// Sanitize the text input for security
+			sanitizedText := sanitizeTranscriptOutput(textInput.Text)
+			if len(strings.TrimSpace(sanitizedText)) == 0 {
+				return nil, NewAppError("Text field cannot be empty", http.StatusBadRequest, nil)
+			}
+
+			LogDebug("JSON text input received", "text_length", len(sanitizedText), "request_id", requestID)
+			return &ConsumptionInput{
+				Text:      sanitizedText,
+				Source:    "text",
+				RequestID: requestID,
+			}, nil
 		}
 
-		LogDebug("JSON text input received", "text_length", len(sanitizedText), "request_id", requestID)
-
-		return &ConsumptionInput{
-			Text:      sanitizedText,
-			Source:    "text",
-			RequestID: requestID,
-		}, nil
+		// If neither format is recognized, return an error
+		return nil, NewAppError("Invalid JSON payload: must provide either 'text' or 'consumption_id'", http.StatusBadRequest, nil)
 	}
 
 	// Handle multipart form input (multipart/form-data) - existing behavior

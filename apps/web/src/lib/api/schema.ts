@@ -14,8 +14,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Log a consumption via audio or text
-         * @description Upload an audio file of spoken consumption data to be transcribed, or provide text directly, then parse and analyze for nutrition information
+         * Log a consumption via audio, text, or duplicate existing consumption
+         * @description Upload an audio file of spoken consumption data to be transcribed, provide text directly for AI processing, or duplicate an existing consumption by ID to skip AI processing
          */
         post: operations["createConsumption"];
         delete?: never;
@@ -1616,8 +1616,11 @@ export interface operations {
                     text?: string;
                 };
                 "application/json": {
-                    /** @description Text description of consumption */
+                    /** @description Text description of consumption for AI processing */
                     text: string;
+                } | {
+                    /** @description ID of an existing consumption to duplicate (skips AI processing) */
+                    consumption_id: string;
                 };
             };
         };
