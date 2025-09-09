@@ -45,7 +45,7 @@
 
   // Form validation
   $: isValidTimestamp = !editableTimestamp || fromLocalDateTimeString(editableTimestamp) <= new Date()
-  $: isTimestampInFuture = editableTimestamp && fromLocalDateTimeString(editableTimestamp) > new Date()
+  $: isTimestampInFuture = Boolean(editableTimestamp && fromLocalDateTimeString(editableTimestamp) > new Date())
 
     // Event dispatcher
   const dispatch = createEventDispatcher()
