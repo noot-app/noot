@@ -48,12 +48,12 @@
         })
 
         if (result.error) {
-          toast.add(formatErrorForUser(result.error), "error")
+          toast.error(formatErrorForUser(result.error))
           return
         }
 
         isFavorited = false
-        toast.add("Removed from favorites", "success")
+        toast.success("Removed from favorites")
       } else {
         // Add to favorites
         const result = await handleApiCallWithAuthRedirect(async () => {
@@ -65,16 +65,16 @@
         })
 
         if (result.error) {
-          toast.add(formatErrorForUser(result.error), "error")
+          toast.error(formatErrorForUser(result.error))
           return
         }
 
         isFavorited = true
-        toast.add("Added to favorites", "success")
+        toast.success("Added to favorites")
       }
     } catch (err) {
       console.error("Failed to toggle favorite:", err)
-      toast.add("Failed to update favorites. Please try again.", "error")
+      toast.error("Failed to update favorites. Please try again.")
     } finally {
       isUpdatingFavorite = false
     }

@@ -5,10 +5,7 @@
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import TimelineIcon from "$lib/components/icons/Timeline.svelte"
   import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
-  import type { PageData } from "./$types"
   import type { paths } from "$lib/api/schema"
-
-  export let data: PageData
 
   // Type definitions
   type FavoritesResponse = paths["/favorites"]["get"]["responses"]["200"]["content"]["application/json"]
@@ -113,18 +110,18 @@
       })
 
       if (result.error) {
-        toast.add(formatErrorForUser(result.error), "error")
+        toast.error(formatErrorForUser(result.error))
         return
       }
 
-      toast.add("Successfully re-logged consumption!", "success")
+      toast.success("Successfully re-logged consumption!")
       
       // Refresh recent consumptions to show the new one
       currentPage = 0
       await loadRecentConsumptions(0, false)
     } catch (err) {
       console.error("Failed to re-log consumption:", err)
-      toast.add("Failed to re-log consumption. Please try again.", "error")
+      toast.error("Failed to re-log consumption. Please try again.")
     }
   }
 
@@ -143,13 +140,13 @@
         })
 
         if (result.error) {
-          toast.add(formatErrorForUser(result.error), "error")
+          toast.error(formatErrorForUser(result.error))
           return
         }
 
         // Remove from local favorites list
         favorites = favorites.filter(fav => fav.consumption_id !== consumption.id)
-        toast.add("Removed from favorites", "success")
+        toast.success("Removed from favorites")
       } else {
         // Add to favorites
         const result = await handleApiCallWithAuthRedirect(async () => {
@@ -161,17 +158,17 @@
         })
 
         if (result.error) {
-          toast.add(formatErrorForUser(result.error), "error")
+          toast.error(formatErrorForUser(result.error))
           return
         }
 
         // Reload favorites to get the updated list
         await loadFavorites()
-        toast.add("Added to favorites", "success")
+        toast.success("Added to favorites")
       }
     } catch (err) {
       console.error("Failed to toggle favorite:", err)
-      toast.add("Failed to update favorites. Please try again.", "error")
+      toast.error("Failed to update favorites. Please try again.")
     }
   }
 
@@ -198,7 +195,7 @@
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-3xl font-bold flex items-center gap-2">
-        <TimelineIcon class="w-8 h-8" />
+        <TimelineIcon className="w-8 h-8" />
         Quick Add
       </h1>
       <p class="text-base-content/70 mt-2">
