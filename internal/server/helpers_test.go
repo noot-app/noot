@@ -194,3 +194,59 @@ func TestApplyDaysLimit(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeCanonicalName(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "single word",
+			input:    "banana",
+			expected: "banana",
+		},
+		{
+			name:     "multiple words with spaces",
+			input:    "vanilla ice cream",
+			expected: "vanilla_ice_cream",
+		},
+		{
+			name:     "uppercase with spaces",
+			input:    "CREAM SODA",
+			expected: "cream_soda",
+		},
+		{
+			name:     "mixed case with spaces",
+			input:    "Cold Brew Coffee",
+			expected: "cold_brew_coffee",
+		},
+		{
+			name:     "with leading and trailing spaces",
+			input:    "  potato chip  ",
+			expected: "potato_chip",
+		},
+		{
+			name:     "multiple spaces between words",
+			input:    "green  smoothie",
+			expected: "green__smoothie",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "only spaces",
+			input:    "   ",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := normalizeCanonicalName(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

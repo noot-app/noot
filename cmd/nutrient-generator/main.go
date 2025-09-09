@@ -442,7 +442,7 @@ func ScaleNutritionFromCachedServing(cachedItem *storage.Item, fromGrams, toGram
 
 	return CompleteNutrient{
 {{- range .Per100gNutrients}}
-		{{.GoFieldName}}: {{if eq .Key "calories"}}float64(RoundCaloriesUp(scaleValue(cachedItem.Original{{.GoFieldName}}{{getUnitSuffix .Unit}}))){{else}}scaleValue(cachedItem.Original{{.GoFieldName}}{{getUnitSuffix .Unit}}){{end}},
+		{{.GoFieldName}}: {{if eq .Key "calories"}}float64(RoundCalories(scaleValue(cachedItem.Original{{.GoFieldName}}{{getUnitSuffix .Unit}}))){{else}}scaleValue(cachedItem.Original{{.GoFieldName}}{{getUnitSuffix .Unit}}){{end}},
 {{- end}}
 	}
 }

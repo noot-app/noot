@@ -183,6 +183,19 @@ func validateParsedItems(items []Item) []Item {
 		// Sanitize item name
 		item.Name = sanitizeText(item.Name)
 
+		// Validate and sanitize canonical name (optional field)
+		if len(item.CanonicalName) > maxItemNameLength {
+			LogWarn("Canonical name too long, truncating", "original_length", len(item.CanonicalName), "max", maxItemNameLength)
+			item.CanonicalName = item.CanonicalName[:maxItemNameLength]
+		}
+
+		// Sanitize canonical name if present
+		if len(item.CanonicalName) > 0 {
+			item.CanonicalName = sanitizeText(item.CanonicalName)
+			// Normalize canonical name to ensure consistency (lowercase, trim, spaces to underscores)
+			item.CanonicalName = normalizeCanonicalName(item.CanonicalName)
+		}
+
 		// Validate and sanitize brand if present
 		if item.Brand != nil {
 			if len(*item.Brand) > maxBrandLength {
@@ -509,12 +522,13 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 		Success bool    `json:"success"`
 		Message *string `json:"message"`
 		Items   []struct {
-			Name         string   `json:"name"`
-			Grams        *float64 `json:"grams"`
-			UserQuantity *float64 `json:"user_quantity"`
-			UserUnit     *string  `json:"user_unit"`
-			Brand        *string  `json:"brand"`
-			Context      *string  `json:"context"`
+			Name          string   `json:"name"`
+			CanonicalName string   `json:"canonical_name"`
+			Grams         *float64 `json:"grams"`
+			UserQuantity  *float64 `json:"user_quantity"`
+			UserUnit      *string  `json:"user_unit"`
+			Brand         *string  `json:"brand"`
+			Context       *string  `json:"context"`
 		} `json:"items"`
 	}
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
@@ -552,14 +566,15 @@ func (p *OpenAIProvider) ParseItems(ctx context.Context, transcriptText string) 
 		}
 
 		clean = append(clean, Item{
-			Name:         name,
-			Grams:        *i.Grams,
-			UserQuantity: i.UserQuantity,
-			UserUnit:     strPtrOrNil(i.UserUnit),
-			Brand:        strPtrOrNil(i.Brand),
-			BaseQuantity: baseQuantity,
-			Context:      strPtrOrNil(i.Context),
-			Nutrients:    nil, // No nutrition data in phase 1
+			Name:          name,
+			CanonicalName: strings.TrimSpace(i.CanonicalName),
+			Grams:         *i.Grams,
+			UserQuantity:  i.UserQuantity,
+			UserUnit:      strPtrOrNil(i.UserUnit),
+			Brand:         strPtrOrNil(i.Brand),
+			BaseQuantity:  baseQuantity,
+			Context:       strPtrOrNil(i.Context),
+			Nutrients:     nil, // No nutrition data in phase 1
 		})
 	}
 

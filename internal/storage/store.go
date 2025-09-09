@@ -44,7 +44,7 @@ type Store interface {
 	// Item operations (evolved from ItemCache)
 	CreateItem(ctx context.Context, item *Item) error
 	GetItem(ctx context.Context, id string) (*Item, error)
-	GetItemByName(ctx context.Context, normalizedName, normalizedBrand string) (*Item, error)
+	GetItemByName(ctx context.Context, canonicalName, brand string) (*Item, error)
 	UpdateItem(ctx context.Context, item *Item) error
 	GetStaleItems(ctx context.Context, staleAfter time.Time) ([]*Item, error) // For 30-day refresh logic
 
@@ -205,11 +205,11 @@ type Consumption struct {
 
 // Item represents permanent nutrition data for a food item (evolved from ItemCache)
 type Item struct {
-	ID              string `json:"id"`
-	NormalizedName  string `json:"normalized_name"`
-	NormalizedBrand string `json:"normalized_brand"`
-	DisplayName     string `json:"display_name"`
-	DisplayBrand    string `json:"display_brand"`
+	ID            string `json:"id"`
+	CanonicalName string `json:"canonical_name"`
+	Brand         string `json:"brand"`
+	DisplayName   string `json:"display_name"`
+	DisplayBrand  string `json:"display_brand"`
 
 	// Original serving data (exact values for one serving of the item - ex: one can of soda, one burger, one carrot, one handful of blueberries, one plate of pasta with pesto sauce, etc)
 	OriginalServingGrams        *float64 `json:"original_serving_grams,omitempty"`

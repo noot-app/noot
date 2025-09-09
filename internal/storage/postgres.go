@@ -1135,12 +1135,12 @@ func (s *PostgreSQLStore) GetItem(ctx context.Context, id string) (*Item, error)
 	return item, nil
 }
 
-// GetItemByName retrieves an item by normalized name and brand
-func (s *PostgreSQLStore) GetItemByName(ctx context.Context, normalizedName, normalizedBrand string) (*Item, error) {
-	query := buildPostgreSQLSelectQuery("normalized_name = $1 AND normalized_brand = $2")
+// GetItemByName retrieves an item by canonical name and brand
+func (s *PostgreSQLStore) GetItemByName(ctx context.Context, canonicalName, brand string) (*Item, error) {
+	query := buildPostgreSQLSelectQuery("canonical_name = $1 AND brand = $2")
 
 	item := &Item{}
-	err := scanItemRow(s.db.QueryRowContext(ctx, query, normalizedName, normalizedBrand), item)
+	err := scanItemRow(s.db.QueryRowContext(ctx, query, canonicalName, brand), item)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Item not found in cache

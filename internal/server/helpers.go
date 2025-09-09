@@ -244,6 +244,14 @@ func normalizeItemName(name string) string {
 	return strings.ToLower(strings.TrimSpace(name))
 }
 
+// normalizeCanonicalName normalizes canonical names for storage consistency
+// Converts to lowercase, trims whitespace, and replaces spaces with underscores
+// This ensures canonical names are always stored consistently regardless of LLM output
+func normalizeCanonicalName(name string) string {
+	normalized := strings.ToLower(strings.TrimSpace(name))
+	return strings.ReplaceAll(normalized, " ", "_")
+}
+
 // normalizeItemNameForCache normalizes item names for caching by removing brand information
 // This prevents cache fragmentation due to brand names appearing in different positions
 func normalizeItemNameForCache(name string, brand *string) string {

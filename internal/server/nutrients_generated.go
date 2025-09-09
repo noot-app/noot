@@ -810,7 +810,7 @@ func ScaleNutritionFromCachedServing(cachedItem *storage.Item, fromGrams, toGram
 	}
 
 	return CompleteNutrient{
-		Calories:           float64(RoundCaloriesUp(scaleValue(cachedItem.OriginalCalories))),
+		Calories:           float64(RoundCalories(scaleValue(cachedItem.OriginalCalories))),
 		Protein:            scaleValue(cachedItem.OriginalProteinG),
 		TotalFat:           scaleValue(cachedItem.OriginalTotalFatG),
 		SaturatedFat:       scaleValue(cachedItem.OriginalSaturatedFatG),
