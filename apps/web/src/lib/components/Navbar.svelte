@@ -11,6 +11,7 @@
   // Navigation items
   const navItems = [
     { href: "/record", label: "Record", icon: "microphone" },
+    { href: "/quick", label: "Quick", icon: "timeline" },
     { href: "/summary", label: "Summary", icon: "chart-bar" },
     { href: "/log", label: "Log", icon: "timeline" },
     { href: "/events", label: "Events", icon: "calendar" },

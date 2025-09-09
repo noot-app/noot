@@ -221,6 +221,20 @@ func (m *mockStore) UpdateAPIKeyLastUsed(ctx context.Context, id string, lastUse
 	return nil
 }
 
+// Favorites mock methods
+func (m *mockStore) CreateFavorite(ctx context.Context, userID, consumptionID string) (*storage.UserFavorite, error) {
+	return nil, nil
+}
+func (m *mockStore) DeleteFavorite(ctx context.Context, userID, consumptionID string) error {
+	return nil
+}
+func (m *mockStore) GetUserFavorites(ctx context.Context, userID string) ([]*storage.UserFavoriteWithConsumption, error) {
+	return nil, nil
+}
+func (m *mockStore) IsFavorited(ctx context.Context, userID, consumptionID string) (bool, error) {
+	return false, nil
+}
+
 func (m *mockStore) Close() error { return nil }
 
 // Test JWT validation security patterns
