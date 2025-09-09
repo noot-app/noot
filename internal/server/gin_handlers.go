@@ -125,6 +125,11 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 
 		// Create new consumption record (same transcript, but new timestamp)
 		newConsumption := itemWithNutritionToConsumption(user.ID, existingConsumption.Transcript, summary)
+
+		// Copy the title and note from the original consumption
+		newConsumption.Title = existingConsumption.Title
+		newConsumption.Note = existingConsumption.Note
+
 		createdConsumption, err := s.store.CreateConsumption(ctx, newConsumption)
 		if err != nil {
 			appErr := NewAppError("Failed to save duplicated consumption", http.StatusInternalServerError, err)

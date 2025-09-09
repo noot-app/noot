@@ -1218,7 +1218,7 @@ func (s *PostgreSQLStore) GetUserFavorites(ctx context.Context, userID string) (
 			c.copper_mg, c.manganese_mg, c.selenium_mcg, c.iodine_mcg, c.molybdenum_mcg, 
 			c.chromium_mcg, c.fluoride_mg, c.chloride_mg, c.omega3_ala_g, c.omega3_epa_g, 
 			c.omega3_dha_g, c.omega6_g, c.creatine_mg, c.caffeine_mg, c.alcohol_g, 
-			c.polyunsaturated_fat_g, c.monounsaturated_fat_g, c.note, c.is_public,
+			c.polyunsaturated_fat_g, c.monounsaturated_fat_g, c.note, c.title, c.is_public,
 			c.created_at, c.updated_at, c.consumed_at
 		FROM user_favorites f
 		JOIN consumptions c ON f.consumption_id = c.id
@@ -1264,7 +1264,7 @@ func (s *PostgreSQLStore) GetUserFavorites(ctx context.Context, userID string) (
 			&favorite.Consumption.Omega6, &favorite.Consumption.Creatine,
 			&favorite.Consumption.Caffeine, &favorite.Consumption.Alcohol,
 			&favorite.Consumption.PolyunsaturatedFat, &favorite.Consumption.MonounsaturatedFat,
-			&favorite.Consumption.Note, &favorite.Consumption.IsPublic,
+			&favorite.Consumption.Note, &favorite.Consumption.Title, &favorite.Consumption.IsPublic,
 			&favorite.Consumption.CreatedAt, &favorite.Consumption.UpdatedAt,
 			&favorite.Consumption.ConsumedAt,
 		)
