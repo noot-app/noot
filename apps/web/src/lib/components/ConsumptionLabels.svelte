@@ -3,6 +3,7 @@
   import { apiClient } from "$lib/api/client"
   import Label from "./Label.svelte"
   import TagIcon from "./icons/Tag.svelte"
+  import Alert from "./Alert.svelte"
 
   // Props
   export let consumptionId: string
@@ -220,21 +221,15 @@
     </div>
 
     {#if error}
-      <div class="alert alert-error mb-4" data-testid="error-alert">
-        <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        <span>{error}</span>
-      </div>
+      <Alert type="error" className="mb-4" data-testid="error-alert">
+        {error}
+      </Alert>
     {/if}
 
     {#if autoShowEdit && isEditingLabels}
-      <div class="alert alert-info mb-4 text-sm" data-testid="auto-edit-info">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
+      <Alert type="info" className="mb-4 text-sm" data-testid="auto-edit-info">
         Select labels to apply to this meal. Click "Apply" to save changes, or "Done" when finished.
-      </div>
+      </Alert>
     {/if}
 
     <!-- Applied Labels Display (when not editing) -->

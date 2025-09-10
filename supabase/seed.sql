@@ -309,17 +309,17 @@ timed_consumptions AS (
         -- Calculate realistic timestamp for meal type (ensuring past dates)
         CASE 
             WHEN meal_type = 'breakfast' THEN 
-                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '7 hours' + (random() * INTERVAL '3 hours')
+                (CURRENT_DATE - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '7 hours' + (random() * INTERVAL '3 hours')
             WHEN meal_type = 'lunch' THEN 
-                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '11.5 hours' + (random() * INTERVAL '2.5 hours')
+                (CURRENT_DATE - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '11.5 hours' + (random() * INTERVAL '2.5 hours')
             WHEN meal_type = 'dinner' THEN 
-                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '18 hours' + (random() * INTERVAL '3 hours')
+                (CURRENT_DATE - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '18 hours' + (random() * INTERVAL '3 hours')
             WHEN meal_type = 'snack' THEN 
-                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '15 hours' + (random() * INTERVAL '8 hours')
+                (CURRENT_DATE - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '15 hours' + (random() * INTERVAL '8 hours')
             WHEN meal_type = 'drink' THEN 
-                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '9 hours' + (random() * INTERVAL '10 hours')
+                (CURRENT_DATE - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '9 hours' + (random() * INTERVAL '10 hours')
             ELSE 
-                ('2025-09-03'::date - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '12 hours' + (random() * INTERVAL '8 hours')
+                (CURRENT_DATE - INTERVAL '1 day' * day_offset)::timestamp + INTERVAL '12 hours' + (random() * INTERVAL '8 hours')
         END AS created_at
     FROM selected_meals
 )
@@ -543,7 +543,7 @@ events_with_types AS (
         ed.note,
         ed.day_offset,
         -- Calculate realistic started_at timestamp
-        ('2025-09-03'::date - INTERVAL '1 day' * ed.day_offset)::timestamp + 
+        (CURRENT_DATE - INTERVAL '1 day' * ed.day_offset)::timestamp + 
         CASE 
             WHEN ed.event_type_name = 'sleep' THEN INTERVAL '22 hours' + (random() * INTERVAL '3 hours')
             WHEN ed.event_type_name = 'exercise' THEN INTERVAL '7 hours' + (random() * INTERVAL '14 hours') 
@@ -554,10 +554,10 @@ events_with_types AS (
         -- Some events have end times (especially sleep and exercise)
         CASE 
             WHEN ed.event_type_name = 'sleep' THEN 
-                ('2025-09-03'::date - INTERVAL '1 day' * ed.day_offset)::timestamp + INTERVAL '22 hours' + (random() * INTERVAL '3 hours') + 
+                (CURRENT_DATE - INTERVAL '1 day' * ed.day_offset)::timestamp + INTERVAL '22 hours' + (random() * INTERVAL '3 hours') + 
                 INTERVAL '6 hours' + (random() * INTERVAL '4 hours')
             WHEN ed.event_type_name = 'exercise' AND ed.level >= 6 THEN
-                ('2025-09-03'::date - INTERVAL '1 day' * ed.day_offset)::timestamp + INTERVAL '7 hours' + (random() * INTERVAL '14 hours') +
+                (CURRENT_DATE - INTERVAL '1 day' * ed.day_offset)::timestamp + INTERVAL '7 hours' + (random() * INTERVAL '14 hours') +
                 INTERVAL '30 minutes' + (random() * INTERVAL '90 minutes')
             ELSE NULL
         END as ended_at

@@ -33,6 +33,14 @@ const (
 	ExportResponseFormatJson ExportResponseFormat = "json"
 )
 
+// Defines values for GoalSetSummaryCategory.
+const (
+	GoalSetSummaryCategoryCustom  GoalSetSummaryCategory = "custom"
+	GoalSetSummaryCategoryFitness GoalSetSummaryCategory = "fitness"
+	GoalSetSummaryCategoryHealth  GoalSetSummaryCategory = "health"
+	GoalSetSummaryCategoryWeight  GoalSetSummaryCategory = "weight"
+)
+
 // Defines values for GoalsSource.
 const (
 	GoalsSourceCustom GoalsSource = "custom"
@@ -61,6 +69,14 @@ const (
 	UpdateBiometricsRequestSexMale           UpdateBiometricsRequestSex = "male"
 	UpdateBiometricsRequestSexOther          UpdateBiometricsRequestSex = "other"
 	UpdateBiometricsRequestSexPreferNotToSay UpdateBiometricsRequestSex = "prefer_not_to_say"
+)
+
+// Defines values for UpdateGoalsRequestCategory.
+const (
+	Custom  UpdateGoalsRequestCategory = "custom"
+	Fitness UpdateGoalsRequestCategory = "fitness"
+	Health  UpdateGoalsRequestCategory = "health"
+	Weight  UpdateGoalsRequestCategory = "weight"
 )
 
 // Defines values for UserSubscriptionTier.
@@ -106,8 +122,8 @@ const (
 
 // Defines values for GetGoalsParamsSource.
 const (
-	GetGoalsParamsSourceAuto GetGoalsParamsSource = "auto"
-	GetGoalsParamsSourceDri  GetGoalsParamsSource = "dri"
+	Auto GetGoalsParamsSource = "auto"
+	Dri  GetGoalsParamsSource = "dri"
 )
 
 // APIKey defines model for APIKey.
@@ -730,6 +746,9 @@ type FavoritesResponse struct {
 
 // GoalSetSummary defines model for GoalSetSummary.
 type GoalSetSummary struct {
+	// Category Category of the goal set
+	Category GoalSetSummaryCategory `json:"category"`
+
 	// CreatedAt When the goal set was created
 	CreatedAt time.Time `json:"created_at"`
 
@@ -739,6 +758,9 @@ type GoalSetSummary struct {
 	// UpdatedAt When the goal set was last updated
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+// GoalSetSummaryCategory Category of the goal set
+type GoalSetSummaryCategory string
 
 // GoalSetsResponse defines model for GoalSetsResponse.
 type GoalSetsResponse struct {
@@ -947,21 +969,6 @@ type Summary struct {
 	Totals         CompleteNutrient `json:"totals"`
 }
 
-// TrendsResponse defines model for TrendsResponse.
-type TrendsResponse struct {
-	DateRange struct {
-		End   *time.Time `json:"end,omitempty"`
-		Start *time.Time `json:"start,omitempty"`
-	} `json:"date_range"`
-
-	// Days Number of days in the time series
-	Days int `json:"days"`
-
-	// Series Time series data for each requested metric
-	Series map[string][]DataPoint `json:"series"`
-	User   User                   `json:"user"`
-}
-
 // UpdateBiometricsRequest defines model for UpdateBiometricsRequest.
 type UpdateBiometricsRequest struct {
 	// ActivityLevel Physical activity level
@@ -1003,12 +1010,18 @@ type UpdateConsumptionRequest struct {
 
 // UpdateGoalsRequest defines model for UpdateGoalsRequest.
 type UpdateGoalsRequest struct {
+	// Category Category of the goal set
+	Category *UpdateGoalsRequestCategory `json:"category,omitempty"`
+
 	// Name Custom name for the goal set (required for managing multiple goal sets)
 	Name string `json:"name"`
 
 	// Overrides Custom nutrition goal overrides
 	Overrides map[string]float32 `json:"overrides"`
 }
+
+// UpdateGoalsRequestCategory Category of the goal set
+type UpdateGoalsRequestCategory string
 
 // User defines model for User.
 type User struct {
@@ -1068,11 +1081,12 @@ type CreateConsumptionJSONBody struct {
 
 // CreateConsumptionMultipartBody defines parameters for CreateConsumption.
 type CreateConsumptionMultipartBody struct {
-	// Audio Audio file (webm, opus, mp3, wav)
-	Audio openapi_types.File `json:"audio"`
+	// Audio Audio file (webm, opus, mp3, wav) - ignored if text field is also provided
+	Audio *openapi_types.File `json:"audio,omitempty"`
 
-	// Text Text description of consumption (optional, takes precedence over audio if both provided)
-	Text *string `json:"text,omitempty"`
+	// Text Text description of consumption - takes precedence over audio if both provided
+	Text  *string `json:"text,omitempty"`
+	union json.RawMessage
 }
 
 // CreateConsumptionJSONBody0 defines parameters for CreateConsumption.
@@ -1083,9 +1097,15 @@ type CreateConsumptionJSONBody0 struct {
 
 // CreateConsumptionJSONBody1 defines parameters for CreateConsumption.
 type CreateConsumptionJSONBody1 struct {
-	// ConsumptionId ID of an existing consumption to duplicate (skips AI processing)
+	// ConsumptionId ID of an existing consumption to duplicate (skips AI processing, copies all items, nutrition data, title, note, and labels)
 	ConsumptionId string `json:"consumption_id"`
 }
+
+// CreateConsumptionMultipartBody0 defines parameters for CreateConsumption.
+type CreateConsumptionMultipartBody0 = interface{}
+
+// CreateConsumptionMultipartBody1 defines parameters for CreateConsumption.
+type CreateConsumptionMultipartBody1 = interface{}
 
 // GetConsumptionsParams defines parameters for GetConsumptions.
 type GetConsumptionsParams struct {
@@ -1176,21 +1196,6 @@ type GetGoalsParams struct {
 
 // GetGoalsParamsSource defines parameters for GetGoals.
 type GetGoalsParamsSource string
-
-// GetTrendsParams defines parameters for GetTrends.
-type GetTrendsParams struct {
-	// Metrics Comma-separated list of metrics to include
-	Metrics *string `form:"metrics,omitempty" json:"metrics,omitempty"`
-
-	// Start Start date (RFC3339 format)
-	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
-
-	// End End date (RFC3339 format)
-	End *time.Time `form:"end,omitempty" json:"end,omitempty"`
-
-	// Days Number of days to look back from today (alternative to start/end)
-	Days *int `form:"days,omitempty" json:"days,omitempty"`
-}
 
 // CreateAPIKeyJSONRequestBody defines body for CreateAPIKey for application/json ContentType.
 type CreateAPIKeyJSONRequestBody = CreateAPIKeyRequest

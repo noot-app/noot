@@ -27,5 +27,9 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{js,ts}"],
     globals: true, /// allows to skip import of test functions like `describe`, `it`, `expect`, etc.
     environment: 'jsdom', // Enable DOM support for Svelte component testing
+    setupFiles: ['src/test-setup.ts'], // Add test setup file
+    reporters: [['default', { summary: false }]], // Use clean reporter without summary for less noise
+    logHeapUsage: false, // Disable heap usage logging
+    onConsoleLog: () => false, // Suppress console logs in tests
   },
 })

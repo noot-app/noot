@@ -8,6 +8,7 @@
   import ConsumptionLabels from "./ConsumptionLabels.svelte"
   import PencilSquare from "./icons/PencilSquare.svelte"
   import Trash from "./icons/Trash.svelte"
+  import Alert from "./Alert.svelte"
 
   // Props
   export let consumption: any = null // The consumption data
@@ -252,12 +253,9 @@
 <div class="space-y-6">
   <!-- Error display -->
   {#if error}
-    <div class="alert alert-error">
-      <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-      </svg>
-      <span>{error}</span>
-    </div>
+    <Alert type="error">
+      {error}
+    </Alert>
   {/if}
 
   <!-- Show buttons at top if buttonsAtBottom is false (default behavior) -->

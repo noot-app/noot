@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS public.consumption_labels (
 -- Indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_consumption_labels_label ON public.consumption_labels(label_id);
 CREATE INDEX IF NOT EXISTS idx_consumption_labels_consumption ON public.consumption_labels(consumption_id);
+-- Optimized index for label-based filtering
+CREATE INDEX IF NOT EXISTS idx_consumption_labels_combo ON public.consumption_labels(label_id, consumption_id);
 
 -- Enable RLS
 ALTER TABLE public.consumption_labels ENABLE ROW LEVEL SECURITY;
@@ -46,6 +48,8 @@ CREATE TABLE IF NOT EXISTS public.consumption_item_labels (
 -- Indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_consumption_item_labels_label ON public.consumption_item_labels(label_id);
 CREATE INDEX IF NOT EXISTS idx_consumption_item_labels_item ON public.consumption_item_labels(consumption_item_id);
+-- Optimized index for label-based filtering
+CREATE INDEX IF NOT EXISTS idx_consumption_item_labels_combo ON public.consumption_item_labels(label_id, consumption_item_id);
 
 -- Enable RLS
 ALTER TABLE public.consumption_item_labels ENABLE ROW LEVEL SECURITY;

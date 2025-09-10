@@ -123,8 +123,11 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 		internalItems := convertAPIItemsToInternal(existingAPIConsumption.Items)
 		summary := summarize(internalItems)
 
+		// Determine the source based on input and context
+		source := determineConsumptionSource(c, input)
+
 		// Create new consumption record (same transcript, but new timestamp)
-		newConsumption := itemWithNutritionToConsumption(user.ID, existingConsumption.Transcript, summary)
+		newConsumption := itemWithNutritionToConsumption(user.ID, existingConsumption.Transcript, summary, source)
 
 		// Copy the title and note from the original consumption
 		newConsumption.Title = existingConsumption.Title
@@ -264,7 +267,10 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 		if err != nil {
 			LogError("Failed to get user for consumption storage", err)
 		} else if user != nil {
-			consumption := itemWithNutritionToConsumption(user.ID, transcript, summary)
+			// Determine the source based on input and context
+			source := determineConsumptionSource(c, input)
+
+			consumption := itemWithNutritionToConsumption(user.ID, transcript, summary, source)
 			createdConsumption, err := s.store.CreateConsumption(ctx, consumption)
 			if err != nil {
 				LogError("Failed to save consumption to database", err)
@@ -425,8 +431,8 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 	// Recalculate summary from updated items
 	summary := summarize(internalItems)
 
-	// Update the consumption record (keep original transcript, user_id)
-	updatedConsumption := itemWithNutritionToConsumption(existingConsumption.UserID, existingConsumption.Transcript, summary)
+	// Update the consumption record (keep original transcript, user_id, and source)
+	updatedConsumption := itemWithNutritionToConsumption(existingConsumption.UserID, existingConsumption.Transcript, summary, existingConsumption.Source)
 	updatedConsumption.ID = existingConsumption.ID
 
 	// Handle timestamp update - use new timestamp if provided, otherwise keep existing created_at
@@ -725,7 +731,7 @@ func (s *APIServer) GetGoals(c *gin.Context, params api.GetGoalsParams) {
 
 	// Determine goal source behavior
 	forceDRI := false
-	if params.Source != nil && *params.Source == api.GetGoalsParamsSourceDri {
+	if params.Source != nil && *params.Source == api.Dri {
 		forceDRI = true
 	}
 
@@ -739,8 +745,14 @@ func (s *APIServer) GetGoals(c *gin.Context, params api.GetGoalsParams) {
 		}
 
 		// If no specific goal requested, use the active goal
-		if goalName == "" && user.ActiveGoalName != nil {
-			goalName = *user.ActiveGoalName
+		if goalName == "" && user.ActiveGoalID != nil {
+			// Get the active goal by ID to find its name
+			activeGoal, err := s.store.GetUserGoalByID(ctx, user.ID, *user.ActiveGoalID)
+			if err != nil {
+				LogError("Failed to get active goal", err, "user_id", user.ID, "goal_id", *user.ActiveGoalID)
+			} else if activeGoal != nil {
+				goalName = activeGoal.Name
+			}
 		}
 
 		// Only try to get goals if we have a goal name
@@ -885,9 +897,16 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 		return
 	}
 
+	// Set category with default value
+	category := "custom"
+	if req.Category != nil {
+		category = string(*req.Category)
+	}
+
 	userGoal := &storage.UserGoal{
 		UserID:        user.ID,
 		Name:          req.Name, // Use the actual goal name from request
+		Category:      category,
 		OverridesJSON: string(overridesJSON),
 	}
 
@@ -898,76 +917,14 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 	}
 
 	// Set this as the active goal if the user doesn't have one set yet
-	if user.ActiveGoalName == nil {
-		if err := s.store.SetActiveGoal(ctx, user.ID, req.Name); err != nil {
-			LogError("Failed to set active goal for new user", err, "user_id", user.ID, "goal_name", req.Name)
+	if user.ActiveGoalID == nil {
+		if err := s.store.SetActiveGoal(ctx, user.ID, userGoal.ID); err != nil {
+			LogError("Failed to set active goal for new user", err, "user_id", user.ID, "goal_id", userGoal.ID)
 		}
 	}
 
 	// Return updated goals
 	s.GetGoals(c, api.GetGoalsParams{})
-}
-
-// GetTrends implements ServerInterface.GetTrends
-func (s *APIServer) GetTrends(c *gin.Context, params api.GetTrendsParams) {
-	requestID := c.GetString("request_id")
-	ctx := c.Request.Context()
-
-	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c)
-	if err != nil {
-		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-
-	// Parse date range parameters
-	start, end, days, err := parseTrendsDateRangeParams(params.Start, params.End, params.Days)
-	if err != nil {
-		appErr := NewAppError("Invalid date range parameters", http.StatusBadRequest, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-
-	// Apply subscription-based limits
-	if err := validateTrendsSubscriptionAccess(user.SubscriptionTier, start, end); err != nil {
-		appErr := NewAppError(err.Error(), http.StatusForbidden, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-
-	// Get consumption data
-	consumptions, err := s.store.GetConsumptionsByUserSince(ctx, user.ID, start)
-	if err != nil {
-		appErr := NewAppError("Failed to get consumptions", http.StatusInternalServerError, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-
-	// Parse requested metrics (default to common macros)
-	metrics := []string{"calories", "protein_g", "total_fat_g", "total_carbs_g"}
-	if params.Metrics != nil && *params.Metrics != "" {
-		// Parse comma-separated metrics
-		// TODO: Implement proper parsing and validation
-	}
-
-	// Generate time series data
-	series := generateTimeSeries(consumptions, metrics, start, end)
-
-	response := api.TrendsResponse{
-		Series: series,
-		User:   convertUser(user),
-		DateRange: struct {
-			End   *time.Time `json:"end,omitempty"`
-			Start *time.Time `json:"start,omitempty"`
-		}{
-			Start: &start,
-			End:   &end,
-		},
-		Days: days,
-	}
-
-	c.JSON(http.StatusOK, response)
 }
 
 // GetUserBiometrics retrieves user biometrics data
@@ -1339,10 +1296,14 @@ func (s *APIServer) GetGoalSets(c *gin.Context) {
 		return
 	}
 
-	// Check subscription tier
+	// For non-Pro users, return empty goal sets but still include user data
 	if user.SubscriptionTier != storage.SubscriptionTierPro {
-		appErr := NewAppError("Pro subscription required for goal sets management", http.StatusForbidden, nil)
-		s.handleAppError(c, appErr, requestID)
+		response := api.GoalSetsResponse{
+			GoalSets:       []api.GoalSetSummary{},
+			ActiveGoalName: "",
+			User:           convertUser(user),
+		}
+		c.JSON(http.StatusOK, response)
 		return
 	}
 
@@ -1359,15 +1320,22 @@ func (s *APIServer) GetGoalSets(c *gin.Context) {
 	for i, goal := range userGoals {
 		goalSets[i] = api.GoalSetSummary{
 			Name:      goal.Name,
+			Category:  api.GoalSetSummaryCategory(goal.Category),
 			CreatedAt: goal.CreatedAt,
 			UpdatedAt: goal.UpdatedAt,
 		}
 	}
 
-	// Determine active goal name
+	// Determine active goal name by looking up the goal ID
 	activeGoalName := ""
-	if user.ActiveGoalName != nil {
-		activeGoalName = *user.ActiveGoalName
+	if user.ActiveGoalID != nil {
+		// Find the goal with the active ID to get its name
+		for _, goal := range userGoals {
+			if goal.ID == *user.ActiveGoalID {
+				activeGoalName = goal.Name
+				break
+			}
+		}
 	}
 
 	response := api.GoalSetsResponse{
@@ -1407,21 +1375,21 @@ func (s *APIServer) SetActiveGoalSet(c *gin.Context) {
 		return
 	}
 
-	// Validate the goal exists
-	_, err = s.store.GetUserGoal(ctx, user.ID, req.Name)
+	// Validate the goal exists and get its ID
+	goal, err := s.store.GetUserGoal(ctx, user.ID, req.Name)
 	if err != nil {
 		appErr := NewAppError("Failed to verify goal exists", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
 		return
 	}
+	if goal == nil {
+		appErr := NewAppError("Goal set not found", http.StatusNotFound, fmt.Errorf("goal '%s' not found", req.Name))
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
 
-	// Set the active goal
-	if err := s.store.SetActiveGoal(ctx, user.ID, req.Name); err != nil {
-		if err.Error() == fmt.Sprintf("goal '%s' not found for user", req.Name) {
-			appErr := NewAppError("Goal set not found", http.StatusNotFound, err)
-			s.handleAppError(c, appErr, requestID)
-			return
-		}
+	// Set the active goal using the goal ID
+	if err := s.store.SetActiveGoal(ctx, user.ID, goal.ID); err != nil {
 		appErr := NewAppError("Failed to set active goal", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
 		return
@@ -1451,8 +1419,15 @@ func (s *APIServer) DeleteGoalSet(c *gin.Context, name string) {
 		return
 	}
 
-	// Check if we're deleting the active goal and if this is the last goal
-	isActiveGoal := user.ActiveGoalName != nil && *user.ActiveGoalName == name
+	// Check if we're deleting the active goal
+	isActiveGoal := false
+	if user.ActiveGoalID != nil {
+		// Get the goal being deleted to compare its ID with the active goal ID
+		goalToDelete, err := s.store.GetUserGoal(ctx, user.ID, name)
+		if err == nil && goalToDelete != nil && goalToDelete.ID == *user.ActiveGoalID {
+			isActiveGoal = true
+		}
+	}
 
 	// Get all user goals to check if this is the last one
 	allGoals, err := s.store.GetUserGoals(ctx, user.ID)

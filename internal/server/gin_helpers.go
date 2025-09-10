@@ -340,8 +340,8 @@ func getConsumptionMetric(consumption *storage.Consumption, metric string) float
 	}
 }
 
-// parseTrendsDateRangeParams converts trend API params to date range values
-func parseTrendsDateRangeParams(start, end *time.Time, days *int) (time.Time, time.Time, int, error) {
+// parseTimeRangeParams converts API time range params to time values for export and similar operations
+func parseTimeRangeParams(start, end *time.Time, days *int) (time.Time, time.Time, int, error) {
 	var startTime, endTime time.Time
 	var numDays int
 
@@ -367,22 +367,6 @@ func parseTrendsDateRangeParams(start, end *time.Time, days *int) (time.Time, ti
 	}
 
 	return startTime, endTime, numDays, nil
-}
-
-// validateTrendsSubscriptionAccess checks if user has access based on subscription and date range
-func validateTrendsSubscriptionAccess(subscriptionTier string, start, end time.Time) error {
-	days := int(end.Sub(start).Hours()/24) + 1
-
-	if days > 7 && strings.ToLower(subscriptionTier) != storage.SubscriptionTierPro {
-		return fmt.Errorf("access to more than 7 days requires Pro subscription")
-	}
-
-	// Pro users can access up to 1 year of data
-	if days > 365 {
-		return fmt.Errorf("maximum date range is 365 days")
-	}
-
-	return nil
 }
 
 // normalizeConsumptionInput extracts and normalizes input from either JSON or multipart form
@@ -500,4 +484,25 @@ func normalizeConsumptionInput(c *gin.Context, requestID string, maxFormSize int
 		Source:    "audio",
 		RequestID: requestID,
 	}, nil
+}
+
+// determineConsumptionSource determines the source of a consumption based on input and context
+func determineConsumptionSource(c *gin.Context, input *ConsumptionInput) string {
+	// Check if request was made with API key
+	if authMethod := c.GetString("auth_method"); authMethod == "api_key" {
+		return "api"
+	}
+
+	// Handle duplication case
+	if input.Source == "duplicate" {
+		return "by_consumption_id"
+	}
+
+	// Handle voice transcription
+	if input.Source == "audio" {
+		return "voice"
+	}
+
+	// Handle direct text input (default)
+	return "text"
 }
