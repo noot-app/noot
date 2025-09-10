@@ -15,7 +15,29 @@ export interface paths {
         put?: never;
         /**
          * Log a consumption via audio, text, or duplicate existing consumption
-         * @description Upload an audio file of spoken consumption data to be transcribed, provide text directly for AI processing, or duplicate an existing consumption by ID to skip AI processing
+         * @description Submit consumption data in three ways:
+         *
+         *     **1. Audio Upload (multipart/form-data):**
+         *     Upload an audio file to be transcribed and processed by AI
+         *
+         *     **2. Text Input (application/json OR multipart/form-data):**
+         *     Provide text directly for AI processing
+         *
+         *     **3. Duplicate Existing Consumption (application/json):**
+         *     Copy an existing consumption by providing its ID. This skips AI processing and duplicates all items, nutrition data, title, note, and labels. This is commonly used when marking a past consumption as a favorite and then clicking a button like "+ re-add"
+         *
+         *     **Example JSON payload to duplicate:**
+         *     ```json
+         *     {"consumption_id": "edc2bfd0-9648-4045-9467-40dada432fd5"}
+         *     ```
+         *
+         *     **Example JSON payload for text processing:**
+         *     ```json
+         *     {"text": "I ate a banana and yogurt for breakfast"}
+         *     ```
+         *
+         *     Note: For multipart/form-data, text takes precedence over audio if both are provided.
+         *
          */
         post: operations["createConsumption"];
         delete?: never;
@@ -539,26 +561,6 @@ export interface paths {
          * @description Delete an event type owned by the current user. Events using this type will have their event_type_id set to null.
          */
         delete: operations["deleteEventType"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/trends": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get nutrition trends
-         * @description Get time series data for nutrition metrics over a specified period
-         */
-        get: operations["getTrends"];
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1357,44 +1359,6 @@ export interface components {
              */
             updated_at: string;
         };
-        TrendsResponse: {
-            /**
-             * @description Time series data for each requested metric
-             * @example {
-             *       "calories": [
-             *         {
-             *           "date": "2023-01-01T00:00:00Z",
-             *           "value": 2100
-             *         },
-             *         {
-             *           "date": "2023-01-02T00:00:00Z",
-             *           "value": 2250
-             *         }
-             *       ]
-             *     }
-             */
-            series: {
-                [key: string]: components["schemas"]["DataPoint"][];
-            };
-            user: components["schemas"]["User"];
-            date_range: {
-                /** Format: date-time */
-                start?: string;
-                /** Format: date-time */
-                end?: string;
-            };
-            /** @description Number of days in the time series */
-            days: number;
-        };
-        DataPoint: {
-            /**
-             * Format: date-time
-             * @description Date for this data point
-             */
-            date: string;
-            /** @description Nutrient value for this date */
-            value: number;
-        };
         ExportResponse: {
             /** @description Time series data for each requested metric */
             series: {
@@ -1412,6 +1376,15 @@ export interface components {
              * @enum {string}
              */
             format: "csv" | "json";
+        };
+        DataPoint: {
+            /**
+             * Format: date-time
+             * @description Date for this data point
+             */
+            date: string;
+            /** @description Nutrient value for this date */
+            value: number;
         };
         UpdateConsumptionRequest: {
             /** @description Updated items with nutrition information */
@@ -1615,17 +1588,23 @@ export interface operations {
                 "multipart/form-data": {
                     /**
                      * Format: binary
-                     * @description Audio file (webm, opus, mp3, wav)
+                     * @description Audio file (webm, opus, mp3, wav) - ignored if text field is also provided
                      */
-                    audio: string;
-                    /** @description Text description of consumption (optional, takes precedence over audio if both provided) */
+                    audio?: string;
+                    /** @description Text description of consumption - takes precedence over audio if both provided */
                     text?: string;
-                };
+                } | unknown | unknown;
                 "application/json": {
-                    /** @description Text description of consumption for AI processing */
+                    /**
+                     * @description Text description of consumption for AI processing
+                     * @example I ate a banana and yogurt for breakfast
+                     */
                     text: string;
                 } | {
-                    /** @description ID of an existing consumption to duplicate (skips AI processing) */
+                    /**
+                     * @description ID of an existing consumption to duplicate (skips AI processing, copies all items, nutrition data, title, note, and labels)
+                     * @example edc2bfd0-9648-4045-9467-40dada432fd5
+                     */
                     consumption_id: string;
                 };
             };
@@ -3438,71 +3417,6 @@ export interface operations {
                 content?: never;
             };
             /** @description Event type not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getTrends: {
-        parameters: {
-            query?: {
-                /** @description Comma-separated list of metrics to include */
-                metrics?: string;
-                /** @description Start date (RFC3339 format) */
-                start?: string;
-                /** @description End date (RFC3339 format) */
-                end?: string;
-                /** @description Number of days to look back from today (alternative to start/end) */
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Nutrition trends data */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrendsResponse"];
-                };
-            };
-            /** @description Invalid parameters */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Access denied (subscription limitation) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description User not found */
             404: {
                 headers: {
                     [name: string]: unknown;

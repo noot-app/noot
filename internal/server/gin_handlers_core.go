@@ -40,7 +40,7 @@ func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
 	}
 
 	// Parse date range parameters
-	start, end, _, err := parseTrendsDateRangeParams(params.Start, params.End, nil)
+	start, end, _, err := parseTimeRangeParams(params.Start, params.End, nil)
 	if err != nil {
 		appErr := NewAppError("Invalid date range parameters", http.StatusBadRequest, err)
 		s.handleAppError(c, appErr, requestID)
@@ -67,7 +67,7 @@ func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
 		c.Header("Content-Disposition", "attachment; filename=\"nutrition-export.csv\"")
 		c.Data(http.StatusOK, "text/csv", []byte(csvData))
 	} else {
-		// Generate JSON export (same as trends response)
+		// Generate JSON export
 		series := generateTimeSeries(consumptions, metrics, start, end)
 		response := api.ExportResponse{
 			Series: series,
@@ -85,7 +85,7 @@ func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
 	}
 }
 
-// Development-only handlers
+// API Documentation handlers
 
 // SwaggerUIHandler serves Swagger UI for API documentation
 func (s *APIServer) SwaggerUIHandler(c *gin.Context) {
