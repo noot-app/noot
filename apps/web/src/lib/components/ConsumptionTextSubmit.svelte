@@ -222,7 +222,7 @@
       {#if isProcessing}
         <span class="loading loading-spinner text-primary"></span>
       {:else}
-        <ArrowUpCircle className="w-8 h-8" />
+        <ArrowUpCircle className="w-8 h-8" variant="solid" />
       {/if}
     </button>
   </div>

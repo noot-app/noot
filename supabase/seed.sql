@@ -157,95 +157,94 @@ DELETE FROM consumptions WHERE user_id IN (
 WITH meal_templates AS (
     SELECT * FROM (VALUES
         -- Breakfast options
-        ('breakfast', 'Breakfast: oatmeal with blueberries and almond milk', 320, 8.5, 6.2, 58.3, 8.1, 95, 0),
-        ('breakfast', 'Morning latte with whole milk and a banana', 350, 14.3, 9.3, 54.7, 3.1, 138, 76),
-        ('breakfast', 'Scrambled eggs with avocado toast and orange juice', 485, 18.2, 22.1, 45.6, 12.3, 284, 0),
-        ('breakfast', 'Greek yogurt with granola and fresh strawberries', 380, 16.8, 11.4, 52.9, 6.7, 125, 0),
-        ('breakfast', 'Whole grain cereal with 2% milk and sliced banana', 295, 12.1, 4.8, 54.2, 7.3, 189, 0),
-        ('breakfast', 'Coffee with cream and a blueberry muffin from Starbucks', 425, 6.9, 16.8, 65.4, 2.8, 392, 142),
-        ('breakfast', 'Smoothie bowl with spinach, mango, protein powder, and chia seeds', 340, 28.4, 8.1, 38.7, 11.2, 156, 0),
+        ('breakfast', 'Breakfast: oatmeal with blueberries and almond milk', 320, 8.5, 6.2, 58.3, 8.1, 95, 1.2, 0, 0, 12.4, 0, 45, 8.2, 0, 2.1, 12.5, 0.18, 0.15, 2.1, 0.08, 24, 0.4, 3.2, 0.8, 15.6, 54, 2.8, 78, 28, 168, 1.2, 0.18, 0.94, 8.2, 0, 0, 0, 0, 0, 0.24, 0, 0, 0.5, 0, 0, 1.8, 3.2, 0),
+        ('breakfast', 'Morning latte with whole milk and a banana', 350, 14.3, 9.3, 54.7, 3.1, 138, 5.8, 0.1, 18, 35.2, 28.1, 120, 12.4, 0, 1.8, 5.4, 0.12, 0.28, 1.8, 0.42, 28, 0.8, 2.1, 1.2, 18.2, 276, 0.8, 98, 32, 358, 1.4, 0.08, 0.12, 2.8, 0, 0, 0, 0, 0, 0.05, 0, 0, 0.2, 0, 76, 2.4, 4.2, 0),
+        ('breakfast', 'Scrambled eggs with avocado toast and orange juice', 485, 18.2, 22.1, 45.6, 12.3, 284, 6.8, 0.2, 198, 28.4, 18.2, 285, 45.8, 0, 6.4, 68.5, 0.18, 0.38, 2.8, 0.24, 68, 1.2, 4.8, 2.4, 42.8, 148, 2.4, 124, 168, 542, 2.1, 0.42, 0.68, 18.4, 0, 0, 0, 0, 0, 0.58, 0, 0, 1.2, 0, 0, 8.4, 9.8, 0),
+        ('breakfast', 'Greek yogurt with granola and fresh strawberries', 380, 16.8, 11.4, 52.9, 6.7, 125, 4.2, 0.1, 8, 24.8, 18.4, 48, 18.2, 0, 1.2, 8.4, 0.24, 0.32, 1.8, 0.18, 32, 0.8, 2.8, 1.8, 24.5, 184, 1.2, 68, 142, 284, 1.8, 0.18, 0.84, 12.4, 0, 0, 0, 0, 0, 0.28, 0, 0, 0.8, 0, 0, 3.8, 4.2, 0),
+        ('breakfast', 'Whole grain cereal with 2% milk and sliced banana', 295, 12.1, 4.8, 54.2, 7.3, 189, 2.8, 0.1, 12, 18.4, 8.2, 285, 8.4, 0, 2.1, 4.8, 0.38, 0.42, 5.2, 0.28, 84, 1.2, 2.4, 1.2, 18.4, 248, 3.8, 98, 168, 324, 2.4, 0.12, 0.68, 8.4, 0, 0, 0, 0, 0, 0.15, 0, 0, 0.4, 0, 0, 1.2, 2.4, 0),
+        ('breakfast', 'Coffee with cream and a blueberry muffin from Starbucks', 425, 6.9, 16.8, 65.4, 2.8, 392, 8.4, 0.2, 24, 42.8, 38.4, 28, 4.2, 0, 1.8, 2.4, 0.18, 0.24, 2.8, 0.08, 24, 0.2, 1.8, 0.8, 12.4, 98, 2.1, 48, 84, 148, 0.8, 0.08, 0.24, 4.2, 0, 0, 0, 0, 0, 0.12, 0, 0, 0.2, 0, 142, 4.8, 8.2, 0),
+        ('breakfast', 'Smoothie bowl with spinach, mango, protein powder, and chia seeds', 340, 28.4, 8.1, 38.7, 11.2, 156, 1.8, 0, 0, 28.4, 8.2, 384, 68.4, 0, 4.2, 148.5, 0.24, 0.18, 3.8, 0.42, 84, 2.8, 8.4, 3.2, 84.2, 164, 4.8, 128, 184, 468, 2.8, 0.24, 1.2, 18.4, 0, 0, 0, 0, 0, 2.84, 0.18, 0.24, 1.8, 0, 0, 2.4, 3.8, 0),
         
         -- Lunch options  
-        ('lunch', 'Lunch: grilled chicken salad with mixed greens and balsamic dressing', 385, 32.4, 18.6, 22.1, 6.8, 456, 0),
-        ('lunch', 'Turkey and cheese sandwich on sourdough with an apple', 520, 28.9, 18.2, 65.8, 8.4, 892, 0),
-        ('lunch', 'Chipotle burrito bowl with chicken, brown rice, and guacamole', 680, 42.1, 28.3, 58.7, 12.9, 1240, 0),
-        ('lunch', 'Trader Joes Mediterranean wrap with hummus and vegetables', 390, 14.2, 16.8, 48.3, 9.1, 684, 0),
-        ('lunch', 'Leftover pasta with marinara sauce and a side salad', 445, 16.7, 12.4, 68.9, 7.2, 758, 0),
-        ('lunch', 'Quinoa bowl with roasted vegetables and tahini dressing', 425, 15.8, 19.2, 52.6, 8.9, 345, 0),
-        ('lunch', 'Poke bowl with salmon, brown rice, and edamame from Sweetgreen', 520, 28.3, 16.7, 62.4, 6.8, 892, 0),
+        ('lunch', 'Lunch: grilled chicken salad with mixed greens and balsamic dressing', 385, 32.4, 18.6, 22.1, 6.8, 456, 4.2, 0.1, 68, 8.4, 2.1, 485, 24.8, 0, 2.8, 124.5, 0.18, 0.24, 8.4, 0.48, 42, 0.8, 2.4, 1.2, 34.8, 84, 2.8, 68, 248, 384, 1.8, 0.12, 0.48, 28.4, 0, 0, 0, 0, 0, 0.24, 0.08, 0.12, 4.2, 0, 0, 8.4, 6.8, 0),
+        ('lunch', 'Turkey and cheese sandwich on sourdough with an apple', 520, 28.9, 18.2, 65.8, 8.4, 892, 8.4, 0.2, 48, 24.8, 18.4, 148, 8.2, 0, 1.8, 12.4, 0.32, 0.28, 6.8, 0.24, 48, 1.8, 2.4, 1.8, 24.8, 284, 2.8, 148, 248, 284, 2.4, 0.18, 0.68, 18.4, 0, 0, 0, 0, 0, 0.18, 0, 0, 0.8, 0, 0, 6.2, 8.4, 0),
+        ('lunch', 'Chipotle burrito bowl with chicken, brown rice, and guacamole', 680, 42.1, 28.3, 58.7, 12.9, 1240, 8.4, 0.2, 78, 18.4, 8.2, 84, 12.4, 0, 4.2, 18.4, 0.28, 0.24, 8.4, 0.48, 68, 1.2, 3.8, 2.4, 48.2, 148, 3.8, 148, 284, 468, 2.8, 0.24, 0.84, 24.8, 0, 0, 0, 0, 0, 0.84, 0.12, 0.18, 8.4, 0, 0, 12.4, 8.8, 0),
+        ('lunch', 'Trader Joes Mediterranean wrap with hummus and vegetables', 390, 14.2, 16.8, 48.3, 9.1, 684, 4.8, 0.1, 0, 18.4, 8.2, 245, 18.4, 0, 2.8, 48.5, 0.24, 0.18, 2.8, 0.24, 48, 0.4, 2.4, 1.8, 24.8, 148, 2.4, 98, 184, 348, 1.8, 0.18, 0.48, 12.4, 0, 0, 0, 0, 0, 0.48, 0.08, 0.12, 4.2, 0, 0, 8.4, 6.2, 0),
+        ('lunch', 'Leftover pasta with marinara sauce and a side salad', 445, 16.7, 12.4, 68.9, 7.2, 758, 4.2, 0.1, 8, 24.8, 18.4, 284, 28.4, 0, 2.4, 24.5, 0.28, 0.24, 4.8, 0.18, 48, 0.8, 2.1, 1.2, 18.4, 98, 2.8, 84, 168, 348, 1.8, 0.18, 0.48, 8.4, 0, 0, 0, 0, 0, 0.24, 0, 0, 2.4, 0, 0, 4.8, 5.2, 0),
+        ('lunch', 'Quinoa bowl with roasted vegetables and tahini dressing', 425, 15.8, 19.2, 52.6, 8.9, 345, 4.8, 0.1, 0, 18.4, 8.2, 148, 18.4, 0, 2.8, 48.5, 0.24, 0.18, 3.8, 0.28, 48, 0.8, 2.8, 2.4, 34.8, 148, 3.2, 98, 184, 468, 2.4, 0.24, 0.84, 18.4, 0, 0, 0, 0, 0, 0.48, 0.08, 0.12, 6.8, 0, 0, 8.4, 7.2, 0),
+        ('lunch', 'Poke bowl with salmon, brown rice, and edamame from Sweetgreen', 520, 28.3, 16.7, 62.4, 6.8, 892, 4.2, 0.1, 24, 18.4, 8.2, 48, 8.4, 24, 2.8, 12.4, 0.24, 0.18, 6.8, 0.48, 48, 2.4, 2.8, 1.8, 28.4, 148, 2.8, 84, 184, 384, 1.8, 0.18, 0.48, 34.8, 0, 0, 0, 0, 0, 0.68, 0.24, 0.48, 2.4, 0, 0, 6.8, 4.2, 0),
         
         -- Dinner options
-        ('dinner', 'Dinner: baked salmon with roasted Brussels sprouts and quinoa', 585, 38.2, 24.1, 48.7, 9.8, 432, 0),
-        ('dinner', 'Spaghetti with meat sauce and garlic bread', 720, 32.8, 22.4, 89.6, 6.3, 1156, 0),
-        ('dinner', 'Grilled chicken breast with sweet potato and steamed broccoli', 465, 42.3, 8.9, 48.2, 8.7, 198, 0),
-        ('dinner', 'Takeout pad thai with shrimp from local Thai restaurant', 650, 28.4, 18.9, 89.3, 4.2, 1890, 0),
-        ('dinner', 'Homemade pizza with mozzarella, tomatoes, and basil', 580, 24.6, 22.8, 68.4, 4.9, 1024, 0),
-        ('dinner', 'Beef stir-fry with mixed vegetables and brown rice', 520, 35.1, 16.2, 52.8, 5.4, 896, 0),
-        ('dinner', 'Fish tacos with cabbage slaw and black beans', 485, 28.7, 14.6, 58.9, 12.1, 742, 0),
+        ('dinner', 'Dinner: baked salmon with roasted Brussels sprouts and quinoa', 585, 38.2, 24.1, 48.7, 9.8, 432, 6.8, 0.1, 48, 18.4, 8.2, 84, 68.4, 24, 4.8, 148.5, 0.28, 0.24, 8.4, 0.68, 68, 3.2, 4.8, 2.8, 48.2, 184, 2.8, 148, 284, 584, 2.8, 0.24, 0.84, 42.8, 0, 0, 0, 0, 0, 1.24, 0.48, 0.84, 4.8, 0, 0, 12.4, 8.4, 0),
+        ('dinner', 'Spaghetti with meat sauce and garlic bread', 720, 32.8, 22.4, 89.6, 6.3, 1156, 8.4, 0.2, 48, 28.4, 18.4, 148, 24.8, 0, 2.8, 18.4, 0.48, 0.34, 6.8, 0.28, 68, 2.4, 3.8, 2.4, 28.4, 184, 3.8, 148, 284, 484, 4.2, 0.24, 0.68, 18.4, 0, 0, 0, 0, 0, 0.24, 0, 0, 8.4, 0, 0, 8.4, 9.2, 0),
+        ('dinner', 'Grilled chicken breast with sweet potato and steamed broccoli', 465, 42.3, 8.9, 48.2, 8.7, 198, 2.8, 0.1, 68, 24.8, 18.4, 684, 48.4, 0, 4.2, 84.5, 0.24, 0.18, 12.4, 0.48, 48, 0.8, 3.8, 2.4, 34.8, 148, 2.8, 98, 284, 584, 1.8, 0.18, 0.48, 28.4, 0, 0, 0, 0, 0, 0.18, 0, 0, 2.4, 0, 0, 3.2, 3.8, 0),
+        ('dinner', 'Takeout pad thai with shrimp from local Thai restaurant', 650, 28.4, 18.9, 89.3, 4.2, 1890, 6.8, 0.1, 84, 28.4, 24.8, 84, 12.4, 0, 2.8, 8.4, 0.18, 0.18, 4.8, 0.28, 28, 1.8, 2.8, 1.8, 24.8, 148, 2.8, 84, 184, 348, 2.4, 0.18, 0.48, 34.8, 0, 0, 0, 0, 0, 0.24, 0.08, 0.12, 6.8, 0, 0, 8.4, 6.8, 0),
+        ('dinner', 'Homemade pizza with mozzarella, tomatoes, and basil', 580, 24.6, 22.8, 68.4, 4.9, 1024, 12.8, 0.2, 48, 24.8, 18.4, 248, 18.4, 0, 2.8, 24.5, 0.24, 0.24, 4.8, 0.18, 48, 1.2, 2.8, 1.8, 24.8, 284, 2.8, 84, 184, 284, 2.4, 0.18, 0.48, 8.4, 0, 0, 0, 0, 0, 0.18, 0, 0, 4.2, 0, 0, 8.4, 8.2, 0),
+        ('dinner', 'Beef stir-fry with mixed vegetables and brown rice', 520, 35.1, 16.2, 52.8, 5.4, 896, 4.8, 0.1, 68, 18.4, 8.2, 184, 24.8, 0, 2.8, 18.4, 0.24, 0.24, 6.8, 0.38, 48, 2.8, 3.8, 2.4, 28.4, 184, 3.8, 98, 284, 484, 4.8, 0.24, 0.68, 28.4, 0, 0, 0, 0, 0, 0.18, 0, 0, 6.8, 0, 0, 6.8, 5.2, 0),
+        ('dinner', 'Fish tacos with cabbage slaw and black beans', 485, 28.7, 14.6, 58.9, 12.1, 742, 4.2, 0.1, 24, 18.4, 8.2, 148, 24.8, 12, 2.8, 48.5, 0.24, 0.18, 4.8, 0.28, 68, 1.8, 2.8, 2.4, 28.4, 148, 3.2, 98, 184, 468, 2.4, 0.18, 0.68, 18.4, 0, 0, 0, 0, 0, 0.48, 0.18, 0.24, 4.2, 0, 0, 6.2, 4.8, 0),
         
         -- Snack options
-        ('snack', 'Afternoon snack: handful of almonds and an apple', 285, 8.4, 18.2, 32.1, 8.9, 2, 0),
-        ('snack', 'Greek yogurt with honey and walnuts', 245, 15.6, 12.8, 18.4, 2.1, 68, 0),
-        ('snack', 'Clif Bar energy bar and sparkling water', 250, 9.0, 5.0, 45.0, 5.0, 150, 0),
-        ('snack', 'Hummus with baby carrots and cucumber slices', 180, 6.8, 8.4, 18.7, 6.2, 284, 0),
-        ('snack', 'Dark chocolate square and green tea', 85, 1.2, 5.8, 8.4, 2.1, 2, 25),
-        ('snack', 'Trail mix with dried fruit and nuts', 320, 8.9, 18.7, 28.4, 4.8, 156, 0),
+        ('snack', 'Afternoon snack: handful of almonds and an apple', 285, 8.4, 18.2, 32.1, 8.9, 2, 2.8, 0, 0, 24.8, 18.4, 8, 8.4, 0, 6.8, 2.4, 0.18, 0.24, 2.8, 0.08, 18, 0, 2.8, 2.4, 34.8, 84, 2.8, 84, 148, 284, 2.4, 0.24, 0.84, 8.4, 0, 0, 0, 0, 0, 2.84, 0, 0, 0.8, 0, 0, 12.4, 4.2, 0),
+        ('snack', 'Greek yogurt with honey and walnuts', 245, 15.6, 12.8, 18.4, 2.1, 68, 4.2, 0.1, 8, 18.4, 18.4, 48, 4.2, 0, 1.2, 2.4, 0.08, 0.18, 1.2, 0.08, 18, 0.8, 1.8, 1.2, 18.4, 148, 0.8, 48, 98, 184, 1.2, 0.18, 0.48, 4.2, 0, 0, 0, 0, 0, 1.84, 0, 0, 0.4, 0, 0, 4.2, 6.8, 0),
+        ('snack', 'Clif Bar energy bar and sparkling water', 250, 9.0, 5.0, 45.0, 5.0, 150, 1.8, 0, 0, 28.4, 24.8, 84, 8.4, 0, 2.8, 8.4, 0.18, 0.18, 2.8, 0.18, 48, 1.2, 2.4, 1.2, 18.4, 148, 2.8, 84, 148, 284, 1.8, 0.18, 0.48, 8.4, 0, 0, 0, 0, 0, 0.24, 0, 0, 1.8, 0, 0, 1.8, 2.4, 0),
+        ('snack', 'Hummus with baby carrots and cucumber slices', 180, 6.8, 8.4, 18.7, 6.2, 284, 1.8, 0, 0, 8.4, 2.1, 426, 8.4, 0, 1.2, 24.5, 0.08, 0.08, 1.8, 0.18, 28, 0, 1.8, 1.2, 24.8, 84, 1.8, 48, 84, 284, 0.8, 0.18, 0.48, 4.2, 0, 0, 0, 0, 0, 0.48, 0, 0, 1.2, 0, 0, 4.2, 2.8, 0),
+        ('snack', 'Dark chocolate square and green tea', 85, 1.2, 5.8, 8.4, 2.1, 2, 1.8, 0, 8, 4.2, 2.1, 8, 2.4, 0, 0.8, 4.2, 0.02, 0.04, 0.8, 0.02, 8, 0, 0.8, 0.4, 4.2, 28, 0.8, 28, 48, 148, 0.4, 0.08, 0.24, 2.8, 0, 0, 0, 0, 0, 0.08, 0, 0, 0.4, 0, 25, 1.2, 2.8, 0),
+        ('snack', 'Trail mix with dried fruit and nuts', 320, 8.9, 18.7, 28.4, 4.8, 156, 2.8, 0, 0, 24.8, 18.4, 28, 8.4, 0, 4.2, 8.4, 0.18, 0.24, 2.8, 0.18, 28, 0.4, 2.8, 2.4, 28.4, 84, 2.8, 84, 148, 348, 2.4, 0.24, 0.84, 8.4, 0, 0, 0, 0, 0, 2.84, 0, 0, 1.2, 0, 0, 8.4, 6.8, 0),
         
         -- Coffee/drink options with caffeine
-        ('drink', 'Large iced coffee with oat milk from Blue Bottle', 65, 2.1, 2.8, 8.4, 1.2, 15, 185),
-        ('drink', 'Cappuccino with whole milk', 150, 8.1, 8.2, 12.3, 0, 95, 154),
-        ('drink', 'Cold brew coffee with almond milk', 25, 1.2, 1.8, 2.1, 0.5, 8, 200),
-        ('drink', 'Matcha latte with coconut milk', 180, 4.2, 6.8, 24.1, 2.1, 45, 70),
-        ('drink', 'Energy drink and protein bar', 380, 22.4, 8.9, 42.6, 3.2, 245, 160)
-    ) AS t(meal_type, transcript, calories, protein_g, fat_g, carbs_g, fiber_g, sodium_mg, caffeine_mg)
+        ('drink', 'Large iced coffee with oat milk from Blue Bottle', 65, 2.1, 2.8, 8.4, 1.2, 15, 0.8, 0, 4, 4.2, 2.1, 8, 2.4, 0, 0.4, 2.4, 0.04, 0.08, 0.8, 0.04, 8, 0.2, 0.8, 0.4, 4.2, 28, 0.8, 28, 48, 84, 0.4, 0.08, 0.24, 2.8, 0, 0, 0, 0, 0, 0.08, 0, 0, 0.2, 0, 185, 0.8, 1.2, 0),
+        ('drink', 'Cappuccino with whole milk', 150, 8.1, 8.2, 12.3, 0, 95, 5.2, 0.1, 18, 12.4, 8.2, 84, 4.2, 0, 1.2, 2.4, 0.08, 0.18, 1.2, 0.08, 18, 0.8, 1.8, 1.2, 14.2, 184, 0.8, 68, 98, 184, 1.2, 0.08, 0.24, 2.8, 0, 0, 0, 0, 0, 0.08, 0, 0, 0.4, 0, 154, 2.4, 4.2, 0),
+        ('drink', 'Cold brew coffee with almond milk', 25, 1.2, 1.8, 2.1, 0.5, 8, 0.4, 0, 2, 1.2, 0.8, 8, 2.4, 0, 0.4, 1.2, 0.02, 0.04, 0.4, 0.02, 4, 0, 0.4, 0.2, 2.4, 18, 0.4, 18, 28, 48, 0.2, 0.04, 0.12, 1.2, 0, 0, 0, 0, 0, 0.04, 0, 0, 0.1, 0, 200, 0.4, 0.8, 0),
+        ('drink', 'Matcha latte with coconut milk', 180, 4.2, 6.8, 24.1, 2.1, 45, 4.2, 0, 8, 18.4, 12.4, 48, 8.4, 0, 1.2, 8.4, 0.08, 0.12, 1.2, 0.08, 18, 0.4, 1.8, 0.8, 8.4, 84, 1.8, 48, 84, 184, 0.8, 0.18, 0.48, 4.2, 0, 0, 0, 0, 0, 0.12, 0, 0, 0.4, 0, 70, 2.4, 3.2, 0),
+        ('drink', 'Energy drink and protein bar', 380, 22.4, 8.9, 42.6, 3.2, 245, 2.8, 0, 0, 32.4, 28.4, 84, 12.4, 0, 4.2, 18.4, 0.24, 0.24, 4.8, 0.28, 68, 2.4, 3.8, 2.4, 28.4, 184, 2.8, 84, 184, 284, 2.4, 0.18, 0.68, 8.4, 0, 0, 0, 0, 0, 0.24, 0, 0, 2.4, 0, 160, 2.8, 4.2, 0)
+    ) AS t(meal_type, transcript, calories, protein_g, fat_g, carbs_g, fiber_g, sodium_mg, saturated_fat_g, trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g, vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg, thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg, vitamin_b12_mcg, biotin_mcg, pantothenic_acid_mg, choline_mg, calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg, zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg, omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, polyunsaturated_fat_g, monounsaturated_fat_g, alcohol_g)
 ),
 date_schedules AS (
     -- Generate date offsets for realistic meal distribution
     SELECT user_id, day_offset, meal_count FROM (VALUES
-        -- Today: 3-4 meals per user
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 0, 4), -- monalisa today
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 0, 3), -- alice today
+        -- Focus heavily on the past week (1-7 days ago) for better dashboard visualization
+        -- monalisa@birki.io user gets more dense data for testing dashboard
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 1, 4), -- yesterday: 4 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 2, 3), -- 2 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 3, 4), -- 3 days ago: 4 meals  
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 4, 3), -- 4 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 5, 4), -- 5 days ago: 4 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 6, 3), -- 6 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 7, 3), -- 7 days ago: 3 meals
         
-        -- Yesterday: 2-3 meals per user  
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 1, 3), -- monalisa yesterday
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 1, 2), -- alice yesterday
+        -- Second week: 8-14 days ago (moderate data for trends)
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 8, 3), -- 8 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 9, 2), -- 9 days ago: 2 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 10, 3), -- 10 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 11, 2), -- 11 days ago: 2 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 12, 3), -- 12 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 13, 2), -- 13 days ago: 2 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 14, 3), -- 14 days ago: 3 meals
         
-        -- Last 7 days: distributed meals
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 2, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 3, 3),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 4, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 5, 4),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 6, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 2, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 3, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 4, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 5, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 6, 4),
+        -- Older scattered data for historical trends (15-30 days ago)
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 16, 2),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 19, 3),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 22, 2),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 25, 2),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 28, 3),
         
-        -- Weeks 2-8: scattered meals (remaining ~15 per user)
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 8, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 12, 3),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 15, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 18, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 22, 3),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 26, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 30, 1),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 35, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 42, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 48, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 55, 1),
+        -- Secondary user: lighter distribution but covering same periods
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 1, 2), -- yesterday
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 2, 3), -- 2 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 3, 2), -- 3 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 4, 2), -- 4 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 5, 3), -- 5 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 6, 2), -- 6 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 7, 2), -- 7 days ago
         
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 9, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 13, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 16, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 20, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 24, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 28, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 32, 1),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 38, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 44, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 50, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 58, 1)
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 9, 2),  -- 9 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 11, 2), -- 11 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 13, 3), -- 13 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 15, 2), -- 15 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 18, 2), -- 18 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 21, 1), -- 21 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 24, 2), -- 24 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 27, 2)  -- 27 days ago
     ) AS schedule(user_id, day_offset, meal_count)
 ),
 consumption_rows AS (
@@ -270,7 +269,48 @@ consumption_with_meals AS (
         mt.carbs_g,
         mt.fiber_g,
         mt.sodium_mg,
+        mt.saturated_fat_g,
+        mt.trans_fat_g,
+        mt.cholesterol_mg,
+        mt.total_sugars_g,
+        mt.added_sugars_g,
+        mt.vitamin_a_mcg,
+        mt.vitamin_c_mg,
+        mt.vitamin_d_mcg,
+        mt.vitamin_e_mg,
+        mt.vitamin_k_mcg,
+        mt.thiamine_mg,
+        mt.riboflavin_mg,
+        mt.niacin_mg,
+        mt.vitamin_b6_mg,
+        mt.folate_mcg,
+        mt.vitamin_b12_mcg,
+        mt.biotin_mcg,
+        mt.pantothenic_acid_mg,
+        mt.choline_mg,
+        mt.calcium_mg,
+        mt.iron_mg,
+        mt.magnesium_mg,
+        mt.phosphorus_mg,
+        mt.potassium_mg,
+        mt.zinc_mg,
+        mt.copper_mg,
+        mt.manganese_mg,
+        mt.selenium_mcg,
+        mt.iodine_mcg,
+        mt.molybdenum_mcg,
+        mt.chromium_mcg,
+        mt.fluoride_mg,
+        mt.chloride_mg,
+        mt.omega3_ala_g,
+        mt.omega3_epa_g,
+        mt.omega3_dha_g,
+        mt.omega6_g,
+        mt.creatine_mg,
         mt.caffeine_mg,
+        mt.polyunsaturated_fat_g,
+        mt.monounsaturated_fat_g,
+        mt.alcohol_g,
         -- Add row number for deterministic randomness
         row_number() OVER (PARTITION BY cr.user_id ORDER BY cr.day_offset, cr.meal_number) as rn
     FROM consumption_rows cr
@@ -289,7 +329,48 @@ selected_meals AS (
         carbs_g,
         fiber_g,
         sodium_mg,
-        caffeine_mg
+        saturated_fat_g,
+        trans_fat_g,
+        cholesterol_mg,
+        total_sugars_g,
+        added_sugars_g,
+        vitamin_a_mcg,
+        vitamin_c_mg,
+        vitamin_d_mcg,
+        vitamin_e_mg,
+        vitamin_k_mcg,
+        thiamine_mg,
+        riboflavin_mg,
+        niacin_mg,
+        vitamin_b6_mg,
+        folate_mcg,
+        vitamin_b12_mcg,
+        biotin_mcg,
+        pantothenic_acid_mg,
+        choline_mg,
+        calcium_mg,
+        iron_mg,
+        magnesium_mg,
+        phosphorus_mg,
+        potassium_mg,
+        zinc_mg,
+        copper_mg,
+        manganese_mg,
+        selenium_mcg,
+        iodine_mcg,
+        molybdenum_mcg,
+        chromium_mcg,
+        fluoride_mg,
+        chloride_mg,
+        omega3_ala_g,
+        omega3_epa_g,
+        omega3_dha_g,
+        omega6_g,
+        creatine_mg,
+        caffeine_mg,
+        polyunsaturated_fat_g,
+        monounsaturated_fat_g,
+        alcohol_g
     FROM consumption_with_meals
     ORDER BY user_id, day_offset, meal_number, random()
 ),
@@ -305,7 +386,48 @@ timed_consumptions AS (
         carbs_g,
         fiber_g,
         sodium_mg,
+        saturated_fat_g,
+        trans_fat_g,
+        cholesterol_mg,
+        total_sugars_g,
+        added_sugars_g,
+        vitamin_a_mcg,
+        vitamin_c_mg,
+        vitamin_d_mcg,
+        vitamin_e_mg,
+        vitamin_k_mcg,
+        thiamine_mg,
+        riboflavin_mg,
+        niacin_mg,
+        vitamin_b6_mg,
+        folate_mcg,
+        vitamin_b12_mcg,
+        biotin_mcg,
+        pantothenic_acid_mg,
+        choline_mg,
+        calcium_mg,
+        iron_mg,
+        magnesium_mg,
+        phosphorus_mg,
+        potassium_mg,
+        zinc_mg,
+        copper_mg,
+        manganese_mg,
+        selenium_mcg,
+        iodine_mcg,
+        molybdenum_mcg,
+        chromium_mcg,
+        fluoride_mg,
+        chloride_mg,
+        omega3_ala_g,
+        omega3_epa_g,
+        omega3_dha_g,
+        omega6_g,
+        creatine_mg,
         caffeine_mg,
+        polyunsaturated_fat_g,
+        monounsaturated_fat_g,
+        alcohol_g,
         -- Calculate realistic timestamp for meal type (ensuring past dates)
         CASE 
             WHEN meal_type = 'breakfast' THEN 
@@ -332,9 +454,51 @@ INSERT INTO consumptions (
     total_carbs_g,
     dietary_fiber_g,
     total_sodium_mg,
+    saturated_fat_g,
+    trans_fat_g,
+    cholesterol_mg,
+    total_sugars_g,
+    added_sugars_g,
+    vitamin_a_mcg,
+    vitamin_c_mg,
+    vitamin_d_mcg,
+    vitamin_e_mg,
+    vitamin_k_mcg,
+    thiamine_mg,
+    riboflavin_mg,
+    niacin_mg,
+    vitamin_b6_mg,
+    folate_mcg,
+    vitamin_b12_mcg,
+    biotin_mcg,
+    pantothenic_acid_mg,
+    choline_mg,
+    calcium_mg,
+    iron_mg,
+    magnesium_mg,
+    phosphorus_mg,
+    potassium_mg,
+    zinc_mg,
+    copper_mg,
+    manganese_mg,
+    selenium_mcg,
+    iodine_mcg,
+    molybdenum_mcg,
+    chromium_mcg,
+    fluoride_mg,
+    chloride_mg,
+    omega3_ala_g,
+    omega3_epa_g,
+    omega3_dha_g,
+    omega6_g,
+    creatine_mg,
     caffeine_mg,
+    polyunsaturated_fat_g,
+    monounsaturated_fat_g,
+    alcohol_g,
     source,
-    created_at
+    created_at,
+    consumed_at
 )
 SELECT 
     user_id::uuid,
@@ -345,7 +509,48 @@ SELECT
     carbs_g,
     fiber_g,
     sodium_mg,
+    saturated_fat_g,
+    trans_fat_g,
+    cholesterol_mg,
+    total_sugars_g,
+    added_sugars_g,
+    vitamin_a_mcg,
+    vitamin_c_mg,
+    vitamin_d_mcg,
+    vitamin_e_mg,
+    vitamin_k_mcg,
+    thiamine_mg,
+    riboflavin_mg,
+    niacin_mg,
+    vitamin_b6_mg,
+    folate_mcg,
+    vitamin_b12_mcg,
+    biotin_mcg,
+    pantothenic_acid_mg,
+    choline_mg,
+    calcium_mg,
+    iron_mg,
+    magnesium_mg,
+    phosphorus_mg,
+    potassium_mg,
+    zinc_mg,
+    copper_mg,
+    manganese_mg,
+    selenium_mcg,
+    iodine_mcg,
+    molybdenum_mcg,
+    chromium_mcg,
+    fluoride_mg,
+    chloride_mg,
+    omega3_ala_g,
+    omega3_epa_g,
+    omega3_dha_g,
+    omega6_g,
+    creatine_mg,
     caffeine_mg,
+    polyunsaturated_fat_g,
+    monounsaturated_fat_g,
+    alcohol_g,
     -- Distribute sources realistically: 60% voice, 25% text, 10% manual, 5% api
     CASE 
         WHEN (row_number() OVER (ORDER BY user_id, created_at)) % 20 = 0 THEN 'api'
@@ -353,7 +558,8 @@ SELECT
         WHEN (row_number() OVER (ORDER BY user_id, created_at)) % 10 <= 3 THEN 'text'
         ELSE 'voice'
     END as source,
-    created_at
+    created_at,
+    created_at as consumed_at  -- Set consumed_at to same as created_at for proper date distribution
 FROM timed_consumptions
 ORDER BY user_id, created_at;
 
@@ -361,10 +567,12 @@ ORDER BY user_id, created_at;
 SELECT 
     p.email,
     COUNT(*) as total_consumptions,
-    COUNT(CASE WHEN c.created_at::date = NOW()::date THEN 1 END) as today_meals,
-    COUNT(CASE WHEN c.created_at::date = (NOW() - INTERVAL '1 day')::date THEN 1 END) as yesterday_meals,
-    COUNT(CASE WHEN c.created_at >= NOW() - INTERVAL '7 days' THEN 1 END) as last_week_meals,
-    SUM(c.caffeine_mg)::int as total_caffeine_mg
+    COUNT(CASE WHEN c.consumed_at::date = NOW()::date THEN 1 END) as today_meals,
+    COUNT(CASE WHEN c.consumed_at::date = (NOW() - INTERVAL '1 day')::date THEN 1 END) as yesterday_meals,
+    COUNT(CASE WHEN c.consumed_at >= NOW() - INTERVAL '7 days' THEN 1 END) as last_week_meals,
+    SUM(c.caffeine_mg)::int as total_caffeine_mg,
+    MIN(c.consumed_at::date) as earliest_meal_date,
+    MAX(c.consumed_at::date) as latest_meal_date
 FROM consumptions c 
 JOIN profiles p ON p.id = c.user_id 
 WHERE p.email IN ('monalisa@birki.io', 'alice@birki.io')
@@ -558,19 +766,29 @@ events_with_types AS (
             WHEN ed.event_type_name = 'medication' THEN INTERVAL '8 hours' + (random() * INTERVAL '2 hours')
             WHEN ed.event_type_name = 'mood' THEN INTERVAL '10 hours' + (random() * INTERVAL '10 hours')
             ELSE INTERVAL '12 hours' + (random() * INTERVAL '8 hours')
-        END as started_at,
-        -- Some events have end times (especially sleep and exercise)
-        CASE 
-            WHEN ed.event_type_name = 'sleep' THEN 
-                (CURRENT_DATE - INTERVAL '1 day' * ed.day_offset)::timestamp + INTERVAL '22 hours' + (random() * INTERVAL '3 hours') + 
-                INTERVAL '6 hours' + (random() * INTERVAL '4 hours')
-            WHEN ed.event_type_name = 'exercise' AND ed.level >= 6 THEN
-                (CURRENT_DATE - INTERVAL '1 day' * ed.day_offset)::timestamp + INTERVAL '7 hours' + (random() * INTERVAL '14 hours') +
-                INTERVAL '30 minutes' + (random() * INTERVAL '90 minutes')
-            ELSE NULL
-        END as ended_at
+        END as started_at
     FROM event_data ed
     JOIN event_types et ON et.user_id = ed.user_id::uuid AND et.name = ed.event_type_name
+),
+events_with_duration AS (
+    -- Calculate ended_at based on started_at to ensure time order constraint
+    SELECT 
+        user_id,
+        event_type_id,
+        name,
+        level,
+        note,
+        day_offset,
+        started_at,
+        -- Some events have end times (especially sleep and exercise) - calculated from started_at
+        CASE 
+            WHEN name LIKE '%sleep%' OR name LIKE '%Sleep%' THEN 
+                started_at + INTERVAL '6 hours' + (random() * INTERVAL '4 hours')
+            WHEN (name LIKE '%exercise%' OR name LIKE '%Exercise%' OR name LIKE '%gym%' OR name LIKE '%yoga%' OR name LIKE '%jog%' OR name LIKE '%walk%') AND level >= 6 THEN
+                started_at + INTERVAL '30 minutes' + (random() * INTERVAL '90 minutes')
+            ELSE NULL
+        END as ended_at
+    FROM events_with_types
 )
 INSERT INTO events (user_id, event_type_id, name, level, note, started_at, ended_at, created_at)
 SELECT 
@@ -582,7 +800,7 @@ SELECT
     started_at,
     ended_at,
     started_at -- created_at is the same as started_at for events
-FROM events_with_types
+FROM events_with_duration
 ORDER BY user_id, started_at;
 
 -- Show event seeding results
