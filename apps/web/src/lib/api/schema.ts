@@ -544,26 +544,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/trends": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get nutrition trends
-         * @description Get time series data for nutrition metrics over a specified period
-         */
-        get: operations["getTrends"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/export": {
         parameters: {
             query?: never;
@@ -1357,44 +1337,6 @@ export interface components {
              */
             updated_at: string;
         };
-        TrendsResponse: {
-            /**
-             * @description Time series data for each requested metric
-             * @example {
-             *       "calories": [
-             *         {
-             *           "date": "2023-01-01T00:00:00Z",
-             *           "value": 2100
-             *         },
-             *         {
-             *           "date": "2023-01-02T00:00:00Z",
-             *           "value": 2250
-             *         }
-             *       ]
-             *     }
-             */
-            series: {
-                [key: string]: components["schemas"]["DataPoint"][];
-            };
-            user: components["schemas"]["User"];
-            date_range: {
-                /** Format: date-time */
-                start?: string;
-                /** Format: date-time */
-                end?: string;
-            };
-            /** @description Number of days in the time series */
-            days: number;
-        };
-        DataPoint: {
-            /**
-             * Format: date-time
-             * @description Date for this data point
-             */
-            date: string;
-            /** @description Nutrient value for this date */
-            value: number;
-        };
         ExportResponse: {
             /** @description Time series data for each requested metric */
             series: {
@@ -1412,6 +1354,15 @@ export interface components {
              * @enum {string}
              */
             format: "csv" | "json";
+        };
+        DataPoint: {
+            /**
+             * Format: date-time
+             * @description Date for this data point
+             */
+            date: string;
+            /** @description Nutrient value for this date */
+            value: number;
         };
         UpdateConsumptionRequest: {
             /** @description Updated items with nutrition information */
@@ -3438,71 +3389,6 @@ export interface operations {
                 content?: never;
             };
             /** @description Event type not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getTrends: {
-        parameters: {
-            query?: {
-                /** @description Comma-separated list of metrics to include */
-                metrics?: string;
-                /** @description Start date (RFC3339 format) */
-                start?: string;
-                /** @description End date (RFC3339 format) */
-                end?: string;
-                /** @description Number of days to look back from today (alternative to start/end) */
-                days?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Nutrition trends data */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrendsResponse"];
-                };
-            };
-            /** @description Invalid parameters */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Access denied (subscription limitation) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description User not found */
             404: {
                 headers: {
                     [name: string]: unknown;

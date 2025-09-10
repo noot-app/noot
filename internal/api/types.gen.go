@@ -947,21 +947,6 @@ type Summary struct {
 	Totals         CompleteNutrient `json:"totals"`
 }
 
-// TrendsResponse defines model for TrendsResponse.
-type TrendsResponse struct {
-	DateRange struct {
-		End   *time.Time `json:"end,omitempty"`
-		Start *time.Time `json:"start,omitempty"`
-	} `json:"date_range"`
-
-	// Days Number of days in the time series
-	Days int `json:"days"`
-
-	// Series Time series data for each requested metric
-	Series map[string][]DataPoint `json:"series"`
-	User   User                   `json:"user"`
-}
-
 // UpdateBiometricsRequest defines model for UpdateBiometricsRequest.
 type UpdateBiometricsRequest struct {
 	// ActivityLevel Physical activity level
@@ -1176,21 +1161,6 @@ type GetGoalsParams struct {
 
 // GetGoalsParamsSource defines parameters for GetGoals.
 type GetGoalsParamsSource string
-
-// GetTrendsParams defines parameters for GetTrends.
-type GetTrendsParams struct {
-	// Metrics Comma-separated list of metrics to include
-	Metrics *string `form:"metrics,omitempty" json:"metrics,omitempty"`
-
-	// Start Start date (RFC3339 format)
-	Start *time.Time `form:"start,omitempty" json:"start,omitempty"`
-
-	// End End date (RFC3339 format)
-	End *time.Time `form:"end,omitempty" json:"end,omitempty"`
-
-	// Days Number of days to look back from today (alternative to start/end)
-	Days *int `form:"days,omitempty" json:"days,omitempty"`
-}
 
 // CreateAPIKeyJSONRequestBody defines body for CreateAPIKey for application/json ContentType.
 type CreateAPIKeyJSONRequestBody = CreateAPIKeyRequest
