@@ -100,11 +100,11 @@
     return {
       dates,
       series: [
-        { name: 'Calories', data: calories, color: '#be7454' },
-        { name: 'Protein (g)', data: protein, color: '#74b986' },
-        { name: 'Carbs (g)', data: carbs, color: '#657280' },
-        { name: 'Fat (g)', data: fat, color: '#667584' },
-        { name: 'Fiber (g)', data: fiber, color: '#87888a' }
+        { name: 'Calories', data: calories, color: '#BF8711' }, // honey color
+        { name: 'Protein (g)', data: protein, color: '#657280' }, // secondary gray (dumbbell icon color)
+        { name: 'Carbs (g)', data: carbs, color: '#be7454' }, // primary brownish-orange
+        { name: 'Fat (g)', data: fat, color: '#74b986' }, // accent green
+        { name: 'Fiber (g)', data: fiber, color: '#87888a' } // neutral gray
       ]
     }
   }
