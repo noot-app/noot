@@ -61,11 +61,17 @@ describe("getValidatedSession", () => {
   })
 
   it("returns null when getClaims throws", async () => {
+    // Spy on console.error to suppress the expected error output
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    
     mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: { access_token: "token", refresh_token: "r" } },
     })
     mockSupabase.auth.getClaims.mockRejectedValue(new Error("boom"))
     const res = await getValidatedSession(mockSupabase)
     expect(res).toBeNull()
+
+    // Restore console.error
+    consoleSpy.mockRestore()
   })
 })
