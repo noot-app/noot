@@ -3218,12 +3218,6 @@ components:
           description: List of API keys (secrets not included)
 
   securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT token from Supabase authentication
-    
     ApiKeyAuth:
       type: apiKey
       in: header
