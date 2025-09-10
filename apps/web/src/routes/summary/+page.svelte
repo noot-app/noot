@@ -3,6 +3,7 @@
   import { onMount } from "svelte"
   import NutritionStats from "$lib/components/NutritionStats.svelte"
   import Goals from "$lib/components/Goals.svelte"
+  import ConsumptionCard from "$lib/components/ConsumptionCard.svelte"
   import { getAppName } from "$lib/utils/app-info"
 
   // Get app name from runtime environment
@@ -12,7 +13,6 @@
   let isLoading = false
   let error = ""
   let consumptionsData: any = null
-  let expandedMeals: Set<string> = new Set()
 
   onMount(() => {
     loadSummary()
@@ -102,15 +102,6 @@
       currentView = view
       loadSummary()
     }
-  }
-
-  function toggleMealExpansion(mealId: string) {
-    if (expandedMeals.has(mealId)) {
-      expandedMeals.delete(mealId)
-    } else {
-      expandedMeals.add(mealId)
-    }
-    expandedMeals = expandedMeals // trigger reactivity
   }
 
   // Calculate nutrition totals from consumptions data
@@ -342,108 +333,18 @@
               <h2 class="card-title mb-4">
                 {currentView === "today" ? "Today's" : "This Week's"} Meals
               </h2>
-              <div class="space-y-3">
+              <div class="space-y-4">
                 {#each consumptionsData.consumptions as consumption}
-                  <div class="card bg-base-100 shadow">
-                    <div class="card-body p-4">
-                      <!-- Meal Header - always visible -->
-                      <div 
-                        class="flex justify-between items-start cursor-pointer"
-                        role="button"
-                        tabindex="0"
-                        on:click={() => toggleMealExpansion(consumption.id)}
-                        on:keydown={(e) => e.key === 'Enter' && toggleMealExpansion(consumption.id)}
-                      >
-                        <div class="flex-1">
-                          <p class="font-medium mb-1">
-                            "{consumption.title || consumption.transcript}"
-                          </p>
-                          <div class="flex items-center gap-4 text-sm text-base-content/60">
-                            <span>
-                              {new Date(consumption.created_at).toLocaleString()}
-                            </span>
-                            {#if consumption.labels && consumption.labels.length > 0}
-                              <div class="flex gap-1">
-                                {#each consumption.labels as label}
-                                  <span class="badge badge-sm" style="background-color: {label.color}20; color: {label.color}; border: 1px solid {label.color};">
-                                    {label.name}
-                                  </span>
-                                {/each}
-                              </div>
-                            {/if}
-                          </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                          {#if consumption.summary?.totals?.calories}
-                            <div class="badge badge-primary">
-                              {Math.round(consumption.summary.totals.calories)} cal
-                            </div>
-                          {/if}
-                          <button class="btn btn-sm btn-ghost">
-                            {expandedMeals.has(consumption.id) ? '▼' : '▶'}
-                          </button>
-                        </div>
-                      </div>
-
-                      <!-- Expanded Details -->
-                      {#if expandedMeals.has(consumption.id)}
-                        <div class="mt-4 border-t pt-4">
-                          <!-- Macronutrients Summary -->
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                            <div class="text-center">
-                <div class="text-lg font-bold text-primary">{Math.round(consumption.summary?.totals?.calories || 0)}</div>
-                              <div class="text-xs text-base-content/60">Calories</div>
-                            </div>
-                            <div class="text-center">
-                <div class="text-lg font-bold text-secondary">{(consumption.summary?.totals?.protein_g || 0).toFixed(1)}g</div>
-                              <div class="text-xs text-base-content/60">Protein</div>
-                            </div>
-                            <div class="text-center">
-                <div class="text-lg font-bold text-accent">{(consumption.summary?.totals?.total_carbs_g || 0).toFixed(1)}g</div>
-                              <div class="text-xs text-base-content/60">Carbs</div>
-                            </div>
-                            <div class="text-center">
-                <div class="text-lg font-bold text-warning">{(consumption.summary?.totals?.total_fat_g || 0).toFixed(1)}g</div>
-                              <div class="text-xs text-base-content/60">Fat</div>
-                            </div>
-                          </div>
-
-                          <!-- Individual Items in this meal -->
-                          {#if consumption.items && consumption.items.length > 0}
-                            <div class="bg-base-200 rounded-lg p-3">
-                              <h4 class="font-medium mb-2 text-sm">Items in this meal:</h4>
-                              <div class="space-y-2">
-                                {#each consumption.items as item}
-                                  <div class="flex justify-between items-center text-sm">
-                                    <div class="flex-1">
-                                      <span class="font-medium">{item.item?.name || ''}</span>
-                                      {#if item.item?.brand}
-                                        <span class="text-base-content/60">({item.item?.brand})</span>
-                                      {/if}
-                                      {#if item.item?.grams !== undefined}
-                                        <span class="text-base-content/60">- {item.item?.grams}g</span>
-                                      {/if}
-                                    </div>
-                                    <div class="text-right">
-                                      <div class="font-medium">{Math.round(item.item?.nutrients?.calories || 0)} cal</div>
-                                      <div class="text-xs text-base-content/60">
-                                        P: {(item.item?.nutrients?.protein_g || 0).toFixed(1)}g |
-                                        C: {(item.item?.nutrients?.total_carbs_g || 0).toFixed(1)}g |
-                                        F: {(item.item?.nutrients?.total_fat_g || 0).toFixed(1)}g
-                                      </div>
-                                    </div>
-                                  </div>
-                                {/each}
-                              </div>
-                            </div>
-                          {/if}
-                          <div class="mt-4 flex justify-end">
-                            <a href={`/consumptions/${consumption.id}`} class="btn btn-sm btn-outline">View</a>
-                          </div>
-                        </div>
-                      {/if}
-                    </div>
-                  </div>
+                  <ConsumptionCard
+                    {consumption}
+                    mode="readonly"
+                    clickable={true}
+                    variant="compact"
+                    showNutrition={true}
+                    showLabels={true}
+                    showTimestamp={true}
+                    showNote={true}
+                  />
                 {/each}
               </div>
             </div>

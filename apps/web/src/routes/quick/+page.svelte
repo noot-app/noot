@@ -3,11 +3,9 @@
   import { apiClient } from "$lib/api/client"
   import { toast } from "$lib/stores/toast"
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
-  import TimelineIcon from "$lib/components/icons/Timeline.svelte"
-  import Plus from "$lib/components/icons/Plus.svelte"
-  import Eye from "$lib/components/icons/Eye.svelte"
-  import QuickConsumptionDisplay from "$lib/components/QuickConsumptionDisplay.svelte"
+  import ConsumptionCard from "$lib/components/ConsumptionCard.svelte"
   import type { paths } from "$lib/api/schema"
+  import CursorArrowRays from "$lib/components/icons/CursorArrowRays.svelte"
 
   // Type definitions
   type FavoritesResponse = paths["/favorites"]["get"]["responses"]["200"]["content"]["application/json"]
@@ -127,58 +125,6 @@
     }
   }
 
-  // Toggle favorite status
-  async function toggleFavorite(consumption: Consumption) {
-    // Check if this consumption is already favorited
-    const isFavorited = favorites.some(fav => fav.consumption_id === consumption.id)
-    
-    try {
-      if (isFavorited) {
-        // Remove from favorites
-        const result = await handleApiCallWithAuthRedirect(async () => {
-          return await apiClient.DELETE("/favorites/{consumption_id}", {
-            params: { path: { consumption_id: consumption.id } }
-          })
-        })
-
-        if (result.error) {
-          toast.error(formatErrorForUser(result.error))
-          return
-        }
-
-        // Remove from local favorites list
-        favorites = favorites.filter(fav => fav.consumption_id !== consumption.id)
-        toast.success("Removed from favorites")
-      } else {
-        // Add to favorites
-        const result = await handleApiCallWithAuthRedirect(async () => {
-          return await apiClient.POST("/favorites", {
-            body: {
-              consumption_id: consumption.id
-            }
-          })
-        })
-
-        if (result.error) {
-          toast.error(formatErrorForUser(result.error))
-          return
-        }
-
-        // Reload favorites to get the updated list
-        await loadFavorites()
-        toast.success("Added to favorites")
-      }
-    } catch (err) {
-      console.error("Failed to toggle favorite:", err)
-      toast.error("Failed to update favorites. Please try again.")
-    }
-  }
-
-  // Check if consumption is favorited
-  function isFavorited(consumption: Consumption): boolean {
-    return favorites.some(fav => fav.consumption_id === consumption.id)
-  }
-
   // Load data on mount
   onMount(async () => {
     await Promise.all([
@@ -197,7 +143,7 @@
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-3xl font-bold flex items-center gap-2">
-        <TimelineIcon className="w-8 h-8" />
+        <CursorArrowRays className="w-8 h-8" />
         Quick Add
       </h1>
       <p class="text-base-content/70 mt-2">
@@ -232,33 +178,12 @@
       {:else}
         <div class="grid gap-4">
           {#each favorites as favorite (favorite.id)}
-            <div class="card bg-base-200">
-              <div class="card-body">
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <QuickConsumptionDisplay consumption={favorite.consumption} />
-                  </div>
-                  <div class="flex gap-2 ml-4">
-                    <!-- View button -->
-                    <a
-                      href="/consumptions/{favorite.consumption.id}"
-                      class="btn btn-outline btn-sm"
-                      title="View full consumption details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </a>
-                    <!-- Quick re-log button -->
-                    <button
-                      class="btn btn-primary btn-sm"
-                      on:click={() => quickRelogConsumption(favorite.consumption)}
-                      title="Re-log this consumption"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ConsumptionCard
+              consumption={favorite.consumption}
+              mode="actions"
+              variant="compact"
+              onReLog={quickRelogConsumption}
+            />
           {/each}
         </div>
       {/if}
@@ -284,33 +209,12 @@
       {:else}
         <div class="grid gap-4">
           {#each recentConsumptions as consumption (consumption.id)}
-            <div class="card bg-base-200">
-              <div class="card-body">
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <QuickConsumptionDisplay {consumption} />
-                  </div>
-                  <div class="flex gap-2 ml-4">
-                    <!-- View button -->
-                    <a
-                      href="/consumptions/{consumption.id}"
-                      class="btn btn-outline btn-sm"
-                      title="View full consumption details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </a>
-                    <!-- Quick re-log button -->
-                    <button
-                      class="btn btn-primary btn-sm"
-                      on:click={() => quickRelogConsumption(consumption)}
-                      title="Re-log this consumption"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ConsumptionCard
+              {consumption}
+              mode="actions"
+              variant="compact"
+              onReLog={quickRelogConsumption}
+            />
           {/each}
         </div>
 
