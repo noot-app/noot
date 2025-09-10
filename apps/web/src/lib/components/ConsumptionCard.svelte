@@ -62,17 +62,17 @@
     'bg-white/50 backdrop-blur-sm border border-black/[0.08] rounded-2xl',
     'hover:shadow-lg hover:shadow-black/5 hover:border-black/[0.12]',
     isClickable ? 'cursor-pointer' : '',
-    variant === 'default' ? 'p-6' : '',
-    variant === 'compact' ? 'p-4' : '',
-    variant === 'minimal' ? 'p-3' : '',
+    variant === 'default' ? 'p-5' : '',
+    variant === 'compact' ? 'p-3' : '',
+    variant === 'minimal' ? 'p-2' : '',
   ].filter(Boolean).join(' ')
 
-  $: spacingClass = variant === 'minimal' ? 'space-y-2' : variant === 'compact' ? 'space-y-3' : 'space-y-4'
+  $: spacingClass = variant === 'minimal' ? 'space-y-1.5' : variant === 'compact' ? 'space-y-2' : 'space-y-3'
   $: nutritionSize = variant === 'minimal' ? 'minimal' as const : 'compact' as const
 </script>
 
 <div class="card bg-base-200 {className}">
-  <div class="card-body">
+  <div class="card-body p-4">
     {#if showActions}
       <!-- Layout with actions -->
       <div class="flex items-center justify-between">

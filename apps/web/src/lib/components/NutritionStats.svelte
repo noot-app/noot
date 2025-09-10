@@ -11,28 +11,28 @@
 
 {#if size === "minimal"}
   <!-- Minimal version for cards -->
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 {className}">
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 {className}">
     <div class="flex flex-col items-center text-center">
-      <Icon name="zap" size="md" className="text-honey mb-2" />
-      <div class="text-sm font-semibold text-honey">{calories}</div>
+      <Icon name="zap" size="lg" className="text-honey mb-1" />
+      <div class="text-xxl font-bold text-honey">{calories}</div>
       <div class="text-xs text-gray-500">calories</div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Icon name="dumbbell" size="md" className="text-secondary mb-2" />
-      <div class="text-sm font-semibold text-secondary">{protein.toFixed(1)}g</div>
+      <Icon name="dumbbell" size="lg" className="text-secondary mb-1" />
+      <div class="text-lg font-bold text-secondary">{protein.toFixed(1)}g</div>
       <div class="text-xs text-gray-500">protein</div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Icon name="avocado" size="md" className="text-accent mb-2" />
-      <div class="text-sm font-semibold text-accent">{fat.toFixed(1)}g</div>
+      <Icon name="avocado" size="lg" className="text-accent mb-1" />
+      <div class="text-lg font-bold text-accent">{fat.toFixed(1)}g</div>
       <div class="text-xs text-gray-500">fat</div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Icon name="wheat" size="md" className="text-warning mb-2" />
-      <div class="text-sm font-semibold text-warning">{carbs.toFixed(1)}g</div>
+      <Icon name="wheat" size="lg" className="text-warning mb-1" />
+      <div class="text-lg font-bold text-warning">{carbs.toFixed(1)}g</div>
       <div class="text-xs text-gray-500">carbs</div>
     </div>
   </div>
@@ -46,7 +46,7 @@
         <Icon name="zap" size="lg" />
       </div>
       <div class="stat-title">Calories</div>
-      <div class="stat-value text-honey {size === 'compact' ? 'text-lg' : ''}">
+      <div class="stat-value text-honey {size === 'compact' ? 'text-xxl font-bold' : ''}">
         {calories}
       </div>
       {#if size === "normal"}
@@ -60,7 +60,7 @@
       </div>
       <div class="stat-title">Protein</div>
       <div
-        class="stat-value text-secondary {size === 'compact' ? 'text-lg' : ''}"
+        class="stat-value text-secondary {size === 'compact' ? 'text-xxl font-bold' : ''}"
       >
         {protein.toFixed(1)}g
       </div>
@@ -74,7 +74,7 @@
         <Icon name="avocado" size="lg" />
       </div>
       <div class="stat-title">Fat</div>
-      <div class="stat-value text-accent {size === 'compact' ? 'text-lg' : ''}">
+      <div class="stat-value text-accent {size === 'compact' ? 'text-xxl font-bold' : ''}">
         {fat.toFixed(1)}g
       </div>
       {#if size === "normal"}
@@ -87,7 +87,7 @@
         <Icon name="wheat" size="lg" />
       </div>
       <div class="stat-title">Carbs</div>
-      <div class="stat-value text-warning {size === 'compact' ? 'text-lg' : ''}">
+      <div class="stat-value text-warning {size === 'compact' ? 'text-xxl font-bold' : ''}">
         {carbs.toFixed(1)}g
       </div>
       {#if size === "normal"}

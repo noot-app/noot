@@ -192,3 +192,9 @@ button[disabled].authBtn::before {
 .progress-lighter {
   --progress-color: var(--color-base-content-lighter);
 }
+
+/* Custom text sizing - Extra Extra Large */
+.text-xxl {
+  font-size: 1.875rem; /* 30px */
+  line-height: 2.25rem; /* 36px for good line spacing */
+}
