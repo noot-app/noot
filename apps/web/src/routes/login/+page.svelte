@@ -10,6 +10,8 @@
   } from "$lib/auth/store"
   import Alert from "$lib/components/Alert.svelte"
   import DevModeAlert from "$lib/components/DevModeAlert.svelte"
+  import Toast from "$lib/components/Toast.svelte"
+  import { toast } from "$lib/stores/toast"
   import { getAuthErrorMessage } from "$lib/auth/error-messages"
   import { onMount } from "svelte"
   import { DEFAULT_REDIRECT_PATH, getRedirectParam } from "$lib/utils/redirect"
@@ -19,7 +21,6 @@
   let loading = false
   let githubLoading = false
   let googleLoading = false
-  let error: string | null = null
   let redirecting = false // Prevent multiple simultaneous redirects
 
   // Get return URL from query params, using shared default and sanitization
@@ -29,10 +30,11 @@
   onMount(() => {
     const errorParam = $page.url.searchParams.get("error")
     if (errorParam) {
-      error = getAuthErrorMessage(
+      const errorMessage = getAuthErrorMessage(
         errorParam,
         "An authentication error occurred. Please try again.",
       )
+      toast.error(errorMessage)
     }
     // Some providers append errors in URL hash (e.g., #error=server_error&error_code=...)
     const hash = $page.url.hash || ""
@@ -40,10 +42,11 @@
       const params = new URLSearchParams(hash.replace(/^#/, ""))
       const oauthError = params.get("error_code") || params.get("error")
       if (oauthError) {
-        error = getAuthErrorMessage(
+        const errorMessage = getAuthErrorMessage(
           oauthError,
           "An authentication error occurred. Please try again.",
         )
+        toast.error(errorMessage)
       }
     }
 
@@ -63,12 +66,11 @@
 
   async function handleLogin() {
     if (!email || !password) {
-      error = "Please fill in all fields"
+      toast.error("Please fill in all fields")
       return
     }
 
     loading = true
-    error = null
 
     try {
       const result = await signIn(email, password)
@@ -89,8 +91,9 @@
           // If not JSON, we'll handle it in the default case
         }
 
-        // Get user-friendly error message
-        error = getAuthErrorMessage(errorCode, errorMessage)
+        // Get user-friendly error message and show as toast
+        const userFriendlyError = getAuthErrorMessage(errorCode, errorMessage)
+        toast.error(userFriendlyError)
         loading = false
       } else {
         // Successful sign-in. Perform explicit client redirect to avoid race conditions
@@ -104,8 +107,8 @@
       }
     } catch (err) {
       console.error("❌ Exception in handleLogin:", err)
-      error =
-        err instanceof Error ? err.message : "An unexpected error occurred"
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred"
+      toast.error(errorMessage)
       loading = false
     }
   }
@@ -122,20 +125,20 @@
     if (githubLoading) return
 
     githubLoading = true
-    error = null
 
     try {
       const result = await signInWithGitHub(redirect)
 
       if (result.error) {
-        error = getAuthErrorMessage(result.error.name, result.error.message)
+        const errorMessage = getAuthErrorMessage(result.error.name, result.error.message)
+        toast.error(errorMessage)
         githubLoading = false
       }
       // If successful, the OAuth flow will redirect to GitHub
       // and then back to our callback, so we don't reset loading here
     } catch (err) {
       console.error("✌️ GitHub login error:", err)
-      error = "An error occurred during authentication. Please try again."
+      toast.error("An error occurred during authentication. Please try again.")
       githubLoading = false
     }
   }
@@ -143,17 +146,17 @@
   async function handleGoogleLogin() {
     if (googleLoading) return
     googleLoading = true
-    error = null
 
     try {
       const result = await signInWithGoogle(redirect)
       if (result.error) {
-        error = getAuthErrorMessage(result.error.name, result.error.message)
+        const errorMessage = getAuthErrorMessage(result.error.name, result.error.message)
+        toast.error(errorMessage)
         googleLoading = false
       }
     } catch (err) {
       console.error("✌️ Google login error:", err)
-      error = "An error occurred during authentication. Please try again."
+      toast.error("An error occurred during authentication. Please try again.")
       googleLoading = false
     }
   }
@@ -201,10 +204,8 @@
             required
             bind:value={email}
             class="input input-bordered w-full rounded-t-md rounded-b-none"
-            class:input-error={error}
             placeholder="Email address"
             disabled={loading}
-            aria-describedby={error ? "error-message" : undefined}
           />
         </div>
         <div>
@@ -217,21 +218,10 @@
             required
             bind:value={password}
             class="input input-bordered w-full rounded-t-none rounded-b-md"
-            class:input-error={error}
             placeholder="Password"
             disabled={loading}
-            aria-describedby={error ? "error-message" : undefined}
           />
         </div>
-      </div>
-
-      <!-- Fixed height error container to prevent layout shift -->
-      <div class="min-h-[4rem] flex items-start">
-        {#if error}
-          <Alert type="error" className="w-full">
-            {error}
-          </Alert>
-        {/if}
       </div>
 
       <div class="flex items-center justify-between">
@@ -361,3 +351,5 @@
     </form>
   </div>
 </div>
+
+<Toast />
