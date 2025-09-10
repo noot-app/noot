@@ -1312,6 +1312,13 @@ export interface components {
              */
             name: string;
             /**
+             * @description Category of the goal set
+             * @default custom
+             * @example fitness
+             * @enum {string}
+             */
+            category: "weight" | "fitness" | "health" | "custom";
+            /**
              * @description Custom nutrition goal overrides
              * @example {
              *       "calories": 3000,
@@ -1346,6 +1353,12 @@ export interface components {
              * @example Bulk Season
              */
             name: string;
+            /**
+             * @description Category of the goal set
+             * @example fitness
+             * @enum {string}
+             */
+            category: "weight" | "fitness" | "health" | "custom";
             /**
              * Format: date-time
              * @description When the goal set was created

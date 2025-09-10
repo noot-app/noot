@@ -2866,6 +2866,12 @@ components:
           maxLength: 50
           description: Custom name for the goal set (required for managing multiple goal sets)
           example: "Bulk Season"
+        category:
+          type: string
+          enum: [weight, fitness, health, custom]
+          description: Category of the goal set
+          example: "fitness"
+          default: "custom"
         overrides:
           type: object
           additionalProperties:
@@ -2910,6 +2916,7 @@ components:
       type: object
       required:
         - name
+        - category
         - created_at
         - updated_at
       properties:
@@ -2917,6 +2924,11 @@ components:
           type: string
           description: Name of the goal set
           example: "Bulk Season"
+        category:
+          type: string
+          enum: [weight, fitness, health, custom]
+          description: Category of the goal set
+          example: "fitness"
         created_at:
           type: string
           format: date-time

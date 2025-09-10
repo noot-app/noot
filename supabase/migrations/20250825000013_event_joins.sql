@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS public.event_links (
 CREATE INDEX IF NOT EXISTS idx_event_links_event ON public.event_links(event_id);
 CREATE INDEX IF NOT EXISTS idx_event_links_consumption ON public.event_links(consumption_id) WHERE consumption_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_event_links_item ON public.event_links(consumption_item_id) WHERE consumption_item_id IS NOT NULL;
+-- Add composite index for correlation analysis
+CREATE INDEX IF NOT EXISTS idx_event_links_created_at ON public.event_links(event_id, created_at);
 
 -- Unique constraint: prevent duplicate links
 CREATE UNIQUE INDEX IF NOT EXISTS ux_event_links_event_consumption ON public.event_links(event_id, consumption_id) WHERE consumption_id IS NOT NULL;

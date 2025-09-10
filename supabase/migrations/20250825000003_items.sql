@@ -114,7 +114,12 @@ CREATE TABLE IF NOT EXISTS items (
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    UNIQUE(canonical_name, brand)
+    UNIQUE(canonical_name, brand),
+    -- Add nutrition validation constraints
+    CONSTRAINT items_positive_nutrition CHECK (
+        calories_per_100g >= 0 AND protein_g_per_100g >= 0 AND total_fat_g_per_100g >= 0 AND 
+        total_carbs_g_per_100g >= 0 AND dietary_fiber_g_per_100g >= 0 AND sodium_mg_per_100g >= 0
+    )
 );
 
 CREATE INDEX IF NOT EXISTS idx_items_canonical ON items(canonical_name, brand);

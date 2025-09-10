@@ -57,11 +57,17 @@ CREATE TABLE IF NOT EXISTS consumptions (
     -- Additional metadata fields
     note TEXT CONSTRAINT consumptions_note_length_check CHECK (LENGTH(note) <= 1000),
     title TEXT CONSTRAINT consumptions_title_length_check CHECK (LENGTH(title) <= 100),
+    source text CHECK (source IN ('voice', 'text', 'manual', 'by_consumption_id', 'api')),
     is_public BOOLEAN NOT NULL DEFAULT FALSE, -- Allow users to make consumptions publicly viewable
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE, -- When the consumption was last modified
     consumed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), -- When the food was actually consumed
-    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE,
+    -- Add nutrition validation constraints
+    CONSTRAINT consumptions_positive_nutrition CHECK (
+        total_calories >= 0 AND total_protein_g >= 0 AND total_fat_g >= 0 AND 
+        total_carbs_g >= 0 AND dietary_fiber_g >= 0 AND total_sodium_mg >= 0
+    )
 );
 
 CREATE INDEX IF NOT EXISTS idx_consumptions_user_id ON consumptions(user_id);
@@ -69,6 +75,10 @@ CREATE INDEX IF NOT EXISTS idx_consumptions_created_at ON consumptions(created_a
 CREATE INDEX IF NOT EXISTS idx_consumptions_consumed_at ON consumptions(consumed_at);
 CREATE INDEX IF NOT EXISTS idx_consumptions_user_consumed_at ON consumptions(user_id, consumed_at);
 CREATE INDEX IF NOT EXISTS idx_consumptions_public ON consumptions (is_public) WHERE is_public = TRUE;
+-- Optimized indexes for nutrition analysis queries
+CREATE INDEX IF NOT EXISTS idx_consumptions_user_calories ON consumptions(user_id, total_calories);
+CREATE INDEX IF NOT EXISTS idx_consumptions_user_protein ON consumptions(user_id, total_protein_g);
+CREATE INDEX IF NOT EXISTS idx_consumptions_source ON consumptions(source);
 
 -- Enable RLS for consumptions table
 ALTER TABLE consumptions ENABLE ROW LEVEL SECURITY;

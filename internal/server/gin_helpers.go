@@ -485,3 +485,24 @@ func normalizeConsumptionInput(c *gin.Context, requestID string, maxFormSize int
 		RequestID: requestID,
 	}, nil
 }
+
+// determineConsumptionSource determines the source of a consumption based on input and context
+func determineConsumptionSource(c *gin.Context, input *ConsumptionInput) string {
+	// Check if request was made with API key
+	if authMethod := c.GetString("auth_method"); authMethod == "api_key" {
+		return "api"
+	}
+
+	// Handle duplication case
+	if input.Source == "duplicate" {
+		return "by_consumption_id"
+	}
+
+	// Handle voice transcription
+	if input.Source == "audio" {
+		return "voice"
+	}
+
+	// Handle direct text input (default)
+	return "text"
+}

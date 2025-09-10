@@ -24,6 +24,8 @@ CREATE INDEX IF NOT EXISTS idx_events_user_id ON public.events(user_id);
 CREATE INDEX IF NOT EXISTS idx_events_user_started ON public.events(user_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_events_user_event_type ON public.events(user_id, event_type_id) WHERE event_type_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_events_user_level ON public.events(user_id, level) WHERE level IS NOT NULL;
+-- Add index for time-based queries
+CREATE INDEX IF NOT EXISTS idx_events_time_range ON public.events(user_id, started_at, ended_at);
 
 -- Updated_at trigger (reuse existing function)
 CREATE TRIGGER set_events_updated_at

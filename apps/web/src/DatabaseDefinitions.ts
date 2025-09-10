@@ -368,6 +368,7 @@ export type Database = {
           riboflavin_mg: number
           saturated_fat_g: number
           selenium_mcg: number
+          source: string | null
           thiamine_mg: number
           title: string | null
           total_calories: number
@@ -427,6 +428,7 @@ export type Database = {
           riboflavin_mg?: number
           saturated_fat_g?: number
           selenium_mcg?: number
+          source?: string | null
           thiamine_mg?: number
           title?: string | null
           total_calories?: number
@@ -486,6 +488,7 @@ export type Database = {
           riboflavin_mg?: number
           saturated_fat_g?: number
           selenium_mcg?: number
+          source?: string | null
           thiamine_mg?: number
           title?: string | null
           total_calories?: number
@@ -1067,7 +1070,7 @@ export type Database = {
       }
       profiles: {
         Row: {
-          active_goal_name: string | null
+          active_goal_id: string | null
           avatar_url: string | null
           created_at: string | null
           email: string
@@ -1078,7 +1081,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          active_goal_name?: string | null
+          active_goal_id?: string | null
           avatar_url?: string | null
           created_at?: string | null
           email: string
@@ -1089,7 +1092,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          active_goal_name?: string | null
+          active_goal_id?: string | null
           avatar_url?: string | null
           created_at?: string | null
           email?: string
@@ -1099,7 +1102,15 @@ export type Database = {
           subscription_tier?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_active_goal_fkey"
+            columns: ["active_goal_id"]
+            isOneToOne: false
+            referencedRelation: "user_goals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_biometrics: {
         Row: {
@@ -1183,6 +1194,7 @@ export type Database = {
       }
       user_goals: {
         Row: {
+          category: string
           created_at: string
           id: string
           name: string
@@ -1191,6 +1203,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string
           created_at?: string
           id?: string
           name?: string
@@ -1199,6 +1212,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string
           created_at?: string
           id?: string
           name?: string
