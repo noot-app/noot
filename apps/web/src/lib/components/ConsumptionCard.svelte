@@ -62,12 +62,13 @@
     'bg-white/50 backdrop-blur-sm border border-black/[0.08] rounded-2xl',
     'hover:shadow-lg hover:shadow-black/5 hover:border-black/[0.12]',
     isClickable ? 'cursor-pointer' : '',
-    variant === 'default' ? 'p-5' : '',
-    variant === 'compact' ? 'p-3' : '',
-    variant === 'minimal' ? 'p-2' : '',
+    variant === 'default' ? 'p-6' : '',
+    variant === 'compact' ? 'p-4' : '',
+    variant === 'minimal' ? 'p-3' : '',
   ].filter(Boolean).join(' ')
 
   $: spacingClass = variant === 'minimal' ? 'space-y-1.5' : variant === 'compact' ? 'space-y-2' : 'space-y-3'
+  $: innerPaddingClass = variant === 'minimal' ? 'px-2' : variant === 'compact' ? 'px-3' : 'px-4'
   $: nutritionSize = variant === 'minimal' ? 'minimal' as const : 'compact' as const
 </script>
 
@@ -93,40 +94,42 @@
             {/if}
 
             <div class={spacingClass}>
-              <!-- Title/Transcript Section -->
-              {#if consumption?.title && consumption?.transcript}
-                <div class="space-y-1">
-                  <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 text-{variant === 'minimal' ? 'sm' : 'base'}">
-                    {consumption.title}
-                  </h3>
-                  {#if variant !== 'minimal'}
-                    <p class="text-gray-600 text-sm leading-relaxed line-clamp-2">
+              <div class={innerPaddingClass}>
+                <!-- Title/Transcript Section -->
+                {#if consumption?.title && consumption?.transcript}
+                  <div class="space-y-1">
+                    <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 {variant === 'minimal' ? 'text-lg' : 'text-xl'}">
+                      {consumption.title}
+                    </h3>
+                    {#if variant !== 'minimal'}
+                      <p class="text-gray-600 text-sm leading-relaxed line-clamp-2">
+                        {consumption.transcript}
+                      </p>
+                    {/if}
+                  </div>
+                {:else if consumption?.title}
+                  <div>
+                    <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 {variant === 'minimal' ? 'text-lg' : 'text-xl'}">
+                      {consumption.title}
+                    </h3>
+                  </div>
+                {:else if consumption?.transcript}
+                  <div>
+                    <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 {variant === 'minimal' ? 'text-lg' : 'text-xl'}">
                       {consumption.transcript}
-                    </p>
-                  {/if}
-                </div>
-              {:else if consumption?.title}
-                <div>
-                  <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 text-{variant === 'minimal' ? 'sm' : 'base'}">
-                    {consumption.title}
-                  </h3>
-                </div>
-              {:else if consumption?.transcript}
-                <div>
-                  <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 text-{variant === 'minimal' ? 'sm' : 'base'}">
-                    {consumption.transcript}
-                  </h3>
-                </div>
-              {/if}
+                    </h3>
+                  </div>
+                {/if}
 
-              <!-- Note Section -->
-              {#if showNote && consumption?.note && variant !== 'minimal'}
-                <div class="px-3 py-2 bg-gray-50/80 rounded-lg border border-gray-100">
-                  <p class="text-xs text-gray-600 italic leading-relaxed line-clamp-2">
-                    {consumption.note}
-                  </p>
-                </div>
-              {/if}
+                <!-- Note Section -->
+                {#if showNote && consumption?.note && variant !== 'minimal'}
+                  <div class="px-3 py-2 bg-gray-50/80 rounded-lg border border-gray-100">
+                    <p class="text-xs text-gray-600 italic leading-relaxed line-clamp-2">
+                      {consumption.note}
+                    </p>
+                  </div>
+                {/if}
+              </div>
 
               <!-- Nutrition Section -->
               {#if showNutrition && consumption?.summary}
@@ -143,7 +146,7 @@
 
               <!-- Labels and Timestamp Section -->
               {#if (showLabels && consumption?.labels && consumption.labels.length > 0) || (showTimestamp && consumption?.created_at)}
-                <div class="flex items-center justify-between gap-3 pt-1">
+                <div class="{innerPaddingClass} flex items-center justify-between gap-3 pt-1">
                   <!-- Labels -->
                   {#if showLabels && consumption?.labels && consumption.labels.length > 0}
                     <div class="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
@@ -230,40 +233,42 @@
         {/if}
 
         <div class={spacingClass}>
-          <!-- Title/Transcript Section -->
-          {#if consumption?.title && consumption?.transcript}
-            <div class="space-y-1">
-              <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 text-{variant === 'minimal' ? 'sm' : 'base'}">
-                {consumption.title}
-              </h3>
-              {#if variant !== 'minimal'}
-                <p class="text-gray-600 text-sm leading-relaxed line-clamp-2">
+          <div class={innerPaddingClass}>
+            <!-- Title/Transcript Section -->
+            {#if consumption?.title && consumption?.transcript}
+              <div class="space-y-1">
+                <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 {variant === 'minimal' ? 'text-lg' : 'text-xl'}">
+                  {consumption.title}
+                </h3>
+                {#if variant !== 'minimal'}
+                  <p class="text-gray-600 text-sm leading-relaxed line-clamp-2">
+                    {consumption.transcript}
+                  </p>
+                {/if}
+              </div>
+            {:else if consumption?.title}
+              <div>
+                <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 {variant === 'minimal' ? 'text-lg' : 'text-xl'}">
+                  {consumption.title}
+                </h3>
+              </div>
+            {:else if consumption?.transcript}
+              <div>
+                <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 {variant === 'minimal' ? 'text-lg' : 'text-xl'}">
                   {consumption.transcript}
-                </p>
-              {/if}
-            </div>
-          {:else if consumption?.title}
-            <div>
-              <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 text-{variant === 'minimal' ? 'sm' : 'base'}">
-                {consumption.title}
-              </h3>
-            </div>
-          {:else if consumption?.transcript}
-            <div>
-              <h3 class="font-semibold text-gray-900 leading-snug line-clamp-2 text-{variant === 'minimal' ? 'sm' : 'base'}">
-                {consumption.transcript}
-              </h3>
-            </div>
-          {/if}
+                </h3>
+              </div>
+            {/if}
 
-          <!-- Note Section -->
-          {#if showNote && consumption?.note && variant !== 'minimal'}
-            <div class="px-3 py-2 bg-gray-50/80 rounded-lg border border-gray-100">
-              <p class="text-xs text-gray-600 italic leading-relaxed line-clamp-2">
-                {consumption.note}
-              </p>
-            </div>
-          {/if}
+            <!-- Note Section -->
+            {#if showNote && consumption?.note && variant !== 'minimal'}
+              <div class="px-3 py-2 bg-gray-50/80 rounded-lg border border-gray-100">
+                <p class="text-xs text-gray-600 italic leading-relaxed line-clamp-2">
+                  {consumption.note}
+                </p>
+              </div>
+            {/if}
+          </div>
 
           <!-- Nutrition Section -->
           {#if showNutrition && consumption?.summary}
@@ -280,7 +285,7 @@
 
           <!-- Labels and Timestamp Section -->
           {#if (showLabels && consumption?.labels && consumption.labels.length > 0) || (showTimestamp && consumption?.created_at)}
-            <div class="flex items-center justify-between gap-3 pt-1">
+            <div class="{innerPaddingClass} flex items-center justify-between gap-3 pt-1">
               <!-- Labels -->
               {#if showLabels && consumption?.labels && consumption.labels.length > 0}
                 <div class="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
