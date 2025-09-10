@@ -4,7 +4,6 @@ info:
   description: AI-powered nutrition logging API
   version: "1.0"
   contact:
-    name: Grant Birkinbine
     url: https://github.com/noot-app
 
 servers:
@@ -15,7 +14,29 @@ paths:
   /consumption:
     post:
       summary: Log a consumption via audio, text, or duplicate existing consumption
-      description: Upload an audio file of spoken consumption data to be transcribed, provide text directly for AI processing, or duplicate an existing consumption by ID to skip AI processing
+      description: |
+        Submit consumption data in three ways:
+        
+        **1. Audio Upload (multipart/form-data):**
+        Upload an audio file to be transcribed and processed by AI
+        
+        **2. Text Input (application/json OR multipart/form-data):**
+        Provide text directly for AI processing
+        
+        **3. Duplicate Existing Consumption (application/json):**
+        Copy an existing consumption by providing its ID. This skips AI processing and duplicates all items, nutrition data, title, note, and labels. This is commonly used when marking a past consumption as a favorite and then clicking a button like "+ re-add"
+        
+        **Example JSON payload to duplicate:**
+        ```json
+        {"consumption_id": "edc2bfd0-9648-4045-9467-40dada432fd5"}
+        ```
+        
+        **Example JSON payload for text processing:**
+        ```json
+        {"text": "I ate a banana and yogurt for breakfast"}
+        ```
+        
+        Note: For multipart/form-data, text takes precedence over audio if both are provided.
       operationId: createConsumption
       requestBody:
         required: true
@@ -27,27 +48,32 @@ paths:
                 audio:
                   type: string
                   format: binary
-                  description: Audio file (webm, opus, mp3, wav)
+                  description: Audio file (webm, opus, mp3, wav) - ignored if text field is also provided
                 text:
                   type: string
-                  description: Text description of consumption (optional, takes precedence over audio if both provided)
-              required:
-                - audio
+                  description: Text description of consumption - takes precedence over audio if both provided
+              anyOf:
+                - required: [audio]
+                - required: [text]
           application/json:
             schema:
               oneOf:
                 - type: object
+                  description: Text input for AI processing
                   properties:
                     text:
                       type: string
                       description: Text description of consumption for AI processing
+                      example: "I ate a banana and yogurt for breakfast"
                   required:
                     - text
                 - type: object
+                  description: Duplicate an existing consumption by ID
                   properties:
                     consumption_id:
                       type: string
-                      description: ID of an existing consumption to duplicate (skips AI processing)
+                      description: ID of an existing consumption to duplicate (skips AI processing, copies all items, nutrition data, title, note, and labels)
+                      example: "edc2bfd0-9648-4045-9467-40dada432fd5"
                   required:
                     - consumption_id
       responses:
@@ -1513,68 +1539,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /trends:
-    get:
-      summary: Get nutrition trends
-      description: Get time series data for nutrition metrics over a specified period
-      operationId: getTrends
-      parameters:
-        - name: metrics
-          in: query
-          description: Comma-separated list of metrics to include
-          schema:
-            type: string
-            example: "calories,protein_g,total_fat_g"
-        - name: start
-          in: query
-          description: Start date (RFC3339 format)
-          schema:
-            type: string
-            format: date-time
-        - name: end
-          in: query
-          description: End date (RFC3339 format)
-          schema:
-            type: string
-            format: date-time
-        - name: days
-          in: query
-          description: Number of days to look back from today (alternative to start/end)
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 365
-      responses:
-        "200":
-          description: Nutrition trends data
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TrendsResponse"
-        "400":
-          description: Invalid parameters
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: Access denied (subscription limitation)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+
 
   /export:
     get:
@@ -2963,55 +2928,7 @@ components:
           description: When the goal set was last updated
           example: "2023-01-15T10:30:00Z"
 
-    TrendsResponse:
-      type: object
-      required:
-        - series
-        - user
-        - date_range
-        - days
-      properties:
-        series:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              $ref: "#/components/schemas/DataPoint"
-          description: Time series data for each requested metric
-          example:
-            calories:
-              - date: "2023-01-01T00:00:00Z"
-                value: 2100
-              - date: "2023-01-02T00:00:00Z"
-                value: 2250
-        user:
-          $ref: "#/components/schemas/User"
-        date_range:
-          type: object
-          properties:
-            start:
-              type: string
-              format: date-time
-            end:
-              type: string
-              format: date-time
-        days:
-          type: integer
-          description: Number of days in the time series
 
-    DataPoint:
-      type: object
-      required:
-        - date
-        - value
-      properties:
-        date:
-          type: string
-          format: date-time
-          description: Date for this data point
-        value:
-          type: number
-          description: Nutrient value for this date
 
     ExportResponse:
       type: object
@@ -3043,6 +2960,20 @@ components:
           type: string
           enum: [csv, json]
           description: Export format used
+
+    DataPoint:
+      type: object
+      required:
+        - date
+        - value
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: Date for this data point
+        value:
+          type: number
+          description: Nutrient value for this date
 
     UpdateConsumptionRequest:
       type: object
@@ -3313,12 +3244,6 @@ components:
           description: List of API keys (secrets not included)
 
   securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT token from Supabase authentication
-    
     ApiKeyAuth:
       type: apiKey
       in: header

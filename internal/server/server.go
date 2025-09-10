@@ -66,12 +66,9 @@ func Run(ctx context.Context, port string) error {
 		// Use the generated RegisterHandlers to include all routes
 		api.RegisterHandlers(v1, apiServer)
 
-		// Development-only routes
-		if !IsProduction() {
-			// OpenAPI spec routes
-			v1.GET("/docs", apiServer.SwaggerUIHandler)
-			v1.GET("/openapi.yaml", apiServer.OpenAPISpecHandler)
-		}
+		// API documentation routes (available in all environments for API integrations and pro users via api tokens)
+		v1.GET("/docs", apiServer.SwaggerUIHandler)
+		v1.GET("/openapi.yaml", apiServer.OpenAPISpecHandler)
 	}
 
 	LogInfo("Starting server", "port", port, "debug", isDebugMode(), "env", getenv("ENV", "production"))

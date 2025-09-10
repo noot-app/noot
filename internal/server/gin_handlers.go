@@ -908,68 +908,6 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 	s.GetGoals(c, api.GetGoalsParams{})
 }
 
-// GetTrends implements ServerInterface.GetTrends
-func (s *APIServer) GetTrends(c *gin.Context, params api.GetTrendsParams) {
-	requestID := c.GetString("request_id")
-	ctx := c.Request.Context()
-
-	// Get the default user for now (in production, get from auth)
-	user, err := getCurrentUser(c)
-	if err != nil {
-		appErr := NewAppError("Failed to get user", http.StatusNotFound, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-
-	// Parse date range parameters
-	start, end, days, err := parseTrendsDateRangeParams(params.Start, params.End, params.Days)
-	if err != nil {
-		appErr := NewAppError("Invalid date range parameters", http.StatusBadRequest, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-
-	// Apply subscription-based limits
-	if err := validateTrendsSubscriptionAccess(user.SubscriptionTier, start, end); err != nil {
-		appErr := NewAppError(err.Error(), http.StatusForbidden, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-
-	// Get consumption data
-	consumptions, err := s.store.GetConsumptionsByUserSince(ctx, user.ID, start)
-	if err != nil {
-		appErr := NewAppError("Failed to get consumptions", http.StatusInternalServerError, err)
-		s.handleAppError(c, appErr, requestID)
-		return
-	}
-
-	// Parse requested metrics (default to common macros)
-	metrics := []string{"calories", "protein_g", "total_fat_g", "total_carbs_g"}
-	if params.Metrics != nil && *params.Metrics != "" {
-		// Parse comma-separated metrics
-		// TODO: Implement proper parsing and validation
-	}
-
-	// Generate time series data
-	series := generateTimeSeries(consumptions, metrics, start, end)
-
-	response := api.TrendsResponse{
-		Series: series,
-		User:   convertUser(user),
-		DateRange: struct {
-			End   *time.Time `json:"end,omitempty"`
-			Start *time.Time `json:"start,omitempty"`
-		}{
-			Start: &start,
-			End:   &end,
-		},
-		Days: days,
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
 // GetUserBiometrics retrieves user biometrics data
 func (s *APIServer) GetUserBiometrics(c *gin.Context) {
 	requestID := c.GetString("request_id")
