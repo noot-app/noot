@@ -8,11 +8,12 @@
     LegendComponent,
     GridComponent,
     DataZoomComponent,
-    ToolboxComponent
+    ToolboxComponent,
+    BrushComponent
   } from "echarts/components"
   import { CanvasRenderer } from "echarts/renderers"
-
-  // Initialize ECharts
+  
+  // Register ECharts
   use([
     LineChart,
     TitleComponent,
@@ -21,13 +22,38 @@
     GridComponent,
     DataZoomComponent,
     ToolboxComponent,
+    BrushComponent,
     CanvasRenderer
   ])
 
   export let consumptions: any[] = []
 
+  let chartInstance: any = null
+
   // Process data for chart
   $: chartData = processNutritionData(consumptions)
+
+    // Auto-enable dataZoom tool when chart instance becomes available
+  $: if (chartInstance) {
+    setTimeout(() => {
+      try {
+        console.debug('Chart instance available, setting up brush events and auto-enabling dataZoom tool')
+        
+        // Register brush event listeners
+        chartInstance.on('brushSelected', handleBrushSelected)
+        chartInstance.on('brushEnd', handleBrushEnd)
+        
+        // Auto-enable the dataZoom brush tool
+        chartInstance.dispatchAction({
+          type: 'toolboxDataZoom'
+        })
+        
+        console.debug('DataZoom tool auto-activation attempted')
+      } catch (error) {
+        console.debug('Error setting up chart or auto-activating dataZoom tool:', error)
+      }
+    }, 200)
+  }
 
   function processNutritionData(data: any[]) {
     if (!data || data.length === 0) return { dates: [], series: [] }
@@ -118,15 +144,50 @@
     toolbox: {
       feature: {
         dataZoom: {
-          yAxisIndex: 'none' as const
+          yAxisIndex: 'none' as const,
+          title: {
+            zoom: 'Zoom In',
+            back: 'Zoom Out'
+          }
         },
-        restore: {},
+        brush: {
+          type: ['lineX', 'clear'] as ('lineX' | 'clear')[],
+          title: {
+            lineX: 'Select to Zoom',
+            clear: 'Clear Selection'
+          }
+        },
+        restore: {
+          title: 'Reset Zoom'
+        },
         saveAsImage: {
-          backgroundColor: '#faf9f5'
+          backgroundColor: '#faf9f5',
+          title: 'Save as Image',
+          pixelRatio: 2,
+          excludeComponents: ['toolbox']
         }
       },
       iconStyle: {
         borderColor: '#657280'
+      }
+    },
+    brush: {
+      toolbox: ['lineX', 'clear'] as ('lineX' | 'clear')[],
+      xAxisIndex: 0,
+      brushType: 'lineX' as const,
+      brushMode: 'single' as const,
+      transformable: true,
+      removeOnClick: false,
+      inBrush: {
+        opacity: 1
+      },
+      outOfBrush: {
+        colorAlpha: 0.1
+      },
+      brushStyle: {
+        borderColor: 'rgba(116, 185, 134, 0.8)',
+        color: 'rgba(116, 185, 134, 0.2)',
+        borderWidth: 2
       }
     },
     grid: {
@@ -140,7 +201,10 @@
       {
         type: 'inside',
         start: 0,
-        end: 100
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+        moveOnMouseWheel: false
       },
       {
         start: 0,
@@ -214,11 +278,90 @@
       }
     }))
   }
+
+  // Handle brush selection to zoom
+  function handleBrushSelected(params: any) {
+    console.debug('Brush selected:', params)
+    
+    if (params.batch && params.batch[0]) {
+      const batch = params.batch[0]
+      if (batch.selected && batch.selected[0]) {
+        const selection = batch.selected[0]
+        if (selection.brushType === 'lineX' && selection.coordRange) {
+          const [startCoord, endCoord] = selection.coordRange
+          
+          // Convert pixel coordinates to data indices
+          const totalDates = chartData.dates.length
+          const startPercent = Math.max(0, (startCoord / totalDates) * 100)
+          const endPercent = Math.min(100, (endCoord / totalDates) * 100)
+          
+          console.debug('Zooming to range:', startPercent, endPercent)
+          
+          // Update both dataZoom components
+          options = {
+            ...options,
+            dataZoom: [
+              {
+                ...options.dataZoom[0],
+                start: startPercent,
+                end: endPercent
+              },
+              {
+                ...options.dataZoom[1], 
+                start: startPercent,
+                end: endPercent
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+
+  // Handle brush end event (when user finishes selection)
+  function handleBrushEnd(params: any) {
+    console.debug('Brush end:', params)
+    
+    if (params.areas && params.areas.length > 0) {
+      const area = params.areas[0]
+      if (area.brushType === 'lineX' && area.coordRange) {
+        const [startCoord, endCoord] = area.coordRange
+        
+        // Convert coordinates to percentages
+        const totalDates = chartData.dates.length
+        const startPercent = Math.max(0, (startCoord / totalDates) * 100)  
+        const endPercent = Math.min(100, (endCoord / totalDates) * 100)
+        
+        console.debug('Brush end - zooming to:', startPercent, endPercent)
+        
+        // Update dataZoom
+        options = {
+          ...options,
+          dataZoom: [
+            {
+              ...options.dataZoom[0],
+              start: startPercent,
+              end: endPercent
+            },
+            {
+              ...options.dataZoom[1],
+              start: startPercent, 
+              end: endPercent
+            }
+          ]
+        }
+      }
+    }
+  }
 </script>
 
 <div class="w-full h-64 sm:h-80 lg:h-96">
   {#if chartData.dates.length > 0}
-    <Chart {init} {options} />
+    <Chart 
+      {init} 
+      {options} 
+      bind:chart={chartInstance}
+    />
   {:else}
     <div class="h-full flex items-center justify-center text-base-content-lighter">
       <div class="text-center">
