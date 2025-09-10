@@ -85,7 +85,7 @@ func (s *APIServer) ExportData(c *gin.Context, params api.ExportDataParams) {
 	}
 }
 
-// Development-only handlers
+// API Documentation handlers
 
 // SwaggerUIHandler serves Swagger UI for API documentation
 func (s *APIServer) SwaggerUIHandler(c *gin.Context) {
