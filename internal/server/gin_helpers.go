@@ -340,8 +340,6 @@ func getConsumptionMetric(consumption *storage.Consumption, metric string) float
 	}
 }
 
-
-
 // parseTimeRangeParams converts API time range params to time values for export and similar operations
 func parseTimeRangeParams(start, end *time.Time, days *int) (time.Time, time.Time, int, error) {
 	var startTime, endTime time.Time

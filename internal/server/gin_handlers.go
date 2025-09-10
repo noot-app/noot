@@ -908,8 +908,6 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 	s.GetGoals(c, api.GetGoalsParams{})
 }
 
-
-
 // GetUserBiometrics retrieves user biometrics data
 func (s *APIServer) GetUserBiometrics(c *gin.Context) {
 	requestID := c.GetString("request_id")
