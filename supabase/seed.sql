@@ -202,50 +202,49 @@ WITH meal_templates AS (
 date_schedules AS (
     -- Generate date offsets for realistic meal distribution
     SELECT user_id, day_offset, meal_count FROM (VALUES
-        -- Today: 3-4 meals per user
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 0, 4), -- monalisa today
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 0, 3), -- alice today
+        -- Focus heavily on the past week (1-7 days ago) for better dashboard visualization
+        -- monalisa@birki.io user gets more dense data for testing dashboard
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 1, 4), -- yesterday: 4 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 2, 3), -- 2 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 3, 4), -- 3 days ago: 4 meals  
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 4, 3), -- 4 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 5, 4), -- 5 days ago: 4 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 6, 3), -- 6 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 7, 3), -- 7 days ago: 3 meals
         
-        -- Yesterday: 2-3 meals per user  
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 1, 3), -- monalisa yesterday
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 1, 2), -- alice yesterday
+        -- Second week: 8-14 days ago (moderate data for trends)
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 8, 3), -- 8 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 9, 2), -- 9 days ago: 2 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 10, 3), -- 10 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 11, 2), -- 11 days ago: 2 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 12, 3), -- 12 days ago: 3 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 13, 2), -- 13 days ago: 2 meals
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 14, 3), -- 14 days ago: 3 meals
         
-        -- Last 7 days: distributed meals
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 2, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 3, 3),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 4, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 5, 4),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 6, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 2, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 3, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 4, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 5, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 6, 4),
+        -- Older scattered data for historical trends (15-30 days ago)
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 16, 2),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 19, 3),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 22, 2),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 25, 2),
+        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 28, 3),
         
-        -- Weeks 2-8: scattered meals (remaining ~15 per user)
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 8, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 12, 3),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 15, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 18, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 22, 3),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 26, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 30, 1),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 35, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 42, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 48, 2),
-        ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 55, 1),
+        -- Secondary user: lighter distribution but covering same periods
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 1, 2), -- yesterday
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 2, 3), -- 2 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 3, 2), -- 3 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 4, 2), -- 4 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 5, 3), -- 5 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 6, 2), -- 6 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 7, 2), -- 7 days ago
         
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 9, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 13, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 16, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 20, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 24, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 28, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 32, 1),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 38, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 44, 2),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 50, 3),
-        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 58, 1)
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 9, 2),  -- 9 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 11, 2), -- 11 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 13, 3), -- 13 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 15, 2), -- 15 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 18, 2), -- 18 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 21, 1), -- 21 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 24, 2), -- 24 days ago
+        ('b2c3d4e5-f6a7-8901-bcde-f23456789abc', 27, 2)  -- 27 days ago
     ) AS schedule(user_id, day_offset, meal_count)
 ),
 consumption_rows AS (
@@ -498,7 +497,8 @@ INSERT INTO consumptions (
     monounsaturated_fat_g,
     alcohol_g,
     source,
-    created_at
+    created_at,
+    consumed_at
 )
 SELECT 
     user_id::uuid,
@@ -558,7 +558,8 @@ SELECT
         WHEN (row_number() OVER (ORDER BY user_id, created_at)) % 10 <= 3 THEN 'text'
         ELSE 'voice'
     END as source,
-    created_at
+    created_at,
+    created_at as consumed_at  -- Set consumed_at to same as created_at for proper date distribution
 FROM timed_consumptions
 ORDER BY user_id, created_at;
 
@@ -566,10 +567,12 @@ ORDER BY user_id, created_at;
 SELECT 
     p.email,
     COUNT(*) as total_consumptions,
-    COUNT(CASE WHEN c.created_at::date = NOW()::date THEN 1 END) as today_meals,
-    COUNT(CASE WHEN c.created_at::date = (NOW() - INTERVAL '1 day')::date THEN 1 END) as yesterday_meals,
-    COUNT(CASE WHEN c.created_at >= NOW() - INTERVAL '7 days' THEN 1 END) as last_week_meals,
-    SUM(c.caffeine_mg)::int as total_caffeine_mg
+    COUNT(CASE WHEN c.consumed_at::date = NOW()::date THEN 1 END) as today_meals,
+    COUNT(CASE WHEN c.consumed_at::date = (NOW() - INTERVAL '1 day')::date THEN 1 END) as yesterday_meals,
+    COUNT(CASE WHEN c.consumed_at >= NOW() - INTERVAL '7 days' THEN 1 END) as last_week_meals,
+    SUM(c.caffeine_mg)::int as total_caffeine_mg,
+    MIN(c.consumed_at::date) as earliest_meal_date,
+    MAX(c.consumed_at::date) as latest_meal_date
 FROM consumptions c 
 JOIN profiles p ON p.id = c.user_id 
 WHERE p.email IN ('monalisa@birki.io', 'alice@birki.io')
@@ -763,19 +766,29 @@ events_with_types AS (
             WHEN ed.event_type_name = 'medication' THEN INTERVAL '8 hours' + (random() * INTERVAL '2 hours')
             WHEN ed.event_type_name = 'mood' THEN INTERVAL '10 hours' + (random() * INTERVAL '10 hours')
             ELSE INTERVAL '12 hours' + (random() * INTERVAL '8 hours')
-        END as started_at,
-        -- Some events have end times (especially sleep and exercise)
-        CASE 
-            WHEN ed.event_type_name = 'sleep' THEN 
-                (CURRENT_DATE - INTERVAL '1 day' * ed.day_offset)::timestamp + INTERVAL '22 hours' + (random() * INTERVAL '3 hours') + 
-                INTERVAL '6 hours' + (random() * INTERVAL '4 hours')
-            WHEN ed.event_type_name = 'exercise' AND ed.level >= 6 THEN
-                (CURRENT_DATE - INTERVAL '1 day' * ed.day_offset)::timestamp + INTERVAL '7 hours' + (random() * INTERVAL '14 hours') +
-                INTERVAL '30 minutes' + (random() * INTERVAL '90 minutes')
-            ELSE NULL
-        END as ended_at
+        END as started_at
     FROM event_data ed
     JOIN event_types et ON et.user_id = ed.user_id::uuid AND et.name = ed.event_type_name
+),
+events_with_duration AS (
+    -- Calculate ended_at based on started_at to ensure time order constraint
+    SELECT 
+        user_id,
+        event_type_id,
+        name,
+        level,
+        note,
+        day_offset,
+        started_at,
+        -- Some events have end times (especially sleep and exercise) - calculated from started_at
+        CASE 
+            WHEN name LIKE '%sleep%' OR name LIKE '%Sleep%' THEN 
+                started_at + INTERVAL '6 hours' + (random() * INTERVAL '4 hours')
+            WHEN (name LIKE '%exercise%' OR name LIKE '%Exercise%' OR name LIKE '%gym%' OR name LIKE '%yoga%' OR name LIKE '%jog%' OR name LIKE '%walk%') AND level >= 6 THEN
+                started_at + INTERVAL '30 minutes' + (random() * INTERVAL '90 minutes')
+            ELSE NULL
+        END as ended_at
+    FROM events_with_types
 )
 INSERT INTO events (user_id, event_type_id, name, level, note, started_at, ended_at, created_at)
 SELECT 
@@ -787,7 +800,7 @@ SELECT
     started_at,
     ended_at,
     started_at -- created_at is the same as started_at for events
-FROM events_with_types
+FROM events_with_duration
 ORDER BY user_id, started_at;
 
 -- Show event seeding results
