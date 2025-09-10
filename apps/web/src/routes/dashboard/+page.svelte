@@ -6,6 +6,10 @@
   import MacroCompositionChart from "$lib/components/dashboard/MacroCompositionChart.svelte"
   import GoalProgressChart from "$lib/components/dashboard/GoalProgressChart.svelte"
   import EventCorrelationChart from "$lib/components/dashboard/EventCorrelationChart.svelte"
+  import Zap from "$lib/components/icons/Zap.svelte"
+  import Dumbbell from "$lib/components/icons/Dumbbell.svelte"
+  import Cube from "$lib/components/icons/Cube.svelte"
+  import CalendarIcon from "$lib/components/icons/calendar-days.svelte"
 
   // Get app name from runtime environment
   $: appName = getAppName()
@@ -150,10 +154,8 @@
                       .toLocaleString()}
                   </p>
                 </div>
-                <div class="text-primary">
-                  <svg class="w-6 h-6 lg:w-8 lg:h-8" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                  </svg>
+                <div class="text-honey">
+                  <Zap className="w-6 h-6 lg:w-8 lg:h-8" />
                 </div>
               </div>
             </div>
@@ -175,10 +177,8 @@
                     )}g
                   </p>
                 </div>
-                <div class="text-accent">
-                  <svg class="w-6 h-6 lg:w-8 lg:h-8" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                  </svg>
+                <div class="text-secondary">
+                  <Dumbbell className="w-6 h-6 lg:w-8 lg:h-8" />
                 </div>
               </div>
             </div>
@@ -197,9 +197,7 @@
                   </p>
                 </div>
                 <div class="text-secondary">
-                  <svg class="w-6 h-6 lg:w-8 lg:h-8" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <Cube className="w-6 h-6 lg:w-8 lg:h-8" />
                 </div>
               </div>
             </div>
@@ -218,9 +216,7 @@
                   </p>
                 </div>
                 <div class="text-info">
-                  <svg class="w-6 h-6 lg:w-8 lg:h-8" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                  </svg>
+                  <CalendarIcon className="w-6 h-6 lg:w-8 lg:h-8" />
                 </div>
               </div>
             </div>

@@ -1,5 +1,8 @@
 <script lang="ts">
-  import Icon from "./Icon.svelte"
+  import Zap from "./icons/Zap.svelte"
+  import Dumbbell from "./icons/Dumbbell.svelte"
+  import Avocado from "./icons/Avocado.svelte"
+  import Wheat from "./icons/Wheat.svelte"
 
   export let calories: number
   export let protein: number
@@ -13,25 +16,25 @@
   <!-- Minimal version for cards -->
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 {className}">
     <div class="flex flex-col items-center text-center">
-      <Icon name="zap" size="lg" className="text-honey mb-1" />
+      <Zap className="w-8 h-8 text-honey mb-1" />
       <div class="text-xxl font-bold text-honey">{calories}</div>
       <div class="text-xs text-gray-500">calories</div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Icon name="dumbbell" size="lg" className="text-secondary mb-1" />
+      <Dumbbell className="w-8 h-8 text-secondary mb-1" />
       <div class="text-lg font-bold text-secondary">{protein.toFixed(1)}g</div>
       <div class="text-xs text-gray-500">protein</div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Icon name="avocado" size="lg" className="text-accent mb-1" />
+      <Avocado className="w-8 h-8 text-accent mb-1" />
       <div class="text-lg font-bold text-accent">{fat.toFixed(1)}g</div>
       <div class="text-xs text-gray-500">fat</div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Icon name="wheat" size="lg" className="text-warning mb-1" />
+      <Wheat className="w-8 h-8 text-warning mb-1" />
       <div class="text-lg font-bold text-warning">{carbs.toFixed(1)}g</div>
       <div class="text-xs text-gray-500">carbs</div>
     </div>
@@ -43,7 +46,7 @@
   >
     <div class="stat">
       <div class="stat-figure text-honey">
-        <Icon name="zap" size="lg" />
+        <Zap className="w-8 h-8" />
       </div>
       <div class="stat-title">Calories</div>
       <div class="stat-value text-honey {size === 'compact' ? 'text-xxl font-bold' : ''}">
@@ -56,7 +59,7 @@
 
     <div class="stat">
       <div class="stat-figure text-secondary">
-        <Icon name="dumbbell" size="lg" />
+        <Dumbbell className="w-8 h-8" />
       </div>
       <div class="stat-title">Protein</div>
       <div
@@ -71,7 +74,7 @@
 
     <div class="stat">
       <div class="stat-figure text-accent">
-        <Icon name="avocado" size="lg" />
+        <Avocado className="w-8 h-8" />
       </div>
       <div class="stat-title">Fat</div>
       <div class="stat-value text-accent {size === 'compact' ? 'text-xxl font-bold' : ''}">
@@ -84,7 +87,7 @@
 
     <div class="stat">
       <div class="stat-figure text-warning">
-        <Icon name="wheat" size="lg" />
+        <Wheat className="w-8 h-8" />
       </div>
       <div class="stat-title">Carbs</div>
       <div class="stat-value text-warning {size === 'compact' ? 'text-xxl font-bold' : ''}">
