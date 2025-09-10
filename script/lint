@@ -4,6 +4,12 @@ set -euo pipefail
 
 source script/env "$@"
 
+# Check if --ci flag is provided
+CI_MODE=false
+if [[ " $* " == *" --ci "* ]]; then
+    CI_MODE=true
+fi
+
 STATUS=0
 assert-nothing-changed() {
     local diff
@@ -14,6 +20,12 @@ assert-nothing-changed() {
     fi
 }
 
-assert-nothing-changed go fmt -mod=vendor ./...
+# Run go fmt
+go fmt -mod=vendor ./...
+
+# In CI mode, check if formatting changes were made
+if $CI_MODE; then
+    assert-nothing-changed true  # Just check git diff without running anything
+fi
 
 exit $STATUS

@@ -11,6 +11,12 @@ set -euo pipefail
 
 source script/env "$@"
 
+# Check if --ci flag is provided
+CI_MODE=false
+if [[ " $* " == *" --ci "* ]]; then
+    CI_MODE=true
+fi
+
 echo "==> Validating and generating API types..."
 
 # Create output directory if it doesn't exist
@@ -88,5 +94,28 @@ fi
 
 # always run the linter after generating types
 go fmt -mod=vendor ./...
+
+# Check if any changes were made during generation
+if $CI_MODE; then
+    echo "==> Checking for uncommitted changes in CI mode..."
+    
+    # Check if there are any changes to generated files or formatted code
+    if ! git diff --exit-code >/dev/null 2>&1; then
+        echo "Error: Generated types or formatted code have uncommitted changes. Please run 'script/generate-types' locally and commit the changes."
+        git diff --name-only
+        exit 1
+    fi
+    
+    echo "==> All generated types and formatted code are up to date"
+else
+    # In local mode, check if changes were made and notify the user
+    if ! git diff --exit-code >/dev/null 2>&1; then
+        echo "==> 📝 New types have been generated! The following files have changes:"
+        git diff --name-only | sed 's/^/  - /'
+        echo "==> 💡 Remember to review and commit these changes."
+    else
+        echo "==> ✅ All generated types are already up to date"
+    fi
+fi
 
 echo "==> All API types (backend and frontend) generated successfully"

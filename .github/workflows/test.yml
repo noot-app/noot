@@ -38,10 +38,10 @@ jobs:
         run: script/bootstrap --ci
 
       - name: validate API types
-        run: script/generate-types
+        run: script/generate-types --ci
 
       - name: lint
-        run: script/lint
+        run: script/lint --ci
 
       - name: test
         run: script/test
