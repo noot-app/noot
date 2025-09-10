@@ -15,7 +15,29 @@ export interface paths {
         put?: never;
         /**
          * Log a consumption via audio, text, or duplicate existing consumption
-         * @description Upload an audio file of spoken consumption data to be transcribed, provide text directly for AI processing, or duplicate an existing consumption by ID to skip AI processing
+         * @description Submit consumption data in three ways:
+         *
+         *     **1. Audio Upload (multipart/form-data):**
+         *     Upload an audio file to be transcribed and processed by AI
+         *
+         *     **2. Text Input (application/json OR multipart/form-data):**
+         *     Provide text directly for AI processing
+         *
+         *     **3. Duplicate Existing Consumption (application/json):**
+         *     Copy an existing consumption by providing its ID. This skips AI processing and duplicates all items, nutrition data, title, note, and labels. This is commonly used when marking a past consumption as a favorite and then clicking a button like "+ re-add"
+         *
+         *     **Example JSON payload to duplicate:**
+         *     ```json
+         *     {"consumption_id": "edc2bfd0-9648-4045-9467-40dada432fd5"}
+         *     ```
+         *
+         *     **Example JSON payload for text processing:**
+         *     ```json
+         *     {"text": "I ate a banana and yogurt for breakfast"}
+         *     ```
+         *
+         *     Note: For multipart/form-data, text takes precedence over audio if both are provided.
+         *
          */
         post: operations["createConsumption"];
         delete?: never;
@@ -1566,17 +1588,23 @@ export interface operations {
                 "multipart/form-data": {
                     /**
                      * Format: binary
-                     * @description Audio file (webm, opus, mp3, wav)
+                     * @description Audio file (webm, opus, mp3, wav) - ignored if text field is also provided
                      */
-                    audio: string;
-                    /** @description Text description of consumption (optional, takes precedence over audio if both provided) */
+                    audio?: string;
+                    /** @description Text description of consumption - takes precedence over audio if both provided */
                     text?: string;
-                };
+                } | unknown | unknown;
                 "application/json": {
-                    /** @description Text description of consumption for AI processing */
+                    /**
+                     * @description Text description of consumption for AI processing
+                     * @example I ate a banana and yogurt for breakfast
+                     */
                     text: string;
                 } | {
-                    /** @description ID of an existing consumption to duplicate (skips AI processing) */
+                    /**
+                     * @description ID of an existing consumption to duplicate (skips AI processing, copies all items, nutrition data, title, note, and labels)
+                     * @example edc2bfd0-9648-4045-9467-40dada432fd5
+                     */
                     consumption_id: string;
                 };
             };
