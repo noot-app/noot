@@ -333,6 +333,7 @@ INSERT INTO consumptions (
     dietary_fiber_g,
     total_sodium_mg,
     caffeine_mg,
+    source,
     created_at
 )
 SELECT 
@@ -345,6 +346,13 @@ SELECT
     fiber_g,
     sodium_mg,
     caffeine_mg,
+    -- Distribute sources realistically: 60% voice, 25% text, 10% manual, 5% api
+    CASE 
+        WHEN (row_number() OVER (ORDER BY user_id, created_at)) % 20 = 0 THEN 'api'
+        WHEN (row_number() OVER (ORDER BY user_id, created_at)) % 10 <= 1 THEN 'manual' 
+        WHEN (row_number() OVER (ORDER BY user_id, created_at)) % 10 <= 3 THEN 'text'
+        ELSE 'voice'
+    END as source,
     created_at
 FROM timed_consumptions
 ORDER BY user_id, created_at;
