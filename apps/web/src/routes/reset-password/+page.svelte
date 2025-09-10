@@ -2,6 +2,8 @@
   import { goto } from "$app/navigation"
   import { dev } from "$app/environment"
   import { resetPassword } from "$lib/auth/store"
+  import Alert from "$lib/components/Alert.svelte"
+  import DevModeAlert from "$lib/components/DevModeAlert.svelte"
 
   let email = ""
   let loading = false
@@ -63,48 +65,13 @@
       </p>
     </div>
 
-    {#if dev}
-      <div class="alert alert-info">
-        <svg
-          class="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          ></path>
-        </svg>
-        <div>
-          <strong>Development Mode:</strong> Authentication may be using development
-          settings. Check your environment variables for production deployment.
-        </div>
-      </div>
-    {/if}
+    <DevModeAlert />
 
     {#if success}
-      <div class="alert alert-success">
-        <svg
-          class="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          ></path>
-        </svg>
-        <div>
-          <strong>Password reset email sent!</strong> Check your inbox for a link
-          to reset your password.
-        </div>
-      </div>
+      <Alert type="success">
+        <strong>Password reset email sent!</strong> Check your inbox for a link
+        to reset your password.
+      </Alert>
     {/if}
 
     <form class="mt-8 space-y-6" on:submit|preventDefault={handleResetPassword}>
@@ -126,22 +93,9 @@
       </div>
 
       {#if error}
-        <div class="alert alert-error">
-          <svg
-            class="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
-          <div>{error}</div>
-        </div>
+        <Alert type="error">
+          {error}
+        </Alert>
       {/if}
 
       <div>
