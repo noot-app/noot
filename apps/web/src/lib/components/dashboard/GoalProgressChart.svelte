@@ -22,14 +22,18 @@
 
   export let consumptions: any[] = []
   export let goals: any = null
+  export let dateRange: string = "7d" // Add dateRange prop
 
   // Calculate nutrient totals and goal progress
-  $: progressData = calculateGoalProgress(consumptions, goals)
+  $: progressData = calculateGoalProgress(consumptions, goals, dateRange)
 
-  function calculateGoalProgress(data: any[], goalsData: any) {
+  function calculateGoalProgress(data: any[], goalsData: any, dateRange: string) {
     if (!data || data.length === 0 || !goalsData) {
       return { nutrients: [], actual: [], targets: [], percentages: [] }
     }
+
+    // Get the number of days from the date range
+    const days = parseInt(dateRange.replace('d', ''))
 
     // Sum up all nutrients from consumptions
     const totals = data.reduce((acc, consumption) => {
@@ -46,16 +50,16 @@
       fiber: 0, sodium: 0, sugar: 0 
     })
 
-    // Map to goal targets
+    // Map to goal targets - scale daily targets by the number of days
     const targets = goalsData.goals?.targets || {}
     
     const nutrients = [
-      { name: 'Calories', actual: Math.round(totals.calories), target: targets.calories || 2000, unit: 'cal' },
-      { name: 'Protein', actual: Math.round(totals.protein), target: targets.protein_g || 50, unit: 'g' },
-      { name: 'Carbs', actual: Math.round(totals.carbs), target: targets.carbs_g || 300, unit: 'g' },
-      { name: 'Fat', actual: Math.round(totals.fat), target: targets.fat_g || 65, unit: 'g' },
-      { name: 'Fiber', actual: Math.round(totals.fiber), target: targets.fiber_g || 25, unit: 'g' },
-      { name: 'Sodium', actual: Math.round(totals.sodium), target: targets.sodium_mg || 2300, unit: 'mg' }
+      { name: 'Calories', actual: Math.round(totals.calories), target: (targets.calories || 2000) * days, unit: 'cal' },
+      { name: 'Protein', actual: Math.round(totals.protein), target: (targets.protein_g || 50) * days, unit: 'g' },
+      { name: 'Carbs', actual: Math.round(totals.carbs), target: (targets.carbs_g || 300) * days, unit: 'g' },
+      { name: 'Fat', actual: Math.round(totals.fat), target: (targets.fat_g || 65) * days, unit: 'g' },
+      { name: 'Fiber', actual: Math.round(totals.fiber), target: (targets.fiber_g || 25) * days, unit: 'g' },
+      { name: 'Sodium', actual: Math.round(totals.sodium), target: (targets.sodium_mg || 2300) * days, unit: 'mg' }
     ]
 
     return {
@@ -92,8 +96,10 @@
         
         const actualData = params.find((p: any) => p.seriesName === 'Actual')
         const targetData = params.find((p: any) => p.seriesName === 'Target')
+        const days = parseInt(dateRange.replace('d', ''))
+        const periodLabel = days === 1 ? 'day' : `${days} days`
         
-        return `${nutrient}<br/>
+        return `${nutrient} (${periodLabel})<br/>
                 Actual: ${actualData.value} ${detail.unit}<br/>
                 Target: ${targetData.value} ${detail.unit}<br/>
                 Progress: ${Math.round((actualData.value / targetData.value) * 100)}%`
