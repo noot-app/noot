@@ -64,7 +64,12 @@ create table if not exists public.consumption_items (
   ingredients JSONB,
   url TEXT,
   created_at timestamp with time zone not null default now(),
-  updated_at timestamp with time zone not null default now()
+  updated_at timestamp with time zone not null default now(),
+  -- Add nutrition validation constraints
+  CONSTRAINT consumption_items_positive_nutrition CHECK (
+      calories >= 0 AND protein_g >= 0 AND total_fat_g >= 0 AND 
+      total_carbs_g >= 0 AND dietary_fiber_g >= 0 AND sodium_mg >= 0 AND grams >= 0
+  )
 );
 
 create index if not exists idx_consumption_items_consumption_id on public.consumption_items(consumption_id);
@@ -72,6 +77,8 @@ create index if not exists idx_consumption_items_item_id on public.consumption_i
 create index if not exists idx_consumption_items_created on public.consumption_items(consumption_id, created_at);
 create index if not exists idx_consumption_items_ingredients on public.consumption_items using gin (ingredients);
 create index if not exists idx_consumption_items_url on public.consumption_items(url) where url is not null;
+-- Optimized indexes for nutrition analysis
+create index if not exists idx_consumption_items_nutrition on public.consumption_items(consumption_id, calories, protein_g);
 
 -- Create trigger for updated_at column (no notice if trigger doesn't exist)
 do $$ 

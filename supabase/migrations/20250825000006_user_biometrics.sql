@@ -25,6 +25,9 @@ CREATE TABLE IF NOT EXISTS user_biometrics (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_biometrics_user_id ON user_biometrics(user_id);
+-- Add indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_user_biometrics_activity_level ON user_biometrics(activity_level);
+CREATE INDEX IF NOT EXISTS idx_user_biometrics_updated_at ON user_biometrics(updated_at);
 
 -- Enable RLS for user_biometrics table
 ALTER TABLE user_biometrics ENABLE ROW LEVEL SECURITY;
