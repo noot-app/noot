@@ -29,7 +29,7 @@ func CreateDatabaseConfig() *storage.Config {
 }
 
 // itemWithNutritionToConsumption converts server response data to a consumption record
-func itemWithNutritionToConsumption(userID string, transcript string, summary Summary) *storage.Consumption {
+func itemWithNutritionToConsumption(userID string, transcript string, summary Summary, source string) *storage.Consumption {
 	return &storage.Consumption{
 		UserID:        userID,
 		Transcript:    transcript,
@@ -87,6 +87,8 @@ func itemWithNutritionToConsumption(userID string, transcript string, summary Su
 		Alcohol:  summary.Totals.Alcohol,
 		Caffeine: summary.Totals.Caffeine,
 		Creatine: summary.Totals.Creatine,
+		// Set the source of the consumption
+		Source: source,
 	}
 }
 

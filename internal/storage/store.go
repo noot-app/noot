@@ -57,11 +57,13 @@ type Store interface {
 	// User goal operations
 	UpsertUserGoal(ctx context.Context, goal *UserGoal) error
 	GetUserGoal(ctx context.Context, userID, name string) (*UserGoal, error)
+	GetUserGoalByID(ctx context.Context, userID, goalID string) (*UserGoal, error)
 	GetUserGoals(ctx context.Context, userID string) ([]*UserGoal, error)
+	GetUserGoalIDByName(ctx context.Context, userID, name string) (*string, error)
 	DeleteUserGoal(ctx context.Context, userID, name string) error
-	SetActiveGoal(ctx context.Context, userID, goalName string) error
+	SetActiveGoal(ctx context.Context, userID, goalID string) error
 	ClearActiveGoal(ctx context.Context, userID string) error
-	GetActiveGoalName(ctx context.Context, userID string) (*string, error)
+	GetActiveGoalID(ctx context.Context, userID string) (*string, error)
 
 	// User biometrics operations
 	UpsertUserBiometrics(ctx context.Context, biometrics *UserBiometrics) error
@@ -131,7 +133,7 @@ type User struct {
 	FullName         *string   `json:"full_name"`         // Optional display name
 	Email            string    `json:"email"`             // Email address
 	SubscriptionTier string    `json:"subscription_tier"` // "free", "pro"
-	ActiveGoalName   *string   `json:"active_goal_name"`  // Name of the active goal set (Pro users only)
+	ActiveGoalID     *string   `json:"active_goal_id"`    // ID of the active goal set (Pro users only)
 	CreatedAt        time.Time `json:"created_at"`
 	AvatarURL        *string   `json:"avatar_url"` // Optional profile image URL
 }
@@ -205,6 +207,7 @@ type Consumption struct {
 	MonounsaturatedFat float64    `json:"monounsaturated_fat_g"`
 	Note               *string    `json:"note,omitempty"`
 	Title              *string    `json:"title,omitempty"`
+	Source             string     `json:"source"`
 	IsPublic           bool       `json:"is_public"`
 	Labels             []*Label   `json:"labels,omitempty"`
 	CreatedAt          time.Time  `json:"created_at"`
@@ -522,6 +525,7 @@ type UserGoal struct {
 	ID            string    `json:"id"`
 	UserID        string    `json:"user_id"`
 	Name          string    `json:"name"`           // typically "custom", allows for future goal presets
+	Category      string    `json:"category"`       // weight, fitness, health, custom
 	OverridesJSON string    `json:"overrides_json"` // JSON map of nutrient_key -> target value
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`

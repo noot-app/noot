@@ -33,6 +33,14 @@ const (
 	ExportResponseFormatJson ExportResponseFormat = "json"
 )
 
+// Defines values for GoalSetSummaryCategory.
+const (
+	GoalSetSummaryCategoryCustom  GoalSetSummaryCategory = "custom"
+	GoalSetSummaryCategoryFitness GoalSetSummaryCategory = "fitness"
+	GoalSetSummaryCategoryHealth  GoalSetSummaryCategory = "health"
+	GoalSetSummaryCategoryWeight  GoalSetSummaryCategory = "weight"
+)
+
 // Defines values for GoalsSource.
 const (
 	GoalsSourceCustom GoalsSource = "custom"
@@ -61,6 +69,14 @@ const (
 	UpdateBiometricsRequestSexMale           UpdateBiometricsRequestSex = "male"
 	UpdateBiometricsRequestSexOther          UpdateBiometricsRequestSex = "other"
 	UpdateBiometricsRequestSexPreferNotToSay UpdateBiometricsRequestSex = "prefer_not_to_say"
+)
+
+// Defines values for UpdateGoalsRequestCategory.
+const (
+	Custom  UpdateGoalsRequestCategory = "custom"
+	Fitness UpdateGoalsRequestCategory = "fitness"
+	Health  UpdateGoalsRequestCategory = "health"
+	Weight  UpdateGoalsRequestCategory = "weight"
 )
 
 // Defines values for UserSubscriptionTier.
@@ -106,8 +122,8 @@ const (
 
 // Defines values for GetGoalsParamsSource.
 const (
-	GetGoalsParamsSourceAuto GetGoalsParamsSource = "auto"
-	GetGoalsParamsSourceDri  GetGoalsParamsSource = "dri"
+	Auto GetGoalsParamsSource = "auto"
+	Dri  GetGoalsParamsSource = "dri"
 )
 
 // APIKey defines model for APIKey.
@@ -730,6 +746,9 @@ type FavoritesResponse struct {
 
 // GoalSetSummary defines model for GoalSetSummary.
 type GoalSetSummary struct {
+	// Category Category of the goal set
+	Category GoalSetSummaryCategory `json:"category"`
+
 	// CreatedAt When the goal set was created
 	CreatedAt time.Time `json:"created_at"`
 
@@ -739,6 +758,9 @@ type GoalSetSummary struct {
 	// UpdatedAt When the goal set was last updated
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+// GoalSetSummaryCategory Category of the goal set
+type GoalSetSummaryCategory string
 
 // GoalSetsResponse defines model for GoalSetsResponse.
 type GoalSetsResponse struct {
@@ -988,12 +1010,18 @@ type UpdateConsumptionRequest struct {
 
 // UpdateGoalsRequest defines model for UpdateGoalsRequest.
 type UpdateGoalsRequest struct {
+	// Category Category of the goal set
+	Category *UpdateGoalsRequestCategory `json:"category,omitempty"`
+
 	// Name Custom name for the goal set (required for managing multiple goal sets)
 	Name string `json:"name"`
 
 	// Overrides Custom nutrition goal overrides
 	Overrides map[string]float32 `json:"overrides"`
 }
+
+// UpdateGoalsRequestCategory Category of the goal set
+type UpdateGoalsRequestCategory string
 
 // User defines model for User.
 type User struct {

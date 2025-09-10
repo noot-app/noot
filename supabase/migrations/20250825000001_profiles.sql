@@ -7,8 +7,8 @@ create table if not exists public.profiles (
   handle text unique,
   full_name text,
   email text not null unique,
-  subscription_tier text not null default 'free',
-  active_goal_name text,
+  subscription_tier text not null default 'free' check (subscription_tier in ('free', 'pro')),
+  active_goal_id uuid,
   avatar_url text,
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now()
@@ -17,7 +17,7 @@ create table if not exists public.profiles (
 -- Create indexes for performance
 create index if not exists idx_profiles_email on profiles(email);
 create index if not exists idx_profiles_handle on profiles(handle);
-create index if not exists idx_profiles_active_goal on profiles(active_goal_name);
+create index if not exists idx_profiles_active_goal on profiles(active_goal_id);
 
 -- Add constraint to validate handle format (GitHub-style rules)
 alter table public.profiles add constraint valid_handle_format 
@@ -27,6 +27,8 @@ check (
     handle ~ '^[a-zA-Z0-9]([a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$'
   )
 );
+
+-- Note: active_goal_id foreign key constraint will be added after user_goals table is created
 
 -- 1.1. Create the api_keys table for Pro users
 create table if not exists public.api_keys (
