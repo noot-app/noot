@@ -146,7 +146,7 @@
                   </h3>
                   <p class="text-xl lg:text-2xl font-bold text-base-content mt-1">
                     {consumptionsData.consumptions
-                      .reduce((total: number, c: any) => total + (c.summary?.total_calories || 0), 0)
+                      .reduce((total: number, c: any) => total + (c.summary?.totals?.calories || 0), 0)
                       .toLocaleString()}
                   </p>
                 </div>
@@ -170,7 +170,7 @@
                   <p class="text-xl lg:text-2xl font-bold text-base-content mt-1">
                     {Math.round(
                       consumptionsData.consumptions
-                        .reduce((total: number, c: any) => total + (c.summary?.total_protein_g || 0), 0) /
+                        .reduce((total: number, c: any) => total + (c.summary?.totals?.protein_g || 0), 0) /
                       Math.max(parseInt(dateRange.replace('d', '')), 1)
                     )}g
                   </p>
@@ -276,11 +276,11 @@
                   <div class="flex items-center justify-between py-2 border-b border-base-300 last:border-b-0">
                     <div class="flex-1">
                       <p class="font-medium text-base-content">
-                        {consumption.title || 'Untitled meal'}
+                        {consumption.title || consumption.transcript || 'Untitled meal'}
                       </p>
                       <p class="text-sm text-base-content-lighter">
                         {new Date(consumption.created_at).toLocaleDateString()} • 
-                        {consumption.summary?.total_calories || 0} cal
+                        {consumption.summary?.totals?.calories || 0} cal
                       </p>
                     </div>
                     <div class="text-right">

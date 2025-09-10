@@ -55,11 +55,11 @@
       }
       
       const daily = dailyData.get(date)
-      daily.calories += consumption.summary?.total_calories || 0
-      daily.protein += consumption.summary?.total_protein_g || 0
-      daily.carbs += consumption.summary?.total_carbs_g || 0
-      daily.fat += consumption.summary?.total_fat_g || 0
-      daily.fiber += consumption.summary?.total_fiber_g || 0
+      daily.calories += consumption.summary?.totals?.calories || 0
+      daily.protein += consumption.summary?.totals?.protein_g || 0
+      daily.carbs += consumption.summary?.totals?.total_carbs_g || 0
+      daily.fat += consumption.summary?.totals?.total_fat_g || 0
+      daily.fiber += consumption.summary?.totals?.dietary_fiber_g || 0
       daily.count += 1
     })
 

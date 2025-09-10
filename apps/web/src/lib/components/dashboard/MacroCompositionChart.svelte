@@ -29,9 +29,9 @@
     }
 
     const totals = data.reduce((acc, consumption) => {
-      acc.protein += consumption.summary?.total_protein_g || 0
-      acc.carbs += consumption.summary?.total_carbs_g || 0
-      acc.fat += consumption.summary?.total_fat_g || 0
+      acc.protein += consumption.summary?.totals?.protein_g || 0
+      acc.carbs += consumption.summary?.totals?.total_carbs_g || 0
+      acc.fat += consumption.summary?.totals?.total_fat_g || 0
       return acc
     }, { protein: 0, carbs: 0, fat: 0 })
 

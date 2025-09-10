@@ -33,13 +33,13 @@
 
     // Sum up all nutrients from consumptions
     const totals = data.reduce((acc, consumption) => {
-      acc.calories += consumption.summary?.total_calories || 0
-      acc.protein += consumption.summary?.total_protein_g || 0
-      acc.carbs += consumption.summary?.total_carbs_g || 0
-      acc.fat += consumption.summary?.total_fat_g || 0
-      acc.fiber += consumption.summary?.total_fiber_g || 0
-      acc.sodium += consumption.summary?.total_sodium_mg || 0
-      acc.sugar += consumption.summary?.total_sugar_g || 0
+      acc.calories += consumption.summary?.totals?.calories || 0
+      acc.protein += consumption.summary?.totals?.protein_g || 0
+      acc.carbs += consumption.summary?.totals?.total_carbs_g || 0
+      acc.fat += consumption.summary?.totals?.total_fat_g || 0
+      acc.fiber += consumption.summary?.totals?.dietary_fiber_g || 0
+      acc.sodium += consumption.summary?.totals?.sodium_mg || 0
+      acc.sugar += consumption.summary?.totals?.total_sugars_g || 0
       return acc
     }, { 
       calories: 0, protein: 0, carbs: 0, fat: 0, 
