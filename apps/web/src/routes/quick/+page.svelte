@@ -3,9 +3,7 @@
   import { apiClient } from "$lib/api/client"
   import { toast } from "$lib/stores/toast"
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
-  import Plus from "$lib/components/icons/Plus.svelte"
-  import Eye from "$lib/components/icons/Eye.svelte"
-  import QuickConsumptionDisplay from "$lib/components/QuickConsumptionDisplay.svelte"
+  import ConsumptionCard from "$lib/components/ConsumptionCard.svelte"
   import type { paths } from "$lib/api/schema"
   import CursorArrowRays from "$lib/components/icons/CursorArrowRays.svelte"
 
@@ -180,33 +178,12 @@
       {:else}
         <div class="grid gap-4">
           {#each favorites as favorite (favorite.id)}
-            <div class="card bg-base-200">
-              <div class="card-body">
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <QuickConsumptionDisplay consumption={favorite.consumption} />
-                  </div>
-                  <div class="flex flex-col gap-2 ml-4">
-                    <!-- Quick re-log button (top) -->
-                    <button
-                      class="btn btn-primary"
-                      on:click={() => quickRelogConsumption(favorite.consumption)}
-                      title="Re-log this consumption"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                    <!-- View button (bottom) -->
-                    <a
-                      href="/consumptions/{favorite.consumption.id}"
-                      class="btn btn-outline"
-                      title="View full consumption details"
-                    >
-                      <Eye className="w-5 h-5" />
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ConsumptionCard
+              consumption={favorite.consumption}
+              mode="actions"
+              variant="compact"
+              onReLog={quickRelogConsumption}
+            />
           {/each}
         </div>
       {/if}
@@ -232,33 +209,12 @@
       {:else}
         <div class="grid gap-4">
           {#each recentConsumptions as consumption (consumption.id)}
-            <div class="card bg-base-200">
-              <div class="card-body">
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <QuickConsumptionDisplay {consumption} />
-                  </div>
-                  <div class="flex flex-col gap-2 ml-4">
-                    <!-- Quick re-log button (top) -->
-                    <button
-                      class="btn btn-primary"
-                      on:click={() => quickRelogConsumption(consumption)}
-                      title="Re-log this consumption"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                    <!-- View button (bottom) -->
-                    <a
-                      href="/consumptions/{consumption.id}"
-                      class="btn btn-outline"
-                      title="View full consumption details"
-                    >
-                      <Eye className="w-5 h-5" />
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ConsumptionCard
+              {consumption}
+              mode="actions"
+              variant="compact"
+              onReLog={quickRelogConsumption}
+            />
           {/each}
         </div>
 
