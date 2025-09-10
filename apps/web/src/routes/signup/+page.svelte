@@ -108,6 +108,10 @@
     goto(`/login?redirect=${encodeURIComponent(redirect)}`)
   }
 
+  function handleResetPassword() {
+    goto("/reset-password")
+  }
+
   async function handleGitHubSignup() {
     if (githubLoading) return
     githubLoading = true
@@ -444,6 +448,17 @@
           class:loading
         >
           {loading ? "Creating account..." : "Create account"}
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <button
+          type="button"
+          class="link link-primary text-sm"
+          on:click={handleResetPassword}
+          disabled={loading}
+        >
+          Forgot your password?
         </button>
       </div>
 

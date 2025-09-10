@@ -19,14 +19,19 @@
     success = false
 
     try {
+      console.log("🔑 Password reset initiated for email:", email.substring(0, 3) + "***@" + email.split("@")[1])
+      
       const result = await resetPassword(email)
 
       if (result.error) {
+        console.warn("❌ Password reset failed:", result.error.message)
         error = result.error.message
       } else {
+        console.log("✅ Password reset email sent successfully")
         success = true
       }
     } catch (err) {
+      console.error("💥 Password reset exception:", err)
       error =
         err instanceof Error ? err.message : "An unexpected error occurred"
     } finally {
