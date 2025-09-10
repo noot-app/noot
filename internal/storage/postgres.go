@@ -17,53 +17,6 @@ type PostgreSQLStore struct {
 	db *sql.DB
 }
 
-// consumptionSelectFields returns the field list for consumption SELECT queries
-func consumptionSelectFields() string {
-	return `id, user_id, transcript, total_calories, total_protein_g, total_fat_g,
-		total_carbs_g, dietary_fiber_g, total_sodium_mg, saturated_fat_g,
-		trans_fat_g, cholesterol_mg, total_sugars_g, added_sugars_g,
-		vitamin_a_mcg, vitamin_c_mg, vitamin_d_mcg, vitamin_e_mg, vitamin_k_mcg,
-		thiamine_mg, riboflavin_mg, niacin_mg, vitamin_b6_mg, folate_mcg,
-		vitamin_b12_mcg, biotin_mcg, pantothenic_acid_mg, choline_mg,
-		calcium_mg, iron_mg, magnesium_mg, phosphorus_mg, potassium_mg,
-		zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg,
-		molybdenum_mcg, chromium_mcg, fluoride_mg, chloride_mg,
-		omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
-		creatine_mg, caffeine_mg, alcohol_g,
-		polyunsaturated_fat_g, monounsaturated_fat_g,
-		note, title, created_at, updated_at, consumed_at`
-}
-
-// scanConsumption scans a row into a Consumption struct
-func scanConsumption(scanner interface {
-	Scan(dest ...interface{}) error
-}) (*Consumption, error) {
-	var consumption Consumption
-	err := scanner.Scan(
-		&consumption.ID, &consumption.UserID, &consumption.Transcript,
-		&consumption.TotalCalories, &consumption.TotalProtein, &consumption.TotalFat,
-		&consumption.TotalCarbs, &consumption.DietaryFiber, &consumption.TotalSodium,
-		&consumption.SaturatedFat, &consumption.TransFat, &consumption.Cholesterol,
-		&consumption.TotalSugars, &consumption.AddedSugars, &consumption.VitaminA,
-		&consumption.VitaminC, &consumption.VitaminD, &consumption.VitaminE,
-		&consumption.VitaminK, &consumption.Thiamine, &consumption.Riboflavin,
-		&consumption.Niacin, &consumption.VitaminB6, &consumption.Folate,
-		&consumption.VitaminB12, &consumption.Biotin, &consumption.PantothenicAcid,
-		&consumption.Choline, &consumption.Calcium, &consumption.Iron,
-		&consumption.Magnesium, &consumption.Phosphorus, &consumption.Potassium,
-		&consumption.Zinc, &consumption.Copper, &consumption.Manganese,
-		&consumption.Selenium, &consumption.Iodine, &consumption.Molybdenum,
-		&consumption.Chromium, &consumption.Fluoride, &consumption.Chloride,
-		&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
-		&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
-		&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-		&consumption.Note, &consumption.Title, &consumption.CreatedAt, &consumption.UpdatedAt, &consumption.ConsumedAt)
-	if err != nil {
-		return nil, err
-	}
-	return &consumption, nil
-}
-
 // generateUUID generates a new UUID string
 func generateUUID() string {
 	return uuid.New().String()
