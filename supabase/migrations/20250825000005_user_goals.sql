@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS user_goals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     name TEXT NOT NULL DEFAULT 'custom',
+    category TEXT NOT NULL DEFAULT 'custom' CHECK (category IN ('weight', 'fitness', 'health', 'custom')),
     overrides_json TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -14,6 +15,7 @@ CREATE TABLE IF NOT EXISTS user_goals (
 
 CREATE INDEX IF NOT EXISTS idx_user_goals_user_id ON user_goals(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_goals_updated_at ON user_goals(updated_at);
+CREATE INDEX IF NOT EXISTS idx_user_goals_category ON user_goals(user_id, category);
 
 -- Enable RLS for user_goals table
 ALTER TABLE user_goals ENABLE ROW LEVEL SECURITY;
@@ -58,3 +60,8 @@ CREATE POLICY "Pro users can delete own goals" ON user_goals
       AND profiles.subscription_tier = 'pro'
     )
   );
+
+-- Now that user_goals table exists, add the foreign key constraint to profiles
+ALTER TABLE public.profiles 
+ADD CONSTRAINT profiles_active_goal_fkey 
+FOREIGN KEY (active_goal_id) REFERENCES public.user_goals(id) ON DELETE SET NULL;

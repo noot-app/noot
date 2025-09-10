@@ -104,10 +104,16 @@ func (m *mockStore) GetUserGoal(ctx context.Context, userID, name string) (*stor
 func (m *mockStore) GetUserGoals(ctx context.Context, userID string) ([]*storage.UserGoal, error) {
 	return nil, nil
 }
-func (m *mockStore) DeleteUserGoal(ctx context.Context, userID, name string) error    { return nil }
-func (m *mockStore) SetActiveGoal(ctx context.Context, userID, goalName string) error { return nil }
-func (m *mockStore) ClearActiveGoal(ctx context.Context, userID string) error         { return nil }
-func (m *mockStore) GetActiveGoalName(ctx context.Context, userID string) (*string, error) {
+func (m *mockStore) GetUserGoalByID(ctx context.Context, userID, goalID string) (*storage.UserGoal, error) {
+	return nil, nil
+}
+func (m *mockStore) GetUserGoalIDByName(ctx context.Context, userID, name string) (*string, error) {
+	return nil, nil
+}
+func (m *mockStore) DeleteUserGoal(ctx context.Context, userID, name string) error  { return nil }
+func (m *mockStore) SetActiveGoal(ctx context.Context, userID, goalID string) error { return nil }
+func (m *mockStore) ClearActiveGoal(ctx context.Context, userID string) error       { return nil }
+func (m *mockStore) GetActiveGoalID(ctx context.Context, userID string) (*string, error) {
 	return nil, nil
 }
 func (m *mockStore) UpsertUserBiometrics(ctx context.Context, biometrics *storage.UserBiometrics) error {

@@ -130,13 +130,13 @@ func (s *PostgreSQLStore) CreateUser(ctx context.Context, user *User) error {
 // GetUser retrieves a user by ID
 func (s *PostgreSQLStore) GetUser(ctx context.Context, id string) (*User, error) {
 	query := `
-		SELECT id, handle, full_name, email, subscription_tier, active_goal_name, avatar_url, created_at
+		SELECT id, handle, full_name, email, subscription_tier, active_goal_id, avatar_url, created_at
 		FROM profiles WHERE id = $1`
 
 	var user User
 	err := s.db.QueryRowContext(ctx, query, id).Scan(
 		&user.ID, &user.Handle, &user.FullName, &user.Email,
-		&user.SubscriptionTier, &user.ActiveGoalName, &user.AvatarURL, &user.CreatedAt)
+		&user.SubscriptionTier, &user.ActiveGoalID, &user.AvatarURL, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -150,13 +150,13 @@ func (s *PostgreSQLStore) GetUser(ctx context.Context, id string) (*User, error)
 // GetUserByEmail retrieves a user by email address
 func (s *PostgreSQLStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	query := `
-		SELECT id, handle, full_name, email, subscription_tier, active_goal_name, avatar_url, created_at
+		SELECT id, handle, full_name, email, subscription_tier, active_goal_id, avatar_url, created_at
 		FROM profiles WHERE email = $1`
 
 	var user User
 	err := s.db.QueryRowContext(ctx, query, email).Scan(
 		&user.ID, &user.Handle, &user.FullName, &user.Email,
-		&user.SubscriptionTier, &user.ActiveGoalName, &user.AvatarURL, &user.CreatedAt)
+		&user.SubscriptionTier, &user.ActiveGoalID, &user.AvatarURL, &user.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -175,10 +175,10 @@ func (s *PostgreSQLStore) UpdateUser(ctx context.Context, user *User) error {
 
 	query := `
 		UPDATE profiles 
-		SET handle = $2, full_name = $3, email = $4, subscription_tier = $5, active_goal_name = $6, avatar_url = $7
+		SET handle = $2, full_name = $3, email = $4, subscription_tier = $5, active_goal_id = $6, avatar_url = $7
 		WHERE id = $1`
 
-	result, err := s.db.ExecContext(ctx, query, user.ID, user.Handle, user.FullName, user.Email, user.SubscriptionTier, user.ActiveGoalName, user.AvatarURL)
+	result, err := s.db.ExecContext(ctx, query, user.ID, user.Handle, user.FullName, user.Email, user.SubscriptionTier, user.ActiveGoalID, user.AvatarURL)
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
@@ -226,12 +226,12 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 			omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 			creatine_mg, caffeine_mg, alcohol_g,
 			polyunsaturated_fat_g, monounsaturated_fat_g,
-			note, title, created_at, updated_at, consumed_at
+			note, title, source, created_at, updated_at, consumed_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
 			$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
 			$31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44,
-			$45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56
+			$45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57
 		)`
 
 	_, err := s.db.ExecContext(ctx, query,
@@ -252,7 +252,7 @@ func (s *PostgreSQLStore) CreateConsumption(ctx context.Context, consumption *Co
 		consumption.Omega3Ala, consumption.Omega3Epa, consumption.Omega3Dha,
 		consumption.Omega6, consumption.Creatine, consumption.Caffeine, consumption.Alcohol,
 		consumption.PolyunsaturatedFat, consumption.MonounsaturatedFat,
-		consumption.Note, consumption.Title, consumption.CreatedAt, consumption.UpdatedAt, consumption.ConsumedAt)
+		consumption.Note, consumption.Title, consumption.Source, consumption.CreatedAt, consumption.UpdatedAt, consumption.ConsumedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create consumption: %w", err)
 	}
@@ -330,7 +330,7 @@ func (s *PostgreSQLStore) GetConsumptionForUser(ctx context.Context, userID, id 
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 			   creatine_mg, caffeine_mg, alcohol_g,
 		   polyunsaturated_fat_g, monounsaturated_fat_g,
-		   note, title, consumed_at, created_at, updated_at
+		   note, title, source, is_public, consumed_at, created_at, updated_at
 		FROM consumptions WHERE id = $1 AND user_id = $2`
 
 	var consumption Consumption
@@ -352,7 +352,7 @@ func (s *PostgreSQLStore) GetConsumptionForUser(ctx context.Context, userID, id 
 		&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 		&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 		&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-		&consumption.Note, &consumption.Title, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
+		&consumption.Note, &consumption.Title, &consumption.Source, &consumption.IsPublic, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Not found or access denied
@@ -499,7 +499,7 @@ func (s *PostgreSQLStore) GetConsumptionsByUser(ctx context.Context, userID stri
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 			   creatine_mg, caffeine_mg, alcohol_g,
 		   polyunsaturated_fat_g, monounsaturated_fat_g,
-		   note, title, consumed_at, created_at, updated_at
+		   note, title, source, is_public, consumed_at, created_at, updated_at
 	FROM consumptions
 	WHERE user_id = $1
 	ORDER BY created_at DESC
@@ -532,7 +532,7 @@ func (s *PostgreSQLStore) GetConsumptionsByUser(ctx context.Context, userID stri
 			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 			&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-			&consumption.Note, &consumption.Title, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
+			&consumption.Note, &consumption.Title, &consumption.Source, &consumption.IsPublic, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
@@ -570,7 +570,7 @@ func (s *PostgreSQLStore) GetConsumptionsByUserSince(ctx context.Context, userID
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 		   creatine_mg, caffeine_mg, alcohol_g,
 		   polyunsaturated_fat_g, monounsaturated_fat_g,
-		   note, title, consumed_at, created_at, updated_at
+		   note, title, source, is_public, consumed_at, created_at, updated_at
 	FROM consumptions 
 	WHERE user_id = $1 AND created_at >= $2
 	ORDER BY created_at DESC`
@@ -602,7 +602,7 @@ func (s *PostgreSQLStore) GetConsumptionsByUserSince(ctx context.Context, userID
 			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 			&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-			&consumption.Note, &consumption.Title, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
+			&consumption.Note, &consumption.Title, &consumption.Source, &consumption.IsPublic, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
@@ -631,7 +631,7 @@ func (s *PostgreSQLStore) GetConsumptionsByUserDateRange(ctx context.Context, us
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 		   creatine_mg, caffeine_mg, alcohol_g,
 		   polyunsaturated_fat_g, monounsaturated_fat_g,
-		   note, title, consumed_at, created_at, updated_at
+		   note, title, source, is_public, consumed_at, created_at, updated_at
 	FROM consumptions 
 	WHERE user_id = $1 AND created_at >= $2 AND created_at <= $3
 	ORDER BY created_at DESC
@@ -664,7 +664,7 @@ func (s *PostgreSQLStore) GetConsumptionsByUserDateRange(ctx context.Context, us
 			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 			&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-			&consumption.Note, &consumption.Title, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
+			&consumption.Note, &consumption.Title, &consumption.Source, &consumption.IsPublic, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}
@@ -1416,9 +1416,10 @@ func (s *PostgreSQLStore) GetStaleItems(ctx context.Context, staleAfter time.Tim
 // UpsertUserGoal creates or updates a user goal
 func (s *PostgreSQLStore) UpsertUserGoal(ctx context.Context, goal *UserGoal) error {
 	query := `
-		INSERT INTO user_goals (id, user_id, name, overrides_json, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO user_goals (id, user_id, name, category, overrides_json, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (user_id, name) DO UPDATE SET
+			category = EXCLUDED.category,
 			overrides_json = EXCLUDED.overrides_json,
 			updated_at = EXCLUDED.updated_at`
 
@@ -1430,7 +1431,7 @@ func (s *PostgreSQLStore) UpsertUserGoal(ctx context.Context, goal *UserGoal) er
 	goal.UpdatedAt = now
 
 	_, err := s.db.ExecContext(ctx, query, goal.ID, goal.UserID, goal.Name,
-		goal.OverridesJSON, goal.CreatedAt, goal.UpdatedAt)
+		goal.Category, goal.OverridesJSON, goal.CreatedAt, goal.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to upsert user goal: %w", err)
 	}
@@ -1440,12 +1441,12 @@ func (s *PostgreSQLStore) UpsertUserGoal(ctx context.Context, goal *UserGoal) er
 
 // GetUserGoal retrieves a user goal by user ID and name
 func (s *PostgreSQLStore) GetUserGoal(ctx context.Context, userID, name string) (*UserGoal, error) {
-	query := `SELECT id, user_id, name, overrides_json, created_at, updated_at 
+	query := `SELECT id, user_id, name, category, overrides_json, created_at, updated_at 
 			  FROM user_goals WHERE user_id = $1 AND name = $2`
 
 	goal := &UserGoal{}
 	err := s.db.QueryRowContext(ctx, query, userID, name).
-		Scan(&goal.ID, &goal.UserID, &goal.Name, &goal.OverridesJSON,
+		Scan(&goal.ID, &goal.UserID, &goal.Name, &goal.Category, &goal.OverridesJSON,
 			&goal.CreatedAt, &goal.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -1457,9 +1458,28 @@ func (s *PostgreSQLStore) GetUserGoal(ctx context.Context, userID, name string) 
 	return goal, nil
 }
 
+// GetUserGoalByID retrieves a goal set for a user by ID
+func (s *PostgreSQLStore) GetUserGoalByID(ctx context.Context, userID, goalID string) (*UserGoal, error) {
+	query := `SELECT id, user_id, name, category, overrides_json, created_at, updated_at 
+			  FROM user_goals WHERE user_id = $1 AND id = $2`
+
+	goal := &UserGoal{}
+	err := s.db.QueryRowContext(ctx, query, userID, goalID).
+		Scan(&goal.ID, &goal.UserID, &goal.Name, &goal.Category, &goal.OverridesJSON,
+			&goal.CreatedAt, &goal.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Goal not found
+		}
+		return nil, fmt.Errorf("failed to get user goal by ID: %w", err)
+	}
+
+	return goal, nil
+}
+
 // GetUserGoals retrieves all goal sets for a user
 func (s *PostgreSQLStore) GetUserGoals(ctx context.Context, userID string) ([]*UserGoal, error) {
-	query := `SELECT id, user_id, name, overrides_json, created_at, updated_at 
+	query := `SELECT id, user_id, name, category, overrides_json, created_at, updated_at 
 			  FROM user_goals WHERE user_id = $1 ORDER BY updated_at DESC`
 
 	rows, err := s.db.QueryContext(ctx, query, userID)
@@ -1471,7 +1491,7 @@ func (s *PostgreSQLStore) GetUserGoals(ctx context.Context, userID string) ([]*U
 	var goals []*UserGoal
 	for rows.Next() {
 		goal := &UserGoal{}
-		err := rows.Scan(&goal.ID, &goal.UserID, &goal.Name, &goal.OverridesJSON,
+		err := rows.Scan(&goal.ID, &goal.UserID, &goal.Name, &goal.Category, &goal.OverridesJSON,
 			&goal.CreatedAt, &goal.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user goal: %w", err)
@@ -1507,20 +1527,20 @@ func (s *PostgreSQLStore) DeleteUserGoal(ctx context.Context, userID, name strin
 	return nil
 }
 
-// SetActiveGoal sets the active goal for a user
-func (s *PostgreSQLStore) SetActiveGoal(ctx context.Context, userID, goalName string) error {
-	// First verify the goal exists
-	goal, err := s.GetUserGoal(ctx, userID, goalName)
+// SetActiveGoal sets the active goal for a user by goal ID
+func (s *PostgreSQLStore) SetActiveGoal(ctx context.Context, userID, goalID string) error {
+	// First verify the goal exists and belongs to the user
+	goal, err := s.GetUserGoalByID(ctx, userID, goalID)
 	if err != nil {
 		return fmt.Errorf("failed to verify goal exists: %w", err)
 	}
 	if goal == nil {
-		return fmt.Errorf("goal '%s' not found for user", goalName)
+		return fmt.Errorf("goal with ID '%s' not found for user", goalID)
 	}
 
 	// Update user's active goal
-	query := `UPDATE profiles SET active_goal_name = $1 WHERE id = $2`
-	result, err := s.db.ExecContext(ctx, query, goalName, userID)
+	query := `UPDATE profiles SET active_goal_id = $1 WHERE id = $2`
+	result, err := s.db.ExecContext(ctx, query, goalID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to set active goal: %w", err)
 	}
@@ -1540,7 +1560,7 @@ func (s *PostgreSQLStore) SetActiveGoal(ctx context.Context, userID, goalName st
 // ClearActiveGoal clears the active goal for a user (sets it to NULL)
 func (s *PostgreSQLStore) ClearActiveGoal(ctx context.Context, userID string) error {
 	// Update user's active goal to NULL
-	query := `UPDATE profiles SET active_goal_name = NULL WHERE id = $1`
+	query := `UPDATE profiles SET active_goal_id = NULL WHERE id = $1`
 	result, err := s.db.ExecContext(ctx, query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to clear active goal: %w", err)
@@ -1558,20 +1578,36 @@ func (s *PostgreSQLStore) ClearActiveGoal(ctx context.Context, userID string) er
 	return nil
 }
 
-// GetActiveGoalName retrieves the active goal name for a user
-func (s *PostgreSQLStore) GetActiveGoalName(ctx context.Context, userID string) (*string, error) {
-	query := `SELECT active_goal_name FROM profiles WHERE id = $1`
+// GetActiveGoalID retrieves the active goal ID for a user
+func (s *PostgreSQLStore) GetActiveGoalID(ctx context.Context, userID string) (*string, error) {
+	query := `SELECT active_goal_id FROM profiles WHERE id = $1`
 
-	var activeGoalName *string
-	err := s.db.QueryRowContext(ctx, query, userID).Scan(&activeGoalName)
+	var activeGoalID *string
+	err := s.db.QueryRowContext(ctx, query, userID).Scan(&activeGoalID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found")
 		}
-		return nil, fmt.Errorf("failed to get active goal name: %w", err)
+		return nil, fmt.Errorf("failed to get active goal ID: %w", err)
 	}
 
-	return activeGoalName, nil
+	return activeGoalID, nil
+}
+
+// GetUserGoalIDByName retrieves a goal ID by name for a user (for API compatibility)
+func (s *PostgreSQLStore) GetUserGoalIDByName(ctx context.Context, userID, name string) (*string, error) {
+	query := `SELECT id FROM user_goals WHERE user_id = $1 AND name = $2`
+
+	var goalID string
+	err := s.db.QueryRowContext(ctx, query, userID, name).Scan(&goalID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // Goal not found
+		}
+		return nil, fmt.Errorf("failed to get goal ID by name: %w", err)
+	}
+
+	return &goalID, nil
 }
 
 // UpsertUserBiometrics creates or updates user biometrics
@@ -2097,7 +2133,7 @@ func (s *PostgreSQLStore) GetConsumptionsByLabels(ctx context.Context, userID st
 			zinc_mg, copper_mg, manganese_mg, selenium_mcg, iodine_mcg, molybdenum_mcg,
 			chromium_mcg, fluoride_mg, chloride_mg, omega3_ala_g, omega3_epa_g,
 			omega3_dha_g, omega6_g, creatine_mg, caffeine_mg, alcohol_g,
-			polyunsaturated_fat_g, monounsaturated_fat_g, note, title, consumed_at, created_at, updated_at
+			polyunsaturated_fat_g, monounsaturated_fat_g, note, title, source, is_public, consumed_at, created_at, updated_at
 		FROM consumptions
 		WHERE user_id = $1 AND id IN (%s)
 		ORDER BY created_at DESC
@@ -2133,7 +2169,7 @@ func (s *PostgreSQLStore) GetConsumptionsByLabels(ctx context.Context, userID st
 			&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 			&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine,
 			&consumption.Alcohol, &consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-			&consumption.Note, &consumption.Title, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
+			&consumption.Note, &consumption.Title, &consumption.Source, &consumption.IsPublic, &consumption.ConsumedAt, &consumption.CreatedAt, &consumption.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan consumption: %w", err)
 		}

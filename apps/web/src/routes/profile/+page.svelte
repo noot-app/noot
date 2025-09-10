@@ -104,6 +104,7 @@
   // Goal sets data
   let goalSets: Array<{
     name: string
+    category: string
     created_at: string
     updated_at: string
   }> = []
@@ -114,6 +115,7 @@
   // Goal data for modal editing - now using dynamic approach
   let customTargets: Record<string, number> = {}
   let customName = ""
+  let customCategory: "weight" | "fitness" | "health" | "custom" = "custom"
 
   // Biometrics form state
   let birthDate = ""
@@ -129,6 +131,7 @@
     | "extra_active" = "lightly_active"
 
   onMount(async () => {
+    // Load all data in parallel for better performance
     await Promise.all([
       loadGoals(),
       loadBiometrics(),
@@ -141,6 +144,7 @@
   function resetToDefaults() {
     customTargets = {}
     customName = ""
+    customCategory = "custom"
   }
 
   // Key nutrients that users might want to customize
@@ -232,13 +236,6 @@
     try {
       loadingGoalSets = true
 
-      // Only load goal sets for Pro users
-      if (!isProUser) {
-        goalSets = []
-        activeGoalName = ""
-        return
-      }
-
       const response = await apiClient.GET("/goals/sets")
 
       if (response.error) {
@@ -247,6 +244,11 @@
 
       goalSets = response.data.goal_sets || []
       activeGoalName = response.data.active_goal_name || ""
+      
+      // Update user data if not already loaded (for parallel loading)
+      if (!user) {
+        user = response.data.user
+      }
     } catch (err) {
       console.error("Goal sets error:", err)
       // Don't show error if user just doesn't have multiple goals yet
@@ -389,8 +391,15 @@
     // Set the goal name in the modal
     if (goalName === "New Goal") {
       customName = ""
+      customCategory = "custom"
     } else {
       customName = goalName
+      // Try to find existing goal to get its category
+      const existingGoal = goalSets.find(g => g.name === goalName)
+      const goalCategory = existingGoal?.category
+      customCategory = (goalCategory === "weight" || goalCategory === "fitness" || goalCategory === "health" || goalCategory === "custom") 
+        ? goalCategory as "weight" | "fitness" | "health" | "custom"
+        : "custom"
     }
 
     // Reset custom targets - will fall back to current values via getNutrientValue()
@@ -403,6 +412,7 @@
     showEditModal = false
     editingGoalName = ""
     customName = ""
+    customCategory = "custom"
     customTargets = {}
   }
 
@@ -494,10 +504,17 @@
 
       // Use custom goal name from modal
       const goalName = customName.trim()
+      
+      // Validate required fields
+      if (!goalName) {
+        toast.error("Goal name is required")
+        return
+      }
 
       // Prepare the request payload using only the customTargets that have been modified
       const payload: any = {
-        name: goalName || undefined,
+        name: goalName,
+        category: customCategory,
         overrides: customTargets,
       }
 
@@ -1214,15 +1231,42 @@
               <!-- Goal Name Input -->
               <div class="form-control w-full">
                 <label class="label" for="goalName">
-                  <span class="label-text">Goal Name</span>
+                  <span class="label-text">Goal Name <span class="text-error">*</span></span>
                 </label>
                 <input
                   id="goalName"
                   type="text"
                   placeholder="e.g., Bulking, Cutting, Maintenance"
                   class="input input-bordered w-full"
+                  class:input-error={!customName.trim()}
                   bind:value={customName}
+                  required
                 />
+                {#if !customName.trim()}
+                  <div class="label">
+                    <span class="label-text-alt text-error">Goal name is required</span>
+                  </div>
+                {/if}
+              </div>
+
+              <!-- Category Selection -->
+              <div class="form-control w-full">
+                <label class="label" for="goalCategory">
+                  <span class="label-text">Category <span class="text-base-content/50">(optional)</span></span>
+                </label>
+                <select
+                  id="goalCategory"
+                  class="select select-bordered w-full"
+                  bind:value={customCategory}
+                >
+                  <option value="custom">Custom</option>
+                  <option value="weight">Weight Management</option>
+                  <option value="fitness">Fitness & Performance</option>
+                  <option value="health">Health & Wellness</option>
+                </select>
+                <div class="label">
+                  <span class="label-text-alt">Choose a category to help organize your goals</span>
+                </div>
               </div>
 
               <div class="divider">Nutrition Targets</div>
@@ -1317,7 +1361,7 @@
               <button
                 class="btn btn-primary"
                 on:click={saveCustomGoals}
-                disabled={saving}
+                disabled={saving || !customName.trim()}
               >
                 {#if saving}
                   <span class="loading loading-spinner loading-xs"></span>
