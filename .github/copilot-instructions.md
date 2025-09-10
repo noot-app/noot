@@ -13,6 +13,7 @@ This is a Go based repository that is a minimal web app to log meals by voice. T
 - Build: `script/build` - only builds the backend
 - Frontend tests: `cd apps/web && npm run test_run && cd -`
 - Testing database schema: `script/db reset && script/db test`
+- Checking svelte kit front end: `cd apps/web && npm run check` 
 
 > Note: `script/build --single-target` can be used when iterating on changes rapidly as it will only build the current target which is faster than building all targets.
 
