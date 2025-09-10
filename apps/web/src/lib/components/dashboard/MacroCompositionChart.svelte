@@ -126,7 +126,7 @@
   }
 </script>
 
-<div class="w-full h-64">
+<div class="w-full h-48 sm:h-56 lg:h-64">
   {#if macroData.total > 0}
     <Chart {init} {options} />
   {:else}

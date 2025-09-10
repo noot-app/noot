@@ -164,7 +164,7 @@
   }
 </script>
 
-<div class="w-full h-64">
+<div class="w-full h-48 sm:h-56 lg:h-64">
   {#if progressData.nutrients.length > 0}
     <Chart {init} {options} />
   {:else}

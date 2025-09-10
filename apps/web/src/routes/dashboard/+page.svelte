@@ -5,6 +5,7 @@
   import NutritionTrendsChart from "$lib/components/dashboard/NutritionTrendsChart.svelte"
   import MacroCompositionChart from "$lib/components/dashboard/MacroCompositionChart.svelte"
   import GoalProgressChart from "$lib/components/dashboard/GoalProgressChart.svelte"
+  import EventCorrelationChart from "$lib/components/dashboard/EventCorrelationChart.svelte"
 
   // Get app name from runtime environment
   $: appName = getAppName()
@@ -134,23 +135,23 @@
       <div class="space-y-8">
         
         <!-- KPI Cards Row -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           <!-- Total Calories -->
           <div class="card bg-base-200 shadow-sm">
-            <div class="card-body p-6">
+            <div class="card-body p-4 lg:p-6">
               <div class="flex items-center justify-between">
                 <div>
-                  <h3 class="text-sm font-medium text-base-content-lighter">
+                  <h3 class="text-xs lg:text-sm font-medium text-base-content-lighter">
                     Total Calories
                   </h3>
-                  <p class="text-2xl font-bold text-base-content mt-1">
+                  <p class="text-xl lg:text-2xl font-bold text-base-content mt-1">
                     {consumptionsData.consumptions
                       .reduce((total: number, c: any) => total + (c.summary?.total_calories || 0), 0)
                       .toLocaleString()}
                   </p>
                 </div>
                 <div class="text-primary">
-                  <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                  <svg class="w-6 h-6 lg:w-8 lg:h-8" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                   </svg>
                 </div>
@@ -160,13 +161,13 @@
 
           <!-- Average Daily Protein -->
           <div class="card bg-base-200 shadow-sm">
-            <div class="card-body p-6">
+            <div class="card-body p-4 lg:p-6">
               <div class="flex items-center justify-between">
                 <div>
-                  <h3 class="text-sm font-medium text-base-content-lighter">
+                  <h3 class="text-xs lg:text-sm font-medium text-base-content-lighter">
                     Avg Daily Protein
                   </h3>
-                  <p class="text-2xl font-bold text-base-content mt-1">
+                  <p class="text-xl lg:text-2xl font-bold text-base-content mt-1">
                     {Math.round(
                       consumptionsData.consumptions
                         .reduce((total: number, c: any) => total + (c.summary?.total_protein_g || 0), 0) /
@@ -175,7 +176,7 @@
                   </p>
                 </div>
                 <div class="text-accent">
-                  <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                  <svg class="w-6 h-6 lg:w-8 lg:h-8" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                   </svg>
                 </div>
@@ -185,18 +186,18 @@
 
           <!-- Total Meals -->
           <div class="card bg-base-200 shadow-sm">
-            <div class="card-body p-6">
+            <div class="card-body p-4 lg:p-6">
               <div class="flex items-center justify-between">
                 <div>
-                  <h3 class="text-sm font-medium text-base-content-lighter">
+                  <h3 class="text-xs lg:text-sm font-medium text-base-content-lighter">
                     Total Meals
                   </h3>
-                  <p class="text-2xl font-bold text-base-content mt-1">
+                  <p class="text-xl lg:text-2xl font-bold text-base-content mt-1">
                     {consumptionsData.consumptions.length}
                   </p>
                 </div>
                 <div class="text-secondary">
-                  <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                  <svg class="w-6 h-6 lg:w-8 lg:h-8" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -206,18 +207,18 @@
 
           <!-- Events Tracked -->
           <div class="card bg-base-200 shadow-sm">
-            <div class="card-body p-6">
+            <div class="card-body p-4 lg:p-6">
               <div class="flex items-center justify-between">
                 <div>
-                  <h3 class="text-sm font-medium text-base-content-lighter">
+                  <h3 class="text-xs lg:text-sm font-medium text-base-content-lighter">
                     Events Tracked
                   </h3>
-                  <p class="text-2xl font-bold text-base-content mt-1">
+                  <p class="text-xl lg:text-2xl font-bold text-base-content mt-1">
                     {eventsData?.events?.length || 0}
                   </p>
                 </div>
                 <div class="text-info">
-                  <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                  <svg class="w-6 h-6 lg:w-8 lg:h-8" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
                   </svg>
                 </div>
@@ -227,25 +228,38 @@
         </div>
 
         <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Main Nutrition Chart -->
-          <div class="card bg-base-200 shadow-sm lg:col-span-2">
-            <div class="card-body p-6">
+        <div class="space-y-4 lg:space-y-6">
+          <!-- Main Nutrition Chart - Full Width -->
+          <div class="card bg-base-200 shadow-sm">
+            <div class="card-body p-4 lg:p-6">
               <NutritionTrendsChart consumptions={consumptionsData.consumptions} />
             </div>
           </div>
 
-          <!-- Macro Composition -->
-          <div class="card bg-base-200 shadow-sm">
-            <div class="card-body p-6">
-              <MacroCompositionChart consumptions={consumptionsData.consumptions} />
+          <!-- Secondary Charts - Responsive Grid -->
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
+            <!-- Macro Composition -->
+            <div class="card bg-base-200 shadow-sm">
+              <div class="card-body p-4 lg:p-6">
+                <MacroCompositionChart consumptions={consumptionsData.consumptions} />
+              </div>
             </div>
-          </div>
 
-          <!-- Goal Progress -->
-          <div class="card bg-base-200 shadow-sm">
-            <div class="card-body p-6">
-              <GoalProgressChart consumptions={consumptionsData.consumptions} goals={goalsData} />
+            <!-- Goal Progress -->
+            <div class="card bg-base-200 shadow-sm">
+              <div class="card-body p-4 lg:p-6">
+                <GoalProgressChart consumptions={consumptionsData.consumptions} goals={goalsData} />
+              </div>
+            </div>
+
+            <!-- Event Correlation - Full Width on Mobile, Spans 2 cols on Desktop -->
+            <div class="card bg-base-200 shadow-sm xl:col-span-2">
+              <div class="card-body p-4 lg:p-6">
+                <EventCorrelationChart 
+                  consumptions={consumptionsData.consumptions} 
+                  events={eventsData?.events || []} 
+                />
+              </div>
             </div>
           </div>
         </div>

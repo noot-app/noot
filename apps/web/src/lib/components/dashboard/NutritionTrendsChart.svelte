@@ -216,7 +216,7 @@
   }
 </script>
 
-<div class="w-full h-96">
+<div class="w-full h-64 sm:h-80 lg:h-96">
   {#if chartData.dates.length > 0}
     <Chart {init} {options} />
   {:else}
