@@ -51,7 +51,7 @@ export const handle: Handle = async ({ event, resolve }) => {
    * Only authenticated users can access these paths and their sub-paths.
    * We protect /summary, /profile, and /record routes.
    */
-  const protectedPaths = ["/summary", "/profile", "/record", "/labels", "/events", "/api-keys", "/log"]
+  const protectedPaths = ["/summary", "/profile", "/record", "/labels", "/events", "/api-keys", "/log", "/quick"]
   const isProtectedPath = protectedPaths.some(
     (path) =>
       event.url.pathname === path || event.url.pathname.startsWith(path + "/"),

@@ -265,6 +265,20 @@
     {@render actionButtons()}
   {/if}
 
+  <!-- Nutrition Summary -->
+  {#if consumption?.summary}
+    <Card title="Nutrition Summary">
+      <NutritionStats
+        calories={consumption.summary.totals.calories}
+        protein={consumption.summary.totals.protein_g}
+        carbs={consumption.summary.totals.total_carbs_g}
+        fat={consumption.summary.totals.total_fat_g}
+        size="compact"
+        className="bg-transparent shadow-none"
+      />
+    </Card>
+  {/if}
+
   <!-- Transcript -->
   {#if transcript}
     <Card title="What you said:" compact>
@@ -354,20 +368,6 @@
       {:else}
         <p class="text-base-content/60 italic">No note added</p>
       {/if}
-    </Card>
-  {/if}
-
-  <!-- Nutrition Summary -->
-  {#if consumption?.summary}
-    <Card title="Nutrition Summary" variant="primary">
-      <NutritionStats
-        calories={consumption.summary.totals.calories}
-        protein={consumption.summary.totals.protein_g}
-        carbs={consumption.summary.totals.total_carbs_g}
-        fat={consumption.summary.totals.total_fat_g}
-        size="compact"
-        className="bg-transparent shadow-none"
-      />
     </Card>
   {/if}
 

@@ -1,12 +1,13 @@
 <script lang="ts">
   export let name: string
-  export let size: "sm" | "md" | "lg" = "md"
+  export let size: "sm" | "md" | "lg" | "xl" = "md"
   export let className: string = ""
 
   $: sizeClass = {
     sm: "w-4 h-4",
     md: "w-6 h-6",
     lg: "w-8 h-8",
+    xl: "w-12 h-12",
   }[size]
 
   const icons = {
