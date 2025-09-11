@@ -249,6 +249,34 @@ func (r *GoalResolver) getDRIGoals(sex, ageBracket string) (*Goals, error) {
 	return goals, nil
 }
 
+// addTargetIfMissing adds a target value for a nutrient if it doesn't already exist in targets or upper limits
+func (r *GoalResolver) addTargetIfMissing(goals *Goals, nutrientKey string, value float64, unit string) {
+	if _, existsInTargets := goals.Targets[nutrientKey]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits[nutrientKey]; !existsInUpperLimits {
+			goals.Targets[nutrientKey] = value
+			goals.Units[nutrientKey] = unit
+		}
+	}
+}
+
+// addUpperLimitIfMissing adds an upper limit value for a nutrient if it doesn't already exist in targets or upper limits
+func (r *GoalResolver) addUpperLimitIfMissing(goals *Goals, nutrientKey string, value float64, unit string) {
+	if _, existsInTargets := goals.Targets[nutrientKey]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits[nutrientKey]; !existsInUpperLimits {
+			goals.UpperLimits[nutrientKey] = value
+			goals.Units[nutrientKey] = unit
+		}
+	}
+}
+
+// addUpperLimitIfNotExists adds an upper limit value for a nutrient if it doesn't already exist as an upper limit
+func (r *GoalResolver) addUpperLimitIfNotExists(goals *Goals, nutrientKey string, value float64, unit string) {
+	if _, exists := goals.UpperLimits[nutrientKey]; !exists {
+		goals.UpperLimits[nutrientKey] = value
+		goals.Units[nutrientKey] = unit
+	}
+}
+
 // extractNutrientValues extracts nutrient values from DRI data
 func (r *GoalResolver) extractNutrientValues(data map[string]interface{}, goals *Goals, category string) {
 	// Define nutrients that should default to upper limits (minimize intake)
@@ -401,113 +429,34 @@ func (r *GoalResolver) addDVNutrients(goals *Goals) {
 
 	// Add nutrients that don't have FDA DV but should be tracked
 	// These are nutrients in CompleteNutrient that need values for completeness
-	if _, existsInTargets := goals.Targets["total_sugars_g"]; !existsInTargets {
-		if _, existsInUpperLimits := goals.UpperLimits["total_sugars_g"]; !existsInUpperLimits {
-			goals.Targets["total_sugars_g"] = 0 // No specific recommendation, track for awareness
-			goals.Units["total_sugars_g"] = "g"
-		}
-	}
+	r.addTargetIfMissing(goals, "total_sugars_g", 0, "g") // No specific recommendation, track for awareness
 
 	// Add creatine with a reasonable target based on common supplementation recommendations
 	// 3-5g per day is the typical maintenance dose for those who supplement
-	if _, existsInTargets := goals.Targets["creatine_mg"]; !existsInTargets {
-		if _, existsInUpperLimits := goals.UpperLimits["creatine_mg"]; !existsInUpperLimits {
-			goals.Targets["creatine_mg"] = 3000 // 3g maintenance dose in mg
-			goals.Units["creatine_mg"] = "mg"
-		}
-	}
+	r.addTargetIfMissing(goals, "creatine_mg", 3000, "mg") // 3g maintenance dose in mg
 
 	// Add fat type targets that aren't in DRI but are important for tracking
 	// Based on healthy fat distribution recommendations
-	if _, existsInTargets := goals.Targets["monounsaturated_fat_g"]; !existsInTargets {
-		if _, existsInUpperLimits := goals.UpperLimits["monounsaturated_fat_g"]; !existsInUpperLimits {
-			// ~10-15% of calories, using 2000 kcal = 22-33g, target middle at 27g
-			goals.Targets["monounsaturated_fat_g"] = 27
-			goals.Units["monounsaturated_fat_g"] = "g"
-		}
-	}
-
-	if _, existsInTargets := goals.Targets["polyunsaturated_fat_g"]; !existsInTargets {
-		if _, existsInUpperLimits := goals.UpperLimits["polyunsaturated_fat_g"]; !existsInUpperLimits {
-			// ~5-10% of calories, using 2000 kcal = 11-22g, target middle at 17g
-			goals.Targets["polyunsaturated_fat_g"] = 17
-			goals.Units["polyunsaturated_fat_g"] = "g"
-		}
-	}
+	r.addTargetIfMissing(goals, "monounsaturated_fat_g", 27, "g") // ~10-15% of calories, using 2000 kcal = 22-33g, target middle at 27g
+	r.addTargetIfMissing(goals, "polyunsaturated_fat_g", 17, "g") // ~5-10% of calories, using 2000 kcal = 11-22g, target middle at 17g
 
 	// Add omega fatty acid targets based on DRI/health recommendations
-	if _, existsInTargets := goals.Targets["omega3_ala_g"]; !existsInTargets {
-		if _, existsInUpperLimits := goals.UpperLimits["omega3_ala_g"]; !existsInUpperLimits {
-			// DRI AI: 1.6g for men, 1.1g for women, using 1.4g as middle ground
-			goals.Targets["omega3_ala_g"] = 1.4
-			goals.Units["omega3_ala_g"] = "g"
-		}
-	}
+	r.addTargetIfMissing(goals, "omega3_ala_g", 1.4, "g")  // DRI AI: 1.6g for men, 1.1g for women, using 1.4g as middle ground
+	r.addTargetIfMissing(goals, "omega3_epa_g", 0.25, "g") // Health organizations recommend 250-500mg combined EPA+DHA, split evenly
+	r.addTargetIfMissing(goals, "omega3_dha_g", 0.25, "g") // Health organizations recommend 250-500mg combined EPA+DHA, split evenly
+	r.addTargetIfMissing(goals, "omega6_g", 11, "g")       // Balance with omega-3, typically 4:1 to 10:1 ratio, target ~11g for balance
 
-	if _, existsInTargets := goals.Targets["omega3_epa_g"]; !existsInTargets {
-		if _, existsInUpperLimits := goals.UpperLimits["omega3_epa_g"]; !existsInUpperLimits {
-			// Health organizations recommend 250-500mg combined EPA+DHA, split evenly
-			goals.Targets["omega3_epa_g"] = 0.25 // 250mg
-			goals.Units["omega3_epa_g"] = "g"
-		}
-	}
-
-	if _, existsInTargets := goals.Targets["omega3_dha_g"]; !existsInTargets {
-		if _, existsInUpperLimits := goals.UpperLimits["omega3_dha_g"]; !existsInUpperLimits {
-			// Health organizations recommend 250-500mg combined EPA+DHA, split evenly
-			goals.Targets["omega3_dha_g"] = 0.25 // 250mg
-			goals.Units["omega3_dha_g"] = "g"
-		}
-	}
-
-	if _, existsInTargets := goals.Targets["omega6_g"]; !existsInTargets {
-		if _, existsInUpperLimits := goals.UpperLimits["omega6_g"]; !existsInUpperLimits {
-			// Balance with omega-3, typically 4:1 to 10:1 ratio, target ~11g for balance
-			goals.Targets["omega6_g"] = 11
-			goals.Units["omega6_g"] = "g"
-		}
-	}
-
-	if _, existsInTargets := goals.Targets["trans_fat_g"]; !existsInTargets {
-		if _, existsInUpperLimits := goals.UpperLimits["trans_fat_g"]; !existsInUpperLimits {
-			// Trans fat should be an upper limit of 0 (minimize intake)
-			goals.UpperLimits["trans_fat_g"] = 0
-			goals.Units["trans_fat_g"] = "g"
-		}
-	}
+	// Trans fat should be an upper limit with small buffer (minimize intake, but allow for LLM estimation errors)
+	r.addUpperLimitIfMissing(goals, "trans_fat_g", 0.1, "g")
 
 	// Add default upper limits for nutrients that should be minimized if not already set
-	if _, exists := goals.UpperLimits["added_sugars_g"]; !exists {
-		// WHO/IOM recommendation: <10% of total calories, using 2000 kcal = 50g
-		goals.UpperLimits["added_sugars_g"] = 50
-		goals.Units["added_sugars_g"] = "g"
-	}
-
-	if _, exists := goals.UpperLimits["saturated_fat_g"]; !exists {
-		// AHA recommendation: <10% of total calories, using 2000 kcal = ~22g
-		goals.UpperLimits["saturated_fat_g"] = 22
-		goals.Units["saturated_fat_g"] = "g"
-	}
-
-	if _, exists := goals.UpperLimits["cholesterol_mg"]; !exists {
-		// AHA recommendation: <300mg per day
-		goals.UpperLimits["cholesterol_mg"] = 300
-		goals.Units["cholesterol_mg"] = "mg"
-	}
+	r.addUpperLimitIfNotExists(goals, "added_sugars_g", 50, "g")   // WHO/IOM recommendation: <10% of total calories, using 2000 kcal = 50g
+	r.addUpperLimitIfNotExists(goals, "saturated_fat_g", 22, "g")  // AHA recommendation: <10% of total calories, using 2000 kcal = ~22g
+	r.addUpperLimitIfNotExists(goals, "cholesterol_mg", 300, "mg") // AHA recommendation: <300mg per day
 
 	// Add upper limits for functional compounds
-	if _, exists := goals.UpperLimits["alcohol_g"]; !exists {
-		// Moderate drinking guidelines: up to 14g per day for women, 28g for men
-		// Using 14g as conservative limit (equivalent to 1 standard drink)
-		goals.UpperLimits["alcohol_g"] = 14
-		goals.Units["alcohol_g"] = "g"
-	}
-
-	if _, exists := goals.UpperLimits["caffeine_mg"]; !exists {
-		// FDA guideline: up to 400mg per day for healthy adults
-		goals.UpperLimits["caffeine_mg"] = 400
-		goals.Units["caffeine_mg"] = "mg"
-	}
+	r.addUpperLimitIfNotExists(goals, "alcohol_g", 14, "g")     // Moderate drinking guidelines: up to 14g per day for women, 28g for men (using 14g as conservative limit)
+	r.addUpperLimitIfNotExists(goals, "caffeine_mg", 400, "mg") // FDA guideline: up to 400mg per day for healthy adults
 }
 
 // normalizeUnit standardizes units to match API expectations
