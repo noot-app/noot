@@ -334,6 +334,8 @@ func (r *GoalResolver) addDVNutrients(goals *Goals) {
 	}
 
 	// Define nutrients that should be upper limits (minimize intake)
+	// The user should always be allowed to set their own or override these values, but if they are unset (null or something) then we should always set them for the user
+	// An example of a user setting their own custom limit might be a user that is trying to limit their salt intake so they set sodium to 1,000mg or something like that.
 	upperLimitNutrients := map[string]bool{
 		"added_sugars_g":  true,
 		"saturated_fat_g": true,

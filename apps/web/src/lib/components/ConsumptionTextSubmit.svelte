@@ -189,8 +189,9 @@
       clearTimeout(draftSaveTimeout)
     }
     
-    // Save current draft state before leaving
-    if (browser && textInput.trim()) {
+    // Only save current draft state if we haven't submitted successfully
+    // This prevents overwriting the cleared state after a successful submission
+    if (browser && textInput.trim() && !hasSubmitted) {
       saveDraftState()
     }
   })

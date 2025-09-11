@@ -5,12 +5,12 @@
   import Goals from "$lib/components/Goals.svelte"
   import ConsumptionCard from "$lib/components/ConsumptionCard.svelte"
   import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
+  import { user } from "$lib/auth/store"
   import { getAppName } from "$lib/utils/app-info"
 
   // Get app name from runtime environment
   $: appName = getAppName()
 
-  let currentView: "today" | "week" = "today"
   let isLoading = false
   let error = ""
   let consumptionsData: any = null
@@ -19,62 +19,77 @@
     loadSummary()
   })
 
+  // Function to get time-based greeting
+  function getTimeBasedGreeting(): string {
+    const hour = new Date().getHours()
+    
+    if (hour >= 5 && hour < 12) {
+      return "Good morning"
+    } else if (hour >= 12 && hour < 17) {
+      return "Good afternoon"
+    } else {
+      return "Good evening"
+    }
+  }
+
+  // Function to extract first name from user
+  function getFirstName(user: any): string {
+    if (!user) return ""
+    
+    // Try user_metadata.first_name first
+    if (user.user_metadata?.first_name) {
+      return user.user_metadata.first_name
+    }
+    
+    // Try user_metadata.full_name and extract first part
+    if (user.user_metadata?.full_name) {
+      return user.user_metadata.full_name.split(' ')[0]
+    }
+    
+    // Fallback to extracting from email
+    if (user.email) {
+      const emailPrefix = user.email.split('@')[0]
+      // Capitalize first letter
+      return emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1)
+    }
+    
+    return ""
+  }
+
+  // Reactive greeting message
+  $: greeting = (() => {
+    const timeGreeting = getTimeBasedGreeting()
+    const firstName = getFirstName($user)
+    return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting
+  })()
+
   async function loadSummary() {
     isLoading = true
     error = ""
 
     try {
-      let startDate: string, endDate: string
+      // Always load today's data only
+      const today = new Date()
+      const startOfDay = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        0,
+        0,
+        0,
+      )
+      const endOfDay = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        23,
+        59,
+        59,
+        999,
+      )
 
-      if (currentView === "today") {
-        // Get today in local timezone
-        const today = new Date()
-        const startOfDay = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate(),
-          0,
-          0,
-          0,
-        )
-        const endOfDay = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate(),
-          23,
-          59,
-          59,
-          999,
-        )
-
-        startDate = startOfDay.toISOString()
-        endDate = endOfDay.toISOString()
-      } else {
-        // Get week (7 days back from today) in local timezone
-        const today = new Date()
-        const weekAgo = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000) // 6 days ago + today = 7 days
-
-        const startOfWeek = new Date(
-          weekAgo.getFullYear(),
-          weekAgo.getMonth(),
-          weekAgo.getDate(),
-          0,
-          0,
-          0,
-        )
-        const endOfToday = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate(),
-          23,
-          59,
-          59,
-          999,
-        )
-
-        startDate = startOfWeek.toISOString()
-        endDate = endOfToday.toISOString()
-      }
+      const startDate = startOfDay.toISOString()
+      const endDate = endOfDay.toISOString()
 
       const response = await apiClient.GET("/consumptions", {
         params: {
@@ -95,13 +110,6 @@
       console.error("Summary error:", err)
     } finally {
       isLoading = false
-    }
-  }
-
-  function switchView(view: "today" | "week") {
-    if (currentView !== view) {
-      currentView = view
-      loadSummary()
     }
   }
 
@@ -205,34 +213,14 @@
 <div class="min-h-screen bg-base-100">
   <div class="container mx-auto px-4 py-8 max-w-6xl">
     <!-- Header -->
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-      <div>
-        <h1 class="text-3xl font-bold text-base-content flex items-center gap-3">
-          <ChartBarIcon className="w-8 h-8" />
-          Nutrition Summary
-        </h1>
-        <p class="text-base-content-lighter mt-2">
-          Track your nutrition intake over time
-        </p>
-      </div>
-      
-      <!-- View Toggle -->
-      <div class="mt-4 lg:mt-0">
-        <div class="btn-group">
-          <button
-            class="btn {currentView === 'today' ? 'btn-primary' : 'btn-ghost'}"
-            on:click={() => switchView("today")}
-          >
-            Today
-          </button>
-          <button
-            class="btn {currentView === 'week' ? 'btn-primary' : 'btn-ghost'}"
-            on:click={() => switchView("week")}
-          >
-            This Week
-          </button>
-        </div>
-      </div>
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-base-content flex items-center gap-3">
+        <ChartBarIcon className="w-8 h-8" />
+        Nutrition Summary
+      </h1>
+      <p class="text-base-content-lighter mt-2">
+        {greeting}
+      </p>
     </div>
 
     <!-- Loading -->
@@ -272,7 +260,7 @@
         <div class="text-center py-12">
           <div class="text-6xl mb-4">🍽️</div>
           <h3 class="text-2xl font-bold mb-2">
-            No data for {currentView === "today" ? "today" : "this week"}
+            No data for today
           </h3>
           <p class="text-base-content/70 mb-6">
             Start logging your meals to see your nutrition summary
@@ -294,17 +282,16 @@
           <!-- Nutrition Goals -->
           <Goals {currentNutrition} />
 
-          <!-- Today's Summary Stats (for today view) -->
-          {#if currentView === "today"}
-            <div class="card bg-base-200 shadow-xl">
-              <div class="card-body">
-                <h2 class="card-title mb-4">Today's Summary</h2>
-                <div
-                  class="stats stats-vertical lg:stats-horizontal shadow w-full"
-                >
-                  <div class="stat">
-                    <div class="stat-title">Meals Logged</div>
-                    <div class="stat-value text-lg">
+          <!-- Today's Summary Stats -->
+          <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+              <h2 class="card-title mb-4">Today's Summary</h2>
+              <div
+                class="stats stats-vertical lg:stats-horizontal shadow w-full"
+              >
+                <div class="stat">
+                  <div class="stat-title">Meals Logged</div>
+                  <div class="stat-value text-lg">
                       {consumptionsData.consumptions.length}
                     </div>
                     <div class="stat-desc">Today</div>
@@ -333,13 +320,12 @@
                 </div>
               </div>
             </div>
-          {/if}
 
           <!-- Individual Meals -->
           <div class="card bg-base-200 shadow-xl">
             <div class="card-body">
               <h2 class="card-title mb-4">
-                {currentView === "today" ? "Today's" : "This Week's"} Meals
+                Today's Meals
               </h2>
               <div class="space-y-4">
                 {#each consumptionsData.consumptions as consumption}
