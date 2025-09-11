@@ -119,13 +119,13 @@ func TestEnvironmentDefaults(t *testing.T) {
 				os.Setenv("PORT", original)
 			}
 		}()
-		
+
 		os.Unsetenv("PORT")
 		port := os.Getenv("PORT")
 		if port == "" {
 			port = "3001" // Default from main()
 		}
-		
+
 		assert.Equal(t, "3001", port)
 		assert.NotEmpty(t, port)
 	})
@@ -135,10 +135,10 @@ func TestEnvironmentDefaults(t *testing.T) {
 		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 		assert.NotNil(t, ctx)
 		assert.NotNil(t, cancel)
-		
+
 		// Clean up
 		cancel()
-		
+
 		// Verify context was cancelled
 		select {
 		case <-ctx.Done():
@@ -156,11 +156,11 @@ func TestMainFunctionComponents(t *testing.T) {
 			envValue     string
 			expectedPort string
 		}{
-			{"", "3001"},        // Default case
-			{"8080", "8080"},    // Custom port
-			{"3000", "3000"},    // Another custom port
-			{"80", "80"},        // HTTP port
-			{"443", "443"},      // HTTPS port
+			{"", "3001"},     // Default case
+			{"8080", "8080"}, // Custom port
+			{"3000", "3000"}, // Another custom port
+			{"80", "80"},     // HTTP port
+			{"443", "443"},   // HTTPS port
 		}
 
 		for _, tc := range testCases {

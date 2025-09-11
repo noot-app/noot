@@ -221,22 +221,22 @@ func TestPostgreSQLStoreAdvanced(t *testing.T) {
 
 		// Create consumption with comprehensive nutrition data
 		consumption := &Consumption{
-			UserID:               user.ID,
-			Transcript:           "I had a nutritious meal",
-			TotalCalories:        450,
-			TotalProtein:         25.5,
-			TotalFat:             15.2,
-			TotalCarbs:           42.3,
-			DietaryFiber:         8.1,
-			TotalSodium:          890,
-			SaturatedFat:         4.2,
-			VitaminC:             45.6,
-			Calcium:              120.5,
-			Iron:                 3.8,
-			Source:               "manual",
-			IsPublic:             true,
-			Title:                stringPtr("Healthy Lunch"),
-			Note:                 stringPtr("Very satisfying meal"),
+			UserID:        user.ID,
+			Transcript:    "I had a nutritious meal",
+			TotalCalories: 450,
+			TotalProtein:  25.5,
+			TotalFat:      15.2,
+			TotalCarbs:    42.3,
+			DietaryFiber:  8.1,
+			TotalSodium:   890,
+			SaturatedFat:  4.2,
+			VitaminC:      45.6,
+			Calcium:       120.5,
+			Iron:          3.8,
+			Source:        "manual",
+			IsPublic:      true,
+			Title:         stringPtr("Healthy Lunch"),
+			Note:          stringPtr("Very satisfying meal"),
 		}
 
 		created, err := store.CreateConsumption(ctx, consumption)
@@ -377,17 +377,17 @@ func TestPostgreSQLStoreAdvanced(t *testing.T) {
 
 		// Create consumption item
 		item := &ConsumptionItem{
-			ConsumptionID:   createdConsumption.ID,
-			Name:            "Test Food Item",
-			Brand:           "Test Brand",
-			Grams:           100,
-			UserQuantity:    floatPtr(1),
-			UserUnit:        stringPtr("piece"),
-			Calories:        200,
-			ProteinG:        15,
-			TotalFatG:       8,
-			TotalCarbsG:     20,
-			Note:            stringPtr("Delicious item"),
+			ConsumptionID: createdConsumption.ID,
+			Name:          "Test Food Item",
+			Brand:         "Test Brand",
+			Grams:         100,
+			UserQuantity:  floatPtr(1),
+			UserUnit:      stringPtr("piece"),
+			Calories:      200,
+			ProteinG:      15,
+			TotalFatG:     8,
+			TotalCarbsG:   20,
+			Note:          stringPtr("Delicious item"),
 		}
 
 		err = store.CreateConsumptionItem(ctx, item)
@@ -601,7 +601,7 @@ func TestPostgreSQLStoreErrorHandling(t *testing.T) {
 	t.Run("InvalidDatabaseOperations", func(t *testing.T) {
 		// Test with invalid user ID formats
 		emptyCtx := context.Background()
-		
+
 		_, err := store.GetConsumptionsByUser(emptyCtx, "", 10, 0)
 		// Should handle gracefully (return empty slice, not error)
 		require.NoError(t, err)
