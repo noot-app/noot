@@ -2878,7 +2878,7 @@ components:
           description: Custom daily target overrides for nutrients
           example:
             calories: 3000
-            protein_g: 180
+            protein_g: 150
             vitamin_c_mg: 120
         upper_limits:
           type: object
@@ -2897,7 +2897,7 @@ components:
           deprecated: true
           example:
             calories: 3000
-            protein_g: 180
+            protein_g: 150
 
     SetActiveGoalRequest:
       type: object

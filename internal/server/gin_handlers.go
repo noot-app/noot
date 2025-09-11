@@ -862,7 +862,7 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 	hasTargets := req.Targets != nil && len(*req.Targets) > 0
 	hasUpperLimits := req.UpperLimits != nil && len(*req.UpperLimits) > 0
 	hasLegacyOverrides := req.Overrides != nil && len(*req.Overrides) > 0
-	
+
 	if !hasTargets && !hasUpperLimits && !hasLegacyOverrides {
 		appErr := NewAppError("At least one target, upper limit, or override must be provided", http.StatusBadRequest, nil)
 		s.handleAppError(c, appErr, requestID)

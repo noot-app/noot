@@ -4,6 +4,7 @@
   import NutrientCategoryDisplay from "./NutrientCategoryDisplay.svelte"
   import InfoButton from "./InfoButton.svelte"
   import type { paths } from "$lib/api/schema"
+  import { RESTRICTED_NUTRIENTS } from "$lib/utils/nutrients"
 
   type GoalsResponse =
     paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"]
@@ -220,12 +221,14 @@
             {/if}
 
             <!-- Upper Limits (Minimize These) -->
-            {@const limitNutrients = keyNutrients.filter(
+            {@const limitNutrients = RESTRICTED_NUTRIENTS.filter(
               (n) =>
                 goals?.upper_limits?.[n] !== undefined &&
                 (getCurrentNutrient(n) > 0 || !showMealContribution),
             )}
             {#if limitNutrients.length > 0}
+              <!-- Debug: log what nutrients are being included -->
+              {console.debug('DEBUG: limitNutrients that will show Upper Limits section:', limitNutrients)}
               <div>
                 <h4 class="font-semibold text-base mb-3 text-warning">
                   Upper Limits (Minimize These)

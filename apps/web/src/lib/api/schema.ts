@@ -1322,7 +1322,7 @@ export interface components {
              * @description Custom daily target overrides for nutrients
              * @example {
              *       "calories": 3000,
-             *       "protein_g": 180,
+             *       "protein_g": 150,
              *       "vitamin_c_mg": 120
              *     }
              */
@@ -1345,7 +1345,7 @@ export interface components {
              * @description Legacy field for backward compatibility. Will be treated as targets.
              * @example {
              *       "calories": 3000,
-             *       "protein_g": 180
+             *       "protein_g": 150
              *     }
              */
             overrides?: {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte"
   import type { paths } from "$lib/api/schema"
+  import { RESTRICTED_NUTRIENTS, isRestrictedNutrient } from "$lib/utils/nutrients"
 
   type GoalsResponse =
     paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"]
@@ -136,23 +137,42 @@
     if (!goals) return 0
 
     const current = getNutrientValue(key)
+    const hasTarget = goals?.targets?.[key] !== undefined
+    const hasUpperLimit = goals?.upper_limits?.[key] !== undefined
+    
+    // Nutrients that should always be in the "minimize these" section
+    const isRestricted = isRestrictedNutrient(key)
 
-    // Check if this is an upper limit (should be minimized)
-    if (goals?.upper_limits?.[key] !== undefined) {
-      const limit = goals.upper_limits[key]
-      if (limit === 0) {
-        // For zero limits (like trans fat), any amount is over
-        return current > 0 ? 100 : 0
+    // For nutrients in showLimitsOnly mode or restricted nutrients, use upper limit logic
+    if (showLimitsOnly || (hasUpperLimit && isRestricted)) {
+      if (hasUpperLimit) {
+        const limit = goals.upper_limits[key]
+        if (limit === 0) {
+          // For zero limits (like trans fat), any amount is over
+          return current > 0 ? 100 : 0
+        }
+        // For upper limits, "progress" is how close to the limit
+        const progress = (current / limit) * 100
+        return isFinite(progress) ? Math.min(progress, 100) : 0
       }
-      // For upper limits, "progress" is how close to the limit (inverted logic)
+    }
+
+    // For regular nutrients (including those with custom upper limits like sodium),
+    // prefer target-based progress if available
+    if (hasTarget) {
+      const progress = (current / goals.targets[key]) * 100
+      return isFinite(progress) ? Math.min(progress, 100) : 0
+    }
+
+    // Fallback: if no target but has upper limit (shouldn't normally happen in regular sections)
+    if (hasUpperLimit) {
+      const limit = goals.upper_limits[key]
+      if (limit === 0) return current > 0 ? 100 : 0
       const progress = (current / limit) * 100
       return isFinite(progress) ? Math.min(progress, 100) : 0
     }
 
-    // Regular target logic
-    if (goals?.targets[key] === undefined) return 0
-    const progress = (current / goals.targets[key]) * 100
-    return isFinite(progress) ? Math.min(progress, 100) : 0
+    return 0
   }
 
   function getActualProgress(key: string): number {
@@ -182,24 +202,48 @@
     return value.toFixed(0)
   }
 
+  // Helper function to check if upper limit is exceeded (regardless of progress display mode)
+  function isUpperLimitExceeded(key: string): boolean {
+    if (!goals?.upper_limits?.[key]) return false
+    
+    const current = getNutrientValue(key)
+    const limit = goals.upper_limits[key]
+    
+    if (limit === 0) return current > 0
+    return current > limit
+  }
+
   function getProgressBarClass(key: string, progress: number): string {
     if (!goals) return "progress-primary"
-    const isLimit = goals?.upper_limits?.[key] !== undefined
+    const hasUpperLimit = goals?.upper_limits?.[key] !== undefined
+    const hasTarget = goals?.targets?.[key] !== undefined
+    
+    // Nutrients that should always be in the "minimize these" section
+    const isRestricted = isRestrictedNutrient(key)
 
     if (showMealContribution) {
       // For meal contribution, use accent color
-      return isLimit ? "progress-warning" : "progress-accent"
+      return hasUpperLimit ? "progress-warning" : "progress-accent"
     }
 
-    if (isLimit) {
+    // For nutrients that have upper limits but are NOT restricted nutrients
+    // (like sodium with custom upper limit), check if limit is exceeded
+    if (hasUpperLimit && !isRestricted) {
+      if (isUpperLimitExceeded(key)) return "progress-error"  // Red when exceeded
+      // Otherwise fall through to normal target-based coloring
+    }
+
+    // For nutrients in the minimize section (or showLimitsOnly mode)
+    if ((hasUpperLimit && isRestricted) || showLimitsOnly) {
       // For upper limits: lighter gray until hitting the limit, then red
       if (progress >= 100) return "progress-error"
       return "progress-lighter"
-    } else {
-      if (progress >= 80) return "progress-success"
-      if (progress >= 50) return "progress-warning"
-      return "progress-primary"
     }
+    
+    // Standard target-based coloring for regular nutrients
+    if (progress >= 80) return "progress-success"
+    if (progress >= 50) return "progress-warning"
+    return "progress-primary"
   }
 
   function getDailyText(key: string): string {
@@ -231,26 +275,26 @@
           return hasLimit
         }
 
-        // For regular categorized view, exclude nutrients that have upper limits
-        // (they should only appear in the "minimize these" section)
-        if (hasLimit) {
+        // For regular categorized view, exclude only restricted nutrients
+        if (hasLimit && isRestrictedNutrient(nutrient.key)) {
           return false
         }
 
-        return hasTarget
+        return hasTarget || hasLimit
       }
 
       // For meal contribution view, only show nutrients with values > 0
       if (value <= 0) return false
 
-      // If showLimitsOnly is true, only show nutrients that have upper limits
+      // If showLimitsOnly is true, only show the restricted nutrients that have upper limits
       if (showLimitsOnly) {
-        return goals?.upper_limits?.[nutrient.key] !== undefined
+        return goals?.upper_limits?.[nutrient.key] !== undefined && 
+               isRestrictedNutrient(nutrient.key)
       }
 
-      // For regular categorized view, exclude nutrients that have upper limits
-      // (they should only appear in the "minimize these" section)
-      if (goals?.upper_limits?.[nutrient.key] !== undefined) {
+      // For regular categorized view, exclude only the restricted nutrients
+      if (goals?.upper_limits?.[nutrient.key] !== undefined && 
+          isRestrictedNutrient(nutrient.key)) {
         return false
       }
 
@@ -285,7 +329,7 @@
     return isFinite(overage) ? `+${overage.toFixed(0)}% over` : "+Over"
   }
 
-  // Get all nutrients that have upper limits
+  // Get nutrients that have upper limits and are restricted nutrients
   function getNutrientsWithLimits() {
     if (!goals) return []
     const allNutrients = Object.values(nutrientCategories).flatMap(
@@ -294,6 +338,7 @@
     return allNutrients.filter(
       (nutrient) =>
         goals?.upper_limits?.[nutrient.key] !== undefined &&
+        isRestrictedNutrient(nutrient.key) &&
         (getNutrientValue(nutrient.key) > 0 || !showMealContribution),
     )
   }
@@ -450,8 +495,11 @@
                 <div class="space-y-2">
                   {#each category.nutrients as nutrient}
                     {@const value = getNutrientValue(nutrient.key)}
-                    {#if value > 0 || (!showMealContribution && goals && (goals?.targets?.[nutrient.key] !== undefined || (showLimitsOnly && goals?.upper_limits?.[nutrient.key] !== undefined)))}
-                      {#if showLimitsOnly ? goals?.upper_limits?.[nutrient.key] !== undefined : goals?.upper_limits?.[nutrient.key] === undefined}
+                    {@const isRestricted = isRestrictedNutrient(nutrient.key)}
+                    {@const hasUpperLimit = goals?.upper_limits?.[nutrient.key] !== undefined}
+                    {@const hasTarget = goals?.targets?.[nutrient.key] !== undefined}
+                    {#if value > 0 || (!showMealContribution && goals && (hasTarget || (showLimitsOnly && hasUpperLimit) || (hasUpperLimit && !isRestricted)))}
+                      {#if showLimitsOnly ? hasUpperLimit : !(hasUpperLimit && isRestricted)}
                         {@const progress = getProgress(nutrient.key)}
                         {@const dailyText = getDailyText(nutrient.key)}
                         <div class="flex justify-between items-center text-sm">

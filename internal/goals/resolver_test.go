@@ -125,8 +125,8 @@ func TestResolveGoals(t *testing.T) {
 			"protein_g": 180,
 		},
 		UpperLimits: map[string]float64{
-			"sodium_mg":       1500, // Custom sodium limit
-			"added_sugars_g":  20,   // Lower than default limit
+			"sodium_mg":      1500, // Custom sodium limit
+			"added_sugars_g": 20,   // Lower than default limit
 		},
 	}
 
