@@ -1016,8 +1016,15 @@ type UpdateGoalsRequest struct {
 	// Name Custom name for the goal set (required for managing multiple goal sets)
 	Name string `json:"name"`
 
-	// Overrides Custom nutrition goal overrides
-	Overrides map[string]float32 `json:"overrides"`
+	// Overrides Legacy field for nutrition goal overrides (use targets instead)
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Overrides *map[string]float32 `json:"overrides,omitempty"`
+
+	// Targets Custom nutrition target overrides (minimum amounts to consume daily)
+	Targets *map[string]float32 `json:"targets,omitempty"`
+
+	// UpperLimits Custom nutrition upper limit overrides (maximum amounts to consume daily)
+	UpperLimits *map[string]float32 `json:"upper_limits,omitempty"`
 }
 
 // UpdateGoalsRequestCategory Category of the goal set

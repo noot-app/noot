@@ -1319,14 +1319,36 @@ export interface components {
              */
             category: "weight" | "fitness" | "health" | "custom";
             /**
-             * @description Custom nutrition goal overrides
+             * @description Custom nutrition target overrides (minimum amounts to consume daily)
              * @example {
              *       "calories": 3000,
              *       "protein_g": 180,
              *       "vitamin_c_mg": 120
              *     }
              */
-            overrides: {
+            targets?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Custom nutrition upper limit overrides (maximum amounts to consume daily)
+             * @example {
+             *       "sodium_mg": 1500,
+             *       "added_sugars_g": 25,
+             *       "caffeine_mg": 300
+             *     }
+             */
+            upper_limits?: {
+                [key: string]: number;
+            };
+            /**
+             * @deprecated
+             * @description Legacy field for nutrition goal overrides (use targets instead)
+             * @example {
+             *       "calories": 3000,
+             *       "protein_g": 180
+             *     }
+             */
+            overrides?: {
                 [key: string]: number;
             };
         };

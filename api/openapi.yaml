@@ -2859,7 +2859,6 @@ components:
       type: object
       required:
         - name
-        - overrides
       properties:
         name:
           type: string
@@ -2872,15 +2871,34 @@ components:
           description: Category of the goal set
           example: "fitness"
           default: "custom"
-        overrides:
+        targets:
           type: object
           additionalProperties:
             type: number
-          description: Custom nutrition goal overrides
+          description: Custom nutrition target overrides (minimum amounts to consume daily)
           example:
             calories: 3000
             protein_g: 180
             vitamin_c_mg: 120
+        upper_limits:
+          type: object
+          additionalProperties:
+            type: number
+          description: Custom nutrition upper limit overrides (maximum amounts to consume daily)
+          example:
+            sodium_mg: 1500
+            added_sugars_g: 25
+            caffeine_mg: 300
+        # Backward compatibility
+        overrides:
+          type: object
+          additionalProperties:
+            type: number
+          description: Legacy field for nutrition goal overrides (use targets instead)
+          deprecated: true
+          example:
+            calories: 3000
+            protein_g: 180
 
     SetActiveGoalRequest:
       type: object
