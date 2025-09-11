@@ -4,6 +4,9 @@
   import NutrientCategoryDisplay from "./NutrientCategoryDisplay.svelte"
   import InfoButton from "./InfoButton.svelte"
   import type { paths } from "$lib/api/schema"
+  import { RESTRICTED_NUTRIENTS } from "$lib/utils/nutrients"
+  import ExclamationTriangle from "$lib/components/icons/ExclamationTriangle.svelte"
+  import Goal from "$lib/components/icons/Goal.svelte"
 
   type GoalsResponse =
     paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"]
@@ -14,6 +17,7 @@
   export let isSharedView = false // New prop for shareable link context (non-logged-in users)
   export let title = "Nutrition Goals" // Customizable title
   export let hideGoalsMet = false // Hide the "Goals Met" section when true
+  export let showAllCategories = false // Force show all categories (for summary page)
   // Optional: preloaded goals for 'auto' and 'dri' sources; if provided, component will use them
   export let preloadGoalsAuto: Goals | null = null
   export let preloadGoalsDri: Goals | null = null
@@ -148,19 +152,7 @@
 <div class="card bg-base-200 shadow-lg">
   <div class="card-body">
     <h2 class="card-title text-lg flex items-center gap-2 goals-header">
-      <svg
-        class="w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M13 10V3L4 14h7v7l9-11h-7z"
-        />
-      </svg>
+      <Goal className="w-5 h-5" />
       Nutrition Targets
     </h2>
 
@@ -214,20 +206,24 @@
                   isExpandable={false}
                   title=""
                   {showMealContribution}
+                  {showAllCategories}
                   goalsData={goals}
                 />
               </div>
             {/if}
 
             <!-- Upper Limits (Minimize These) -->
-            {@const limitNutrients = keyNutrients.filter(
+            {@const limitNutrients = RESTRICTED_NUTRIENTS.filter(
               (n) =>
                 goals?.upper_limits?.[n] !== undefined &&
-                (getCurrentNutrient(n) > 0 || !showMealContribution),
+                (showAllCategories || getCurrentNutrient(n) > 0 || !showMealContribution),
             )}
             {#if limitNutrients.length > 0}
+              <!-- Debug: log what nutrients are being included -->
+              {console.debug('DEBUG: limitNutrients that will show Upper Limits section:', limitNutrients)}
               <div>
-                <h4 class="font-semibold text-base mb-3 text-warning">
+                <h4 class="font-semibold text-base mb-3 text-warning flex items-center">
+                  <ExclamationTriangle className="w-4 h-4 mr-2"/>
                   Upper Limits (Minimize These)
                 </h4>
                 <p class="text-xs text-base-content/70 mb-3">
@@ -241,6 +237,7 @@
                   isExpandable={false}
                   title=""
                   {showMealContribution}
+                  {showAllCategories}
                   showLimitsOnly={true}
                   goalsData={goals}
                 />

@@ -117,11 +117,16 @@ func TestResolveGoals(t *testing.T) {
 		}
 	}
 
-	// Test with custom overrides
+	// Test with custom overrides using new structure
 	overrides := &UserOverrides{
-		Overrides: map[string]float64{
+		Name: "Test Goal",
+		Targets: map[string]float64{
 			"calories":  3000,
 			"protein_g": 180,
+		},
+		UpperLimits: map[string]float64{
+			"sodium_mg":      1500, // Custom sodium limit
+			"added_sugars_g": 20,   // Lower than default limit
 		},
 	}
 
@@ -136,5 +141,39 @@ func TestResolveGoals(t *testing.T) {
 
 	if goalsWithOverrides.Targets["calories"] != 3000 {
 		t.Errorf("Expected calories to be overridden to 3000, got %f", goalsWithOverrides.Targets["calories"])
+	}
+
+	if goalsWithOverrides.Targets["protein_g"] != 180 {
+		t.Errorf("Expected protein_g to be overridden to 180, got %f", goalsWithOverrides.Targets["protein_g"])
+	}
+
+	if goalsWithOverrides.UpperLimits["sodium_mg"] != 1500 {
+		t.Errorf("Expected sodium_mg upper limit to be overridden to 1500, got %f", goalsWithOverrides.UpperLimits["sodium_mg"])
+	}
+
+	if goalsWithOverrides.UpperLimits["added_sugars_g"] != 20 {
+		t.Errorf("Expected added_sugars_g upper limit to be overridden to 20, got %f", goalsWithOverrides.UpperLimits["added_sugars_g"])
+	}
+
+	// Test backward compatibility with legacy overrides
+	legacyOverrides := &UserOverrides{
+		Name: "Legacy Goal",
+		Overrides: map[string]float64{
+			"calories":  2500,
+			"protein_g": 150,
+		},
+	}
+
+	goalsWithLegacy, err := resolver.ResolveGoals("female", &birthDate, legacyOverrides)
+	if err != nil {
+		t.Fatalf("Failed to resolve goals with legacy overrides: %v", err)
+	}
+
+	if goalsWithLegacy.Source != "custom" {
+		t.Errorf("Expected source to be 'custom' with legacy overrides, got %s", goalsWithLegacy.Source)
+	}
+
+	if goalsWithLegacy.Targets["calories"] != 2500 {
+		t.Errorf("Expected calories from legacy overrides to be 2500, got %f", goalsWithLegacy.Targets["calories"])
 	}
 }
