@@ -120,7 +120,7 @@ func (r *GoalResolver) ResolveGoals(sex string, birthDate *time.Time, customOver
 		hasOverrides := false
 
 		// Apply target overrides
-		if customOverrides.Targets != nil && len(customOverrides.Targets) > 0 {
+		if len(customOverrides.Targets) > 0 {
 			for nutrient, value := range customOverrides.Targets {
 				baseGoals.Targets[nutrient] = value
 			}
@@ -128,7 +128,7 @@ func (r *GoalResolver) ResolveGoals(sex string, birthDate *time.Time, customOver
 		}
 
 		// Apply upper limit overrides
-		if customOverrides.UpperLimits != nil && len(customOverrides.UpperLimits) > 0 {
+		if len(customOverrides.UpperLimits) > 0 {
 			for nutrient, value := range customOverrides.UpperLimits {
 				baseGoals.UpperLimits[nutrient] = value
 			}
@@ -136,7 +136,7 @@ func (r *GoalResolver) ResolveGoals(sex string, birthDate *time.Time, customOver
 		}
 
 		// Handle legacy overrides field for backward compatibility
-		if customOverrides.Overrides != nil && len(customOverrides.Overrides) > 0 {
+		if len(customOverrides.Overrides) > 0 {
 			for nutrient, value := range customOverrides.Overrides {
 				baseGoals.Targets[nutrient] = value
 			}
@@ -405,6 +405,66 @@ func (r *GoalResolver) addDVNutrients(goals *Goals) {
 		if _, existsInUpperLimits := goals.UpperLimits["total_sugars_g"]; !existsInUpperLimits {
 			goals.Targets["total_sugars_g"] = 0 // No specific recommendation, track for awareness
 			goals.Units["total_sugars_g"] = "g"
+		}
+	}
+
+	// Add creatine with a reasonable target based on common supplementation recommendations
+	// 3-5g per day is the typical maintenance dose for those who supplement
+	if _, existsInTargets := goals.Targets["creatine_mg"]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits["creatine_mg"]; !existsInUpperLimits {
+			goals.Targets["creatine_mg"] = 3000 // 3g maintenance dose in mg
+			goals.Units["creatine_mg"] = "mg"
+		}
+	}
+
+	// Add fat type targets that aren't in DRI but are important for tracking
+	// Based on healthy fat distribution recommendations
+	if _, existsInTargets := goals.Targets["monounsaturated_fat_g"]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits["monounsaturated_fat_g"]; !existsInUpperLimits {
+			// ~10-15% of calories, using 2000 kcal = 22-33g, target middle at 27g
+			goals.Targets["monounsaturated_fat_g"] = 27
+			goals.Units["monounsaturated_fat_g"] = "g"
+		}
+	}
+
+	if _, existsInTargets := goals.Targets["polyunsaturated_fat_g"]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits["polyunsaturated_fat_g"]; !existsInUpperLimits {
+			// ~5-10% of calories, using 2000 kcal = 11-22g, target middle at 17g
+			goals.Targets["polyunsaturated_fat_g"] = 17
+			goals.Units["polyunsaturated_fat_g"] = "g"
+		}
+	}
+
+	// Add omega fatty acid targets based on DRI/health recommendations
+	if _, existsInTargets := goals.Targets["omega3_ala_g"]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits["omega3_ala_g"]; !existsInUpperLimits {
+			// DRI AI: 1.6g for men, 1.1g for women, using 1.4g as middle ground
+			goals.Targets["omega3_ala_g"] = 1.4
+			goals.Units["omega3_ala_g"] = "g"
+		}
+	}
+
+	if _, existsInTargets := goals.Targets["omega3_epa_g"]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits["omega3_epa_g"]; !existsInUpperLimits {
+			// Health organizations recommend 250-500mg combined EPA+DHA, split evenly
+			goals.Targets["omega3_epa_g"] = 0.25 // 250mg
+			goals.Units["omega3_epa_g"] = "g"
+		}
+	}
+
+	if _, existsInTargets := goals.Targets["omega3_dha_g"]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits["omega3_dha_g"]; !existsInUpperLimits {
+			// Health organizations recommend 250-500mg combined EPA+DHA, split evenly
+			goals.Targets["omega3_dha_g"] = 0.25 // 250mg
+			goals.Units["omega3_dha_g"] = "g"
+		}
+	}
+
+	if _, existsInTargets := goals.Targets["omega6_g"]; !existsInTargets {
+		if _, existsInUpperLimits := goals.UpperLimits["omega6_g"]; !existsInUpperLimits {
+			// Balance with omega-3, typically 4:1 to 10:1 ratio, target ~11g for balance
+			goals.Targets["omega6_g"] = 11
+			goals.Units["omega6_g"] = "g"
 		}
 	}
 
