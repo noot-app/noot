@@ -16,6 +16,7 @@
   export let isSharedView = false // New prop for shareable link context (non-logged-in users)
   export let title = "Nutrition Goals" // Customizable title
   export let hideGoalsMet = false // Hide the "Goals Met" section when true
+  export let showAllCategories = false // Force show all categories (for summary page)
   // Optional: preloaded goals for 'auto' and 'dri' sources; if provided, component will use them
   export let preloadGoalsAuto: Goals | null = null
   export let preloadGoalsDri: Goals | null = null
@@ -216,6 +217,7 @@
                   isExpandable={false}
                   title=""
                   {showMealContribution}
+                  {showAllCategories}
                   goalsData={goals}
                 />
               </div>
@@ -225,7 +227,7 @@
             {@const limitNutrients = RESTRICTED_NUTRIENTS.filter(
               (n) =>
                 goals?.upper_limits?.[n] !== undefined &&
-                (getCurrentNutrient(n) > 0 || !showMealContribution),
+                (showAllCategories || getCurrentNutrient(n) > 0 || !showMealContribution),
             )}
             {#if limitNutrients.length > 0}
               <!-- Debug: log what nutrients are being included -->
@@ -246,6 +248,7 @@
                   isExpandable={false}
                   title=""
                   {showMealContribution}
+                  {showAllCategories}
                   showLimitsOnly={true}
                   goalsData={goals}
                 />

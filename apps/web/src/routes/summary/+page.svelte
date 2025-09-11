@@ -280,7 +280,7 @@
           />
 
           <!-- Nutrition Goals -->
-          <Goals {currentNutrition} />
+          <Goals {currentNutrition} showAllCategories={true} />
 
           <!-- Today's Summary Stats -->
           <div class="card bg-base-200 shadow-xl">

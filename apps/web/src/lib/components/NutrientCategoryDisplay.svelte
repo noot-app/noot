@@ -33,6 +33,7 @@
   export let className = ""
   export let showMealContribution = false // New prop for meal-specific view (different progress bar styling)
   export let showLimitsOnly = false // Only show nutrients that have upper limits
+  export let showAllCategories = false // Force show all categories regardless of values (for summary views)
   export let goalsData: Goals | null = null // Injected goals to avoid duplicate fetches
 
   let goals: Goals | null = null
@@ -146,6 +147,11 @@
   })
 
   function hasNutrientData(categoryNutrients: any[]): boolean {
+    // If showAllCategories is true, always show all categories
+    if (showAllCategories) {
+      return true
+    }
+
     return categoryNutrients.some((nutrient) => {
       const value = getNutrientValue(nutrient.key, nutrients)
 
