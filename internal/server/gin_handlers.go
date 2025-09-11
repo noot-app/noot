@@ -858,9 +858,13 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 		return
 	}
 
-	// Validate overrides (basic validation)
-	if len(req.Overrides) == 0 {
-		appErr := NewAppError("At least one override must be provided", http.StatusBadRequest, nil)
+	// Validate that at least one override type is provided
+	hasTargets := req.Targets != nil && len(*req.Targets) > 0
+	hasUpperLimits := req.UpperLimits != nil && len(*req.UpperLimits) > 0
+	hasLegacyOverrides := req.Overrides != nil && len(*req.Overrides) > 0
+	
+	if !hasTargets && !hasUpperLimits && !hasLegacyOverrides {
+		appErr := NewAppError("At least one target, upper limit, or override must be provided", http.StatusBadRequest, nil)
 		s.handleAppError(c, appErr, requestID)
 		return
 	}
@@ -878,15 +882,36 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 		return
 	}
 
-	// Create the user overrides structure with both name and overrides
+	// Create the user overrides structure with support for both targets and upper limits
 	userOverrides := goals.UserOverrides{
-		Name:      req.Name,
-		Overrides: make(map[string]float64),
+		Name: req.Name,
 	}
 
-	// Convert from float32 to float64
-	for k, v := range req.Overrides {
-		userOverrides.Overrides[k] = float64(v)
+	// Handle targets
+	if req.Targets != nil && len(*req.Targets) > 0 {
+		userOverrides.Targets = make(map[string]float64)
+		for k, v := range *req.Targets {
+			userOverrides.Targets[k] = float64(v)
+		}
+	}
+
+	// Handle upper limits
+	if req.UpperLimits != nil && len(*req.UpperLimits) > 0 {
+		userOverrides.UpperLimits = make(map[string]float64)
+		for k, v := range *req.UpperLimits {
+			userOverrides.UpperLimits[k] = float64(v)
+		}
+	}
+
+	// Handle legacy overrides for backward compatibility
+	if req.Overrides != nil && len(*req.Overrides) > 0 {
+		if userOverrides.Targets == nil {
+			userOverrides.Targets = make(map[string]float64)
+		}
+		// Legacy overrides are treated as targets
+		for k, v := range *req.Overrides {
+			userOverrides.Targets[k] = float64(v)
+		}
 	}
 
 	// Store the complete structure as JSON

@@ -70,8 +70,11 @@ type LifeStage struct {
 
 // UserOverrides represents custom goal overrides from Pro users
 type UserOverrides struct {
-	Name      string             `json:"name,omitempty"` // custom name for the goal set
-	Overrides map[string]float64 `json:"overrides"`      // nutrient_key -> custom target
+	Name        string             `json:"name,omitempty"`         // custom name for the goal set
+	Targets     map[string]float64 `json:"targets,omitempty"`      // nutrient_key -> custom daily target
+	UpperLimits map[string]float64 `json:"upper_limits,omitempty"` // nutrient_key -> custom upper limit
+	// Legacy field for backward compatibility during transition
+	Overrides map[string]float64 `json:"overrides,omitempty"` // deprecated: nutrient_key -> custom target
 }
 
 // NewGoalResolver creates a new goal resolver with embedded DRI data
@@ -113,15 +116,41 @@ func (r *GoalResolver) ResolveGoals(sex string, birthDate *time.Time, customOver
 	}
 
 	// Apply custom overrides if provided
-	if customOverrides != nil && len(customOverrides.Overrides) > 0 {
-		for nutrient, value := range customOverrides.Overrides {
-			baseGoals.Targets[nutrient] = value
+	if customOverrides != nil {
+		hasOverrides := false
+
+		// Apply target overrides
+		if customOverrides.Targets != nil && len(customOverrides.Targets) > 0 {
+			for nutrient, value := range customOverrides.Targets {
+				baseGoals.Targets[nutrient] = value
+			}
+			hasOverrides = true
 		}
-		baseGoals.Source = "custom"
-		if customOverrides.Name != "" {
-			baseGoals.CustomName = customOverrides.Name
-		} else {
-			baseGoals.CustomName = "Custom Goals"
+
+		// Apply upper limit overrides
+		if customOverrides.UpperLimits != nil && len(customOverrides.UpperLimits) > 0 {
+			for nutrient, value := range customOverrides.UpperLimits {
+				baseGoals.UpperLimits[nutrient] = value
+			}
+			hasOverrides = true
+		}
+
+		// Handle legacy overrides field for backward compatibility
+		if customOverrides.Overrides != nil && len(customOverrides.Overrides) > 0 {
+			for nutrient, value := range customOverrides.Overrides {
+				baseGoals.Targets[nutrient] = value
+			}
+			hasOverrides = true
+		}
+
+		// Only mark as custom if we actually have overrides
+		if hasOverrides {
+			baseGoals.Source = "custom"
+			if customOverrides.Name != "" {
+				baseGoals.CustomName = customOverrides.Name
+			} else {
+				baseGoals.CustomName = "Custom Goals"
+			}
 		}
 	}
 
@@ -222,8 +251,9 @@ func (r *GoalResolver) getDRIGoals(sex, ageBracket string) (*Goals, error) {
 
 // extractNutrientValues extracts nutrient values from DRI data
 func (r *GoalResolver) extractNutrientValues(data map[string]interface{}, goals *Goals, category string) {
-	// Define nutrients that should be upper limits (minimize intake)
-	upperLimitNutrients := map[string]bool{
+	// Define nutrients that should default to upper limits (minimize intake)
+	// Users can still override these with custom targets if desired
+	defaultUpperLimitNutrients := map[string]bool{
 		"added_sugars_g":  true,
 		"saturated_fat_g": true,
 		"trans_fat_g":     true,
@@ -238,8 +268,9 @@ func (r *GoalResolver) extractNutrientValues(data map[string]interface{}, goals 
 				// Map DRI nutrient names to API nutrient keys
 				apiKey := r.mapNutrientToAPIKey(nutrient)
 				if apiKey != "" {
-					// Check if this should be an upper limit or a target
-					if upperLimitNutrients[apiKey] {
+					// Check if this should default to an upper limit or a target
+					// Note: Users can override this preference with custom goals
+					if defaultUpperLimitNutrients[apiKey] {
 						goals.UpperLimits[apiKey] = value
 					} else {
 						goals.Targets[apiKey] = value
@@ -333,10 +364,9 @@ func (r *GoalResolver) addDVNutrients(goals *Goals) {
 		"chloride":      "chloride_mg",
 	}
 
-	// Define nutrients that should be upper limits (minimize intake)
-	// The user should always be allowed to set their own or override these values, but if they are unset (null or something) then we should always set them for the user
-	// An example of a user setting their own custom limit might be a user that is trying to limit their salt intake so they set sodium to 1,000mg or something like that.
-	upperLimitNutrients := map[string]bool{
+	// Define nutrients that should default to upper limits (minimize intake)
+	// Users can always override these with custom goals if they prefer different treatment
+	defaultUpperLimitNutrients := map[string]bool{
 		"added_sugars_g":  true,
 		"saturated_fat_g": true,
 		"trans_fat_g":     true,
@@ -350,8 +380,9 @@ func (r *GoalResolver) addDVNutrients(goals *Goals) {
 		if _, existsInTargets := goals.Targets[apiKey]; !existsInTargets {
 			if _, existsInUpperLimits := goals.UpperLimits[apiKey]; !existsInUpperLimits {
 				if entry, exists := r.dvData.FDADailyValues[dvKey]; exists {
-					// Check if this should be an upper limit or a target
-					if upperLimitNutrients[apiKey] {
+					// Check if this should default to an upper limit or a target
+					// Note: Users can override this preference with custom goals
+					if defaultUpperLimitNutrients[apiKey] {
 						goals.UpperLimits[apiKey] = entry.Value
 					} else {
 						goals.Targets[apiKey] = entry.Value

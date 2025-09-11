@@ -1319,14 +1319,36 @@ export interface components {
              */
             category: "weight" | "fitness" | "health" | "custom";
             /**
-             * @description Custom nutrition goal overrides
+             * @description Custom daily target overrides for nutrients
              * @example {
              *       "calories": 3000,
              *       "protein_g": 180,
              *       "vitamin_c_mg": 120
              *     }
              */
-            overrides: {
+            targets?: {
+                [key: string]: number;
+            };
+            /**
+             * @description Custom upper limit overrides for nutrients (maximum amounts to minimize)
+             * @example {
+             *       "added_sugars_g": 25,
+             *       "saturated_fat_g": 15,
+             *       "sodium_mg": 2000
+             *     }
+             */
+            upper_limits?: {
+                [key: string]: number;
+            };
+            /**
+             * @deprecated
+             * @description Legacy field for backward compatibility. Will be treated as targets.
+             * @example {
+             *       "calories": 3000,
+             *       "protein_g": 180
+             *     }
+             */
+            overrides?: {
                 [key: string]: number;
             };
         };

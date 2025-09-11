@@ -113,8 +113,9 @@
   let loadingGoalSets = false
   let savingGoals = false
 
-  // Goal data for modal editing - now using dynamic approach
+  // Goal data for modal editing - now using dynamic approach with separate targets and upper limits
   let customTargets: Record<string, number> = {}
+  let customUpperLimits: Record<string, number> = {}
   let customName = ""
   let customCategory: "weight" | "fitness" | "health" | "custom" = "custom"
 
@@ -144,31 +145,31 @@
 
   function resetToDefaults() {
     customTargets = {}
+    customUpperLimits = {}
     customName = ""
     customCategory = "custom"
   }
 
-  // Key nutrients that users might want to customize
-  // Generate dynamically from available goals instead of hardcoding
-  $: editableTargets = goals
-    ? Object.keys(goals.targets)
-        .map((key) => ({
-          key,
-          label: formatNutrientName(key),
-          unit: goals?.units[key] || "",
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label))
+  // All nutrients to display organized by category for complete coverage
+  // Include ALL nutrients that the system knows about, allowing both targets and upper limits
+  $: allKnownNutrients = goals
+    ? [
+        ...Object.keys(goals.targets || {}),
+        ...Object.keys(goals.upper_limits || {}),
+      ]
+        .filter((key, index, array) => array.indexOf(key) === index) // Remove duplicates
+        .sort()
     : []
 
-  $: editableUpperLimits = goals
-    ? Object.keys(goals.upper_limits || {})
-        .map((key) => ({
-          key,
-          label: formatNutrientName(key),
-          unit: goals?.units[key] || "",
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label))
-    : []
+  $: editableNutrients = allKnownNutrients
+    .map((key) => ({
+      key,
+      label: formatNutrientName(key),
+      unit: goals?.units[key] || "",
+      hasTarget: !!goals?.targets?.[key],
+      hasUpperLimit: !!goals?.upper_limits?.[key],
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label))
 
   function formatNutrientName(key: string): string {
     return (
@@ -187,7 +188,7 @@
   }
 
   function getUpperLimitValue(key: string): number {
-    return customTargets[key] || goals?.upper_limits?.[key] || 0
+    return customUpperLimits[key] || goals?.upper_limits?.[key] || 0
   }
 
   function updateNutrient(key: string, value: number) {
@@ -201,11 +202,11 @@
 
   function updateUpperLimit(key: string, value: number) {
     if (value < 0) {
-      delete customTargets[key]
+      delete customUpperLimits[key]
     } else {
-      customTargets[key] = value
+      customUpperLimits[key] = value
     }
-    customTargets = { ...customTargets } // Trigger reactivity
+    customUpperLimits = { ...customUpperLimits } // Trigger reactivity
   }
 
   async function loadGoals() {
@@ -405,6 +406,7 @@
 
     // Reset custom targets - will fall back to current values via getNutrientValue()
     customTargets = {}
+    customUpperLimits = {}
 
     showEditModal = true
   }
@@ -415,6 +417,7 @@
     customName = ""
     customCategory = "custom"
     customTargets = {}
+    customUpperLimits = {}
   }
 
   async function loadBiometrics() {
@@ -512,11 +515,25 @@
         return
       }
 
-      // Prepare the request payload using only the customTargets that have been modified
+      // Prepare the request payload using the new structure
       const payload: any = {
         name: goalName,
         category: customCategory,
-        overrides: customTargets,
+      }
+
+      // Only include targets and upper_limits if they have values
+      if (Object.keys(customTargets).length > 0) {
+        payload.targets = customTargets
+      }
+
+      if (Object.keys(customUpperLimits).length > 0) {
+        payload.upper_limits = customUpperLimits
+      }
+
+      // Validate that we have at least some overrides
+      if (!payload.targets && !payload.upper_limits) {
+        toast.error("At least one target or upper limit must be set")
+        return
       }
 
       const response = await apiClient.PUT("/goals", {
@@ -1246,11 +1263,15 @@
                   bind:value={customName}
                   required
                 />
-                {#if !customName.trim()}
+              {#if !customName.trim()}
                   <div class="label">
                     <span class="label-text-alt text-error">Goal name is required</span>
                   </div>
-                {/if}
+              {:else if Object.keys(customTargets).length === 0 && Object.keys(customUpperLimits).length === 0}
+                  <div class="label">
+                    <span class="label-text-alt text-warning">At least one target or upper limit must be set</span>
+                  </div>
+              {/if}
               </div>
 
               <!-- Category Selection -->
@@ -1273,82 +1294,84 @@
                 </div>
               </div>
 
-              <div class="divider">Nutrition Targets</div>
+              <div class="divider">Custom Nutrition Goals</div>
+
+              <div class="alert alert-info mb-4">
+                <InfoButton
+                  standalone={true}
+                  size="sm"
+                  iconClassName="text-info-content"
+                />
+                <div class="text-sm">
+                  <div><strong>Daily Targets:</strong> The minimum amount of each nutrient you would like to consume per day.</div>
+                  <div><strong>Upper Limits:</strong> The maximum amount of a given nutrient you would like to consume per day (optional).</div>
+                </div>
+              </div>
 
               <div class="space-y-6 max-h-96 overflow-y-auto">
-                <!-- Regular Nutrition Targets -->
-                {#if editableTargets.length > 0}
-                  <div>
-                    <h4 class="font-semibold text-base mb-3 text-primary">
-                      Daily Targets
-                    </h4>
-                    <div class="space-y-4">
-                      {#each editableTargets as nutrient}
-                        <div class="form-control">
-                          <label class="label" for={nutrient.key}>
-                            <span class="label-text">{nutrient.label}</span>
-                            <span class="label-text-alt">{nutrient.unit}</span>
-                          </label>
-                          <input
-                            type="number"
-                            id={nutrient.key}
-                            class="input input-bordered input-sm"
-                            min="0"
-                            step="0.1"
-                            placeholder={getNutrientValue(
-                              nutrient.key,
-                            ).toString()}
-                            value={getNutrientValue(nutrient.key)}
-                            on:input={(e) =>
-                              updateNutrient(
-                                nutrient.key,
-                                parseFloat(e.currentTarget.value) || 0,
-                              )}
-                          />
-                        </div>
-                      {/each}
-                    </div>
-                  </div>
-                {/if}
+                <!-- Single Nutrient List with Both Target and Upper Limit Options -->
+                {#if editableNutrients.length > 0}
+                  <div class="space-y-4">
+                    {#each editableNutrients as nutrient}
+                      <div class="card bg-base-100 border border-base-300">
+                        <div class="card-body p-4">
+                          <h5 class="font-medium text-sm mb-3 flex items-center justify-between">
+                            <span>{nutrient.label}</span>
+                            <span class="text-xs text-base-content/60">{nutrient.unit}</span>
+                          </h5>
+                          
+                          <div class="grid grid-cols-2 gap-3">
+                            <!-- Daily Target -->
+                            <div class="form-control">
+                              <label class="label justify-start gap-2" for={`target_${nutrient.key}`}>
+                                <span class="label-text text-xs text-primary">Daily Target</span>
+                                {#if nutrient.hasTarget}
+                                  <span class="badge badge-primary badge-xs">DRI: {goals?.targets[nutrient.key]}</span>
+                                {/if}
+                              </label>
+                              <input
+                                type="number"
+                                id={`target_${nutrient.key}`}
+                                class="input input-bordered input-sm"
+                                min="0"
+                                step="0.1"
+                                placeholder={nutrient.hasTarget ? goals?.targets[nutrient.key]?.toString() : "Optional"}
+                                value={getNutrientValue(nutrient.key) || ""}
+                                on:input={(e) =>
+                                  updateNutrient(
+                                    nutrient.key,
+                                    parseFloat(e.currentTarget.value) || 0,
+                                  )}
+                              />
+                            </div>
 
-                <!-- Upper Limits (Minimize These) -->
-                {#if editableUpperLimits.length > 0}
-                  <div>
-                    <h4 class="font-semibold text-base mb-3 text-warning">
-                      Upper Limits
-                    </h4>
-                    <p class="text-xs text-base-content/70 mb-3">
-                      Set maximum daily limits for nutrients that should be
-                      minimized.
-                    </p>
-                    <div class="space-y-4">
-                      {#each editableUpperLimits as nutrient}
-                        <div class="form-control">
-                          <label class="label" for={`limit_${nutrient.key}`}>
-                            <span class="label-text">{nutrient.label}</span>
-                            <span class="label-text-alt"
-                              >{nutrient.unit} (max)</span
-                            >
-                          </label>
-                          <input
-                            type="number"
-                            id={`limit_${nutrient.key}`}
-                            class="input input-bordered input-warning input-sm"
-                            min="0"
-                            step="0.1"
-                            placeholder={getUpperLimitValue(
-                              nutrient.key,
-                            ).toString()}
-                            value={getUpperLimitValue(nutrient.key)}
-                            on:input={(e) =>
-                              updateUpperLimit(
-                                nutrient.key,
-                                parseFloat(e.currentTarget.value) || 0,
-                              )}
-                          />
+                            <!-- Upper Limit -->
+                            <div class="form-control">
+                              <label class="label justify-start gap-2" for={`limit_${nutrient.key}`}>
+                                <span class="label-text text-xs text-warning">Upper Limit</span>
+                                {#if nutrient.hasUpperLimit}
+                                  <span class="badge badge-warning badge-xs">DRI: {goals?.upper_limits[nutrient.key]}</span>
+                                {/if}
+                              </label>
+                              <input
+                                type="number"
+                                id={`limit_${nutrient.key}`}
+                                class="input input-bordered input-warning input-sm"
+                                min="0"
+                                step="0.1"
+                                placeholder={nutrient.hasUpperLimit ? goals?.upper_limits[nutrient.key]?.toString() : "Optional"}
+                                value={getUpperLimitValue(nutrient.key) || ""}
+                                on:input={(e) =>
+                                  updateUpperLimit(
+                                    nutrient.key,
+                                    parseFloat(e.currentTarget.value) || 0,
+                                  )}
+                              />
+                            </div>
+                          </div>
                         </div>
-                      {/each}
-                    </div>
+                      </div>
+                    {/each}
                   </div>
                 {/if}
               </div>
@@ -1365,7 +1388,7 @@
               <button
                 class="btn btn-primary"
                 on:click={saveCustomGoals}
-                disabled={saving || !customName.trim()}
+                disabled={saving || !customName.trim() || (Object.keys(customTargets).length === 0 && Object.keys(customUpperLimits).length === 0)}
               >
                 {#if saving}
                   <span class="loading loading-spinner loading-xs"></span>
