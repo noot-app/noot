@@ -180,7 +180,13 @@
 
     const current = getNutrientValue(key)
 
-    // Check if this is an upper limit
+    // Prioritize targets over upper limits for percentage calculation
+    if (goals?.targets?.[key] !== undefined) {
+      const progress = (current / goals.targets[key]) * 100
+      return isFinite(progress) ? progress : 0
+    }
+
+    // Fall back to upper limit only if no target exists
     if (goals?.upper_limits?.[key] !== undefined) {
       const limit = goals.upper_limits[key]
       if (limit === 0) {
@@ -190,10 +196,7 @@
       return isFinite(progress) ? progress : 0
     }
 
-    // Regular target logic
-    if (goals?.targets[key] === undefined) return 0
-    const progress = (current / goals.targets[key]) * 100
-    return isFinite(progress) ? progress : 0
+    return 0
   }
 
   function formatValue(value: number): string {
@@ -222,8 +225,18 @@
     const isRestricted = isRestrictedNutrient(key)
 
     if (showMealContribution) {
-      // For meal contribution, use accent color
-      return hasUpperLimit ? "progress-warning" : "progress-accent"
+      // Handle upper limit exceeded case first (applies to all nutrients with limits)
+      if (hasUpperLimit && isUpperLimitExceeded(key)) {
+        return "progress-error"
+      }
+
+      // For restricted nutrients with upper limits that aren't exceeded, use lighter color
+      if (hasUpperLimit && isRestricted) {
+        return "progress-lighter"
+      }
+
+      // All other cases (no upper limit, or upper limit not exceeded for non-restricted nutrients)
+      return "progress-accent"
     }
 
     // For nutrients that have upper limits but are NOT restricted nutrients
@@ -306,27 +319,35 @@
   function getOverageText(key: string, current: number): string {
     if (!goals) return ""
 
-    // Check if this is an upper limit
-    if (goals?.upper_limits?.[key] !== undefined) {
+    const hasTarget = goals?.targets?.[key] !== undefined
+    const hasUpperLimit = goals?.upper_limits?.[key] !== undefined
+
+    // Check if upper limit is exceeded (this triggers the warning)
+    if (hasUpperLimit) {
       const limit = goals.upper_limits[key]
       if (limit === 0 && current > 0) {
         return "⚠️"
       }
       if (current > limit) {
         const overage = (current / limit - 1) * 100
+        // Clarify this is about upper limit, especially when there's also a target
+        const limitType = hasTarget ? "upper limit" : "limit"
         return isFinite(overage)
-          ? `⚠️ ${overage.toFixed(0)}% over limit`
-          : "⚠️ Over limit"
+          ? `⚠️ ${overage.toFixed(0)}% over ${limitType}`
+          : `⚠️ Over ${limitType}`
       }
-      return ""
     }
 
-    // Regular target logic
-    if (goals?.targets[key] === undefined) return ""
-    const actualProgress = (current / goals.targets[key]) * 100
-    if (!isFinite(actualProgress) || actualProgress <= 100) return ""
-    const overage = actualProgress - 100
-    return isFinite(overage) ? `+${overage.toFixed(0)}% over` : "+Over"
+    // For nutrients that exceed their target but not their upper limit
+    if (hasTarget) {
+      const actualProgress = (current / goals.targets[key]) * 100
+      if (isFinite(actualProgress) && actualProgress > 100) {
+        const overage = actualProgress - 100
+        return isFinite(overage) ? `+${overage.toFixed(0)}% over target` : "+Over target"
+      }
+    }
+
+    return ""
   }
 
   // Get nutrients that have upper limits and are restricted nutrients
