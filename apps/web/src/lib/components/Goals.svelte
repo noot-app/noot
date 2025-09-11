@@ -6,6 +6,7 @@
   import type { paths } from "$lib/api/schema"
   import { RESTRICTED_NUTRIENTS } from "$lib/utils/nutrients"
   import ExclamationTriangle from "$lib/components/icons/ExclamationTriangle.svelte"
+  import Goal from "$lib/components/icons/Goal.svelte"
 
   type GoalsResponse =
     paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"]
@@ -151,19 +152,7 @@
 <div class="card bg-base-200 shadow-lg">
   <div class="card-body">
     <h2 class="card-title text-lg flex items-center gap-2 goals-header">
-      <svg
-        class="w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M13 10V3L4 14h7v7l9-11h-7z"
-        />
-      </svg>
+      <Goal className="w-5 h-5" />
       Nutrition Targets
     </h2>
 

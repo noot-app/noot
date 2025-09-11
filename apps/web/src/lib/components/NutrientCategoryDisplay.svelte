@@ -11,9 +11,7 @@
     getDailyText,
     getOverageText
   } from "$lib/utils/nutrition-display"
-  import Star from "$lib/components/icons/Star.svelte"
   import Scale from "$lib/components/icons/Scale.svelte"
-  import Bolt from "$lib/components/icons/Bolt.svelte"
   import Candy from "$lib/components/icons/Candy.svelte"
   import Blocks from "$lib/components/icons/Blocks.svelte"
   import Pyramid from "$lib/components/icons/Pyramid.svelte"
