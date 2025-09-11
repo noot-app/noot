@@ -285,10 +285,15 @@
 <div class="min-h-screen bg-base-100">
   <div class="max-w-3xl mx-auto px-6 py-12">
     
-    <!-- Simple, clean header -->
-    <div class="mb-16">
-      <h1 class="text-2xl font-medium text-base-content mb-2">Timeline</h1>
-      <p class="text-base-content/70">Your complete log of meals and wellness events</p>
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-base-content flex items-center gap-3">
+        <TimelineIcon className="w-8 h-8" />
+        Timeline
+      </h1>
+      <p class="text-base-content-lighter mt-2">
+        Your complete log of meals and wellness events
+      </p>
     </div>
 
     <!-- Error State -->

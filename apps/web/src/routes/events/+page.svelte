@@ -549,8 +549,11 @@
     <div class="mb-8">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <div>
-          <h1 class="text-3xl font-bold text-base-content">Events</h1>
-          <p class="text-base-content/70 mt-2">
+          <h1 class="text-3xl font-bold text-base-content flex items-center gap-3">
+            <CalendarIcon className="w-8 h-8" />
+            Events
+          </h1>
+          <p class="text-base-content-lighter mt-2">
             Track symptoms, activities, measurements, and other health events.
           </p>
         </div>

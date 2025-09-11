@@ -112,7 +112,7 @@
   $: options = {
     backgroundColor: 'transparent',
     title: {
-      text: 'Nutrition Trends',
+      text: 'Macro Nutrition Trends',
       textStyle: {
         color: '#3c3d42',
         fontSize: 16,

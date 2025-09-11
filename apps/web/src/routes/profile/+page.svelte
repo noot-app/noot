@@ -17,6 +17,7 @@
   import IdentificationIcon from "$lib/components/icons/Identification.svelte"
   import CalendarDaysIcon from "$lib/components/icons/calendar-days.svelte"
   import KeyIcon from "$lib/components/icons/Key.svelte"
+  import UserIcon from "$lib/components/icons/User.svelte"
   import { getStorageJSON, setStorageJSON } from "$lib/utils/secure-storage"
   import {
     parseErrorMessage,
@@ -693,9 +694,12 @@
 <div class="min-h-screen bg-base-100">
   <div class="container mx-auto px-4 py-8 max-w-6xl">
     <!-- Header -->
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-primary mb-4">Profile</h1>
-      <p class="text-base-content/70">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-base-content flex items-center gap-3">
+        <UserIcon className="w-8 h-8" />
+        Profile
+      </h1>
+      <p class="text-base-content-lighter mt-2">
         Customize your profile, nutrition goals, and preferences
       </p>
     </div>

@@ -4,7 +4,7 @@
   import TagIcon from "$lib/components/icons/Tag.svelte"
   import UserIcon from "$lib/components/icons/User.svelte"
   import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
-  import DashboardIcon from "$lib/components/icons/Dashboard.svelte"
+  import SquaresTwoByTwo from "$lib/components/icons/SquaresTwoByTwo.svelte"
   import MicrophoneIcon from "$lib/components/icons/Microphone.svelte"
   import CalendarIcon from "$lib/components/icons/calendar-days.svelte"
   import TimelineIcon from "$lib/components/icons/Timeline.svelte"
@@ -82,7 +82,7 @@
               {:else if item.icon === "chart-bar"}
                 <ChartBarIcon className="w-6 h-6" />
               {:else if item.icon === "dashboard"}
-                <DashboardIcon className="w-6 h-6" />
+                <SquaresTwoByTwo className="w-6 h-6" />
               {:else if item.icon === "microphone"}
                 <MicrophoneIcon className="w-6 h-6" />
               {:else if item.icon === "calendar"}
@@ -130,7 +130,7 @@
               {:else if item.icon === "chart-bar"}
                 <ChartBarIcon className="w-4 h-4" />
               {:else if item.icon === "dashboard"}
-                <DashboardIcon className="w-4 h-4" />
+                <SquaresTwoByTwo className="w-4 h-4" />
               {:else if item.icon === "microphone"}
                 <MicrophoneIcon className="w-4 h-4" />
               {:else if item.icon === "calendar"}

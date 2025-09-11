@@ -1,5 +1,3 @@
-
-
 <script lang="ts">
   export let className: string = "w-6 h-6"
   export let strokeWidth: number = 1.8

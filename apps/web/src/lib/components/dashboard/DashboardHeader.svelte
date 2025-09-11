@@ -1,4 +1,6 @@
 <script lang="ts">
+  import SquaresTwoByTwo from "$lib/components/icons/SquaresTwoByTwo.svelte"
+  
   export let dateRange: string = "7d"
   export let onDateRangeChange: () => void
 
@@ -16,7 +18,8 @@
 
 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
   <div>
-    <h1 class="text-3xl font-bold text-base-content">
+    <h1 class="text-3xl font-bold text-base-content flex items-center gap-3">
+      <SquaresTwoByTwo className="w-8 h-8" />
       Nutrition Dashboard
     </h1>
     <p class="text-base-content-lighter mt-2">

@@ -4,6 +4,7 @@
   import NutritionStats from "$lib/components/NutritionStats.svelte"
   import Goals from "$lib/components/Goals.svelte"
   import ConsumptionCard from "$lib/components/ConsumptionCard.svelte"
+  import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
   import { getAppName } from "$lib/utils/app-info"
 
   // Get app name from runtime environment
@@ -204,26 +205,33 @@
 <div class="min-h-screen bg-base-100">
   <div class="container mx-auto px-4 py-8 max-w-6xl">
     <!-- Header -->
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-primary mb-4">Nutrition Summary</h1>
-      <p class="text-base-content/70">Track your nutrition intake over time</p>
-    </div>
-
-    <!-- View Toggle -->
-    <div class="flex justify-center mb-8">
-      <div class="btn-group">
-        <button
-          class="btn {currentView === 'today' ? 'btn-primary' : 'btn-ghost'}"
-          on:click={() => switchView("today")}
-        >
-          Today
-        </button>
-        <button
-          class="btn {currentView === 'week' ? 'btn-primary' : 'btn-ghost'}"
-          on:click={() => switchView("week")}
-        >
-          This Week
-        </button>
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-base-content flex items-center gap-3">
+          <ChartBarIcon className="w-8 h-8" />
+          Nutrition Summary
+        </h1>
+        <p class="text-base-content-lighter mt-2">
+          Track your nutrition intake over time
+        </p>
+      </div>
+      
+      <!-- View Toggle -->
+      <div class="mt-4 lg:mt-0">
+        <div class="btn-group">
+          <button
+            class="btn {currentView === 'today' ? 'btn-primary' : 'btn-ghost'}"
+            on:click={() => switchView("today")}
+          >
+            Today
+          </button>
+          <button
+            class="btn {currentView === 'week' ? 'btn-primary' : 'btn-ghost'}"
+            on:click={() => switchView("week")}
+          >
+            This Week
+          </button>
+        </div>
       </div>
     </div>
 

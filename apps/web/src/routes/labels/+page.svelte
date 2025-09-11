@@ -215,8 +215,11 @@
         class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"
       >
         <div>
-          <h1 class="text-3xl font-bold text-base-content">Labels</h1>
-          <p class="text-base-content/70 mt-2">
+          <h1 class="text-3xl font-bold text-base-content flex items-center gap-3">
+            <TagIcon className="w-8 h-8" />
+            Labels
+          </h1>
+          <p class="text-base-content-lighter mt-2">
             Organize your meals and nutrition tracking with custom labels.
           </p>
         </div>
