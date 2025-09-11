@@ -18,6 +18,7 @@
   import CalendarDaysIcon from "$lib/components/icons/calendar-days.svelte"
   import KeyIcon from "$lib/components/icons/Key.svelte"
   import UserIcon from "$lib/components/icons/User.svelte"
+  import ArrowPath from "$lib/components/icons/ArrowPath.svelte"
   import { getStorageJSON, setStorageJSON } from "$lib/utils/secure-storage"
   import {
     parseErrorMessage,
@@ -801,7 +802,8 @@
                       on:click={resetToDRIDefaults}
                       title="Delete all custom goals to return to DRI defaults"
                     >
-                      🔄 Reset to DRI
+                      <ArrowPath className="w-4 h-4 mr-1" />
+                      Reset to DRI
                     </button>
                   {/if}
                   <button
@@ -1710,7 +1712,8 @@
           Cancel
         </button>
         <button class="btn btn-warning" on:click={confirmResetToDRIDefaults}>
-          🔄 Reset to DRI Defaults
+          <ArrowPath className="w-4 h-4 mr-1" />
+          Reset to DRI Defaults
         </button>
       </div>
     </div>
