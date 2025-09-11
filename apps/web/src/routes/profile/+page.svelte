@@ -113,8 +113,9 @@
   let loadingGoalSets = false
   let savingGoals = false
 
-  // Goal data for modal editing - now using dynamic approach
+  // Goal data for modal editing - now supporting both targets and upper limits
   let customTargets: Record<string, number> = {}
+  let customUpperLimits: Record<string, number> = {}
   let customName = ""
   let customCategory: "weight" | "fitness" | "health" | "custom" = "custom"
 
@@ -144,31 +145,65 @@
 
   function resetToDefaults() {
     customTargets = {}
+    customUpperLimits = {}
     customName = ""
     customCategory = "custom"
   }
 
-  // Key nutrients that users might want to customize
-  // Generate dynamically from available goals instead of hardcoding
-  $: editableTargets = goals
-    ? Object.keys(goals.targets)
-        .map((key) => ({
-          key,
-          label: formatNutrientName(key),
-          unit: goals?.units[key] || "",
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label))
-    : []
+  // Complete list of all nutrients that can be customized
+  const allNutrients = [
+    { key: 'calories', name: 'Calories', unit: 'kcal' },
+    { key: 'protein_g', name: 'Protein', unit: 'g' },
+    { key: 'total_fat_g', name: 'Total Fat', unit: 'g' },
+    { key: 'saturated_fat_g', name: 'Saturated Fat', unit: 'g' },
+    { key: 'trans_fat_g', name: 'Trans Fat', unit: 'g' },
+    { key: 'monounsaturated_fat_g', name: 'Monounsaturated Fat', unit: 'g' },
+    { key: 'polyunsaturated_fat_g', name: 'Polyunsaturated Fat', unit: 'g' },
+    { key: 'cholesterol_mg', name: 'Cholesterol', unit: 'mg' },
+    { key: 'sodium_mg', name: 'Sodium', unit: 'mg' },
+    { key: 'total_carbs_g', name: 'Total Carbs', unit: 'g' },
+    { key: 'dietary_fiber_g', name: 'Dietary Fiber', unit: 'g' },
+    { key: 'total_sugars_g', name: 'Total Sugars', unit: 'g' },
+    { key: 'added_sugars_g', name: 'Added Sugars', unit: 'g' },
+    { key: 'vitamin_a_mcg', name: 'Vitamin A', unit: 'mcg' },
+    { key: 'vitamin_c_mg', name: 'Vitamin C', unit: 'mg' },
+    { key: 'vitamin_d_mcg', name: 'Vitamin D', unit: 'mcg' },
+    { key: 'vitamin_e_mg', name: 'Vitamin E', unit: 'mg' },
+    { key: 'vitamin_k_mcg', name: 'Vitamin K', unit: 'mcg' },
+    { key: 'thiamine_mg', name: 'Thiamine (B1)', unit: 'mg' },
+    { key: 'riboflavin_mg', name: 'Riboflavin (B2)', unit: 'mg' },
+    { key: 'niacin_mg', name: 'Niacin (B3)', unit: 'mg' },
+    { key: 'vitamin_b6_mg', name: 'Vitamin B6', unit: 'mg' },
+    { key: 'folate_mcg', name: 'Folate', unit: 'mcg' },
+    { key: 'vitamin_b12_mcg', name: 'Vitamin B12', unit: 'mcg' },
+    { key: 'biotin_mcg', name: 'Biotin', unit: 'mcg' },
+    { key: 'pantothenic_acid_mg', name: 'Pantothenic Acid', unit: 'mg' },
+    { key: 'choline_mg', name: 'Choline', unit: 'mg' },
+    { key: 'calcium_mg', name: 'Calcium', unit: 'mg' },
+    { key: 'iron_mg', name: 'Iron', unit: 'mg' },
+    { key: 'magnesium_mg', name: 'Magnesium', unit: 'mg' },
+    { key: 'phosphorus_mg', name: 'Phosphorus', unit: 'mg' },
+    { key: 'potassium_mg', name: 'Potassium', unit: 'mg' },
+    { key: 'zinc_mg', name: 'Zinc', unit: 'mg' },
+    { key: 'copper_mg', name: 'Copper', unit: 'mg' },
+    { key: 'manganese_mg', name: 'Manganese', unit: 'mg' },
+    { key: 'selenium_mcg', name: 'Selenium', unit: 'mcg' },
+    { key: 'iodine_mcg', name: 'Iodine', unit: 'mcg' },
+    { key: 'molybdenum_mcg', name: 'Molybdenum', unit: 'mcg' },
+    { key: 'chromium_mcg', name: 'Chromium', unit: 'mcg' },
+    { key: 'fluoride_mg', name: 'Fluoride', unit: 'mg' },
+    { key: 'chloride_mg', name: 'Chloride', unit: 'mg' },
+    { key: 'omega3_ala_g', name: 'Omega-3 ALA', unit: 'g' },
+    { key: 'omega3_epa_g', name: 'Omega-3 EPA', unit: 'g' },
+    { key: 'omega3_dha_g', name: 'Omega-3 DHA', unit: 'g' },
+    { key: 'omega6_g', name: 'Omega-6', unit: 'g' },
+    { key: 'caffeine_mg', name: 'Caffeine', unit: 'mg' },
+    { key: 'creatine_mg', name: 'Creatine', unit: 'mg' }
+  ].sort((a, b) => a.name.localeCompare(b.name))
 
-  $: editableUpperLimits = goals
-    ? Object.keys(goals.upper_limits || {})
-        .map((key) => ({
-          key,
-          label: formatNutrientName(key),
-          unit: goals?.units[key] || "",
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label))
-    : []
+  // Generate editable lists - now allowing ALL nutrients for both targets and upper limits
+  $: editableTargets = allNutrients
+  $: editableUpperLimits = allNutrients
 
   function formatNutrientName(key: string): string {
     return (
@@ -187,7 +222,7 @@
   }
 
   function getUpperLimitValue(key: string): number {
-    return customTargets[key] || goals?.upper_limits?.[key] || 0
+    return customUpperLimits[key] || goals?.upper_limits?.[key] || 0
   }
 
   function updateNutrient(key: string, value: number) {
@@ -200,12 +235,12 @@
   }
 
   function updateUpperLimit(key: string, value: number) {
-    if (value < 0) {
-      delete customTargets[key]
+    if (value <= 0) {
+      delete customUpperLimits[key]
     } else {
-      customTargets[key] = value
+      customUpperLimits[key] = value
     }
-    customTargets = { ...customTargets } // Trigger reactivity
+    customUpperLimits = { ...customUpperLimits } // Trigger reactivity
   }
 
   async function loadGoals() {
@@ -403,8 +438,9 @@
         : "custom"
     }
 
-    // Reset custom targets - will fall back to current values via getNutrientValue()
+    // Reset custom goals data - will fall back to current values via getter functions
     customTargets = {}
+    customUpperLimits = {}
 
     showEditModal = true
   }
@@ -415,6 +451,7 @@
     customName = ""
     customCategory = "custom"
     customTargets = {}
+    customUpperLimits = {}
   }
 
   async function loadBiometrics() {
@@ -512,11 +549,35 @@
         return
       }
 
-      // Prepare the request payload using only the customTargets that have been modified
+      // Validate at least some custom values are provided
+      const hasCustomTargets = Object.keys(customTargets).length > 0
+      const hasCustomUpperLimits = Object.keys(customUpperLimits).length > 0
+      
+      if (!hasCustomTargets && !hasCustomUpperLimits) {
+        toast.error("Please set at least one custom target or upper limit")
+        return
+      }
+
+      // Prepare the request payload with separate targets and upper limits
       const payload: any = {
         name: goalName,
         category: customCategory,
-        overrides: customTargets,
+      }
+
+      // Only include targets if there are custom values
+      if (Object.keys(customTargets).length > 0) {
+        payload.targets = customTargets
+      }
+
+      // Only include upper limits if there are custom values
+      if (Object.keys(customUpperLimits).length > 0) {
+        payload.upper_limits = customUpperLimits
+      }
+
+      // Provide backward compatibility fallback for older API versions
+      if (!payload.targets && !payload.upper_limits) {
+        // If neither targets nor upper limits are set, provide empty targets
+        payload.targets = {}
       }
 
       const response = await apiClient.PUT("/goals", {
@@ -1275,18 +1336,37 @@
 
               <div class="divider">Nutrition Targets</div>
 
-              <div class="space-y-6 max-h-96 overflow-y-auto">
+              <!-- Help Text Section -->
+              <div class="alert alert-info text-sm mb-4">
+                <InfoButton
+                  standalone={true}
+                  size="sm"
+                  iconClassName="text-info-content"
+                />
+                <div>
+                  <div class="text-sm font-semibold mb-2">Setting Your Nutrition Goals:</div>
+                  <div class="text-xs space-y-1">
+                    <p><strong>Daily Targets:</strong> The minimum amount of each nutrient you would like to consume per day.</p>
+                    <p><strong>Upper Limits:</strong> The maximum amount of a given nutrient you would like to consume per day (optional).</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-6 max-h-80 overflow-y-auto">
                 <!-- Regular Nutrition Targets -->
                 {#if editableTargets.length > 0}
                   <div>
                     <h4 class="font-semibold text-base mb-3 text-primary">
                       Daily Targets
                     </h4>
+                    <p class="text-xs text-base-content/70 mb-3">
+                      Set minimum daily amounts for nutrients you want to ensure adequate intake.
+                    </p>
                     <div class="space-y-4">
                       {#each editableTargets as nutrient}
                         <div class="form-control">
                           <label class="label" for={nutrient.key}>
-                            <span class="label-text">{nutrient.label}</span>
+                            <span class="label-text">{nutrient.name}</span>
                             <span class="label-text-alt">{nutrient.unit}</span>
                           </label>
                           <input
@@ -1318,14 +1398,13 @@
                       Upper Limits
                     </h4>
                     <p class="text-xs text-base-content/70 mb-3">
-                      Set maximum daily limits for nutrients that should be
-                      minimized.
+                      Set maximum daily limits for nutrients you want to moderate or minimize.
                     </p>
                     <div class="space-y-4">
                       {#each editableUpperLimits as nutrient}
                         <div class="form-control">
                           <label class="label" for={`limit_${nutrient.key}`}>
-                            <span class="label-text">{nutrient.label}</span>
+                            <span class="label-text">{nutrient.name}</span>
                             <span class="label-text-alt"
                               >{nutrient.unit} (max)</span
                             >
