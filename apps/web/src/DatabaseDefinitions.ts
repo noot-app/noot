@@ -368,7 +368,7 @@ export type Database = {
           riboflavin_mg: number
           saturated_fat_g: number
           selenium_mcg: number
-          source: string | null
+          source: string
           thiamine_mg: number
           title: string | null
           total_calories: number
@@ -428,7 +428,7 @@ export type Database = {
           riboflavin_mg?: number
           saturated_fat_g?: number
           selenium_mcg?: number
-          source?: string | null
+          source: string
           thiamine_mg?: number
           title?: string | null
           total_calories?: number
@@ -488,7 +488,7 @@ export type Database = {
           riboflavin_mg?: number
           saturated_fat_g?: number
           selenium_mcg?: number
-          source?: string | null
+          source?: string
           thiamine_mg?: number
           title?: string | null
           total_calories?: number
