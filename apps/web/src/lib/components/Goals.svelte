@@ -5,6 +5,7 @@
   import InfoButton from "./InfoButton.svelte"
   import type { paths } from "$lib/api/schema"
   import { RESTRICTED_NUTRIENTS } from "$lib/utils/nutrients"
+  import ExclamationTriangle from "$lib/components/icons/ExclamationTriangle.svelte"
 
   type GoalsResponse =
     paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"]
@@ -230,7 +231,8 @@
               <!-- Debug: log what nutrients are being included -->
               {console.debug('DEBUG: limitNutrients that will show Upper Limits section:', limitNutrients)}
               <div>
-                <h4 class="font-semibold text-base mb-3 text-warning">
+                <h4 class="font-semibold text-base mb-3 text-warning flex items-center">
+                  <ExclamationTriangle className="w-4 h-4 mr-2"/>
                   Upper Limits (Minimize These)
                 </h4>
                 <p class="text-xs text-base-content/70 mb-3">

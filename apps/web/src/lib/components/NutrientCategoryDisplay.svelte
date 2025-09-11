@@ -1,17 +1,24 @@
 <script lang="ts">
   import { onMount } from "svelte"
   import type { paths } from "$lib/api/schema"
-  import { RESTRICTED_NUTRIENTS, isRestrictedNutrient } from "$lib/utils/nutrients"
+  import { isRestrictedNutrient } from "$lib/utils/nutrients"
   import {
     getNutrientValue,
     formatValue,
-    isUpperLimitExceeded,
     getProgress,
     getActualProgress,
     getProgressBarClass,
     getDailyText,
     getOverageText
   } from "$lib/utils/nutrition-display"
+  import Star from "$lib/components/icons/Star.svelte"
+  import Scale from "$lib/components/icons/Scale.svelte"
+  import Bolt from "$lib/components/icons/Bolt.svelte"
+  import Candy from "$lib/components/icons/Candy.svelte"
+  import Blocks from "$lib/components/icons/Blocks.svelte"
+  import Pyramid from "$lib/components/icons/Pyramid.svelte"
+  import Shapes from "$lib/components/icons/Shapes.svelte"
+  import Boxes from "$lib/components/icons/Boxes.svelte"
 
   type GoalsResponse =
     paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"]
@@ -37,7 +44,7 @@
   const nutrientCategories = {
     macronutrients: {
       title: "Macronutrients",
-      icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+      icon: Shapes,
       nutrients: [
         { key: "calories", label: "Calories", unit: "" },
         { key: "protein_g", label: "Protein", unit: "g" },
@@ -62,7 +69,7 @@
     },
     vitamins: {
       title: "Vitamins",
-      icon: "M13 10V3L4 14h7v7l9-11h-7z",
+      icon: Boxes,
       nutrients: [
         { key: "vitamin_a_mcg", label: "Vitamin A", unit: "mcg" },
         { key: "vitamin_c_mg", label: "Vitamin C", unit: "mg" },
@@ -86,7 +93,7 @@
     },
     minerals: {
       title: "Minerals",
-      icon: "M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3",
+      icon: Scale,
       nutrients: [
         { key: "calcium_mg", label: "Calcium", unit: "mg" },
         { key: "iron_mg", label: "Iron", unit: "mg" },
@@ -107,7 +114,7 @@
     },
     emerging_nutrients: {
       title: 'Emerging Nutrients',
-      icon: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+      icon: Pyramid,
       nutrients: [
         { key: "omega3_ala_g", label: "Omega-3 ALA", unit: "g" },
         { key: "omega3_epa_g", label: "Omega-3 EPA", unit: "g" },
@@ -117,7 +124,7 @@
     },
     functional_compounds: {
       title: "Functional Compounds",
-      icon: "M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7.01 5 5 7.01 5 9.5S7.01 14 9.5 14 14 11.99 14 9.5 11.99 5 9.5 5z",
+      icon: Blocks,
       nutrients: [
         { key: "alcohol_g", label: "Alcohol", unit: "g" },
         { key: "caffeine_mg", label: "Caffeine", unit: "mg" },
@@ -338,19 +345,23 @@
                 <h4
                   class="font-semibold text-base mb-3 pb-2 border-b border-base-300 flex items-center nutrient-header"
                 >
-                  <svg
-                    class="w-4 h-4 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d={category.icon}
-                    />
-                  </svg>
+                  {#if typeof category.icon === 'string'}
+                    <svg
+                      class="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d={category.icon}
+                      />
+                    </svg>
+                  {:else}
+                    <svelte:component this={category.icon} className="w-4 h-4 mr-2" strokeWidth={2} />
+                  {/if}
                   {category.title}
                 </h4>
                 <div class="space-y-2">
@@ -449,19 +460,7 @@
               <h4
                 class="font-semibold text-base mb-3 pb-2 border-b border-base-300 flex items-center nutrient-header"
               >
-                <svg
-                  class="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
+                <Candy className="w-4 h-4 mr-2" strokeWidth={2} />
                 Sugar Breakdown
               </h4>
               <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 text-sm">
