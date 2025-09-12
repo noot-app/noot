@@ -382,6 +382,6 @@ Dev Info:
 
   /* Ensure content below banner doesn't get hidden */
   :global(body.dev-mode) {
-    padding-top: 20px;
+    padding-top: calc(20px + env(safe-area-inset-top, 0px));
   }
 </style>
