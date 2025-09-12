@@ -106,25 +106,51 @@ func StoreMiddleware(store storage.Store) gin.HandlerFunc {
 // CORSMiddleware adds CORS headers with enhanced security
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get allowed origins from environment variable
-		allowedOrigins := getEnv("CORS_ALLOWED_ORIGINS", "")
+		requestOrigin := c.Request.Header.Get("Origin")
 
-		// Handle empty CORS configuration
-		if allowedOrigins == "" {
-			if IsProduction() {
-				// In production, crash if CORS_ALLOWED_ORIGINS is not set
-				LogError("CORS_ALLOWED_ORIGINS must be set in production environment", fmt.Errorf("missing CORS configuration"))
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Server configuration error"})
-				c.Abort()
+		// Prepare allowed headers
+		allowedHeaders := "Authorization, Content-Type, Accept"
+		extraHeaders := getEnv("EXTRA_ACCESS_CONTROL_ALLOW_HEADERS", "")
+		if extraHeaders != "" {
+			for _, header := range strings.Split(extraHeaders, ",") {
+				header = strings.TrimSpace(header)
+				if header != "" {
+					allowedHeaders += ", " + header
+				}
+			}
+			LogDebug("Added extra CORS headers", "extra_headers", extraHeaders)
+		}
+
+		// In development: Allow any origin for easier local development
+		if !IsProduction() {
+			if requestOrigin != "" {
+				c.Header("Access-Control-Allow-Origin", requestOrigin)
+				LogDebug("CORS allowed for development", "origin", requestOrigin)
+			} else {
+				c.Header("Access-Control-Allow-Origin", "*")
+			}
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
+			c.Header("Access-Control-Allow-Headers", allowedHeaders)
+			c.Header("Access-Control-Max-Age", "86400")
+
+			if c.Request.Method == "OPTIONS" {
+				c.AbortWithStatus(204)
 				return
 			}
-			// In development, default to localhost
-			allowedOrigins = "http://localhost:3000"
+			c.Next()
+			return
+		}
+
+		// Production: Strict CORS validation
+		allowedOrigins := getEnv("CORS_ALLOWED_ORIGINS", "")
+		if allowedOrigins == "" {
+			LogError("CORS_ALLOWED_ORIGINS must be set in production environment", fmt.Errorf("missing CORS configuration"))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Server configuration error"})
+			c.Abort()
+			return
 		}
 
 		origins := strings.Split(allowedOrigins, ",")
-
-		// Clean and validate origins
 		var validOrigins []string
 		for _, origin := range origins {
 			origin = strings.TrimSpace(origin)
@@ -135,24 +161,7 @@ func CORSMiddleware() gin.HandlerFunc {
 			}
 		}
 
-		requestOrigin := c.Request.Header.Get("Origin")
 		originAllowed := false
-
-		// Prepare allowed headers (needed for both regular and OPTIONS requests)
-		allowedHeaders := "Authorization, Content-Type, Accept"
-		extraHeaders := getEnv("EXTRA_ACCESS_CONTROL_ALLOW_HEADERS", "")
-		if extraHeaders != "" {
-			// Split by comma and add each header
-			for _, header := range strings.Split(extraHeaders, ",") {
-				header = strings.TrimSpace(header)
-				if header != "" {
-					allowedHeaders += ", " + header
-				}
-			}
-			LogDebug("Added extra CORS headers", "extra_headers", extraHeaders)
-		}
-
-		// Check if the origin is in the allowed list
 		for _, allowedOrigin := range validOrigins {
 			if allowedOrigin == requestOrigin {
 				c.Header("Access-Control-Allow-Origin", requestOrigin)
@@ -161,24 +170,15 @@ func CORSMiddleware() gin.HandlerFunc {
 			}
 		}
 
-		// Only set CORS headers if origin is allowed
 		if originAllowed {
 			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
 			c.Header("Access-Control-Allow-Headers", allowedHeaders)
-			// Note: Access-Control-Allow-Credentials removed - not needed for bearer token auth
-			c.Header("Access-Control-Max-Age", "86400") // 24 hours
+			c.Header("Access-Control-Max-Age", "86400")
 		} else if requestOrigin != "" {
-			// Log unauthorized origins at different levels based on environment
-			if IsProduction() {
-				// could be noisy from bot traffic so moved to debug
-				LogDebug("CORS request from unauthorized origin", "origin", requestOrigin)
-			} else {
-				LogWarn("CORS request from unauthorized origin", "origin", requestOrigin)
-			}
+			LogDebug("CORS request from unauthorized origin", "origin", requestOrigin)
 		}
 
 		if c.Request.Method == "OPTIONS" {
-			// Set CORS headers for preflight requests before aborting
 			if originAllowed {
 				c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
 				c.Header("Access-Control-Allow-Headers", allowedHeaders)
@@ -193,6 +193,7 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 // isValidOrigin validates that a CORS origin is properly formatted and secure
+// Note: This function is only used in production mode since development bypasses validation
 func isValidOrigin(origin string) bool {
 	// Parse the origin URL to validate structure and extract components
 	u, err := url.Parse(origin)
@@ -205,19 +206,13 @@ func isValidOrigin(origin string) bool {
 		return false
 	}
 
-	// In production, require HTTPS only
+	// In production, require HTTPS only for security
 	if IsProduction() {
 		return u.Scheme == "https"
 	}
 
-	// In development, allow HTTP only for localhost/loopback addresses
-	if u.Scheme == "http" {
-		hostname := strings.ToLower(u.Hostname()) // Case-insensitive hostname check
-		// Allow localhost, 127.0.0.1, and IPv6 loopback
-		return hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1"
-	}
-
-	// HTTPS is always allowed in development
+	// This function is not called in development mode, but if it were:
+	// Allow any valid HTTP/HTTPS URL in development
 	return true
 }
 
