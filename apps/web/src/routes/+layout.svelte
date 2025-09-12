@@ -1,14 +1,17 @@
 <script lang="ts">
   import "../app.css"
-  import { navigating } from "$app/stores"
+  import { navigating, page } from "$app/stores"
   import { expoOut } from "svelte/easing"
   import { slide } from "svelte/transition"
   import { onMount } from "svelte"
   import { units } from "$lib/stores/units"
-  import { initAuth } from "$lib/auth/store"
+  import { initAuth, user } from "$lib/auth/store"
   import Navbar from "$lib/components/Navbar.svelte"
+  import BottomTabBar from "$lib/components/BottomTabBar.svelte"
   import DevBanner from "$lib/components/DevBanner.svelte"
   import AdaptiveFavicon from "$lib/components/AdaptiveFavicon.svelte"
+  import { Platform } from "$lib/utils/platform"
+  import { browser } from "$app/environment"
 
   interface Props {
     children?: import("svelte").Snippet
@@ -20,6 +23,12 @@
   // Navigation timeout handling
   let navigationTimeout: NodeJS.Timeout | null = null
   let isNavigationStuck = $state(false)
+
+  // Platform detection
+  let isNativeApp = $state(false)
+  let currentPath = $state("")
+  let isAuthRoute = $state(false)
+  let isLoggedIn = $state(false)
 
   // Watch for navigation state changes using $effect
   $effect(() => {
@@ -59,10 +68,34 @@
     // Initialize auth with SSR session data
     initAuth(data?.session)
 
+    // Detect platform once
+    if (browser) {
+      isNativeApp = Platform.isNativeApp()
+    }
+
     // Cleanup timeout on unmount
     return () => {
       if (navigationTimeout) {
         clearTimeout(navigationTimeout)
+      }
+      if (browser) {
+        document.body.classList.remove('has-bottom-tabs')
+      }
+    }
+  })
+
+  // Track route & auth changes to manage bottom tabs
+  $effect(() => {
+    if (!browser) return
+    currentPath = $page.url.pathname
+    isAuthRoute = /^(\/login|\/signup|\/reset-password)(\/|$)?/.test(currentPath)
+    isLoggedIn = !!$user
+
+    if (isNativeApp) {
+      if (!isAuthRoute && isLoggedIn) {
+        document.body.classList.add('has-bottom-tabs')
+      } else {
+        document.body.classList.remove('has-bottom-tabs')
       }
     }
   })
@@ -82,7 +115,7 @@
        while slow networks see it moving for a full 12 seconds
   -->
   <div
-    class="fixed w-full top-0 right-0 left-0 h-1 z-50 bg-primary"
+    class="fixed w-full top-0 right-0 left-0 h-1 z-50 bg-primary safe-area-top safe-area-x"
     class:bg-warning={isNavigationStuck}
     in:slide={{ delay: 100, duration: 12000, axis: "x", easing: expoOut }}
   ></div>
@@ -103,7 +136,23 @@
   {/if}
 {/if}
 
-<Navbar />
-<main>
-  {@render children?.()}
-</main>
+<div class="app-shell flex flex-col min-h-screen">
+  <!-- Show navbar for web, bottom tabs for native mobile -->
+  {#if browser}
+    {#if !isNativeApp}
+      <Navbar />
+    {/if}
+  {:else}
+    <!-- SSR fallback - show navbar -->
+    <Navbar />
+  {/if}
+
+  <!-- Main content grows to fill remaining height so pages can use min-h-full instead of min-h-screen -->
+  <main class="flex-1 flex flex-col bg-base-100 relative">
+    {@render children?.()}
+  </main>
+
+  {#if browser && isNativeApp && !isAuthRoute && isLoggedIn}
+    <BottomTabBar />
+  {/if}
+</div>

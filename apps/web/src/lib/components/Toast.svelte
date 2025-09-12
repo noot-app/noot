@@ -46,7 +46,7 @@
 </script>
 
 {#if $toastStore.length > 0}
-  <div class="toast {positionClass}">
+  <div class="toast noot-toast {positionClass}">
     {#each $toastStore as toast (toast.id)}
       <div
         class="alert {toast.type === 'success'
@@ -78,3 +78,11 @@
     {/each}
   </div>
 {/if}
+
+<style>
+  /* Ensure toast uses fixed positioning (DaisyUI sets) but doesn't create extra layout height */
+  .noot-toast {
+    position: fixed;
+    z-index: 60;
+  }
+</style>

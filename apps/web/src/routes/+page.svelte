@@ -1,7 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte"
+  import { get } from 'svelte/store'
   import { getAppName } from "$lib/utils/app-info"
   import GradientHero from "$lib/components/GradientHero.svelte"
+  import { user } from "$lib/auth/store"
+  import { goto } from "$app/navigation"
+  import { Platform } from "$lib/utils/platform"
+  import { browser } from "$app/environment"
 
   // Get app name from runtime environment
   $: appName = getAppName()
@@ -11,12 +16,29 @@
   import "$lib/styles/hero-components.css"
 
   let phoneAnimated = false
+  // Prevent landing flicker when we will immediately redirect (native app or already logged in)
+  let showLanding = false
 
   onMount(() => {
-    // Trigger phone animation after a brief delay
-    setTimeout(() => {
-      phoneAnimated = true
-    }, 25) // ms delay from dom rendering
+    if (browser) {
+      const native = Platform.isNativeApp()
+      const currentUser = get(user)
+      if (native || currentUser) {
+        // Skip rendering landing completely
+        goto('/record', { replaceState: true })
+        return
+      }
+    }
+    // Only reach here if we are going to show the landing
+    showLanding = true
+    setTimeout(() => { phoneAnimated = true }, 25)
+
+    if (browser) {
+      const unsub = user.subscribe(u => {
+        if (u) goto('/record', { replaceState: true })
+      })
+      return () => unsub()
+    }
   })
 </script>
 
@@ -28,6 +50,7 @@
   />
 </svelte:head>
 
+{#if showLanding}
 <!-- Hero Section -->
 <GradientHero>
   <div class="container mx-auto px-4 hero-content">
@@ -705,7 +728,8 @@
       </div>
     </div>
   </div>
-</footer>
+ </footer>
+{/if}
 
 <style>
   /* Page-specific styles only - main component styles moved to separate CSS files */

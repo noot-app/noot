@@ -6,7 +6,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "vite dev --port 3000",
+    "dev": "vite dev --port 3000 --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -17,12 +17,17 @@
     "format": "prettier --write --plugin prettier-plugin-svelte ./",
     "format_check": "prettier --check --plugin prettier-plugin-svelte ./",
     "generate:api": "openapi-typescript ../../api/openapi.yaml -o src/lib/api/schema.ts",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "ios": "npx cap sync && npx cap open ios",
+    "android": "npx cap sync && npx cap open android",
+    "mobile:sync": "npx cap sync",
+    "mobile:check": "echo 'Remote URL:' $CAPACITOR_REMOTE_URL && npx cap doctor"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.4.3",
     "@sveltejs/adapter-auto": "^6.0.0",
     "@sveltejs/adapter-cloudflare": "^7.2.3",
-    "@sveltejs/kit": "^2.21.1",
+    "@sveltejs/kit": "^2.22.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@tailwindcss/postcss": "^4.0.9",
     "@tailwindcss/typography": "^0.5.13",
@@ -56,6 +61,10 @@
   },
   "type": "module",
   "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/device": "^7.0.2",
+    "@capacitor/ios": "^7.4.3",
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/auth-ui-svelte": "^0.2.9",
     "@supabase/ssr": "^0.5.2",

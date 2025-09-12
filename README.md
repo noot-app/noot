@@ -255,6 +255,20 @@ graph TB
    - Say what you consumed (e.g., "I had a latte with organic whole milk and Greek yogurt with blueberries")
    - See your nutrition summary with client-side unit conversion (grams ↔ ounces)
 
+### Mobile (Capacitor)
+
+First, in two separate terminal windows, run the backend and frontend:
+
+1. `script/server` (backend)
+2. `script/frontend` (frontend)
+
+Now, in a third terminal, run:
+
+```bash
+npm run mobile:sync
+npm run ios
+```
+
 ## API Endpoints
 
 ### v1 API
