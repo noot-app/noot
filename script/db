@@ -8,7 +8,7 @@ set -euo pipefail
 source script/env "$@"
 
 function usage() {
-    echo "Usage: $0 [--clean | --quick | reset [--production] | test | diff]"
+    echo "Usage: $0 [--clean | --quick | reset [--production] | test | diff | migrate [--production]]"
     echo ""
     echo "Options:"
     echo "  --clean         Full reset: stop Supabase, restart, and run all migrations + seed"
@@ -17,6 +17,8 @@ function usage() {
     echo "  reset --production  Run supabase db reset on linked production database (with warning)"
     echo "  test            Run database integration tests"
     echo "  diff            Show schema differences between local migrations and production database"
+    echo "  migrate         Apply pending migrations to local development database"
+    echo "  migrate --production  Apply pending migrations to linked production database (with warning)"
     echo ""
     echo "This script leverages Supabase's built-in seeding via supabase/seed.sql"
     echo "Creates seed users for development:"
@@ -129,6 +131,58 @@ function run_diff_production() {
     fi
 }
 
+function confirm_production_migration() {
+    echo -e "${YELLOW}⚠️  WARNING: PRODUCTION DATABASE MIGRATION ⚠️${OFF}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${OFF}"
+    echo -e "${YELLOW}This will apply pending migrations to your production database!${OFF}"
+    echo -e "${YELLOW}Make sure you have tested all migrations thoroughly in local development.${OFF}"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${OFF}"
+    echo ""
+    read -p "Type 'APPLY_PRODUCTION_MIGRATIONS' to confirm: " confirmation
+    
+    if [[ "$confirmation" != "APPLY_PRODUCTION_MIGRATIONS" ]]; then
+        echo -e "${GREEN}✅ Production migration cancelled${OFF}"
+        exit 0
+    fi
+}
+
+function run_migrate() {
+    local production_flag="$1"
+    
+    check_requirements
+    
+    if [[ "$production_flag" == "true" ]]; then
+        confirm_production_migration
+        echo -e "${BLUE}🚀 Applying pending migrations to production database...${OFF}"
+        echo -e "${YELLOW}This will apply all pending migrations to the linked production database.${OFF}"
+        echo ""
+        
+        if supabase migration up --linked; then
+            echo ""
+            echo -e "${GREEN}✅ Production migrations applied successfully${OFF}"
+        else
+            echo ""
+            echo -e "${RED}❌ Failed to apply migrations to production database${OFF}"
+            echo -e "${YELLOW}Check the error messages above and ensure your linked project is configured correctly${OFF}"
+            exit 1
+        fi
+    else
+        echo -e "${BLUE}🚀 Applying pending migrations to local database...${OFF}"
+        echo -e "${YELLOW}This will apply all pending migrations to your local development database.${OFF}"
+        echo ""
+        
+        if supabase migration up; then
+            echo ""
+            echo -e "${GREEN}✅ Local migrations applied successfully${OFF}"
+        else
+            echo ""
+            echo -e "${RED}❌ Failed to apply migrations to local database${OFF}"
+            echo -e "${YELLOW}Make sure your local Supabase instance is running${OFF}"
+            exit 1
+        fi
+    fi
+}
+
 function main() {
     check_requirements
     
@@ -158,6 +212,16 @@ function main() {
             ;;
         diff)
             run_diff_production
+            ;;
+        migrate)
+            local production_flag="false"
+            
+            # Check for --production flag
+            if [[ $# -gt 1 && "${2}" == "--production" ]]; then
+                production_flag="true"
+            fi
+            
+            run_migrate "$production_flag"
             ;;
         -h|--help|help)
             usage
