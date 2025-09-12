@@ -194,8 +194,9 @@
         <div class="space-y-6">
           {#if goals}
             <!-- Regular Nutrition Targets -->
-            {@const targetNutrients = keyNutrients.filter(
-              (n) => goals?.targets[n] !== undefined,
+            {@const targetNutrients = filterDisabledNutrientKeys(
+              keyNutrients.filter((n) => goals?.targets[n] !== undefined),
+              goals?.disabled_nutrients || []
             )}
             {#if targetNutrients.length > 0}
               <div>
@@ -208,15 +209,19 @@
                   {showMealContribution}
                   {showAllCategories}
                   goalsData={goals}
+                  disabledNutrients={goals?.disabled_nutrients || []}
                 />
               </div>
             {/if}
 
             <!-- Upper Limits (Minimize These) -->
-            {@const limitNutrients = RESTRICTED_NUTRIENTS.filter(
-              (n) =>
-                goals?.upper_limits?.[n] !== undefined &&
-                (showAllCategories || getCurrentNutrient(n) > 0 || !showMealContribution),
+            {@const limitNutrients = filterDisabledNutrientKeys(
+              RESTRICTED_NUTRIENTS.filter(
+                (n) =>
+                  goals?.upper_limits?.[n] !== undefined &&
+                  (showAllCategories || getCurrentNutrient(n) > 0 || !showMealContribution)
+              ),
+              goals?.disabled_nutrients || []
             )}
             {#if limitNutrients.length > 0}
               <!-- Debug: log what nutrients are being included -->
@@ -240,6 +245,7 @@
                   {showAllCategories}
                   showLimitsOnly={true}
                   goalsData={goals}
+                  disabledNutrients={goals?.disabled_nutrients || []}
                 />
               </div>
             {/if}
@@ -248,10 +254,13 @@
 
         <!-- Summary Stats -->
         {#if goals}
-          {@const availableNutrients = keyNutrients.filter(
-            (n) =>
-              goals?.targets[n] !== undefined ||
-              goals?.upper_limits?.[n] !== undefined,
+          {@const availableNutrients = filterDisabledNutrientKeys(
+            keyNutrients.filter(
+              (n) =>
+                goals?.targets[n] !== undefined ||
+                goals?.upper_limits?.[n] !== undefined
+            ),
+            goals?.disabled_nutrients || []
           )}
           {@const metGoals = availableNutrients.filter((n) => {
             const current = getCurrentNutrient(n)
