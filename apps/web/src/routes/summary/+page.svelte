@@ -211,7 +211,7 @@
 </svelte:head>
 
 <div class="min-h-full bg-base-100">
-  <div class="container mx-auto px-4 py-8 max-w-6xl">
+  <div class="container mx-auto px-4 py-8 max-w-6xl safe-area-page-top">
     <!-- Header -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-base-content flex items-center gap-3">

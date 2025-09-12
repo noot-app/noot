@@ -80,7 +80,7 @@
 </svelte:head>
 
 <div class="min-h-full bg-base-100">
-  <div class="container mx-auto px-4 py-8 max-w-7xl">
+  <div class="container mx-auto px-4 py-8 max-w-7xl safe-area-page-top">
     <!-- Header -->
     <DashboardHeader bind:dateRange onDateRangeChange={handleDateRangeChange} />
 

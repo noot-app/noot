@@ -376,11 +376,23 @@
       }
       // Allow draft restoration logic next mount
       lastSubmissionMode = null
+      if (browser) {
+        document.body.classList.remove('record-no-result')
+      }
     }
   })
 
   // (Keep onDestroy for any future explicit teardown needs – currently redundant with onMount return)
   onDestroy(() => {})
+
+  // Manage special body class to eliminate scroll & padding when showing the centered no-result state
+  $: if (browser) {
+    if (!result) {
+      document.body.classList.add('record-no-result')
+    } else {
+      document.body.classList.remove('record-no-result')
+    }
+  }
 
   // Event handlers for the text submit component
   function handleTextSubmit(event: CustomEvent<{ transcript: string, result: any, consumptionId: string | null, submissionText: string }>) {
@@ -541,14 +553,14 @@
 </svelte:head>
 
 <div
-  class="gradient-bg {result ? 'overflow-y-auto' : 'flex flex-col'} min-h-[calc(100vh-8rem)]"
+  class="record-root gradient-bg flex-1 flex flex-col min-h-full {result ? 'overflow-y-auto' : 'overflow-hidden'} {result ? '' : 'no-result'}"
 >
   <!-- Main content area -->
 
   <!-- Main recording interface - only show when not complete -->
   {#if !result}
     <div class="flex-1 flex items-center justify-center px-4">
-      <div class="text-center max-w-4xl w-full space-y-8">
+      <div class="text-center max-w-4xl w-full space-y-8 center-stack">
         
         {#if isTextMode === null}
           <!-- Loading state during SSR/initialization -->
@@ -655,7 +667,7 @@
 
   <!-- Results section (only shown when there are results) -->
   {#if transcript || result}
-    <div class="bg-base-100 p-6 fade-in">
+    <div class="bg-base-100 p-6 fade-in results-section">
       <div class="container mx-auto max-w-4xl space-y-6">
         <ConsumptionDisplay
           consumption={result}
@@ -731,7 +743,7 @@
 
   <!-- Single toggle button at bottom -->
   {#if !result && isTextMode !== null}
-    <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10">
+    <div class="toggle-button-wrapper fixed left-1/2 transform -translate-x-1/2 z-10">
       <button
         class="toggle-button"
         on:click={toggleMode}
@@ -750,9 +762,25 @@
       </button>
     </div>
   {/if}
-</div>
+ </div>
 
 <style>
+  /* Layout adjustments for native app to avoid phantom scroll and improve centering */
+  .record-root { width: 100%; }
+  /* No-result state: exact viewport height minus reserved bottom tab height so body padding + content == 100dvh (no scroll) */
+  /* Default no-result earlier logic retained but superseded by record-no-result variant */
+  :global(body.has-bottom-tabs) .record-root.no-result { min-height: 0; }
+
+  /* When we explicitly remove body padding & lock scroll */
+  :global(body.has-bottom-tabs.record-no-result) { padding-bottom: 0 !important; overflow: hidden; }
+  :global(body.has-bottom-tabs.record-no-result) .record-root.no-result { height: 100dvh; }
+  /* Re-center stack upward by half tab height so visual center accounts for overlay nav */
+  :global(body.has-bottom-tabs.record-no-result) .center-stack { transform: translateY(calc(var(--bottom-tabs-height) / -2)); }
+  /* Reposition toggle button above tab bar */
+  :global(body.has-bottom-tabs.record-no-result) .toggle-button-wrapper { bottom: calc(var(--bottom-tabs-height) + env(safe-area-inset-bottom, 0px) + 1rem); }
+  /* Fallback web/no native tabs positioning */
+  .toggle-button-wrapper { bottom: 1.5rem; }
+
   .record-button {
     width: 200px;
     height: 200px;
@@ -886,5 +914,11 @@
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+  }
+
+  /* Safe-area adjustments for results view so content doesn't collide with notch or bottom tabs */
+  :global(body.has-bottom-tabs) .results-section {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+    padding-bottom: calc(var(--bottom-tabs-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
   }
 </style>

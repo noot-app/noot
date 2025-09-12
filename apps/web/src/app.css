@@ -192,6 +192,17 @@
   /* Utility: ensure element fills available vertical space inside flex-1 main without forcing viewport + navbar double height */
   .min-h-full { min-height: 100%; }
 
+  /* Page top safe-area spacer (used when no navbar present e.g. native app with bottom tabs) */
+  body.has-bottom-tabs .safe-area-page-top {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+  }
+  /* Slightly larger on very tall notches */
+  @supports (padding: max(0px)) {
+    body.has-bottom-tabs .safe-area-page-top {
+      padding-top: calc(max(env(safe-area-inset-top, 0px), 12px) + 0.5rem);
+    }
+  }
+
 
 }
 

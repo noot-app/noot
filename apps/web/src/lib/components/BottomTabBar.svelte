@@ -22,8 +22,19 @@
 
   $: currentPath = $page.url.pathname
 
+  // Optimistic highlight to remove perceived delay before route store updates
+  let pendingHref: string | null = null
+
   function handleTabClick(href: string) {
+    if (href !== currentPath) {
+      pendingHref = href
+    }
     goto(href)
+  }
+
+  // Clear pending once navigation reflects new path
+  $: if (pendingHref && currentPath === pendingHref) {
+    pendingHref = null
   }
 
   function getIconComponent(iconName: string) {
@@ -56,6 +67,7 @@
     <button
       class="tab-button"
       class:active={isActive}
+      class:pending-active={pendingHref === item.href}
       on:click={() => handleTabClick(item.href)}
       aria-label={item.label}
     >
@@ -65,9 +77,6 @@
           className="w-6 h-6" 
         />
       </div>
-      {#if isActive}
-        <div class="active-indicator"></div>
-      {/if}
     </button>
   {/each}
 </div>
@@ -104,36 +113,20 @@
     transition: all 0.2s ease;
   }
 
-  .tab-button:hover {
-    background: var(--color-base-200);
-  }
-
-  .tab-button:active {
-    transform: scale(0.95);
-  }
+  /* Removed hover background & active press scaling per design simplification */
 
   .tab-icon {
     color: var(--color-base-content-lighter);
-    transition: color 0.2s ease, transform 0.2s ease;
+    /* Remove transition for instantaneous feedback */
+    transition: none;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .tab-button.active .tab-icon {
+  .tab-button.active .tab-icon,
+  .tab-button.pending-active .tab-icon {
     color: var(--color-primary);
-    transform: scale(1.1);
-  }
-
-  .active-indicator {
-    position: absolute;
-    top: 6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 6px;
-    height: 6px;
-    background: var(--color-primary);
-    border-radius: 50%;
   }
 
   /* Ensure content doesn't get hidden behind the tab bar */
