@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
+    "build:mobile": "CAPACITOR=true vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -17,11 +18,22 @@
     "format": "prettier --write --plugin prettier-plugin-svelte ./",
     "format_check": "prettier --check --plugin prettier-plugin-svelte ./",
     "generate:api": "openapi-typescript ../../api/openapi.yaml -o src/lib/api/schema.ts",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "ios:build": "CAPACITOR=true vite build && cap sync",
+    "ios:run": "CAPACITOR=true vite build && cap sync && cap run ios",
+    "ios:dev": "LIVE_RELOAD=true cap copy && vite dev --host",
+    "android:build": "CAPACITOR=true vite build && cap sync",
+    "android:run": "CAPACITOR=true vite build && cap sync && cap run android",
+    "android:dev": "LIVE_RELOAD=true cap copy && vite dev --host"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3",
     "@sveltejs/adapter-auto": "^6.0.0",
     "@sveltejs/adapter-cloudflare": "^7.2.3",
+    "@sveltejs/adapter-static": "^3.0.9",
     "@sveltejs/kit": "^2.21.1",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@tailwindcss/postcss": "^4.0.9",

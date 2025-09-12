@@ -1,6 +1,10 @@
-import adapter from "@sveltejs/adapter-cloudflare"
+import cloudflareAdapter from "@sveltejs/adapter-cloudflare"
+import staticAdapter from "@sveltejs/adapter-static"
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte"
 import { mdsvex } from "mdsvex"
+
+// Determine which adapter to use based on environment variable
+const isCapacitor = process.env.CAPACITOR === "true"
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -15,8 +19,16 @@ const config = {
   ],
 
   kit: {
-    // Using Cloudflare adapter for deployment to Cloudflare Pages
-    adapter: adapter(),
+    // Use static adapter for Capacitor builds, Cloudflare adapter for web
+    adapter: isCapacitor 
+      ? staticAdapter({
+          pages: 'build',
+          assets: 'build',
+          fallback: 'index.html',
+          precompress: false,
+          strict: true
+        })
+      : cloudflareAdapter(),
   },
 }
 
