@@ -4,7 +4,7 @@
   import NutrientCategoryDisplay from "./NutrientCategoryDisplay.svelte"
   import InfoButton from "./InfoButton.svelte"
   import type { paths } from "$lib/api/schema"
-  import { RESTRICTED_NUTRIENTS } from "$lib/utils/nutrients"
+  import { RESTRICTED_NUTRIENTS, filterDisabledNutrientKeys } from "$lib/utils/nutrients"
   import ExclamationTriangle from "$lib/components/icons/ExclamationTriangle.svelte"
   import Goal from "$lib/components/icons/Goal.svelte"
 

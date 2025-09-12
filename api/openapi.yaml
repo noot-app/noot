@@ -2837,6 +2837,12 @@ components:
           type: string
           description: Name of the custom goal set (only present when source is "custom")
           example: "Bulk Season"
+        disabled_nutrients:
+          type: array
+          items:
+            type: string
+          description: List of nutrient keys that are disabled from display (only present when source is "custom")
+          example: ["selenium_mcg", "molybdenum_mcg"]
         life_stage:
           $ref: "#/components/schemas/LifeStage"
 
@@ -2889,6 +2895,15 @@ components:
             added_sugars_g: 25
             saturated_fat_g: 15
             sodium_mg: 2000
+        disabled_nutrients:
+          type: array
+          items:
+            type: string
+          description: List of nutrient keys to disable from display and calculations
+          example:
+            - "selenium_mcg"
+            - "molybdenum_mcg"
+            - "chromium_mcg"
         overrides:
           type: object
           additionalProperties:

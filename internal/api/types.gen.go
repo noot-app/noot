@@ -775,8 +775,11 @@ type GoalSetsResponse struct {
 // Goals defines model for Goals.
 type Goals struct {
 	// CustomName Name of the custom goal set (only present when source is "custom")
-	CustomName *string   `json:"custom_name,omitempty"`
-	LifeStage  LifeStage `json:"life_stage"`
+	CustomName *string `json:"custom_name,omitempty"`
+
+	// DisabledNutrients List of nutrient keys that are disabled from display (only present when source is "custom")
+	DisabledNutrients *[]string `json:"disabled_nutrients,omitempty"`
+	LifeStage         LifeStage `json:"life_stage"`
 
 	// Source Source of the goals (DRI defaults or custom overrides)
 	Source GoalsSource `json:"source"`
@@ -1012,6 +1015,9 @@ type UpdateConsumptionRequest struct {
 type UpdateGoalsRequest struct {
 	// Category Category of the goal set
 	Category *UpdateGoalsRequestCategory `json:"category,omitempty"`
+
+	// DisabledNutrients List of nutrient keys to disable from display and calculations
+	DisabledNutrients *[]string `json:"disabled_nutrients,omitempty"`
 
 	// Name Custom name for the goal set (required for managing multiple goal sets)
 	Name string `json:"name"`

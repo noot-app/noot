@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { RESTRICTED_NUTRIENTS, isRestrictedNutrient, type RestrictedNutrient } from './nutrients'
+import { RESTRICTED_NUTRIENTS, isRestrictedNutrient, type RestrictedNutrient, filterDisabledNutrients, filterDisabledNutrientKeys } from './nutrients'
 
 describe('nutrients utility', () => {
   describe('RESTRICTED_NUTRIENTS', () => {
@@ -54,6 +54,63 @@ describe('nutrients utility', () => {
       // This tests compile-time type checking
       const validNutrient: RestrictedNutrient = 'added_sugars_g'
       expect(validNutrient).toBe('added_sugars_g')
+    })
+  })
+
+  describe('filterDisabledNutrients', () => {
+    it('should return original object when no disabled nutrients', () => {
+      const nutrients = { protein_g: 50, vitamin_c_mg: 100, selenium_mcg: 20 }
+      expect(filterDisabledNutrients(nutrients, [])).toEqual(nutrients)
+      expect(filterDisabledNutrients(nutrients, undefined)).toEqual(nutrients)
+    })
+
+    it('should filter out disabled nutrients', () => {
+      const nutrients = { protein_g: 50, vitamin_c_mg: 100, selenium_mcg: 20 }
+      const disabled = ['selenium_mcg']
+      const result = filterDisabledNutrients(nutrients, disabled)
+      
+      expect(result).toEqual({ protein_g: 50, vitamin_c_mg: 100 })
+      expect(result).not.toHaveProperty('selenium_mcg')
+    })
+
+    it('should filter out multiple disabled nutrients', () => {
+      const nutrients = { protein_g: 50, vitamin_c_mg: 100, selenium_mcg: 20, molybdenum_mcg: 10 }
+      const disabled = ['selenium_mcg', 'molybdenum_mcg']
+      const result = filterDisabledNutrients(nutrients, disabled)
+      
+      expect(result).toEqual({ protein_g: 50, vitamin_c_mg: 100 })
+    })
+
+    it('should handle non-existent disabled nutrients gracefully', () => {
+      const nutrients = { protein_g: 50, vitamin_c_mg: 100 }
+      const disabled = ['nonexistent_nutrient']
+      const result = filterDisabledNutrients(nutrients, disabled)
+      
+      expect(result).toEqual(nutrients)
+    })
+  })
+
+  describe('filterDisabledNutrientKeys', () => {
+    it('should return original array when no disabled nutrients', () => {
+      const keys = ['protein_g', 'vitamin_c_mg', 'selenium_mcg']
+      expect(filterDisabledNutrientKeys(keys, [])).toEqual(keys)
+      expect(filterDisabledNutrientKeys(keys, undefined)).toEqual(keys)
+    })
+
+    it('should filter out disabled nutrient keys', () => {
+      const keys = ['protein_g', 'vitamin_c_mg', 'selenium_mcg']
+      const disabled = ['selenium_mcg']
+      const result = filterDisabledNutrientKeys(keys, disabled)
+      
+      expect(result).toEqual(['protein_g', 'vitamin_c_mg'])
+    })
+
+    it('should filters out multiple disabled nutrient keys', () => {
+      const keys = ['protein_g', 'vitamin_c_mg', 'selenium_mcg', 'molybdenum_mcg']
+      const disabled = ['selenium_mcg', 'molybdenum_mcg']
+      const result = filterDisabledNutrientKeys(keys, disabled)
+      
+      expect(result).toEqual(['protein_g', 'vitamin_c_mg'])
     })
   })
 })

@@ -177,3 +177,115 @@ func TestResolveGoals(t *testing.T) {
 		t.Errorf("Expected calories from legacy overrides to be 2500, got %f", goalsWithLegacy.Targets["calories"])
 	}
 }
+
+func TestDisabledNutrients(t *testing.T) {
+	resolver, err := NewGoalResolver()
+	if err != nil {
+		t.Fatalf("Failed to create goal resolver: %v", err)
+	}
+
+	t.Run("disabled nutrients filtering", func(t *testing.T) {
+		// Test that disabled nutrients are filtered out from resolved goals
+		customOverrides := &UserOverrides{
+			Name: "Test with Disabled Nutrients",
+			Targets: map[string]float64{
+				"protein_g":    100.0,
+				"vitamin_c_mg": 120.0,
+				"selenium_mcg": 70.0,
+			},
+			UpperLimits: map[string]float64{
+				"added_sugars_g": 25.0,
+				"sodium_mg":      2000.0,
+			},
+			DisabledNutrients: []string{
+				"selenium_mcg",
+				"sodium_mg",
+				"molybdenum_mcg", // This nutrient should be removed from base goals if present
+			},
+		}
+
+		goals, err := resolver.ResolveGoals("male", nil, customOverrides)
+		if err != nil {
+			t.Fatalf("ResolveGoals failed: %v", err)
+		}
+
+		// Disabled nutrients should not appear in targets
+		if _, exists := goals.Targets["selenium_mcg"]; exists {
+			t.Error("selenium_mcg should be filtered out from targets")
+		}
+
+		// Disabled nutrients should not appear in upper limits
+		if _, exists := goals.UpperLimits["sodium_mg"]; exists {
+			t.Error("sodium_mg should be filtered out from upper limits")
+		}
+
+		// Disabled nutrients should not appear in units
+		if _, exists := goals.Units["selenium_mcg"]; exists {
+			t.Error("selenium_mcg should be filtered out from units")
+		}
+		if _, exists := goals.Units["sodium_mg"]; exists {
+			t.Error("sodium_mg should be filtered out from units")
+		}
+
+		// Non-disabled nutrients should still be present
+		if _, exists := goals.Targets["protein_g"]; !exists {
+			t.Error("protein_g should still be present in targets")
+		}
+		if _, exists := goals.Targets["vitamin_c_mg"]; !exists {
+			t.Error("vitamin_c_mg should still be present in targets")
+		}
+		if _, exists := goals.UpperLimits["added_sugars_g"]; !exists {
+			t.Error("added_sugars_g should still be present in upper limits")
+		}
+
+		// Should still be marked as custom source
+		if goals.Source != "custom" {
+			t.Error("Goals should still be marked as custom when filtering disabled nutrients")
+		}
+		if goals.CustomName != "Test with Disabled Nutrients" {
+			t.Error("Custom name should be preserved when filtering disabled nutrients")
+		}
+	})
+
+	t.Run("empty disabled nutrients list", func(t *testing.T) {
+		// Test that empty disabled nutrients list doesn't affect goals
+		customOverrides := &UserOverrides{
+			Name: "Test Empty Disabled",
+			Targets: map[string]float64{
+				"protein_g": 100.0,
+			},
+			DisabledNutrients: []string{}, // Empty list
+		}
+
+		goals, err := resolver.ResolveGoals("male", nil, customOverrides)
+		if err != nil {
+			t.Fatalf("ResolveGoals failed: %v", err)
+		}
+
+		// Should behave normally when disabled nutrients list is empty
+		if _, exists := goals.Targets["protein_g"]; !exists {
+			t.Error("protein_g should be present when disabled nutrients list is empty")
+		}
+	})
+
+	t.Run("nil disabled nutrients list", func(t *testing.T) {
+		// Test that nil disabled nutrients list doesn't affect goals
+		customOverrides := &UserOverrides{
+			Name: "Test Nil Disabled",
+			Targets: map[string]float64{
+				"protein_g": 100.0,
+			},
+			DisabledNutrients: nil, // Nil list
+		}
+
+		goals, err := resolver.ResolveGoals("male", nil, customOverrides)
+		if err != nil {
+			t.Fatalf("ResolveGoals failed: %v", err)
+		}
+
+		// Should behave normally when disabled nutrients list is nil
+		if _, exists := goals.Targets["protein_g"]; !exists {
+			t.Error("protein_g should be present when disabled nutrients list is nil")
+		}
+	})
+}

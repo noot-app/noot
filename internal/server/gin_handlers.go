@@ -822,6 +822,11 @@ func (s *APIServer) GetGoals(c *gin.Context, params api.GetGoalsParams) {
 		apiGoals.CustomName = &resolvedGoals.CustomName
 	}
 
+	// Set disabled nutrients if available and we have custom overrides
+	if customOverrides != nil && len(customOverrides.DisabledNutrients) > 0 {
+		apiGoals.DisabledNutrients = &customOverrides.DisabledNutrients
+	}
+
 	response := api.GoalsResponse{
 		Goals: apiGoals,
 		User:  convertUser(user),
