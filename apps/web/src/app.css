@@ -303,3 +303,42 @@ input, textarea, select {
 .safe-area-fab-right {
   right: calc(1rem + env(safe-area-inset-right, 0px));
 }
+
+/* Mobile Touch and Scroll Optimizations */
+
+/* Prevent overscroll bounce on mobile - utility class */
+.overscroll-contain {
+  overscroll-behavior: contain;
+}
+
+.overscroll-none {
+  overscroll-behavior: none;
+}
+
+/* Touch manipulation for better mobile performance */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Minimum touch target sizes for accessibility */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Modal and overlay specific mobile optimizations */
+.modal-mobile {
+  /* Prevent background scroll when modal is open */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Smooth scrolling for better UX */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}

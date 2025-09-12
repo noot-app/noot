@@ -145,15 +145,15 @@
 
   {#if progressData.dailyData.length > 0}
     <!-- Compact table-style grid -->
-    <div class="bg-base-200 rounded-lg overflow-hidden border border-base-300">
+    <div class="daily-progress-grid bg-base-200 rounded-lg overflow-hidden border border-base-300">
       <!-- Header row with dates -->
-      <div class="bg-base-300 border-b border-base-300">
+      <div class="daily-progress-header bg-base-300 border-b border-base-300 sticky top-0 z-10">
         <div class="grid gap-0" style="grid-template-columns: 150px repeat({progressData.days.length}, 60px);">
-          <div class="p-2 text-xs font-semibold text-base-content border-r border-base-300">
+          <div class="p-2 text-xs font-semibold text-base-content border-r border-base-300 bg-base-300 sticky left-0 z-20">
             Nutrient
           </div>
           {#each progressData.days as day}
-            <div class="p-2 text-center text-xs font-semibold text-base-content border-r border-base-300 last:border-r-0">
+            <div class="p-2 text-center text-xs font-semibold text-base-content border-r border-base-300 last:border-r-0 bg-base-300">
               <div class="truncate">{day.label}</div>
             </div>
           {/each}
@@ -161,23 +161,31 @@
       </div>
 
       <!-- Nutrient rows - show all nutrients -->
-      <div class="max-h-80 overflow-y-auto">
+      <div class="daily-progress-body max-h-80 overflow-y-auto overscroll-contain">
         {#each progressData.nutrients as nutrient}
           <div class="border-b border-base-300 last:border-b-0 hover:bg-base-100 transition-colors">
             <div class="grid gap-0" style="grid-template-columns: 150px repeat({progressData.days.length}, 60px);">
               <!-- Nutrient name -->
-              <div class="p-2 text-xs font-medium text-base-content border-r border-base-300 flex items-center">
+              <div class="p-2 text-xs font-medium text-base-content border-r border-base-300 flex items-center bg-base-200 sticky left-0 z-10">
                 <span class="truncate" title={nutrient.name}>{nutrient.name}</span>
               </div>
               
               <!-- Daily status cells -->
               {#each progressData.dailyData as dayData}
                 {@const nutrientData = dayData.nutrients.find(n => n.key === nutrient.key)}
-                <div class="p-2 border-r border-base-300 last:border-r-0 flex items-center justify-center h-10">
+                <div class="p-2 border-r border-base-300 last:border-r-0 flex items-center justify-center h-10 touch-manipulation">
                   {#if nutrientData}
                     <div 
-                      class="cursor-help w-5 h-5 flex items-center justify-center"
+                      class="cursor-help w-5 h-5 flex items-center justify-center touch-target"
                       title="{nutrientData.name}: {nutrientData.actual}{nutrientData.unit} / {nutrientData.target}{nutrientData.unit} ({nutrientData.percentage}%)"
+                      role="button"
+                      tabindex="0"
+                      on:keydown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          // Could show detailed info in future
+                        }
+                      }}
                     >
                       {#if nutrientData.achieved}
                         <CheckCircle className="w-4 h-4 text-success" />
@@ -222,3 +230,63 @@
     </div>
   {/if}
 </div>
+
+<style>
+  /* Mobile-optimized grid behavior */
+  :global(.daily-progress-grid) {
+    /* Prevent excessive bounce scrolling on mobile */
+    overscroll-behavior: contain;
+    /* Ensure content stays within bounds */
+    overflow: hidden;
+  }
+
+  :global(.daily-progress-body) {
+    /* Controlled scrolling with proper bounds */
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure sticky elements work properly */
+  :global(.daily-progress-header) {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  /* Touch-friendly targets for mobile */
+  :global(.touch-target) {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Overscroll containment utility */
+  :global(.overscroll-contain) {
+    overscroll-behavior: contain;
+  }
+
+  /* Mobile-specific improvements */
+  @media (max-width: 768px) {
+    :global(.daily-progress-grid) {
+      /* More constrained on mobile */
+      max-height: 70vh;
+    }
+    
+    :global(.daily-progress-body) {
+      /* Better scrolling behavior on mobile */
+      scroll-behavior: smooth;
+      /* Prevent momentum scrolling from going too far */
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
+  }
+
+  /* Extra small screens */
+  @media (max-width: 480px) {
+    :global(.daily-progress-grid) {
+      max-height: 60vh;
+    }
+  }
+</style>
