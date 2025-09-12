@@ -867,9 +867,10 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 	hasTargets := req.Targets != nil && len(*req.Targets) > 0
 	hasUpperLimits := req.UpperLimits != nil && len(*req.UpperLimits) > 0
 	hasLegacyOverrides := req.Overrides != nil && len(*req.Overrides) > 0
+	hasDisabledNutrients := req.DisabledNutrients != nil && len(*req.DisabledNutrients) > 0
 
-	if !hasTargets && !hasUpperLimits && !hasLegacyOverrides {
-		appErr := NewAppError("At least one target, upper limit, or override must be provided", http.StatusBadRequest, nil)
+	if !hasTargets && !hasUpperLimits && !hasLegacyOverrides && !hasDisabledNutrients {
+		appErr := NewAppError("At least one target, upper limit, override, or disabled nutrient must be provided", http.StatusBadRequest, nil)
 		s.handleAppError(c, appErr, requestID)
 		return
 	}
@@ -917,6 +918,11 @@ func (s *APIServer) UpdateGoals(c *gin.Context) {
 		for k, v := range *req.Overrides {
 			userOverrides.Targets[k] = float64(v)
 		}
+	}
+
+	// Handle disabled nutrients
+	if req.DisabledNutrients != nil {
+		userOverrides.DisabledNutrients = *req.DisabledNutrients
 	}
 
 	// Store the complete structure as JSON
