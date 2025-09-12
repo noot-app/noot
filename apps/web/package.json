@@ -6,7 +6,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "vite dev --port 3000",
+    "dev": "vite dev --port 3000 --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -18,7 +18,10 @@
     "format_check": "prettier --check --plugin prettier-plugin-svelte ./",
     "generate:api": "openapi-typescript ../../api/openapi.yaml -o src/lib/api/schema.ts",
     "deploy": "npm run build && wrangler deploy",
-    "ios": "ADAPTER=static npm run build && npx cap sync && npx cap open ios"
+    "ios": "npx cap sync && npx cap open ios",
+    "android": "npx cap sync && npx cap open android",
+    "mobile:sync": "npx cap sync",
+    "mobile:check": "echo 'Remote URL:' $CAPACITOR_REMOTE_URL && npx cap doctor"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.3",
