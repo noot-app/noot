@@ -206,6 +206,11 @@ button[disabled].authBtn::before {
   line-height: 2.25rem; /* 36px for good line spacing */
 }
 
+/* Prevent mobile zoom on input focus by ensuring minimum font size */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
 /* Safe Area Utilities for Mobile Devices (notch, Dynamic Island, etc.) */
 
 /* For page content that should respect safe areas */
