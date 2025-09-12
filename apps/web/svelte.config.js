@@ -1,6 +1,16 @@
-import adapter from "@sveltejs/adapter-cloudflare"
+import adapterCloudflare from "@sveltejs/adapter-cloudflare"
+import adapterStatic from "@sveltejs/adapter-static"
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte"
 import { mdsvex } from "mdsvex"
+
+// Select adapter based on environment variable
+const mode = process.env.ADAPTER || 'cloudflare'
+const adapters = {
+  cloudflare: adapterCloudflare(),
+  static: adapterStatic({ 
+    fallback: 'index.html' // SPA fallback for client-side routing
+  })
+}
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -15,8 +25,8 @@ const config = {
   ],
 
   kit: {
-    // Using Cloudflare adapter for deployment to Cloudflare Pages
-    adapter: adapter(),
+    // Conditional adapter selection for SSR (Cloudflare) vs SPA (Capacitor)
+    adapter: adapters[mode],
   },
 }
 
