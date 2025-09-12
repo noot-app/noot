@@ -1,7 +1,8 @@
 <script lang="ts">
   import { apiClient } from "$lib/api/client"
-  import { toast } from "$lib/stores/toast"
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
+  import { toast } from "$lib/stores/toast"
+  import { CapacitorMicrophone } from "$lib/utils/capacitor-microphone"
   import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
   import ConsumptionTextSubmit from "$lib/components/ConsumptionTextSubmit.svelte"
   import { getAppName } from "$lib/utils/app-info"
@@ -120,7 +121,9 @@
     
     try {
       clearError()
-      const stream = await navigator.mediaDevices.getUserMedia({
+      
+      // Use Capacitor-compatible microphone access
+      const stream = await CapacitorMicrophone.getMicrophoneStream({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -166,7 +169,7 @@
       isRecording = true
       status = "Recording... Tap to stop"
     } catch (err) {
-      setError("Failed to access microphone. Please ensure you have given permission.")
+      setError(CapacitorMicrophone.getErrorMessage(err))
       console.error("Error accessing microphone:", err)
     }
   }

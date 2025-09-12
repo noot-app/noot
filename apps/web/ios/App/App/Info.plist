@@ -45,5 +45,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Noot needs access to your microphone to record voice notes for logging your meals.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Noot uses speech recognition to convert your voice notes into text for meal logging.</string>
 </dict>
 </plist>
