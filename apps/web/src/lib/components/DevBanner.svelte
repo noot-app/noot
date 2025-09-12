@@ -6,6 +6,9 @@
   import { user } from "$lib/auth/store"
   import { isSupabaseEnabled } from "$lib/supabase"
 
+  // Check if DevBanner should be disabled via environment variable
+  const isDevBannerDisabled = import.meta.env.VITE_DISABLE_DEV_BANNER === 'true'
+
   let pageLoadTime = 0
   let memoryUsage = ""
   let networkType = ""
@@ -142,7 +145,7 @@ Dev Info:
 
   // Update body class based on banner visibility
   $: if (typeof document !== "undefined") {
-    if (dev && !isHidden) {
+    if (dev && !isHidden && !isDevBannerDisabled) {
       document.body.classList.add("dev-mode")
     } else {
       document.body.classList.remove("dev-mode")
@@ -167,7 +170,7 @@ Dev Info:
   }
 </script>
 
-{#if dev && !isHidden}
+{#if dev && !isHidden && !isDevBannerDisabled}
   <div class="dev-banner">
     <div class="dev-banner-content">
       <span class="dev-label">🛠️ DEV</span>
