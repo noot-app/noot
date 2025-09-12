@@ -138,7 +138,7 @@
   <title>Quick Add</title>
 </svelte:head>
 
-<div class="min-h-screen bg-base-100">
+<div class="min-h-full bg-base-100">
   <div class="container mx-auto px-4 py-6 max-w-4xl">
     <!-- Header -->
     <div class="mb-6">

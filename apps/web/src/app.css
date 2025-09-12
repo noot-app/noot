@@ -122,12 +122,44 @@
     border-color: var(--color-gray-200, currentColor);
   }
 
-  /* Ensure body content starts below safe areas on mobile */
+  /* Extend background color into safe areas (notch/Dynamic Island) */
+  html, body {
+    background-color: var(--color-base-100);
+    /* Prevent bounce scrolling on mobile */
+    overscroll-behavior: none;
+    height: 100%;
+  }
+
+  /* Remove body padding - let background extend into safe areas */
   body {
-    padding-top: env(safe-area-inset-top, 0px);
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
+    /* No top padding - background extends into notch */
   }
+
+  /* Bottom tab bar height variable (single source of truth) */
+  :root {
+    --bottom-tabs-height: 64px; /* reduced from 90px to prevent covering content */
+  }
+
+  /* Restore normal scroll behavior */
+  html, body {
+    height: auto;
+    min-height: 100%;
+  }
+  
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Ensure root app shell uses full viewport height without creating extra scroll gap */
+  .app-shell {
+    min-height: 100dvh; /* account for dynamic mobile UI chrome */
+  }
+
+  /* Remove default margin on first/last child that can cause phantom scroll */
+  .app-shell > main > :first-child { margin-top: 0 !important; }
+  .app-shell > main > :last-child { margin-bottom: 0 !important; }
 }
 
 /* Custom purple utilities for DaisyUI theme colors */
@@ -156,6 +188,11 @@
   .bg-teal {
     background-color: var(--color-teal);
   }
+
+  /* Utility: ensure element fills available vertical space inside flex-1 main without forcing viewport + navbar double height */
+  .min-h-full { min-height: 100%; }
+
+
 }
 
 a {

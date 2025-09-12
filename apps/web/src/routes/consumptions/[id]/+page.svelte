@@ -118,7 +118,7 @@
   <title>Consumption Details</title>
 </svelte:head>
 
-<div class="min-h-screen bg-base-100">
+<div class="min-h-full bg-base-100">
   <div class="container mx-auto px-4 py-6 max-w-4xl">
     <div class="mb-4">
       <a class="btn btn-ghost btn-sm" href="/summary">← Back</a>

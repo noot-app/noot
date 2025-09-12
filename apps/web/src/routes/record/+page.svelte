@@ -2,12 +2,14 @@
   import { apiClient } from "$lib/api/client"
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import { toast } from "$lib/stores/toast"
+  import { user } from "$lib/auth/store"
+  import { goto } from "$app/navigation"
+  import { browser } from "$app/environment"
   import { CapacitorMicrophone } from "$lib/utils/capacitor-microphone"
   import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
   import ConsumptionTextSubmit from "$lib/components/ConsumptionTextSubmit.svelte"
   import { getAppName } from "$lib/utils/app-info"
   import { onMount, onDestroy } from "svelte"
-  import { browser } from "$app/environment"
   import { getStorageJSON, setStorageJSON, removeStorageItem } from "$lib/utils/secure-storage"
 
   // Get app name from runtime environment
@@ -351,25 +353,34 @@
 
   // Initialize component
   onMount(() => {
-    // First restore mode to get the correct mode, then reset other state, then set status
-    // This prevents the brief flash of microphone icon when in text mode
+    // Order matters to avoid UI flicker
     restoreModeState()
     resetToInitialState()
     setInitialStatus()
+
+    // Auth gate subscription
+    let unsub: (() => void) | null = null
+    if (browser) {
+      unsub = user.subscribe((u) => {
+        if (!u) {
+          goto(`/login?redirect=${encodeURIComponent('/record')}`)
+        }
+      })
+    }
+
+    // Cleanup (acts like onDestroy + unsub)
+    return () => {
+      if (unsub) unsub()
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop()
+      }
+      // Allow draft restoration logic next mount
+      lastSubmissionMode = null
+    }
   })
 
-  // Cleanup on destroy
-  onDestroy(() => {
-    // Stop any ongoing recording
-    if (mediaRecorder && mediaRecorder.state === "recording") {
-      mediaRecorder.stop()
-    }
-    
-    // Reset submission mode when navigating away from the page
-    // This ensures that when users navigate back, they get draft restoration
-    // instead of being locked into their last submission mode
-    lastSubmissionMode = null
-  })
+  // (Keep onDestroy for any future explicit teardown needs – currently redundant with onMount return)
+  onDestroy(() => {})
 
   // Event handlers for the text submit component
   function handleTextSubmit(event: CustomEvent<{ transcript: string, result: any, consumptionId: string | null, submissionText: string }>) {

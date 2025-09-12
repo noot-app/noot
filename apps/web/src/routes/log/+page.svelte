@@ -282,7 +282,7 @@
 </svelte:head>
 
 <!-- Clean, consistent background matching other pages -->
-<div class="min-h-screen bg-base-100">
+<div class="min-h-full bg-base-100">
   <div class="max-w-3xl mx-auto px-6 py-12">
     
     <!-- Header -->

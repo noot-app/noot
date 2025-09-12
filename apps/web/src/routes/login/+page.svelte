@@ -171,7 +171,7 @@
 </svelte:head>
 
 <div
-  class="min-h-screen flex items-center justify-center bg-base-200 py-12 px-4 sm:px-6 lg:px-8"
+  class="auth-login-wrapper flex flex-col flex-1 items-center justify-center bg-base-200 py-12 px-4 sm:px-6 lg:px-8"
 >
   <div class="max-w-md w-full space-y-8">
     <div>
@@ -353,3 +353,19 @@
 </div>
 
 <Toast />
+
+<style>
+  /* Prevent minor scroll bounce on mobile for compact login screen */
+  .auth-login-wrapper {
+    min-height: 100%;
+    overscroll-behavior: contain;
+  }
+
+  /* When in native app (body.has-bottom-tabs not present for auth), ensure it still fills viewport */
+  :global(.app-shell main > .auth-login-wrapper) {
+    flex: 1;
+  }
+
+  /* Avoid accidental margins causing scroll */
+  .auth-login-wrapper > *:last-child { margin-bottom: 0; }
+</style>
