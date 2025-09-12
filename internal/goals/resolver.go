@@ -70,9 +70,10 @@ type LifeStage struct {
 
 // UserOverrides represents custom goal overrides from Pro users
 type UserOverrides struct {
-	Name        string             `json:"name,omitempty"`         // custom name for the goal set
-	Targets     map[string]float64 `json:"targets,omitempty"`      // nutrient_key -> custom daily target
-	UpperLimits map[string]float64 `json:"upper_limits,omitempty"` // nutrient_key -> custom upper limit
+	Name              string             `json:"name,omitempty"`               // custom name for the goal set
+	Targets           map[string]float64 `json:"targets,omitempty"`            // nutrient_key -> custom daily target
+	UpperLimits       map[string]float64 `json:"upper_limits,omitempty"`       // nutrient_key -> custom upper limit
+	DisabledNutrients []string           `json:"disabled_nutrients,omitempty"` // nutrient keys to hide from display and calculations
 	// Legacy field for backward compatibility during transition
 	Overrides map[string]float64 `json:"overrides,omitempty"` // deprecated: nutrient_key -> custom target
 }
@@ -152,6 +153,11 @@ func (r *GoalResolver) ResolveGoals(sex string, birthDate *time.Time, customOver
 				baseGoals.CustomName = "Custom Goals"
 			}
 		}
+	}
+
+	// Filter out disabled nutrients if any are specified
+	if customOverrides != nil && len(customOverrides.DisabledNutrients) > 0 {
+		r.filterDisabledNutrients(baseGoals, customOverrides.DisabledNutrients)
 	}
 
 	return baseGoals, nil
@@ -476,5 +482,39 @@ func (r *GoalResolver) normalizeUnit(unit string) string {
 		return "kcal"
 	default:
 		return unit
+	}
+}
+
+// filterDisabledNutrients removes disabled nutrients from goals
+func (r *GoalResolver) filterDisabledNutrients(goals *Goals, disabledNutrients []string) {
+	if len(disabledNutrients) == 0 {
+		return
+	}
+
+	// Create a set for faster lookup
+	disabled := make(map[string]bool)
+	for _, nutrient := range disabledNutrients {
+		disabled[nutrient] = true
+	}
+
+	// Remove disabled nutrients from targets
+	for nutrient := range goals.Targets {
+		if disabled[nutrient] {
+			delete(goals.Targets, nutrient)
+		}
+	}
+
+	// Remove disabled nutrients from upper limits
+	for nutrient := range goals.UpperLimits {
+		if disabled[nutrient] {
+			delete(goals.UpperLimits, nutrient)
+		}
+	}
+
+	// Remove disabled nutrients from units
+	for nutrient := range goals.Units {
+		if disabled[nutrient] {
+			delete(goals.Units, nutrient)
+		}
 	}
 }

@@ -1291,6 +1291,14 @@ export interface components {
              * @example Bulk Season
              */
             custom_name?: string;
+            /**
+             * @description List of nutrient keys that are disabled from display (only present when source is "custom")
+             * @example [
+             *       "selenium_mcg",
+             *       "molybdenum_mcg"
+             *     ]
+             */
+            disabled_nutrients?: string[];
             life_stage: components["schemas"]["LifeStage"];
         };
         LifeStage: {
@@ -1340,6 +1348,15 @@ export interface components {
             upper_limits?: {
                 [key: string]: number;
             };
+            /**
+             * @description List of nutrient keys to disable from display and calculations
+             * @example [
+             *       "selenium_mcg",
+             *       "molybdenum_mcg",
+             *       "chromium_mcg"
+             *     ]
+             */
+            disabled_nutrients?: string[];
             /**
              * @deprecated
              * @description Legacy field for backward compatibility. Will be treated as targets.
