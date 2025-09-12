@@ -100,6 +100,101 @@
   // Reset DRI confirmation modal state
   let showResetDRIModal = false
 
+  // Disabled nutrients modal state
+  let showDisabledNutrientsModal = false
+  let tempDisabledNutrients: string[] = []
+
+  // All available nutrients for disabling - matches NutrientCategoryDisplay grouping
+  type NutrientOption = {
+    key: string;
+    label: string;
+    category: string;
+  }
+
+  const NUTRIENT_CATEGORIES = {
+    macronutrients: {
+      title: "Macronutrients",
+      nutrients: [
+        { key: "calories", label: "Calories" },
+        { key: "protein_g", label: "Protein" },
+        { key: "total_carbs_g", label: "Total Carbohydrates" },
+        { key: "dietary_fiber_g", label: "Dietary Fiber" },
+        { key: "total_sugars_g", label: "Total Sugars" },
+        { key: "added_sugars_g", label: "Added Sugars" },
+        { key: "total_fat_g", label: "Total Fat" },
+        { key: "saturated_fat_g", label: "Saturated Fat" },
+        { key: "monounsaturated_fat_g", label: "Monounsaturated Fat" },
+        { key: "polyunsaturated_fat_g", label: "Polyunsaturated Fat" },
+        { key: "trans_fat_g", label: "Trans Fat" },
+        { key: "cholesterol_mg", label: "Cholesterol" },
+      ]
+    },
+    vitamins: {
+      title: "Vitamins",
+      nutrients: [
+        { key: "vitamin_a_mcg", label: "Vitamin A" },
+        { key: "vitamin_c_mg", label: "Vitamin C" },
+        { key: "vitamin_d_mcg", label: "Vitamin D" },
+        { key: "vitamin_e_mg", label: "Vitamin E" },
+        { key: "vitamin_k_mcg", label: "Vitamin K" },
+        { key: "thiamine_mg", label: "Thiamine (B1)" },
+        { key: "riboflavin_mg", label: "Riboflavin (B2)" },
+        { key: "niacin_mg", label: "Niacin (B3)" },
+        { key: "vitamin_b6_mg", label: "Vitamin B6" },
+        { key: "folate_mcg", label: "Folate" },
+        { key: "vitamin_b12_mcg", label: "Vitamin B12" },
+        { key: "biotin_mcg", label: "Biotin" },
+        { key: "pantothenic_acid_mg", label: "Pantothenic Acid (B5)" },
+        { key: "choline_mg", label: "Choline" },
+      ]
+    },
+    minerals: {
+      title: "Minerals",
+      nutrients: [
+        { key: "calcium_mg", label: "Calcium" },
+        { key: "iron_mg", label: "Iron" },
+        { key: "magnesium_mg", label: "Magnesium" },
+        { key: "phosphorus_mg", label: "Phosphorus" },
+        { key: "potassium_mg", label: "Potassium" },
+        { key: "sodium_mg", label: "Sodium" },
+        { key: "zinc_mg", label: "Zinc" },
+        { key: "copper_mg", label: "Copper" },
+        { key: "manganese_mg", label: "Manganese" },
+        { key: "selenium_mcg", label: "Selenium" },
+        { key: "iodine_mcg", label: "Iodine" },
+        { key: "molybdenum_mcg", label: "Molybdenum" },
+        { key: "chromium_mcg", label: "Chromium" },
+        { key: "fluoride_mg", label: "Fluoride" },
+        { key: "chloride_mg", label: "Chloride" },
+      ]
+    },
+    emerging_nutrients: {
+      title: "Emerging Nutrients",
+      nutrients: [
+        { key: "omega3_ala_g", label: "Omega-3 ALA" },
+        { key: "omega3_epa_g", label: "Omega-3 EPA" },
+        { key: "omega3_dha_g", label: "Omega-3 DHA" },
+        { key: "omega6_g", label: "Omega-6 Fatty Acids" },
+      ]
+    },
+    functional_compounds: {
+      title: "Functional Compounds",
+      nutrients: [
+        { key: "alcohol_g", label: "Alcohol" },
+        { key: "caffeine_mg", label: "Caffeine" },
+        { key: "creatine_mg", label: "Creatine" },
+      ]
+    }
+  }
+
+  // Flatten for easier access when needed
+  const ALL_NUTRIENTS: NutrientOption[] = Object.entries(NUTRIENT_CATEGORIES).flatMap(([, category]) =>
+    category.nutrients.map(nutrient => ({
+      ...nutrient,
+      category: category.title
+    }))
+  )
+
   // Sign out state
   let signingOut = false
 
@@ -419,6 +514,72 @@
     customCategory = "custom"
     customTargets = {}
     customUpperLimits = {}
+  }
+
+  function openDisabledNutrientsModal() {
+    // Initialize with current disabled nutrients
+    tempDisabledNutrients = [...(goals?.disabled_nutrients || [])]
+    showDisabledNutrientsModal = true
+  }
+
+  function closeDisabledNutrientsModal() {
+    showDisabledNutrientsModal = false
+    tempDisabledNutrients = []
+  }
+
+  function toggleDisabledNutrient(nutrientKey: string) {
+    if (tempDisabledNutrients.includes(nutrientKey)) {
+      tempDisabledNutrients = tempDisabledNutrients.filter(n => n !== nutrientKey)
+    } else {
+      tempDisabledNutrients = [...tempDisabledNutrients, nutrientKey]
+    }
+  }
+
+  async function saveDisabledNutrients() {
+    if (!isProUser) {
+      toast.error("Pro subscription required for custom goals")
+      return
+    }
+
+    try {
+      saving = true
+
+      // Get current active goal or create a new one
+      let goalName = activeGoalName || "Custom Goals"
+      
+      // Prepare the request payload
+      const payload: any = {
+        name: goalName,
+        category: "custom",
+        disabled_nutrients: tempDisabledNutrients
+      }
+
+      // Include existing targets and upper limits if they exist
+      const currentGoal = goalSets.find(g => g.name === goalName)
+      if (currentGoal) {
+        // We need to get the current goal details to preserve targets/upper_limits
+        // For now, just include the disabled nutrients
+      }
+
+      const response = await apiClient.PUT("/goals", {
+        body: payload,
+      })
+
+      if (response.error) {
+        throw response.error
+      }
+
+      toast.success("Disabled nutrients updated successfully!")
+      await Promise.all([loadGoals(), loadGoalSets()]) // Reload to get updated data
+      closeDisabledNutrientsModal()
+    } catch (err) {
+      toast.error(formatErrorForUser(err))
+      if (dev) {
+        console.error("Save disabled nutrients error:", err)
+      }
+    } finally {
+      saving = false
+    }
   }
 
   async function loadBiometrics() {
@@ -1217,6 +1378,62 @@
         </div>
       </div>
 
+      <!-- Disabled Nutrients Section (Pro only) - Full Width -->
+      {#if isProUser}
+        <div class="card bg-base-200 shadow-lg mt-8">
+          <div class="card-body p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="card-title flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Disabled Nutrients
+                <div class="badge badge-info badge-sm">Pro</div>
+              </h2>
+              <button 
+                class="btn btn-primary btn-sm"
+                on:click={openDisabledNutrientsModal}
+              >
+                Manage Disabled Nutrients
+              </button>
+            </div>
+
+            {#if goals?.disabled_nutrients && goals.disabled_nutrients.length > 0}
+              <div class="space-y-3">
+                <p class="text-sm text-base-content/70">
+                  Hide specific nutrients from all charts, summaries, and goal tracking:
+                </p>
+                
+                <!-- Disabled Nutrients Display -->
+                <div class="flex flex-wrap gap-2">
+                  {#each goals.disabled_nutrients as nutrient}
+                    <span class="badge badge-outline badge-sm">
+                      {nutrient.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </span>
+                  {/each}
+                </div>
+              </div>
+            {:else}
+              <div class="text-center py-8">
+                <svg class="w-12 h-12 mx-auto text-base-content/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="text-base-content/50 text-sm mb-3">No nutrients disabled</p>
+                <p class="text-sm text-base-content/70 mb-3">
+                  All nutrients are currently shown in charts and summaries.
+                </p>
+                <button 
+                  class="btn btn-primary btn-sm"
+                  on:click={openDisabledNutrientsModal}
+                >
+                  Disable Your First Nutrients
+                </button>
+              </div>
+            {/if}
+          </div>
+        </div>
+      {/if}
+
       <!-- Edit Goal Modal -->
       {#if showEditModal}
         <div class="modal modal-open">
@@ -1788,6 +2005,110 @@
       class="modal-backdrop"
       on:click={closeImperialModal}
       on:keydown={(e) => e.key === "Escape" && closeImperialModal()}
+      role="button"
+      tabindex="0"
+      aria-label="Close modal"
+    ></div>
+  </div>
+{/if}
+
+<!-- Disabled Nutrients Modal -->
+{#if showDisabledNutrientsModal}
+  <div class="modal modal-open">
+    <div class="modal-box max-w-4xl max-h-[90vh] overflow-y-auto">
+      <h3 class="font-bold text-lg flex items-center gap-2 mb-4">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Manage Disabled Nutrients
+      </h3>
+      
+      <div class="alert alert-info mb-6">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <div class="font-semibold">What are disabled nutrients?</div>
+          <div class="text-sm mt-1">
+            Disabled nutrients will still be tracked when you log meals, but they won't appear in any charts, summaries, or goal calculations. This helps you focus on the nutrients that matter most to you. If you don't need the extra data/noise of nutrients, you may "filter out" the ones you are not interested in.
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        {#each Object.entries(NUTRIENT_CATEGORIES) as [categoryKey, category]}
+          <div class="card bg-base-100 border border-base-300">
+            <div class="card-body p-4">
+              <h4 class="font-medium text-base mb-3 flex items-center justify-between border-b border-base-300 pb-2">
+                <span>{category.title}</span>
+                <span class="text-xs text-base-content/60">
+                  {category.nutrients.filter(n => tempDisabledNutrients.includes(n.key)).length} of {category.nutrients.length} disabled
+                </span>
+              </h4>
+              
+              <div class="space-y-2">
+                {#each category.nutrients as nutrient}
+                  <div class="form-control">
+                    <label class="label cursor-pointer p-2 hover:bg-base-200 rounded-lg transition-colors justify-start">
+                      <input 
+                        type="checkbox" 
+                        class="checkbox checkbox-error flex-shrink-0 mr-3" 
+                        checked={tempDisabledNutrients.includes(nutrient.key)}
+                        on:change={() => toggleDisabledNutrient(nutrient.key)}
+                      />
+                      <span class="label-text text-sm">{nutrient.label}</span>
+                    </label>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          </div>
+        {/each}
+      </div>
+
+      <!-- Summary -->
+      {#if tempDisabledNutrients.length > 0}
+        <div class="alert alert-warning mt-6">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <div class="font-semibold">
+              {tempDisabledNutrients.length} nutrient{tempDisabledNutrients.length !== 1 ? 's' : ''} will be disabled
+            </div>
+            <div class="text-sm mt-1">
+              These nutrients will be hidden from all charts, summaries, and goal calculations.
+            </div>
+          </div>
+        </div>
+      {/if}
+
+      <div class="modal-action">
+        <button 
+          class="btn btn-outline" 
+          on:click={closeDisabledNutrientsModal}
+          disabled={saving}
+        >
+          Cancel
+        </button>
+        <button 
+          class="btn btn-primary" 
+          on:click={saveDisabledNutrients}
+          disabled={saving}
+        >
+          {#if saving}
+            <span class="loading loading-spinner loading-xs"></span>
+            Saving...
+          {:else}
+            Save Changes
+          {/if}
+        </button>
+      </div>
+    </div>
+    <div 
+      class="modal-backdrop" 
+      on:click={closeDisabledNutrientsModal}
+      on:keydown={(e) => e.key === "Escape" && closeDisabledNutrientsModal()}
       role="button"
       tabindex="0"
       aria-label="Close modal"

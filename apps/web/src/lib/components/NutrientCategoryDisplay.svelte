@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte"
   import type { paths } from "$lib/api/schema"
-  import { isRestrictedNutrient } from "$lib/utils/nutrients"
+  import { isRestrictedNutrient, filterDisabledNutrientKeys } from "$lib/utils/nutrients"
   import {
     getNutrientValue,
     formatValue,
@@ -33,6 +33,7 @@
   export let showLimitsOnly = false // Only show nutrients that have upper limits
   export let showAllCategories = false // Force show all categories regardless of values (for summary views)
   export let goalsData: Goals | null = null // Injected goals to avoid duplicate fetches
+  export let disabledNutrients: string[] = [] // List of disabled nutrients to filter out
 
   let goals: Goals | null = null
   let loading = false
@@ -151,6 +152,11 @@
     }
 
     return categoryNutrients.some((nutrient) => {
+      // Skip disabled nutrients
+      if (disabledNutrients.includes(nutrient.key)) {
+        return false
+      }
+
       const value = getNutrientValue(nutrient.key, nutrients)
 
       // For summary page (!showMealContribution), always show categories with goals/targets
@@ -203,6 +209,7 @@
       (nutrient) =>
         goals?.upper_limits?.[nutrient.key] !== undefined &&
         isRestrictedNutrient(nutrient.key) &&
+        !disabledNutrients.includes(nutrient.key) &&
         (getNutrientValue(nutrient.key, nutrients) > 0 || !showMealContribution),
     )
   }
@@ -374,7 +381,8 @@
                     {@const isRestricted = isRestrictedNutrient(nutrient.key)}
                     {@const hasUpperLimit = goals?.upper_limits?.[nutrient.key] !== undefined}
                     {@const hasTarget = goals?.targets?.[nutrient.key] !== undefined}
-                    {#if value > 0 || (!showMealContribution && goals && (hasTarget || (showLimitsOnly && hasUpperLimit) || (hasUpperLimit && !isRestricted)))}
+                    {@const isDisabled = disabledNutrients.includes(nutrient.key)}
+                    {#if !isDisabled && (value > 0 || (!showMealContribution && goals && (hasTarget || (showLimitsOnly && hasUpperLimit) || (hasUpperLimit && !isRestricted))))}
                       {#if showLimitsOnly ? hasUpperLimit : !(hasUpperLimit && isRestricted)}
                         {@const progress = getProgress(nutrient.key, goals, nutrients, showLimitsOnly)}
                         {@const dailyText = getDailyText(nutrient.key, goals)}

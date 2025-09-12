@@ -154,7 +154,7 @@
     <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
       <!-- Voice-First Interface -->
       <div
-        class="card bg-base-200 shadow-xl hover:shadow-2xl transition-shadow"
+        class="card bg-base-200 shadow-xl"
       >
         <div class="card-body text-center p-4 lg:p-6">
           <div class="flex justify-center mb-3 lg:mb-4">
@@ -184,7 +184,7 @@
 
       <!-- AI-Powered Analysis -->
       <div
-        class="card bg-base-200 shadow-xl hover:shadow-2xl transition-shadow"
+        class="card bg-base-200 shadow-xl"
       >
         <div class="card-body text-center p-4 lg:p-6">
           <div class="flex justify-center mb-3 lg:mb-4">
@@ -214,7 +214,7 @@
 
       <!-- Complete Nutrition Tracking -->
       <div
-        class="card bg-base-200 shadow-xl hover:shadow-2xl transition-shadow"
+        class="card bg-base-200 shadow-xl"
       >
         <div class="card-body text-center p-4 lg:p-6">
           <div class="flex justify-center mb-3 lg:mb-4">
@@ -244,7 +244,7 @@
 
       <!-- Lightning Fast -->
       <div
-        class="card bg-base-200 shadow-xl hover:shadow-2xl transition-shadow"
+        class="card bg-base-200 shadow-xl"
       >
         <div class="card-body text-center p-4 lg:p-6">
           <div class="flex justify-center mb-3 lg:mb-4">
@@ -345,14 +345,14 @@
           Start Tracking Smarter Today
         </h2>
         <p class="text-base lg:text-xl text-base-content/80 max-w-2xl mx-auto">
-          Join a community of people that care about quality nutrition.
+          Join the beta with others that care about quality nutrition.
         </p>
       </div>
 
       <div class="card bg-base-100 shadow-xl max-w-md mx-auto">
         <div class="card-body text-center p-4 lg:p-6">
           <h3 class="text-xl lg:text-2xl font-bold text-primary">
-            Free to Start
+            Free Open Beta Testing
           </h3>
           <div class="divider"></div>
           <ul class="text-left space-y-2">
@@ -399,6 +399,118 @@
                 />
               </svg>
               <span class="text-sm lg:text-base">Daily nutrition insights</span>
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-4 h-4 lg:w-5 lg:h-5 text-success mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span class="text-sm lg:text-base">Detailed event log of meals</span>
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-4 h-4 lg:w-5 lg:h-5 text-success mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span class="text-sm lg:text-base">Label and categorize meals</span>
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-4 h-4 lg:w-5 lg:h-5 text-success mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span class="text-sm lg:text-base">Interactive data visualizations</span>
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-4 h-4 lg:w-5 lg:h-5 text-success mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span class="text-sm lg:text-base">Daily goal progress tracking</span>
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-4 h-4 lg:w-5 lg:h-5 text-success mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span class="text-sm lg:text-base">Track symptoms, sleep, mood & stress</span>
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-4 h-4 lg:w-5 lg:h-5 text-success mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span class="text-sm lg:text-base">Exercise & medication tracking</span>
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-4 h-4 lg:w-5 lg:h-5 text-success mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span class="text-sm lg:text-base">Custom event types & goals</span>
+            </li>
+            <li class="flex items-center">
+              <svg
+                class="w-4 h-4 lg:w-5 lg:h-5 text-success mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span class="text-sm lg:text-base">Calorie tracking</span>
             </li>
             <li class="flex items-center">
               <svg
@@ -555,6 +667,21 @@
       <div class="text-center mb-2">
         <p class="text-xs lg:text-sm text-base-content/70">
           Copyright © {new Date().getFullYear()} - All rights reserved by {appName}
+        </p>
+      </div>
+
+      <!-- Passion project by -->
+      <div class="text-center mb-2">
+        <p class="text-xs text-base-content/60">
+          A passion project by 
+          <a 
+            href="https://github.com/GrantBirki" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="text-base-content/70 hover:text-base-content transition-colors"
+          >
+            @GrantBirki
+          </a>
         </p>
       </div>
 
