@@ -84,35 +84,49 @@ Then run: `script/generate-nutrients` → All 20+ files automatically updated!
 
 ## Consumption Flow Diagram
 
-This diagram shows the simplified user journey from voice recording to saved meal data, focusing on the user experience and key business logic rather than technical implementation details. The full technical flow is [documented separately here](./docs/consumption_flow_diagram.md).
+This diagram shows the simplified user journey from input to saved meal data, focusing on the user experience and key business logic rather than technical implementation details. The full technical flow is [documented separately here](./docs/consumption_flow_diagram.md).
 
 ```mermaid
 graph TB
-    %% User journey starts
-    Start([User Records Voice<br/>Describing Their Meal]) --> Auth{User Authentication}
+    %% User journey starts - Multiple input methods
+    Start([User Input Options:<br/>🎤 Voice Recording<br/>✏️ Text Description<br/>⭐ Duplicate Favorite]) --> Auth{User Authentication<br/>JWT or API Key}
     
     %% Authentication - simplified
-    Auth -->|✅ Authenticated User| AuthOK[User Verified]
+    Auth -->|✅ Authenticated User| AuthOK[User Verified<br/>JWT or Pro API Key]
     Auth -->|❌ Not Logged In| AuthFail[Login Required]
     AuthFail --> End([End])
     
-    %% Core processing flow
-    AuthOK --> Upload[Audio File Upload<br/>Max 50MB]
-    Upload -->|✅ Valid Audio| Process[AI Processing Begins]
-    Upload -->|❌ Invalid File| UploadError[Error: Invalid Audio File]
+    %% Input processing flow
+    AuthOK --> InputMethod{Input Method?}
+    
+    %% Three input paths
+    InputMethod -->|🎤 Voice| AudioProcess[Audio Upload & Transcription<br/>Max 50MB, AI converts speech to text]
+    InputMethod -->|✏️ Text| TextProcess[Direct Text Processing<br/>Skip transcription step]
+    InputMethod -->|⭐ Duplicate| DuplicateProcess[Copy Existing Favorite<br/>Skip AI processing entirely]
+    
+    %% Error handling
+    AudioProcess -->|❌ Invalid File| UploadError[Error: Invalid Audio File]
+    TextProcess -->|❌ Empty Text| TextError[Error: Text Required]
+    DuplicateProcess -->|❌ Not Found| DuplicateError[Error: Favorite Not Found]
+    
     UploadError --> End
+    TextError --> End
+    DuplicateError --> End
+    
+    %% Success paths converge
+    AudioProcess -->|✅ Transcribed| AIProcess[AI Processing Pipeline]
+    TextProcess -->|✅ Text Ready| AIProcess
+    DuplicateProcess -->|✅ Copied| SaveDirect[Save Duplicated Meal]
     
     %% AI Processing - simplified into logical steps
-    Process --> Step1[Step 1: Convert Speech to Text<br/>Using AI Speech Recognition]
-    Step1 -->|✅ Success| Step2[Step 2: Extract Food Items<br/>AI identifies individual foods]
-    Step1 -->|❌ Failed| ProcessError[Error: Could not understand audio]
+    AIProcess --> Step1[Step 1: Extract Food Items<br/>AI identifies individual foods from text]
+    Step1 -->|✅ Foods Identified| Step2[Step 2: Get Nutrition Data<br/>Smart lookup with AI assistance]
+    Step1 -->|❌ Failed| ProcessError[Error: Could not understand input]
     ProcessError --> End
     
-    Step2 -->|✅ Foods Identified| Step3[Step 3: Get Nutrition Data<br/>Smart lookup with AI assistance]
-    Step2 -->|❌ Failed| ProcessError
-    
     %% Smart nutrition lookup - business logic
-    Step3 --> NutritionLookup{How do we find nutrition data?}
+    Step2 -->|✅ Success| NutritionLookup{How do we find nutrition data?}
+    Step2 -->|❌ Failed| ProcessError
     
     %% Different data sources - simplified
     NutritionLookup --> Cache[Check Our Database<br/>for Previously Calculated Foods]
@@ -132,19 +146,22 @@ graph TB
     UseProduct --> NutritionReady
     UseAI --> NutritionReady
     
-    %% Final steps - user value
-    NutritionReady --> Summary[Calculate Meal Summary<br/>Total Calories, Protein, etc.]
-    Summary --> Save[Save to User's Meal History<br/>for Tracking and Analytics]
+    %% Final steps - user value  
+    NutritionReady --> Summary[Calculate Meal Summary<br/>48+ Total Nutrients including<br/>Calories, Protein, Vitamins, Minerals]
+    Summary --> Save[Save to User's Meal History<br/>with Labels and Timestamps]
+    SaveDirect --> DirectSuccess[Return Duplicated Meal<br/>📱 User sees copied nutrition data]
     
     %% Success response
-    Save -->|✅ Saved Successfully| Success[Return Complete Results<br/>📱 User sees nutrition data]
+    Save -->|✅ Saved Successfully| Success[Return Complete Results<br/>📱 User sees comprehensive nutrition data]
     Save -->|⚠️ Save Failed| PartialSuccess[Return Nutrition Data<br/>⚠️ Not saved to history]
     
-    Success --> End
-    PartialSuccess --> End
+    Success --> UserActions[User Can:<br/>📊 View on Dashboard<br/>📝 Add to Log<br/>⭐ Mark as Favorite<br/>🏷️ Add Labels]
+    PartialSuccess --> UserActions
+    DirectSuccess --> UserActions
+    UserActions --> End
     
     %% Key benefits callout
-    NutritionReady --> Benefits[Key Benefits:<br/>🚀 Fast responses via caching<br/>🎯 Real product data guides AI decisions<br/>🤖 AI fills gaps for everything else<br/>📊 Comprehensive nutrition analysis]
+    NutritionReady --> Benefits[Key Benefits:<br/>🚀 Fast responses via 4-tier caching<br/>🎯 Real product data guides AI decisions<br/>🤖 AI fills gaps for everything else<br/>📊 48+ comprehensive nutrients tracked<br/>⭐ Easy favorites and duplication<br/>🏷️ Flexible labeling system]
     
     %% Styling for business audience - High contrast for accessibility
     classDef userAction fill:#0D47A1,stroke:#000000,stroke-width:3px,color:#FFFFFF
@@ -152,12 +169,14 @@ graph TB
     classDef error fill:#B71C1C,stroke:#000000,stroke-width:3px,color:#FFFFFF
     classDef process fill:#E65100,stroke:#000000,stroke-width:3px,color:#FFFFFF
     classDef benefit fill:#4A148C,stroke:#000000,stroke-width:3px,color:#FFFFFF
+    classDef input fill:#6A1B9A,stroke:#000000,stroke-width:3px,color:#FFFFFF
     
-    class Start,Upload userAction
-    class AuthOK,UseCache,UseProduct,UseAI,Success,PartialSuccess success
-    class AuthFail,UploadError,ProcessError error
-    class Step1,Step2,Step3,Summary,Save process
-    class Benefits benefit
+    class Start userAction
+    class AuthOK,UseCache,UseProduct,UseAI,Success,PartialSuccess,DirectSuccess,SaveDirect success
+    class AuthFail,UploadError,TextError,DuplicateError,ProcessError error
+    class AudioProcess,TextProcess,DuplicateProcess,AIProcess,Step1,Step2,Summary,Save process
+    class Benefits,UserActions benefit
+    class InputMethod input
 ```
 
 ## Quick Start
