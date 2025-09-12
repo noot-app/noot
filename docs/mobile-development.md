@@ -6,6 +6,24 @@ This document explains how to develop and build the Noot mobile app using Capaci
 
 The Noot SvelteKit web application can be built for both web deployment (Cloudflare Pages with SSR) and mobile deployment (iOS/Android via Capacitor) using a dual adapter setup.
 
+## Quick Start
+
+```bash
+# Install dependencies
+npm run bootstrap
+
+# Build for mobile and sync to native projects
+npm run ios:build
+# or
+npm run android:build
+
+# Run on iOS simulator (requires Xcode)
+npm run ios:run
+
+# Run on Android emulator (requires Android Studio)
+npm run android:run
+```
+
 ## Architecture
 
 - **Web Build**: Uses `@sveltejs/adapter-cloudflare` for SSR deployment to Cloudflare Pages
