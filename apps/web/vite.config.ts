@@ -1,21 +1,21 @@
 import { sveltekit } from "@sveltejs/kit/vite"
 import { defineConfig } from "vitest/config"
-import { buildAndCacheSearchIndex } from "./src/lib/build_index"
+// import { buildAndCacheSearchIndex } from "./src/lib/build_index"
 
 export default defineConfig({
   plugins: [
     sveltekit(),
-    {
-      name: "vite-build-search-index",
-      writeBundle: {
-        order: "post",
-        sequential: false,
-        handler: async () => {
-          console.log("Building search index...")
-          await buildAndCacheSearchIndex()
-        },
-      },
-    },
+    // {
+    //   name: "vite-build-search-index",
+    //   writeBundle: {
+    //     order: "post",
+    //     sequential: false,
+    //     handler: async () => {
+    //       console.log("Building search index...")
+    //       await buildAndCacheSearchIndex()
+    //     },
+    //   },
+    // },
   ],
   define: {
     // Inject build-time environment variables for version info
