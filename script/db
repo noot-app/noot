@@ -8,7 +8,7 @@ set -euo pipefail
 source script/env "$@"
 
 function usage() {
-    echo "Usage: $0 [--clean | --quick | reset [--production] | test]"
+    echo "Usage: $0 [--clean | --quick | reset [--production] | test | diff]"
     echo ""
     echo "Options:"
     echo "  --clean         Full reset: stop Supabase, restart, and run all migrations + seed"
@@ -16,6 +16,7 @@ function usage() {
     echo "  reset           Run supabase db reset on local development database"
     echo "  reset --production  Run supabase db reset on linked production database (with warning)"
     echo "  test            Run database integration tests"
+    echo "  diff            Show schema differences between local migrations and production database"
     echo ""
     echo "This script leverages Supabase's built-in seeding via supabase/seed.sql"
     echo "Creates seed users for development:"
@@ -108,6 +109,26 @@ function run_test() {
     echo -e "${GREEN}✅ Database tests completed${OFF}"
 }
 
+function run_diff_production() {
+    check_requirements
+    
+    echo -e "${BLUE}🔍 Comparing local migrations with production database...${OFF}"
+    echo -e "${YELLOW}This will show schema differences between your local migrations and the linked production database.${OFF}"
+    echo ""
+    
+    # Run the diff command
+    if supabase db diff --linked; then
+        echo ""
+        echo -e "${GREEN}✅ Schema diff completed${OFF}"
+        echo -e "${BLUE}💡 If no output was shown above, your local migrations are in sync with production${OFF}"
+    else
+        echo ""
+        echo -e "${RED}❌ Failed to diff against production database${OFF}"
+        echo -e "${YELLOW}Make sure you have a linked Supabase project configured${OFF}"
+        exit 1
+    fi
+}
+
 function main() {
     check_requirements
     
@@ -134,6 +155,9 @@ function main() {
             ;;
         test)
             run_test
+            ;;
+        diff)
+            run_diff_production
             ;;
         -h|--help|help)
             usage
