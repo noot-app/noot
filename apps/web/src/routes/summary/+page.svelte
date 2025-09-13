@@ -279,7 +279,7 @@
             size="normal"
           />
 
-          <!-- Nutrition Goals -->
+          <!-- Nutrition Goals (with integrated footer stats) -->
           <Goals {currentNutrition} showAllCategories={true} />
 
           <!-- Today's Summary Stats -->
@@ -320,7 +320,6 @@
                 </div>
               </div>
             </div>
-
           <!-- Individual Meals -->
           <div class="card bg-base-200 shadow-xl">
             <div class="card-body">
@@ -348,3 +347,6 @@
     {/if}
   </div>
 </div>
+
+<style>
+</style>
