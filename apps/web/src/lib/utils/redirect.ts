@@ -6,8 +6,8 @@ export function sanitizeRedirect(
   fallback: string = DEFAULT_REDIRECT_PATH,
 ): string {
   if (!path) return fallback
-  // Only allow internal paths starting with '/'
-  if (path.startsWith("/")) return path
+  // Only allow internal paths starting with '/' but not '//' (protocol-relative URLs)
+  if (path.startsWith("/") && !path.startsWith("//")) return path
   return fallback
 }
 

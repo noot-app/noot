@@ -78,5 +78,20 @@ export const handle: Handle = async ({ event, resolve }) => {
     filterSerializedResponseHeaders(name) {
       return name === "content-range" || name === "x-supabase-api-version"
     },
+    transformPageChunk({ html, done }) {
+      // Add security headers on final response
+      if (done) {
+        // Set security headers
+        event.setHeaders({
+          'X-Frame-Options': 'DENY',
+          'X-Content-Type-Options': 'nosniff',
+          'Referrer-Policy': 'strict-origin-when-cross-origin',
+          'X-XSS-Protection': '1; mode=block',
+          // Basic CSP - can be enhanced based on needs
+          'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://api.nootapp.io; font-src 'self'"
+        })
+      }
+      return html
+    },
   })
 }
