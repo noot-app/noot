@@ -17,7 +17,8 @@ describe('Consumption Page Server', () => {
 
   describe('load function', () => {
     const mockLocals = {
-      getSession: vi.fn()
+      getSession: vi.fn(),
+      supabase: {} as any // Mock supabase property
     }
 
     it('should format string errors properly', async () => {
@@ -30,7 +31,7 @@ describe('Consumption Page Server', () => {
       const result = await load({
         params: { id: 'test-id' },
         locals: mockLocals
-      })
+      } as any)
 
       expect(result.error).toBe('Not found')
       expect(result.isUnauthenticated).toBe(true)
@@ -46,7 +47,7 @@ describe('Consumption Page Server', () => {
       const result = await load({
         params: { id: 'test-id' },
         locals: mockLocals
-      })
+      } as any)
 
       expect(result.error).toBe('Access denied')
     })
@@ -61,7 +62,7 @@ describe('Consumption Page Server', () => {
       const result = await load({
         params: { id: 'test-id' },
         locals: mockLocals
-      })
+      } as any)
 
       expect(result.error).toBe('Forbidden')
     })
@@ -76,7 +77,7 @@ describe('Consumption Page Server', () => {
       const result = await load({
         params: { id: 'test-id' },
         locals: mockLocals
-      })
+      } as any)
 
       expect(result.error).toBe("This consumption doesn't exist or you don't have permission to view it.")
     })
@@ -91,7 +92,7 @@ describe('Consumption Page Server', () => {
       const result = await load({
         params: { id: 'test-id' },
         locals: mockLocals
-      })
+      } as any)
 
       expect(result.error).toBe("This consumption doesn't exist or you don't have permission to view it.")
     })
@@ -109,7 +110,7 @@ describe('Consumption Page Server', () => {
       const result = await load({
         params: { id: 'test-id' },
         locals: mockLocals
-      })
+      } as any)
 
       expect(result.consumption).toEqual(mockConsumption)
       expect(result.isUnauthenticated).toBe(false)
