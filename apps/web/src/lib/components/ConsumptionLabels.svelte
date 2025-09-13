@@ -6,13 +6,15 @@
   import Alert from "./Alert.svelte"
 
   // Props
+  import type { Label } from '$lib/types/common'
+  
   export let consumptionId: string
-  export let initialLabels: any[] = [] // Labels already on the consumption
+  export let initialLabels: Label[] = [] // Labels already on the consumption
   export let autoShowEdit = false // Whether to automatically show label editing
   export let editable = true // Whether labels can be edited
 
   // Local state
-  let availableLabels: any[] = []
+  let availableLabels: Label[] = []
   let isLoadingLabels = false
   let isUpdatingLabels = false
   let labelsLoaded = false
@@ -23,7 +25,7 @@
 
   // Event dispatcher for parent component communication
   const dispatch = createEventDispatcher<{
-    labelsUpdated: { labels: any[] }
+    labelsUpdated: { labels: Label[] }
     error: { message: string }
   }>()
 
@@ -42,7 +44,7 @@
 
   // Sync currentLabels from initial labels prop
   $: if (initialLabels) {
-    currentLabels = initialLabels.map((l: any) => l.name as string).filter(Boolean)
+    currentLabels = initialLabels.map((l: Label) => l.name).filter(Boolean)
     // Initialize selectedLabels from currentLabels if not editing yet
     if (!isEditingLabels) {
       selectedLabels = [...currentLabels]
@@ -76,7 +78,7 @@
           if (!assigned.error) {
             const assignedLabels = assigned.data?.labels || []
             // Update currentLabels from server
-            currentLabels = assignedLabels.map((l: any) => l.name as string)
+            currentLabels = assignedLabels.map((l: Label) => l.name)
             // Initialize selectedLabels if not editing
             if (!isEditingLabels) {
               selectedLabels = [...currentLabels]
@@ -143,7 +145,7 @@
 
       // Update from server response
       const updatedLabels = response.data?.labels || []
-      currentLabels = updatedLabels.map((l: any) => l.name as string)
+      currentLabels = updatedLabels.map((l: Label) => l.name)
       
       // Notify parent component of the update
       dispatch('labelsUpdated', { labels: updatedLabels })

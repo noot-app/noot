@@ -11,13 +11,15 @@
   import Alert from "./Alert.svelte"
 
   // Props
-  export let consumption: any = null // The consumption data
+  import type { Consumption, Goal } from '$lib/types/common'
+  
+  export let consumption: Consumption | null = null // The consumption data
   export let transcript = "" // Optional transcript display
   export let showRedoButton = false // Whether to show redo button (vs delete)
   export let autoShowLabelEdit = false // Whether to automatically show label editing
   export let editable = true // Whether the consumption can be edited
-  export let preloadGoalsAuto: any = null // Preloaded auto goals
-  export let preloadGoalsDri: any = null // Preloaded DRI goals
+  export let preloadGoalsAuto: Goal[] | null = null // Preloaded auto goals
+  export let preloadGoalsDri: Goal[] | null = null // Preloaded DRI goals
   export let buttonsAtBottom = false // Whether to show action buttons at bottom instead of top
   export let isUnauthenticated = false // Whether the user is not authenticated
 
@@ -54,7 +56,7 @@
   const dispatch = createEventDispatcher()
 
   // Handle label updates from ConsumptionLabels component
-  function handleLabelsUpdated(event: CustomEvent<{ labels: any[] }>) {
+  function handleLabelsUpdated(event: CustomEvent<{ labels: Label[] }>) {
     if (consumption) {
       consumption.labels = event.detail.labels
       consumption = { ...consumption } // Trigger reactivity
@@ -97,7 +99,7 @@
       error = ""
 
       // Prepare the update request body
-      const updateBody: any = { 
+      const updateBody: Partial<Consumption> = { 
         items: consumption.items,
         note: editableNote.trim() || null,
         title: editableTitle.trim() || null
@@ -163,7 +165,7 @@
 
     const aggregated: Record<string, number> = {}
 
-    consumption.items.forEach((item: any) => {
+    consumption.items.forEach((item: ConsumptionItem) => {
       if (item.item?.nutrients) {
         Object.keys(item.item.nutrients).forEach((key) => {
           const value = item.item.nutrients[key]

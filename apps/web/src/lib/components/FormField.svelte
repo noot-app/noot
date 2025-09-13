@@ -1,7 +1,9 @@
 <script lang="ts">
+  import BaseFormField from './shared/forms/BaseFormField.svelte'
+
   export let label: string
   export let id: string
-  export let type: string = "text"
+  export let type: "text" | "email" | "password" | "number" | "tel" | "url" = "text"
   export let value: string | number = ""
   export let placeholder: string = ""
   export let required: boolean = false
@@ -20,58 +22,25 @@
   export let labelClass: string = ""
   export let inputClass: string = ""
 
-  $: sizeClass = size === "md" ? "" : `input-${size}`
-  $: hasError = error !== ""
+  $: fieldType = multiline ? "textarea" : type
 </script>
 
-<div class="form-control {className}">
-  <label class="label {labelClass}" for={id}>
-    <span class="label-text {size === 'sm' ? 'text-sm' : ''}">{label}</span>
-    {#if required}
-      <span class="text-error ml-1">*</span>
-    {/if}
-  </label>
-
-  {#if multiline}
-    <textarea
-      {id}
-      {placeholder}
-      {required}
-      {disabled}
-      {maxlength}
-      class="textarea textarea-bordered {sizeClass} {inputClass} {hasError
-        ? 'textarea-error'
-        : ''}"
-      bind:value
-      rows="3"
-    ></textarea>
-  {:else}
-    <input
-      {id}
-      {type}
-      {placeholder}
-      {required}
-      {disabled}
-      {min}
-      {max}
-      {step}
-      {maxlength}
-      class="input input-bordered {sizeClass} {inputClass} {hasError
-        ? 'input-error'
-        : ''}"
-      bind:value
-    />
-  {/if}
-
-  {#if helpText}
-    <div class="label">
-      <span class="label-text-alt">{helpText}</span>
-    </div>
-  {/if}
-
-  {#if error}
-    <div class="label">
-      <span class="label-text-alt text-error">{error}</span>
-    </div>
-  {/if}
-</div>
+<BaseFormField 
+  {label}
+  {id}
+  type={fieldType}
+  bind:value
+  {placeholder}
+  {required}
+  {disabled}
+  {size}
+  {min}
+  {max}
+  {step}
+  {maxlength}
+  {helpText}
+  {error}
+  {className}
+  {labelClass}
+  {inputClass}
+/>
