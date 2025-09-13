@@ -30,12 +30,9 @@ begin
     (new.id, 'breakfast', '', 'FFD700'),
     (new.id, 'lunch', '', '74B986'),
     (new.id, 'dinner', '', '1E90FF'),
-    (new.id, 'snack', 'A small snack or light bite', '9B59B6'),
+    (new.id, 'snack', 'A small snack', '9B59B6'),
     (new.id, 'drink', 'A beverage', '9CA3AF'),
-    (new.id, 'trigger-food', 'The consumption contained a known trigger food', 'FF0000'),
-    (new.id, 'high-protein', 'High protein foods', '2DD4BF'),
-    (new.id, 'meal-prep', 'Pre-prepared meals', 'A8E6CF'),
-    (new.id, 'restaurant', 'Restaurant or takeout meal', 'F59E0B');
+    (new.id, 'trigger-food', '', 'FF0000');
   
   return new;
 end;

@@ -351,6 +351,52 @@
           </div>
         </div>
 
+        <!-- QUICK LINK TO LAST CONSUMPTION -->
+        <div class="mb-6">
+          <div class="form-control">
+            <label class="cursor-pointer label justify-start gap-3 py-2">
+              <input
+                type="checkbox"
+                class="checkbox checkbox-primary"
+                bind:checked={linkToLastConsumption}
+                disabled={isLoadingConsumption}
+              />
+              <div class="flex-1">
+                <span class="label-text font-medium">Link to last consumption</span>
+                <div class="label-text-alt text-xs opacity-70 mt-1">
+                  Optional - Connect this event to your most recent meal
+                </div>
+              </div>
+              {#if isLoadingConsumption}
+                <span class="loading loading-spinner loading-sm"></span>
+              {/if}
+            </label>
+            
+            {#if linkToLastConsumption}
+              {#if consumptionError}
+                <div class="alert alert-warning mt-3">
+                  <svg class="stroke-current shrink-0 w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <span class="text-sm">{consumptionError}</span>
+                </div>
+              {:else if lastConsumption}
+                <div class="bg-base-100 border border-base-300 rounded-lg p-4 mt-3">
+                  <div class="text-sm font-medium text-success mb-2">✓ Will link to:</div>
+                  <div class="text-base font-semibold mb-2">"{lastConsumption.transcript}"</div>
+                  <div class="flex items-center gap-4 text-sm text-base-content/60">
+                    <span>{new Date(lastConsumption.created_at).toLocaleString()}</span>
+                    {#if lastConsumption.summary?.totals?.calories}
+                      <span>•</span>
+                      <span>{Math.round(lastConsumption.summary.totals.calories)} cal</span>
+                    {/if}
+                  </div>
+                </div>
+              {/if}
+            {/if}
+          </div>
+        </div>
+
         <!-- COLLAPSIBLE ADVANCED OPTIONS -->
         <div class="collapse collapse-arrow bg-base-100 border border-base-300">
           <input type="checkbox" /> 
@@ -470,49 +516,7 @@
                   {/if}
                 </div>
 
-                <!-- Quick Link to Last Consumption -->
-                <div class="form-control">
-                  <div class="mb-2">
-                    <span class="label-text font-medium">Link to Consumption</span>
-                    <span class="label-text-alt text-xs opacity-60 ml-2">Optional</span>
-                  </div>
-                  <label class="cursor-pointer label justify-start gap-2 py-1">
-                    <input
-                      type="checkbox"
-                      class="checkbox checkbox-sm"
-                      bind:checked={linkToLastConsumption}
-                      disabled={isLoadingConsumption}
-                    />
-                    <span class="label-text">Link to last consumption</span>
-                    {#if isLoadingConsumption}
-                      <span class="loading loading-spinner loading-xs"></span>
-                    {/if}
-                  </label>
-                  
-                  {#if linkToLastConsumption}
-                    {#if consumptionError}
-                      <div class="alert alert-warning alert-sm mt-2">
-                        <svg class="stroke-current shrink-0 w-4 h-4" fill="none" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        <span class="text-xs">{consumptionError}</span>
-                      </div>
-                    {:else if lastConsumption}
-                      <div class="bg-base-200 border border-base-300 rounded p-3 mt-2">
-                        <div class="text-xs font-medium mb-1">Will link to:</div>
-                        <div class="text-sm font-semibold">"{lastConsumption.transcript}"</div>
-                        <div class="text-xs text-base-content/60 mt-1">
-                          {new Date(lastConsumption.created_at).toLocaleString()}
-                        </div>
-                        {#if lastConsumption.summary?.totals?.calories}
-                          <div class="text-xs text-base-content/60 mt-1">
-                            {Math.round(lastConsumption.summary.totals.calories)} cal
-                          </div>
-                        {/if}
-                      </div>
-                    {/if}
-                  {/if}
-                </div>
+
               </div>
 
               <!-- Right Column: Preview -->

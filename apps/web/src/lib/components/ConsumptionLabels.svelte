@@ -226,12 +226,6 @@
       </Alert>
     {/if}
 
-    {#if autoShowEdit && isEditingLabels}
-      <Alert type="info" className="mb-4 text-sm" data-testid="auto-edit-info">
-        Select labels to apply to this meal. Click "Apply" to save changes, or "Done" when finished.
-      </Alert>
-    {/if}
-
     <!-- Applied Labels Display (when not editing) -->
     {#if !isEditingLabels}
       <div data-testid="applied-labels">
@@ -265,7 +259,7 @@
           </div>
         {/if}
         
-        <div class="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto" data-testid="label-list">
+        <div class="grid grid-cols-1 gap-2 max-h-88 md:max-h-96 overflow-y-auto" data-testid="label-list">
           {#each availableLabels as label}
             {@const isSelected = selectedLabels.includes(label.name)}
             {@const isCurrentlyApplied = currentLabels.includes(label.name)}
@@ -331,12 +325,12 @@
             </div>
           </div>
         {:else if currentLabels.length > 0}
-          <div class="bg-success/10 p-3 rounded-lg text-sm text-success-content" data-testid="no-changes-message">
+          <div class="bg-success/30 border border-success/50 p-3 rounded-lg text-sm" data-testid="no-changes-message">
             <div class="flex items-center gap-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
               </svg>
-              All selected labels are already applied
+              All selected labels applied
             </div>
           </div>
         {/if}
@@ -374,7 +368,7 @@
               Apply Changes
             {/if}
           </button>
-          {#if autoShowEdit}
+          <!-- {#if autoShowEdit}
             <button
               class="btn btn-outline btn-sm"
               on:click={() => { isEditingLabels = false; }}
@@ -383,7 +377,7 @@
             >
               Done
             </button>
-          {/if}
+          {/if} -->
         </div>
       </div>
     {/if}
