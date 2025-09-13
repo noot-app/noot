@@ -47,7 +47,7 @@ export const routeItems: NavItemBase[] = [
 export const bottomTabItems: NavItemBase[] = [
   routeItems.find(r => r.id === "record")!,
   routeItems.find(r => r.id === "summary")!,
-  routeItems.find(r => r.id === "log")!,
+  routeItems.find(r => r.id === "quick")!,
   routeItems.find(r => r.id === "profile")!,
 ]
 
