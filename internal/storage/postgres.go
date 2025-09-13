@@ -339,7 +339,7 @@ func (s *PostgreSQLStore) GetPublicConsumption(ctx context.Context, id string) (
 			   omega3_ala_g, omega3_epa_g, omega3_dha_g, omega6_g,
 			   creatine_mg, caffeine_mg, alcohol_g,
 			   polyunsaturated_fat_g, monounsaturated_fat_g,
-			   note, created_at, updated_at
+			   title, is_public, consumed_at, created_at, updated_at
 		FROM consumptions WHERE id = $1 AND is_public = true`
 
 	var consumption Consumption
@@ -361,7 +361,8 @@ func (s *PostgreSQLStore) GetPublicConsumption(ctx context.Context, id string) (
 		&consumption.Omega3Ala, &consumption.Omega3Epa, &consumption.Omega3Dha,
 		&consumption.Omega6, &consumption.Creatine, &consumption.Caffeine, &consumption.Alcohol,
 		&consumption.PolyunsaturatedFat, &consumption.MonounsaturatedFat,
-		&consumption.Note, &consumption.CreatedAt, &consumption.UpdatedAt)
+		&consumption.Title, &consumption.IsPublic, &consumption.ConsumedAt,
+		&consumption.CreatedAt, &consumption.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Not found or not public
@@ -369,9 +370,10 @@ func (s *PostgreSQLStore) GetPublicConsumption(ctx context.Context, id string) (
 		return nil, fmt.Errorf("failed to get public consumption: %w", err)
 	}
 
-	// For public consumptions, don't include labels to protect user privacy
-	// Labels are considered private information linked to the owner's personal organization system
+	// For public consumptions, explicitly remove private user data to protect privacy
+	// Labels and notes are considered private information linked to the owner's personal organization system
 	consumption.Labels = []*Label{}
+	consumption.Note = nil // Note is not included in query but explicitly set for safety
 
 	return &consumption, nil
 }
@@ -397,7 +399,7 @@ func (s *PostgreSQLStore) UpdateConsumption(ctx context.Context, consumption *Co
 			omega3_ala_g = $42, omega3_epa_g = $43, omega3_dha_g = $44, omega6_g = $45,
 			creatine_mg = $46, caffeine_mg = $47, alcohol_g = $48,
 			polyunsaturated_fat_g = $49, monounsaturated_fat_g = $50,
-			note = $51, title = $52, consumed_at = $53, updated_at = $54
+			note = $51, title = $52, consumed_at = $53, is_public = $54, updated_at = $55
 		WHERE id = $1`
 
 	_, err := s.db.ExecContext(ctx, query, consumption.ID, consumption.Transcript,
@@ -417,7 +419,7 @@ func (s *PostgreSQLStore) UpdateConsumption(ctx context.Context, consumption *Co
 		consumption.Omega3Ala, consumption.Omega3Epa, consumption.Omega3Dha, consumption.Omega6,
 		consumption.Creatine, consumption.Caffeine, consumption.Alcohol,
 		consumption.PolyunsaturatedFat, consumption.MonounsaturatedFat,
-		consumption.Note, consumption.Title, consumption.ConsumedAt, consumption.UpdatedAt)
+		consumption.Note, consumption.Title, consumption.ConsumedAt, consumption.IsPublic, consumption.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update consumption: %w", err)
 	}

@@ -105,7 +105,7 @@ paths:
   /consumption/{id}:
     get:
       summary: Get a single consumption
-      description: Retrieve a single consumption by ID for the authenticated user
+      description: Retrieve a single consumption by ID. Returns private consumption data for the authenticated owner, or public consumption data (without labels/notes) for public consumptions accessed by anyone.
       operationId: getConsumption
       parameters:
         - name: id
@@ -196,38 +196,6 @@ paths:
                 $ref: "#/components/schemas/DeleteResponse"
         "404":
           description: Consumption not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /public/consumption/{id}:
-    get:
-      summary: Get a public consumption
-      description: Retrieve a public consumption by ID without authentication. Only returns consumptions marked as public, and excludes private information like labels and notes.
-      operationId: getPublicConsumption
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Consumption ID
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Public consumption found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Consumption"
-        "404":
-          description: Public consumption not found
           content:
             application/json:
               schema:

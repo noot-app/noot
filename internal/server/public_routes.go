@@ -14,8 +14,8 @@ var publicEndpoints = []string{
 // docsPrefix defines the prefix for documentation endpoints that don't require authentication
 const docsPrefix = "/api/v1/docs"
 
-// IsPublicEndpoint checks if the given path is a public endpoint that doesn't require authentication
-func IsPublicEndpoint(path string) bool {
+// IsPublicEndpoint checks if the given path and method combination is a public endpoint that doesn't require authentication
+func IsPublicEndpoint(path, method string) bool {
 	// Exact match for specific endpoints
 	if slices.Contains(publicEndpoints, path) {
 		return true

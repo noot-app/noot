@@ -7,6 +7,7 @@
   import { RESTRICTED_NUTRIENTS, filterDisabledNutrientKeys } from "$lib/utils/nutrients"
   import ExclamationTriangle from "$lib/components/icons/ExclamationTriangle.svelte"
   import Goal from "$lib/components/icons/Goal.svelte"
+  import { getDefaultDRIGoals } from "$lib/dri"
 
   type GoalsResponse =
     paths["/goals"]["get"]["responses"]["200"]["content"]["application/json"]
@@ -62,9 +63,21 @@
         } else {
           goals = preloadGoalsAuto ?? preloadGoalsDri
         }
+        goalsLoaded = true
+        loading = false
+        return
       } else {
+        // For shared/public view, use fallback DRI data instead of making API calls
+        if (isSharedView || source === "dri") {
+          console.log("Using fallback DRI data for shared/public view")
+          goals = getDefaultDRIGoals()
+          goalsLoaded = true
+          loading = false
+          return
+        }
+        
         // Fallback: fetch based on desired source
-        const desired = source ?? (isSharedView ? "dri" : "auto")
+        const desired = source ?? "auto"
         const response = await apiClient.GET("/goals", {
           params: { query: { source: desired } },
         })
@@ -75,8 +88,15 @@
       }
       goalsLoaded = true
     } catch (err) {
-      error = `Failed to load nutrition goals: ${err}`
-      console.error("Goals error:", err)
+      // For shared view, use fallback DRI data instead of showing error
+      if (isSharedView || source === "dri") {
+        console.log("Shared view: using fallback DRI data due to API failure")
+        goals = getDefaultDRIGoals()
+        error = ""
+      } else {
+        error = `Failed to load nutrition goals: ${err}`
+        console.error("Goals error:", err)
+      }
     } finally {
       loading = false
     }

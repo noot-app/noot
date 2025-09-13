@@ -29,6 +29,12 @@ func getCurrentUser(c *gin.Context) (*storage.User, error) {
 	return nil, NewAppError("Authentication required", http.StatusUnauthorized, nil)
 }
 
+// getCurrentUserOptional retrieves the current authenticated user from context, returns nil if not authenticated
+// This is used when fetching public consumptions
+func getCurrentUserOptional(c *gin.Context) *storage.User {
+	return GetAuthenticatedUser(c)
+}
+
 // parseDateRangeParams parses date range parameters from HTTP request
 // Supports both direct date range (start/end) and simplified timeWindow approach
 func parseDateRangeParams(r *http.Request) (*DateRangeParams, error) {

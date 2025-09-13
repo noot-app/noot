@@ -55,7 +55,7 @@ export interface paths {
         };
         /**
          * Get a single consumption
-         * @description Retrieve a single consumption by ID for the authenticated user
+         * @description Retrieve a single consumption by ID. Returns private consumption data for the authenticated owner, or public consumption data (without labels/notes) for public consumptions accessed by anyone.
          */
         get: operations["getConsumption"];
         /**
@@ -69,26 +69,6 @@ export interface paths {
          * @description Delete a consumption record by ID (used for redo functionality)
          */
         delete: operations["deleteConsumption"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/public/consumption/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a public consumption
-         * @description Retrieve a public consumption by ID without authentication. Only returns consumptions marked as public, and excludes private information like labels and notes.
-         */
-        get: operations["getPublicConsumption"];
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1844,47 +1824,6 @@ export interface operations {
                 };
             };
             /** @description Consumption not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-        };
-    };
-    getPublicConsumption: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Consumption ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Public consumption found */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Consumption"];
-                };
-            };
-            /** @description Public consumption not found */
             404: {
                 headers: {
                     [name: string]: unknown;

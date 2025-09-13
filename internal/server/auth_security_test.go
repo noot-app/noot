@@ -619,7 +619,7 @@ func TestPublicEndpointSecurity(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Path_%s", strings.ReplaceAll(tc.path, "/", "_")), func(t *testing.T) {
-			result := IsPublicEndpoint(tc.path)
+			result := IsPublicEndpoint(tc.path, "GET")
 			assert.Equal(t, tc.expected, result, "Public endpoint detection failed for: %s", tc.path)
 		})
 	}

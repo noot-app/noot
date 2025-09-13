@@ -3,6 +3,7 @@
   import { toast } from "$lib/stores/toast"
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
+  import ExclamationTriangle from "$lib/components/icons/ExclamationTriangle.svelte"
   import type { PageData } from "./$types"
 
   export let data: PageData
@@ -17,7 +18,11 @@
 
   // Check if consumption is favorited on page load
   async function checkFavoriteStatus() {
-    if (!data.consumption?.id) return
+    if (!data.consumption?.id || data.isUnauthenticated) {
+      // Skip favorites check for unauthenticated users
+      isFavorited = false
+      return
+    }
 
     try {
       const result = await handleApiCallWithAuthRedirect(async () => {
@@ -38,7 +43,7 @@
 
   // Toggle favorite status
   async function toggleFavorite() {
-    if (!data.consumption?.id || isUpdatingFavorite) return
+    if (!data.consumption?.id || isUpdatingFavorite || data.isUnauthenticated) return
 
     isUpdatingFavorite = true
 
@@ -156,7 +161,9 @@
       }
 
       // Update local state
-      data = { ...data, consumption: result.data }
+      if (result.data) {
+        data = { ...data, consumption: result.data }
+      }
       toast.success(isPublic ? "Consumption is now public" : "Consumption is now private")
     } catch (err) {
       console.error("Failed to toggle public status:", err)
@@ -170,7 +177,7 @@
   async function copyPublicLink() {
     if (!data.consumption?.is_public || !data.consumption?.id) return
 
-    const publicUrl = `${window.location.origin}/public/consumption/${data.consumption.id}`
+    const publicUrl = `${window.location.origin}/consumptions/${data.consumption.id}`
     
     try {
       await navigator.clipboard.writeText(publicUrl)
@@ -191,9 +198,47 @@
 
 <div class="min-h-full bg-base-100">
   <div class="container mx-auto px-4 py-6 max-w-4xl">
-    <div class="mb-4">
-      <a class="btn btn-ghost btn-sm" href="/summary">← Back</a>
-    </div>
+    <!-- Back button (only show for authenticated users) -->
+    {#if !data.isUnauthenticated}
+      <div class="mb-4">
+        <a class="btn btn-ghost btn-sm" href="/summary">← Back</a>
+      </div>
+    {/if}
+
+    <!-- Error handling for consumption not found -->
+    {#if data.error || !data.consumption}
+      <div class="card bg-error/10 text-error shadow-lg">
+        <div class="card-body">
+          <div class="flex items-center gap-3 mb-4">
+            <ExclamationTriangle className="w-10 h-10"/>
+            <div>
+              <h2 class="card-title text-lg">Consumption Not Found</h2>
+              <p class="text-sm text-error/80 mt-1">
+                {data.error || "The consumption you're looking for doesn't exist or you don't have permission to view it."}
+              </p>
+            </div>
+          </div>
+          
+          <div class="text-sm text-error/70 mb-4">
+            <p>This could happen if:</p>
+            <ul class="list-disc list-inside mt-2 space-y-1">
+              <li>The consumption is private and you're not logged in</li>
+              <li>The consumption doesn't exist or has been deleted</li>
+              <li>You don't have permission to view this consumption</li>
+            </ul>
+          </div>
+
+          <div class="card-actions justify-end">
+            {#if data.isUnauthenticated}
+              <a class="btn btn-outline btn-sm" href="/login">Log In</a>
+              <a class="btn btn-primary btn-sm" href="/">Go to Home</a>
+            {:else}
+              <a class="btn btn-primary btn-sm" href="/summary">Return to Summary</a>
+            {/if}
+          </div>
+        </div>
+      </div>
+    {:else}
 
     <div class="mb-4 flex items-center justify-between">
       <div>
@@ -209,8 +254,8 @@
       </div>
       
       <div class="flex items-center gap-2">
-        <!-- Public/Private toggle and copy link -->
-        {#if data.consumption?.id}
+        <!-- Public/Private toggle and copy link (only for authenticated users) -->
+        {#if data.consumption?.id && !data.isUnauthenticated}
           <!-- Copy link button (only shown if public) -->
           {#if data.consumption.is_public}
             <button
@@ -251,8 +296,8 @@
           </button>
         {/if}
 
-        <!-- Star button for favorites -->
-        {#if data.consumption?.id}
+        <!-- Star button for favorites (only show for authenticated users) -->
+        {#if data.consumption?.id && !data.isUnauthenticated}
           <button
             class="btn btn-ghost"
             class:loading={isUpdatingFavorite}
@@ -275,13 +320,15 @@
       transcript={data.consumption?.transcript || ""}
       showRedoButton={false}
       autoShowLabelEdit={false}
-      editable={true}
+      editable={!data.isUnauthenticated}
       buttonsAtBottom={true}
       preloadGoalsAuto={data.goalsAuto}
       preloadGoalsDri={data.goalsDri}
+      isUnauthenticated={data.isUnauthenticated}
       on:delete={handleDelete}
       on:save={handleSave}
     />
+    {/if}
   </div>
 </div>
 
