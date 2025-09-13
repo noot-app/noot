@@ -1,14 +1,12 @@
 <script lang="ts">
   import { goto } from "$app/navigation"
-  import { page } from "$app/stores"
-  import { dev } from "$app/environment"
   import {
     signIn,
     signInWithGitHub,
     signInWithGoogle,
     user,
   } from "$lib/auth/store"
-  import Alert from "$lib/components/Alert.svelte"
+
   import DevModeAlert from "$lib/components/DevModeAlert.svelte"
   import Toast from "$lib/components/Toast.svelte"
   import { toast } from "$lib/stores/toast"

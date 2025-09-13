@@ -15,7 +15,6 @@
   import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
   import PlusIcon from "$lib/components/icons/Plus.svelte"
   import PencilSquareIcon from "$lib/components/icons/PencilSquare.svelte"
-  import MicrophoneIcon from "$lib/components/icons/Microphone.svelte"
   import Microphone from "$lib/components/icons/Microphone.svelte"
 
   // Get app name from runtime environment

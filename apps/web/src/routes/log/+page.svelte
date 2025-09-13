@@ -1,8 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte"
   import { apiClient } from "$lib/api/client"
-  import { toast } from "$lib/stores/toast"
-  import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
+  import { handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import TimelineIcon from "$lib/components/icons/Timeline.svelte"
   import Label from "$lib/components/Label.svelte"
   import type { paths } from "$lib/api/schema"
@@ -70,10 +69,7 @@
     return links.some(link => link.consumption_id)
   }
 
-  function getConsumptionLinks(eventId: string): EventLink[] {
-    const links = getEventLinks(eventId)
-    return links.filter(link => link.consumption_id)
-  }
+
 
   // Check if a consumption is linked to any events
   function isConsumptionLinked(consumptionId: string): boolean {
@@ -178,23 +174,7 @@
     await loadTimelineData(currentPage * pageSize, true)
   }
 
-  // Format date for display
-  function formatDate(dateString: string): string {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-    if (diffDays === 0) {
-      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-    } else if (diffDays === 1) {
-      return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-    } else {
-      return date.toLocaleDateString()
-    }
-  }
 
   // Format time only
   function formatTime(dateString: string): string {
@@ -216,19 +196,7 @@
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
   }
 
-  // Get nutrition highlights for consumption
-  function getNutritionHighlights(consumption: Consumption) {
-    const summary = consumption.summary?.totals
-    if (!summary) return ""
-    
-    const highlights = []
-    if (summary.calories) highlights.push(`${Math.round(summary.calories)} cal`)
-    if (summary.protein_g) highlights.push(`${Math.round(summary.protein_g)}g protein`)
-    if (summary.total_carbs_g) highlights.push(`${Math.round(summary.total_carbs_g)}g carbs`)
-    if (summary.total_fat_g) highlights.push(`${Math.round(summary.total_fat_g)}g fat`)
-    
-    return highlights.join(" • ")
-  }
+
 
   // Get nutrition stats array for better display
   function getNutritionStats(consumption: Consumption) {

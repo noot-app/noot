@@ -14,10 +14,7 @@
   type LabelsResponse =
     paths["/labels"]["get"]["responses"]["200"]["content"]["application/json"]
   type Label = LabelsResponse["labels"][0]
-  type CreateLabelRequest =
-    paths["/labels"]["post"]["requestBody"]["content"]["application/json"]
-  type UpdateLabelRequest =
-    paths["/labels/{id}"]["put"]["requestBody"]["content"]["application/json"]
+
 
   let labels: Label[] = []
   let loading = true

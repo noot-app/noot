@@ -1,6 +1,5 @@
 <script lang="ts">
   import { goto } from "$app/navigation"
-  import { dev } from "$app/environment"
   import { resetPassword } from "$lib/auth/store"
   import Alert from "$lib/components/Alert.svelte"
   import DevModeAlert from "$lib/components/DevModeAlert.svelte"
