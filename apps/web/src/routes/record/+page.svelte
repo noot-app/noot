@@ -11,6 +11,7 @@
   import { getAppName } from "$lib/utils/app-info"
   import { onMount, onDestroy } from "svelte"
   import { getStorageJSON, setStorageJSON, removeStorageItem } from "$lib/utils/secure-storage"
+  import { Platform } from "$lib/utils/platform"
 
   // Get app name from runtime environment
   $: appName = getAppName()
@@ -637,11 +638,13 @@
             <p class="text-lg text-error font-medium">{error}</p>
           {:else if isTextMode === true}
             <div class="space-y-2">
-              <p class="text-sm text-base-content/70 flex items-center justify-center gap-1 flex-wrap">
-                <span>Press</span>
-                <kbd class="kbd kbd-sm">Enter</kbd>
-                <span>to submit</span>
-              </p>
+              {#if !Platform.isNativeApp()}
+                <p class="text-sm text-base-content/70 flex items-center justify-center gap-1 flex-wrap">
+                  <span>Press</span>
+                  <kbd class="kbd kbd-sm">Enter</kbd>
+                  <span>to submit</span>
+                </p>
+              {/if}
             </div>
           {:else if isTextMode === false}
             <div class="space-y-2">
