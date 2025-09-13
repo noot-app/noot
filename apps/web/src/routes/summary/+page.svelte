@@ -5,6 +5,11 @@
   import Goals from "$lib/components/Goals.svelte"
   import ConsumptionCard from "$lib/components/ConsumptionCard.svelte"
   import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
+  import Bolt from "$lib/components/icons/Bolt.svelte"
+  import Wheat from "$lib/components/icons/Wheat.svelte"
+  import Sprout from "$lib/components/icons/Sprout.svelte"
+  import Scale from "$lib/components/icons/Scale.svelte"
+  import Candy from "$lib/components/icons/Candy.svelte"
   import { user } from "$lib/auth/store"
   import { getAppName } from "$lib/utils/app-info"
 
@@ -263,9 +268,9 @@
             No data for today
           </h3>
           <p class="text-base-content/70 mb-6">
-            Start logging your meals to see your nutrition summary
+            Start logging your consumptions to see your nutrition summary
           </p>
-          <a href="/record" class="btn btn-primary"> Record Your First Meal </a>
+          <a href="/record" class="btn btn-primary"> Record Your First Consumption </a>
         </div>
       {:else}
         <!-- We have data - show the nutrition components -->
@@ -279,52 +284,66 @@
             size="normal"
           />
 
-          <!-- Nutrition Goals (with integrated footer stats) -->
-          <Goals {currentNutrition} showAllCategories={true} />
-
-          <!-- Today's Summary Stats -->
-          <div class="card bg-base-200 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title mb-4">Today's Summary</h2>
-              <div
-                class="stats stats-vertical lg:stats-horizontal shadow w-full"
-              >
-                <div class="stat">
-                  <div class="stat-title">Meals Logged</div>
-                  <div class="stat-value text-lg">
-                      {consumptionsData.consumptions.length}
-                    </div>
-                    <div class="stat-desc">Today</div>
-                  </div>
-                  <div class="stat">
-                    <div class="stat-title">Avg per Meal</div>
-                    <div class="stat-value text-lg">
-                      {consumptionsData.consumptions.length > 0 ? Math.round((nutritionTotals?.calories || 0) / consumptionsData.consumptions.length) : 0}
-                    </div>
-                    <div class="stat-desc">Calories</div>
-                  </div>
-                  <div class="stat">
-                    <div class="stat-title">Fiber</div>
-                    <div class="stat-value text-lg">
-                      {(nutritionTotals?.dietary_fiber_g || 0).toFixed(1)}g
-                    </div>
-                    <div class="stat-desc">Total</div>
-                  </div>
-                  <div class="stat">
-                    <div class="stat-title">Sodium</div>
-                    <div class="stat-value text-lg">
-                      {Math.round(nutritionTotals?.sodium_mg || 0)} mg
-                    </div>
-                    <div class="stat-desc">Total</div>
-                  </div>
+          <!-- Quick Stats (utility-based tiles) -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" aria-label="Today's quick nutrition stats">
+            <!-- Consumptions -->
+            <div class="stat-tile honey-border" aria-label="Consumptions logged">
+              <div class="flex items-center justify-center h-full px-2">
+                <div class="flex flex-col items-center text-center flex-1">
+                  <span class="tile-label">Consumptions</span>
+                  <div class="tile-value mt-2">{consumptionsData.consumptions.length}</div>
+                </div>
+                <div class="flex items-center justify-center ml-4">
+                  <ChartBarIcon className="w-7 h-7 text-honey" />
                 </div>
               </div>
             </div>
-          <!-- Individual Meals -->
+            <!-- Sodium -->
+            <div class="stat-tile secondary-border" aria-label="Total sodium milligrams">
+              <div class="flex items-center justify-center h-full px-2">
+                <div class="flex flex-col items-center text-center flex-1">
+                  <span class="tile-label">Sodium</span>
+                  <div class="tile-value mt-2">{Math.round(nutritionTotals?.sodium_mg || 0)}<span class="unit ml-1">mg</span></div>
+                </div>
+                <div class="flex items-center justify-center ml-4">
+                  <Scale className="w-7 h-7 text-secondary" />
+                </div>
+              </div>
+            </div>
+            <!-- Fiber -->
+            <div class="stat-tile accent-border" aria-label="Total fiber grams">
+              <div class="flex items-center justify-center h-full px-2">
+                <div class="flex flex-col items-center text-center flex-1">
+                  <span class="tile-label">Fiber</span>
+                  <div class="tile-value mt-2">{(nutritionTotals?.dietary_fiber_g || 0).toFixed(1)}<span class="unit ml-1">g</span></div>
+                </div>
+                <div class="flex items-center justify-center ml-4">
+                  <Sprout className="w-7 h-7 text-accent" />
+                </div>
+              </div>
+            </div>
+            <!-- Added Sugars -->
+            <div class="stat-tile warning-border" aria-label="Total added sugars grams">
+              <div class="flex items-center justify-center h-full px-2">
+                <div class="flex flex-col items-center text-center flex-1">
+                  <span class="tile-label">Added Sugars</span>
+                  <div class="tile-value mt-2">{(nutritionTotals?.added_sugars_g || 0).toFixed(1)}<span class="unit ml-1">g</span></div>
+                </div>
+                <div class="flex items-center justify-center ml-4">
+                  <Candy className="w-7 h-7 text-warning" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nutrition Goals (with integrated footer stats) -->
+          <Goals {currentNutrition} showAllCategories={true} />
+
+          <!-- Individual Consumptions -->
           <div class="card bg-base-200 shadow-xl">
             <div class="card-body">
               <h2 class="card-title mb-4">
-                Today's Meals
+                Today's Consumptions
               </h2>
               <div class="space-y-4">
                 {#each consumptionsData.consumptions as consumption}
@@ -349,4 +368,52 @@
 </div>
 
 <style>
+  .stat-tile {
+    background: var(--color-base-100);
+    border: 2px solid transparent;
+    border-radius: 0.75rem;
+    padding: 0.8rem 0.6rem;
+    min-height: 92px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  .stat-tile.warning-border { 
+    border-color: var(--color-warning); 
+    border-color: color-mix(in srgb, var(--color-warning) 20%, transparent);
+  }
+  .stat-tile.accent-border { 
+    border-color: var(--color-accent); 
+    border-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  }
+  .stat-tile.secondary-border { 
+    border-color: var(--color-secondary); 
+    border-color: color-mix(in srgb, var(--color-secondary) 20%, transparent);
+  }
+  .stat-tile.honey-border { 
+    border-color: var(--color-honey); 
+    border-color: color-mix(in srgb, var(--color-honey) 20%, transparent);
+  }
+  .tile-label { 
+    font-size: 0.58rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.08em; 
+    font-weight: 600; 
+    color: var(--color-base-content-lighter); 
+  }
+  .tile-value { 
+    font-size: 1.35rem; 
+    font-weight: 600; 
+    line-height: 1.1; 
+    display: flex; 
+    align-items: baseline; 
+    color: var(--color-base-content);
+  }
+  .tile-value .unit { font-size: 0.65rem; opacity: 0.65; font-weight: 500; }
+  @media (max-width: 440px) {
+    .stat-tile { min-height: 82px; padding: 0.65rem 0.7rem; }
+    .tile-value { font-size: 1.2rem; }
+  }
 </style>

@@ -369,3 +369,5 @@ The application supports automated deployment with built-in version tracking:
 ## Theme
 
 - [Noot DaisyUI Theme](https://daisyui.com/theme-generator/#theme=eJx90u9ygyAMAPB3cV_rDhH_dG8DJFRuFLygt267vfuUujtrnX5LfiQm6Hfm5RWzt8yHMGSnTAcXKI-6w5R19tLN6Ty_g5IR84KxiV4MmBZxi3xBjoDlFss7AsAZ2BZ18AP6YT5Q6hIEXx3oyV4lfc6msBGVeLZ1vUnP6kzESWHpUFcNb9meHvaQWi_UCHVu6yc6rPY4DiRd2k6WSrBne6jfXq71JqTh66ZqxQaOdx-n6WLcHXyxw_oPSd76S7p71TCxY4f1SBRoFq54zYut_LM1SbBjnD6NQz2k-oLwuiZj0cFOXoXbOhvtF67bsNey4NWD_nV6JBUIML24v6UEYD90c5wiH2zEJQI0cnTTCka6iKesJzRIcfql3pfczy9KqQ75)
+- [Hero Icons](https://heroicons.com/)
+- [Lucide Icons](https://lucide.dev/icons/)
