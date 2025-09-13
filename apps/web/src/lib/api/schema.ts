@@ -74,6 +74,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/consumption/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a public consumption
+         * @description Retrieve a public consumption by ID without authentication. Only returns consumptions marked as public, and excludes private information like labels and notes.
+         */
+        get: operations["getPublicConsumption"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1240,6 +1260,11 @@ export interface components {
             items: components["schemas"]["ItemWithNutrition"][];
             summary: components["schemas"]["Summary"];
             /**
+             * @description Whether this consumption is publicly viewable
+             * @default false
+             */
+            is_public: boolean;
+            /**
              * Format: date-time
              * @description Timestamp when consumption was logged
              */
@@ -1445,6 +1470,8 @@ export interface components {
             note?: string | null;
             /** @description Custom title for the consumption */
             title?: string | null;
+            /** @description Whether this consumption should be publicly viewable */
+            is_public?: boolean | null;
             /**
              * Format: date-time
              * @description Timestamp when the consumption occurred (optional, defaults to current created_at)
@@ -1817,6 +1844,47 @@ export interface operations {
                 };
             };
             /** @description Consumption not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getPublicConsumption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Consumption ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public consumption found */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Consumption"];
+                };
+            };
+            /** @description Public consumption not found */
             404: {
                 headers: {
                     [name: string]: unknown;

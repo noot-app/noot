@@ -154,6 +154,9 @@ type ServerInterface interface {
 	// Update a label
 	// (PUT /labels/{id})
 	UpdateLabel(c *gin.Context, id string)
+	// Get a public consumption
+	// (GET /public/consumption/{id})
+	GetPublicConsumption(c *gin.Context, id string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -1489,6 +1492,34 @@ func (siw *ServerInterfaceWrapper) UpdateLabel(c *gin.Context) {
 	siw.Handler.UpdateLabel(c, id)
 }
 
+// GetPublicConsumption operation middleware
+func (siw *ServerInterfaceWrapper) GetPublicConsumption(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	c.Set(BearerAuthScopes, []string{})
+
+	c.Set(ApiKeyAuthScopes, []string{})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.GetPublicConsumption(c, id)
+}
+
 // GinServerOptions provides options for the Gin server.
 type GinServerOptions struct {
 	BaseURL      string
@@ -1563,4 +1594,5 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.POST(options.BaseURL+"/labels", wrapper.CreateLabel)
 	router.DELETE(options.BaseURL+"/labels/:id", wrapper.DeleteLabel)
 	router.PUT(options.BaseURL+"/labels/:id", wrapper.UpdateLabel)
+	router.GET(options.BaseURL+"/public/consumption/:id", wrapper.GetPublicConsumption)
 }

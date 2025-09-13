@@ -207,6 +207,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /public/consumption/{id}:
+    get:
+      summary: Get a public consumption
+      description: Retrieve a public consumption by ID without authentication. Only returns consumptions marked as public, and excludes private information like labels and notes.
+      operationId: getPublicConsumption
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Consumption ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public consumption found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Consumption"
+        "404":
+          description: Public consumption not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /health:
     get:
       summary: Health check
@@ -2748,6 +2780,7 @@ components:
         - items
         - summary
         - created_at
+        - is_public
       properties:
         id:
           type: string
@@ -2779,6 +2812,10 @@ components:
             $ref: "#/components/schemas/ItemWithNutrition"
         summary:
           $ref: "#/components/schemas/Summary"
+        is_public:
+          type: boolean
+          description: Whether this consumption is publicly viewable
+          default: false
         created_at:
           type: string
           format: date-time
@@ -3039,6 +3076,10 @@ components:
           nullable: true
           maxLength: 100
           description: Custom title for the consumption
+        is_public:
+          type: boolean
+          nullable: true
+          description: Whether this consumption should be publicly viewable
         consumed_at:
           type: string
           format: date-time

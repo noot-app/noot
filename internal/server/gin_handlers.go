@@ -456,6 +456,13 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 		updatedConsumption.Title = existingConsumption.Title
 	}
 
+	// Handle is_public update - use new value if provided, otherwise keep existing value
+	if updateReq.IsPublic != nil {
+		updatedConsumption.IsPublic = *updateReq.IsPublic
+	} else {
+		updatedConsumption.IsPublic = existingConsumption.IsPublic
+	}
+
 	if err := s.store.UpdateConsumption(ctx, updatedConsumption); err != nil {
 		appErr := NewAppError("Failed to update consumption", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -2521,6 +2528,53 @@ func (s *APIServer) DeleteEventType(c *gin.Context, id string) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// GetPublicConsumption implements ServerInterface.GetPublicConsumption
+// Retrieves a public consumption by ID without authentication
+func (s *APIServer) GetPublicConsumption(c *gin.Context, id string) {
+	if s.store == nil {
+		handleStorageUnavailableError(c)
+		return
+	}
+
+	requestID := c.GetString("request_id")
+	ctx := c.Request.Context()
+
+	// Get public consumption (no auth required)
+	cons, err := s.store.GetPublicConsumption(ctx, id)
+	if err != nil {
+		handleInternalServerError(c, "Failed to get public consumption", err)
+		return
+	}
+
+	if cons == nil {
+		appErr := NewAppError("Public consumption not found", http.StatusNotFound, nil)
+		s.handleAppError(c, appErr, requestID)
+		return
+	}
+
+	// Convert to API including items, but exclude private information (labels and notes)
+	apiConsumption, err := storageConsumptionToAPI(ctx, s.store, cons)
+	if err != nil {
+		handleInternalServerError(c, "Failed to convert public consumption", err)
+		return
+	}
+
+	// For public consumption, remove labels and notes to protect privacy
+	apiConsumption.Labels = nil
+	apiConsumption.Note = nil
+
+	// Also remove labels from items
+	if apiConsumption.Items != nil {
+		for i := range apiConsumption.Items {
+			if apiConsumption.Items[i].Item.Labels != nil {
+				apiConsumption.Items[i].Item.Labels = nil
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, apiConsumption)
 }
 
 // ListAPIKeys implements ServerInterface.ListAPIKeys

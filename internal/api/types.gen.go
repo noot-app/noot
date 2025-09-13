@@ -348,8 +348,11 @@ type Consumption struct {
 	CreatedAt time.Time `json:"created_at"`
 
 	// Id Consumption ID
-	Id    string              `json:"id"`
-	Items []ItemWithNutrition `json:"items"`
+	Id string `json:"id"`
+
+	// IsPublic Whether this consumption is publicly viewable
+	IsPublic bool                `json:"is_public"`
+	Items    []ItemWithNutrition `json:"items"`
 
 	// Labels Labels assigned to this consumption
 	Labels *[]Label `json:"labels,omitempty"`
@@ -1000,6 +1003,9 @@ type UpdateBiometricsRequestSex string
 type UpdateConsumptionRequest struct {
 	// ConsumedAt Timestamp when the consumption occurred (optional, defaults to current created_at)
 	ConsumedAt *time.Time `json:"consumed_at"`
+
+	// IsPublic Whether this consumption should be publicly viewable
+	IsPublic *bool `json:"is_public"`
 
 	// Items Updated items with nutrition information
 	Items []ItemWithNutrition `json:"items"`
