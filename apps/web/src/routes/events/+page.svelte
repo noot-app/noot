@@ -544,7 +544,7 @@
 </svelte:head>
 
 <div class="min-h-full bg-base-100">
-  <div class="container mx-auto px-4 py-8 max-w-6xl">
+  <div class="container mx-auto px-4 py-8 max-w-6xl safe-area-page-top">
     <!-- Header -->
     <div class="mb-8">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -687,28 +687,31 @@
                   class="flex flex-col lg:flex-row lg:items-center lg:justify-between p-4 border border-base-300 rounded-lg hover:bg-base-50 transition-colors gap-4 lg:gap-0"
                 >
                   <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-2">
-                      <!-- Event color indicator -->
-                      {#if event.color}
-                        <div
-                          class="w-4 h-4 rounded-full border border-base-300"
-                          style="background-color: #{event.color}"
-                        ></div>
-                      {:else}
-                        <div
-                          class="w-4 h-4 rounded-full border border-base-300"
-                          style="background-color: {getEventTypeColor(event.event_type_id)}"
-                        ></div>
-                      {/if}
-                      
-                      <h3 class="font-semibold text-lg">{event.name}</h3>
-                      
-                      {#if getEventTypeName(event.event_type_id)}
-                        <span class="badge badge-outline text-xs capitalize">{getEventTypeName(event.event_type_id)}</span>
-                      {/if}
-                      
-                      {#if event.level !== null}
-                        <span class="badge badge-primary text-xs">Level: {event.level}/10</span>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-2">
+                      <div class="flex items-center gap-3">
+                        <!-- Event color indicator -->
+                        {#if event.color}
+                          <div
+                            class="w-4 h-4 rounded-full border border-base-300 flex-shrink-0"
+                            style="background-color: #{event.color}"
+                          ></div>
+                        {:else}
+                          <div
+                            class="w-4 h-4 rounded-full border border-base-300 flex-shrink-0"
+                            style="background-color: {getEventTypeColor(event.event_type_id)}"
+                          ></div>
+                        {/if}
+                        <h3 class="font-semibold text-lg leading-snug">{event.name}</h3>
+                      </div>
+                      {#if getEventTypeName(event.event_type_id) || event.level !== null}
+                        <div class="flex items-center flex-wrap gap-2 pl-7 sm:pl-0">
+                          {#if getEventTypeName(event.event_type_id)}
+                            <span class="badge badge-outline text-xs capitalize">{getEventTypeName(event.event_type_id)}</span>
+                          {/if}
+                          {#if event.level !== null}
+                            <span class="badge badge-primary text-xs">Level: {event.level}/10</span>
+                          {/if}
+                        </div>
                       {/if}
                     </div>
 
