@@ -2576,6 +2576,3 @@ func (s *APIServer) GetPublicConsumption(c *gin.Context, id string) {
 
 	c.JSON(http.StatusOK, apiConsumption)
 }
-
-// ListAPIKeys implements ServerInterface.ListAPIKeys
-// Lists all API keys for the authenticated Pro user
