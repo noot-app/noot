@@ -387,6 +387,12 @@
                     </div>
                   </div>
                 {/if}
+
+                <!-- Educational text -->
+                <div class="text-xs text-base-content/60 mt-3 pt-3 border-t border-base-300">
+                  <strong>Natural sugars</strong> come from whole foods (fruits, vegetables, dairy). 
+                  <strong>Added sugars</strong> are added during processing.
+                </div>
               </div>
             </div>
           {/if}
@@ -484,7 +490,7 @@
       </p>
     </div>
     <div class="modal-action">
-      <label for="sugar-info-modal" class="btn btn-primary">Got it!</label>
+      <label for="sugar-info-modal" class="btn btn-primary">Close</label>
     </div>
   </div>
   <label class="modal-backdrop" for="sugar-info-modal">Close</label>
@@ -554,7 +560,7 @@
           />
         </svg>
       </a>
-      <label for="dri-info" class="btn btn-primary">Got it!</label>
+      <label for="dri-info" class="btn btn-primary">Close</label>
     </div>
   </div>
   <label class="modal-backdrop" for="dri-info">Close</label>
@@ -638,7 +644,7 @@
       {/if}
     </div>
     <div class="modal-action">
-      <label for="custom-goals-info" class="btn btn-primary">Got it!</label>
+      <label for="custom-goals-info" class="btn btn-primary">Close</label>
     </div>
   </div>
   <label class="modal-backdrop" for="custom-goals-info">Close</label>

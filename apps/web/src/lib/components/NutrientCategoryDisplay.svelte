@@ -463,50 +463,7 @@
             {/if}
           {/each}
 
-          <!-- Sugar Breakdown Section (only if there are sugars) -->
-          {@const totalSugars = getNutrientValue("total_sugars_g", nutrients)}
-          {@const addedSugars = getNutrientValue("added_sugars_g", nutrients)}
-          {@const naturalSugars = Math.max(0, totalSugars - addedSugars)}
-          {#if totalSugars > 0}
-            <div class="border-t border-base-300 pt-4">
-              <h4
-                class="font-semibold text-base mb-3 pb-2 border-b border-base-300 flex items-center nutrient-header"
-              >
-                <Candy className="w-4 h-4 mr-2" strokeWidth={2} />
-                Sugar Breakdown
-              </h4>
-              <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 text-sm">
-                <!-- Total Sugars -->
-                <div
-                  class="flex justify-between items-center p-3 bg-base-100 rounded-lg"
-                >
-                  <span class="font-medium">Total Sugars</span>
-                  <span class="text-base-content/70"
-                    >{totalSugars.toFixed(1)}g</span
-                  >
-                </div>
-                <!-- Natural Sugars -->
-                <div
-                  class="flex justify-between items-center p-3 bg-success/10 rounded-lg"
-                >
-                  <span class="font-medium text-success">Natural Sugars</span>
-                  <span class="text-success">{naturalSugars.toFixed(1)}g</span>
-                </div>
-                <!-- Added Sugars -->
-                <div
-                  class="flex justify-between items-center p-3 bg-warning/10 rounded-lg"
-                >
-                  <span class="font-medium text-warning">Added Sugars</span>
-                  <span class="text-warning">{addedSugars.toFixed(1)}g</span>
-                </div>
-              </div>
-              <div class="text-xs text-base-content/60 mt-2">
-                <strong>Natural sugars</strong> come from whole foods (fruits,
-                vegetables, dairy). <strong>Added sugars</strong> are added during
-                processing.
-              </div>
-            </div>
-          {/if}
+
         {/if}
 
         {#if showGoals && !goals}
