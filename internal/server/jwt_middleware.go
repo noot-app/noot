@@ -386,8 +386,8 @@ func JWTAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		}
 
 		// Skip authentication for public endpoints
-		if IsPublicEndpoint(c.Request.URL.Path) {
-			LogDebug("Skipping JWT auth for public endpoint", "path", c.Request.URL.Path)
+		if IsPublicEndpoint(c.Request.URL.Path, c.Request.Method) {
+			LogDebug("Skipping JWT auth for public endpoint", "path", c.Request.URL.Path, "method", c.Request.Method)
 			c.Next()
 			return
 		}

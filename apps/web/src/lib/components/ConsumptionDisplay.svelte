@@ -19,6 +19,7 @@
   export let preloadGoalsAuto: any = null // Preloaded auto goals
   export let preloadGoalsDri: any = null // Preloaded DRI goals
   export let buttonsAtBottom = false // Whether to show action buttons at bottom instead of top
+  export let isUnauthenticated = false // Whether the user is not authenticated
 
   // Local state
   let isEditing = false
@@ -369,8 +370,8 @@
     </Card>
   {/if}
 
-  <!-- Labels Section -->
-  {#if consumption?.id}
+  <!-- Labels Section - only show for authenticated users or if consumption has labels -->
+  {#if consumption?.id && !isUnauthenticated && (!consumption.is_public || (consumption.labels && consumption.labels.length > 0))}
     <ConsumptionLabels
       consumptionId={consumption.id}
       initialLabels={consumption.labels || []}
@@ -492,6 +493,8 @@
         currentNutrition={currentMealNutrition}
         showMealContribution={true}
         hideGoalsMet={true}
+        isSharedView={isUnauthenticated}
+        source={isUnauthenticated ? "dri" : "auto"}
         {preloadGoalsAuto}
         {preloadGoalsDri}
       />

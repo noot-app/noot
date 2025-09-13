@@ -55,7 +55,7 @@ export interface paths {
         };
         /**
          * Get a single consumption
-         * @description Retrieve a single consumption by ID for the authenticated user
+         * @description Retrieve a single consumption by ID. Returns private consumption data for the authenticated owner, or public consumption data (without labels/notes) for public consumptions accessed by anyone.
          */
         get: operations["getConsumption"];
         /**
@@ -1240,6 +1240,11 @@ export interface components {
             items: components["schemas"]["ItemWithNutrition"][];
             summary: components["schemas"]["Summary"];
             /**
+             * @description Whether this consumption is publicly viewable
+             * @default false
+             */
+            is_public: boolean;
+            /**
              * Format: date-time
              * @description Timestamp when consumption was logged
              */
@@ -1445,6 +1450,8 @@ export interface components {
             note?: string | null;
             /** @description Custom title for the consumption */
             title?: string | null;
+            /** @description Whether this consumption should be publicly viewable */
+            is_public?: boolean | null;
             /**
              * Format: date-time
              * @description Timestamp when the consumption occurred (optional, defaults to current created_at)

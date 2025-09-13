@@ -337,27 +337,24 @@ func (s *APIServer) GetConsumption(c *gin.Context, id string) {
 	requestID := c.GetString("request_id")
 	ctx := c.Request.Context()
 
-	// Get authenticated user for authorization
-	user, err := getCurrentUser(c)
-	if err != nil {
-		if appErr, ok := err.(*AppError); ok {
-			s.handleAppError(c, appErr, requestID)
-		} else {
-			handleInternalServerError(c, "Failed to get user", err)
+	var cons *storage.Consumption
+	var err error
+
+	// Try to get authenticated user (may or may not be present)
+	user := getCurrentUserOptional(c)
+
+	if user != nil {
+		// User is authenticated - they can see their own private or public consumptions
+		cons, err = s.store.GetConsumptionForUser(ctx, user.ID, id)
+		if err != nil {
+			handleInternalServerError(c, "Failed to get consumption", err)
+			return
 		}
-		return
-	}
-
-	// First try to get as owner
-	cons, err := s.store.GetConsumptionForUser(ctx, user.ID, id)
-	if err != nil {
-		handleInternalServerError(c, "Failed to get consumption", err)
-		return
-	}
-
-	// If not found as owner, try as public consumption
-	if cons == nil {
+	} else {
+		// No authenticated user - can only see public consumptions
 		cons, err = s.store.GetPublicConsumption(ctx, id)
+
+		// If the consumption cannot be found, or it is not set to public, `GetPublicConsumption()` will return an error
 		if err != nil {
 			handleInternalServerError(c, "Failed to get public consumption", err)
 			return
@@ -375,6 +372,21 @@ func (s *APIServer) GetConsumption(c *gin.Context, id string) {
 	if err != nil {
 		handleInternalServerError(c, "Failed to convert consumption", err)
 		return
+	}
+
+	// If not the owner (unauthenticated or different user), remove private information
+	if user == nil || user.ID != cons.UserID {
+		apiConsumption.Labels = nil
+		apiConsumption.Note = nil
+
+		// Also remove labels from items
+		if apiConsumption.Items != nil {
+			for i := range apiConsumption.Items {
+				if apiConsumption.Items[i].Item.Labels != nil {
+					apiConsumption.Items[i].Item.Labels = nil
+				}
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, apiConsumption)
@@ -454,6 +466,13 @@ func (s *APIServer) UpdateConsumption(c *gin.Context, id string) {
 		updatedConsumption.Title = updateReq.Title
 	} else {
 		updatedConsumption.Title = existingConsumption.Title
+	}
+
+	// Handle is_public update - use new value if provided, otherwise keep existing value
+	if updateReq.IsPublic != nil {
+		updatedConsumption.IsPublic = *updateReq.IsPublic
+	} else {
+		updatedConsumption.IsPublic = existingConsumption.IsPublic
 	}
 
 	if err := s.store.UpdateConsumption(ctx, updatedConsumption); err != nil {
@@ -2522,6 +2541,3 @@ func (s *APIServer) DeleteEventType(c *gin.Context, id string) {
 
 	c.Status(http.StatusNoContent)
 }
-
-// ListAPIKeys implements ServerInterface.ListAPIKeys
-// Lists all API keys for the authenticated Pro user

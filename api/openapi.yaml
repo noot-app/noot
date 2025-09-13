@@ -105,7 +105,7 @@ paths:
   /consumption/{id}:
     get:
       summary: Get a single consumption
-      description: Retrieve a single consumption by ID for the authenticated user
+      description: Retrieve a single consumption by ID. Returns private consumption data for the authenticated owner, or public consumption data (without labels/notes) for public consumptions accessed by anyone.
       operationId: getConsumption
       parameters:
         - name: id
@@ -2748,6 +2748,7 @@ components:
         - items
         - summary
         - created_at
+        - is_public
       properties:
         id:
           type: string
@@ -2779,6 +2780,10 @@ components:
             $ref: "#/components/schemas/ItemWithNutrition"
         summary:
           $ref: "#/components/schemas/Summary"
+        is_public:
+          type: boolean
+          description: Whether this consumption is publicly viewable
+          default: false
         created_at:
           type: string
           format: date-time
@@ -3039,6 +3044,10 @@ components:
           nullable: true
           maxLength: 100
           description: Custom title for the consumption
+        is_public:
+          type: boolean
+          nullable: true
+          description: Whether this consumption should be publicly viewable
         consumed_at:
           type: string
           format: date-time

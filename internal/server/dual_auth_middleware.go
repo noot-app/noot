@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -37,8 +38,36 @@ func DualAuthMiddleware(store storage.Store) gin.HandlerFunc {
 		}
 
 		// Skip authentication for public endpoints
-		if IsPublicEndpoint(c.Request.URL.Path) {
-			LogDebug("Skipping auth for public endpoint", "path", c.Request.URL.Path)
+		if IsPublicEndpoint(c.Request.URL.Path, c.Request.Method) {
+			LogDebug("Skipping auth for public endpoint", "path", c.Request.URL.Path, "method", c.Request.Method)
+			c.Next()
+			return
+		}
+
+		// Special handling for GET consumption endpoints - allow optional authentication
+		if c.Request.Method == "GET" && isConsumptionEndpoint(c.Request.URL.Path) {
+			// Try authentication but don't fail if missing
+			apiKeyHeader := c.GetHeader("X-API-Key")
+			authHeader := c.GetHeader("Authorization")
+
+			if apiKeyHeader != "" {
+				// API key provided - validate it
+				if err := authenticateAPIKey(c, apiKeyHeader, store); err != nil {
+					LogWarn("API key authentication failed", "error", err.Error())
+					handleAPIKeyAuthError(c, err)
+					return
+				}
+			} else if authHeader != "" {
+				// JWT provided - validate it but don't fail the request if invalid
+				if err := tryJWTAuth(c, authHeader, store); err != nil {
+					LogDebug("Optional JWT auth failed", "error", err.Error())
+					// Continue without authentication
+				}
+			}
+			// Continue regardless of authentication status
+			// This section is important for consumptions because if it is private, we still need to hydrate authenticated user context
+			// However, if the user is not authenticated (anon user on the internet) then we don't want to fully fail the request because the owner of the consumption might have marked it as `public`
+			// If the consumption is public, then we allow anyone to be able to view it.
 			c.Next()
 			return
 		}
@@ -213,4 +242,34 @@ func GetAPIKeyID(c *gin.Context) string {
 		}
 	}
 	return ""
+}
+
+// isConsumptionEndpoint checks if the path is a consumption endpoint
+func isConsumptionEndpoint(path string) bool {
+	return strings.HasPrefix(path, "/api/v1/consumption/") && strings.Count(path[1:], "/") == 3
+}
+
+// tryJWTAuth attempts JWT authentication and sets user context if successful
+func tryJWTAuth(c *gin.Context, authHeader string, store storage.Store) error {
+	// Extract token from "Bearer <token>" format
+	tokenParts := strings.Split(authHeader, " ")
+	if len(tokenParts) != 2 || strings.ToLower(tokenParts[0]) != "bearer" {
+		return &APIKeyError{Type: "invalid_format", Message: "Invalid authorization header format"}
+	}
+
+	tokenString := tokenParts[1]
+
+	// Validate JWT and get user
+	user, err := validateJWTAndGetUser(c.Request.Context(), tokenString, store)
+	if err != nil {
+		return err
+	}
+
+	if user != nil {
+		c.Set("auth_user", user)
+		c.Set("auth_method", "jwt")
+		LogDebug("User authenticated successfully via optional JWT", "user_id", user.ID)
+	}
+
+	return nil
 }

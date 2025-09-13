@@ -3,7 +3,12 @@
   import { toast } from "$lib/stores/toast"
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import ConsumptionDisplay from "$lib/components/ConsumptionDisplay.svelte"
+  import ExclamationTriangle from "$lib/components/icons/ExclamationTriangle.svelte"
   import type { PageData } from "./$types"
+  import Square2Stack from "$lib/components/icons/Square2Stack.svelte"
+  import Lock from "$lib/components/icons/Lock.svelte"
+  import Star from "$lib/components/icons/Star.svelte"
+  import Globe from "$lib/components/icons/Globe.svelte"
 
   export let data: PageData
 
@@ -11,9 +16,17 @@
   let isFavorited = false
   let isUpdatingFavorite = false
 
+  // State for public functionality
+  let isUpdatingPublic = false
+  let showPublicConfirmModal = false
+
   // Check if consumption is favorited on page load
   async function checkFavoriteStatus() {
-    if (!data.consumption?.id) return
+    if (!data.consumption?.id || data.isUnauthenticated) {
+      // Skip favorites check for unauthenticated users
+      isFavorited = false
+      return
+    }
 
     try {
       const result = await handleApiCallWithAuthRedirect(async () => {
@@ -34,7 +47,7 @@
 
   // Toggle favorite status
   async function toggleFavorite() {
-    if (!data.consumption?.id || isUpdatingFavorite) return
+    if (!data.consumption?.id || isUpdatingFavorite || data.isUnauthenticated) return
 
     isUpdatingFavorite = true
 
@@ -110,6 +123,75 @@
     data = { ...data, consumption: event.detail.consumption }
   }
 
+  // Toggle public status with confirmation
+  function handlePublicToggle() {
+    if (!data.consumption?.is_public) {
+      // Making public - show confirmation modal
+      showPublicConfirmModal = true
+    } else {
+      // Making private - toggle directly
+      togglePublicStatus(false)
+    }
+  }
+
+  function confirmMakePublic() {
+    showPublicConfirmModal = false
+    togglePublicStatus(true)
+  }
+
+  function cancelMakePublic() {
+    showPublicConfirmModal = false
+  }
+
+  async function togglePublicStatus(isPublic: boolean) {
+    if (!data.consumption?.id || isUpdatingPublic) return
+
+    isUpdatingPublic = true
+
+    try {
+      const result = await handleApiCallWithAuthRedirect(async () => {
+        return await apiClient.PUT("/consumption/{id}", {
+          params: { path: { id: data.consumption!.id } },
+          body: {
+            items: data.consumption!.items,
+            is_public: isPublic,
+          }
+        })
+      })
+
+      if (result.error) {
+        toast.error(formatErrorForUser(result.error))
+        return
+      }
+
+      // Update local state
+      if (result.data) {
+        data = { ...data, consumption: result.data }
+      }
+      toast.success(isPublic ? "Consumption is now public" : "Consumption is now private")
+    } catch (err) {
+      console.error("Failed to toggle public status:", err)
+      toast.error("Failed to update public status. Please try again.")
+    } finally {
+      isUpdatingPublic = false
+    }
+  }
+
+  // Copy public link to clipboard
+  async function copyPublicLink() {
+    if (!data.consumption?.is_public || !data.consumption?.id) return
+
+    const publicUrl = `${window.location.origin}/consumptions/${data.consumption.id}`
+    
+    try {
+      await navigator.clipboard.writeText(publicUrl)
+      toast.success("Public link copied to clipboard")
+    } catch (err) {
+      console.error("Failed to copy to clipboard:", err)
+      toast.error("Failed to copy link. Please try again.")
+    }
+  }
+
   // Check favorite status when page loads
   checkFavoriteStatus()
 </script>
@@ -120,35 +202,119 @@
 
 <div class="min-h-full bg-base-100">
   <div class="container mx-auto px-4 py-6 max-w-4xl">
-    <div class="mb-4">
-      <a class="btn btn-ghost btn-sm" href="/summary">← Back</a>
-    </div>
+    <!-- Back button (only show for authenticated users) -->
+    {#if !data.isUnauthenticated}
+      <div class="mb-4">
+        <a class="btn btn-ghost btn-sm" href="/summary">← Back</a>
+      </div>
+    {/if}
 
-    <div class="mb-4 flex items-center justify-between">
-      <div>
+    <!-- Error handling for consumption not found -->
+    {#if data.error || !data.consumption}
+      <div class="card bg-error/10 text-error shadow-lg">
+        <div class="card-body">
+          <div class="flex items-center gap-3 mb-4">
+            <ExclamationTriangle className="w-10 h-10"/>
+            <div>
+              <h2 class="card-title text-lg">Consumption Not Found</h2>
+              <p class="text-sm text-error/80 mt-1">
+                {data.error || "The consumption you're looking for doesn't exist or you don't have permission to view it."}
+              </p>
+            </div>
+          </div>
+          
+          <div class="text-sm text-error/70 mb-4">
+            <p>This could happen if:</p>
+            <ul class="list-disc list-inside mt-2 space-y-1">
+              <li>The consumption is private and you're not logged in</li>
+              <li>The consumption doesn't exist or has been deleted</li>
+              <li>You don't have permission to view this consumption</li>
+            </ul>
+          </div>
+
+          <div class="card-actions justify-end">
+            {#if data.isUnauthenticated}
+              <a class="btn btn-outline btn-sm" href="/login">Log In</a>
+              <a class="btn btn-primary btn-sm" href="/">Go to Home</a>
+            {:else}
+              <a class="btn btn-primary btn-sm" href="/summary">Return to Summary</a>
+            {/if}
+          </div>
+        </div>
+      </div>
+    {:else}
+
+    <div class="mb-4">
+      <!-- Header with title and metadata -->
+      <div class="mb-3">
         <h1 class="text-2xl font-bold">Consumption Details</h1>
         {#if data.consumption?.created_at}
           <p class="text-sm text-base-content/60">
             {new Date(data.consumption.created_at).toLocaleString()}
           </p>
         {/if}
+        {#if data.consumption?.is_public}
+          <div class="badge badge-success badge-sm mt-1">Public</div>
+        {/if}
       </div>
       
-      <!-- Star button for favorites -->
-      {#if data.consumption?.id}
-        <button
-          class="btn btn-ghost"
-          class:loading={isUpdatingFavorite}
-          on:click={toggleFavorite}
-          disabled={isUpdatingFavorite}
-          title={isFavorited ? "Remove from favorites" : "Add to favorites"}
-        >
-          {#if isUpdatingFavorite}
-            <span class="loading loading-spinner loading-sm"></span>
-          {:else}
-            <span class="text-2xl">{isFavorited ? "⭐" : "☆"}</span>
-          {/if}
-        </button>
+      <!-- Action buttons - stacked on mobile, row on larger screens -->
+      {#if data.consumption?.id && !data.isUnauthenticated}
+        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Copy link button (only shown if public) -->
+            {#if data.consumption.is_public}
+              <button
+                class="btn btn-outline btn-sm flex-shrink-0"
+                on:click={copyPublicLink}
+                title="Copy public link"
+              >
+                <Square2Stack className="w-4 h-4"/>
+                Copy Link
+              </button>
+            {/if}
+
+            <!-- Public/Private toggle -->
+            <button
+              class="btn btn-outline btn-sm flex-shrink-0"
+              class:loading={isUpdatingPublic}
+              on:click={handlePublicToggle}
+              disabled={isUpdatingPublic}
+              title={data.consumption.is_public ? "Make private" : "Make public"}
+            >
+              {#if isUpdatingPublic}
+                <span class="loading loading-spinner loading-sm"></span>
+              {:else}
+                {#if data.consumption.is_public}
+                  <Lock className="w-4 h-4"/>
+                  Make Private
+                {:else}
+                  <Globe className="w-4 h-4"/>
+                  Make Public
+                {/if}
+              {/if}
+            </button>
+
+            <!-- Star button for favorites -->
+            <button
+              class="btn btn-ghost btn-sm flex-shrink-0"
+              class:loading={isUpdatingFavorite}
+              on:click={toggleFavorite}
+              disabled={isUpdatingFavorite}
+              title={isFavorited ? "Remove from favorites" : "Add to favorites"}
+            >
+              {#if isUpdatingFavorite}
+                <span class="loading loading-spinner loading-sm"></span>
+              {:else}
+                <Star 
+                  className={isFavorited ? "w-5 h-5 text-honey" : "w-5 h-5"} 
+                  filled={isFavorited}
+                  title={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                />
+              {/if}
+            </button>
+          </div>
+        </div>
       {/if}
     </div>
 
@@ -157,12 +323,39 @@
       transcript={data.consumption?.transcript || ""}
       showRedoButton={false}
       autoShowLabelEdit={false}
-      editable={true}
+      editable={!data.isUnauthenticated}
       buttonsAtBottom={true}
       preloadGoalsAuto={data.goalsAuto}
       preloadGoalsDri={data.goalsDri}
+      isUnauthenticated={data.isUnauthenticated}
       on:delete={handleDelete}
       on:save={handleSave}
     />
+    {/if}
   </div>
 </div>
+
+<!-- Confirmation modal for making consumption public -->
+{#if showPublicConfirmModal}
+  <div class="modal modal-open">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg">Make Consumption Public?</h3>
+      <p class="py-4">
+        This will make your consumption viewable by anyone with the link. 
+        The following information will be publicly visible:
+      </p>
+      <ul class="list-disc list-inside space-y-1 text-sm text-base-content/80 mb-4">
+        <li>Food items and nutrition data</li>
+        <li>Title (if set)</li>
+        <li>Consumption date</li>
+      </ul>
+      <p class="text-sm text-base-content/80 mb-4">
+        <strong>Private information like labels and notes will remain hidden.</strong>
+      </p>
+      <div class="modal-action">
+        <button class="btn btn-outline" on:click={cancelMakePublic}>Cancel</button>
+        <button class="btn btn-primary" on:click={confirmMakePublic}>Make Public</button>
+      </div>
+    </div>
+  </div>
+{/if}
