@@ -7,6 +7,7 @@
   import type { PageData } from "./$types"
   import Square2Stack from "$lib/components/icons/Square2Stack.svelte"
   import Lock from "$lib/components/icons/Lock.svelte"
+  import Star from "$lib/components/icons/Star.svelte"
 
   export let data: PageData
 
@@ -306,7 +307,11 @@
             {#if isUpdatingFavorite}
               <span class="loading loading-spinner loading-sm"></span>
             {:else}
-              <span class="text-2xl">{isFavorited ? "⭐" : "☆"}</span>
+              <Star 
+                className={isFavorited ? "w-6 h-6 text-honey" : "w-6 h-6"} 
+                filled={isFavorited}
+                title={isFavorited ? "Remove from favorites" : "Add to favorites"}
+              />
             {/if}
           </button>
         {/if}
