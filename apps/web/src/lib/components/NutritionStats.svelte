@@ -13,30 +13,34 @@
 </script>
 
 {#if size === "minimal"}
-  <!-- Minimal version for cards -->
+  <!-- Minimal version for cards - responsive layout -->
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 {className}">
+    <!-- Mobile: compact layout, Desktop: original layout -->
     <div class="flex flex-col items-center text-center">
-      <Zap className="w-8 h-8 text-honey mb-1" />
-      <div class="text-xxl font-bold text-honey">{calories}</div>
-      <div class="text-xs text-gray-500">calories</div>
+      <Zap className="w-5 h-5 sm:w-8 sm:h-8 text-honey mb-0.5 sm:mb-1" />
+      <div class="text-sm sm:text-xxl font-bold text-honey">{calories}</div>
+      <div class="text-[10px] sm:text-xs text-gray-500 leading-none sm:leading-normal">
+        <span class="sm:hidden">cal</span>
+        <span class="hidden sm:inline">calories</span>
+      </div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Dumbbell className="w-8 h-8 text-secondary mb-1" />
-      <div class="text-lg font-bold text-secondary">{protein.toFixed(1)}g</div>
-      <div class="text-xs text-gray-500">protein</div>
+      <Dumbbell className="w-5 h-5 sm:w-8 sm:h-8 text-secondary mb-0.5 sm:mb-1" />
+      <div class="text-sm sm:text-lg font-bold text-secondary">{protein.toFixed(1)}g</div>
+      <div class="text-[10px] sm:text-xs text-gray-500 leading-none sm:leading-normal">protein</div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Avocado className="w-8 h-8 text-accent mb-1" />
-      <div class="text-lg font-bold text-accent">{fat.toFixed(1)}g</div>
-      <div class="text-xs text-gray-500">fat</div>
+      <Avocado className="w-5 h-5 sm:w-8 sm:h-8 text-accent mb-0.5 sm:mb-1" />
+      <div class="text-sm sm:text-lg font-bold text-accent">{fat.toFixed(1)}g</div>
+      <div class="text-[10px] sm:text-xs text-gray-500 leading-none sm:leading-normal">fat</div>
     </div>
 
     <div class="flex flex-col items-center text-center">
-      <Wheat className="w-8 h-8 text-warning mb-1" />
-      <div class="text-lg font-bold text-warning">{carbs.toFixed(1)}g</div>
-      <div class="text-xs text-gray-500">carbs</div>
+      <Wheat className="w-5 h-5 sm:w-8 sm:h-8 text-warning mb-0.5 sm:mb-1" />
+      <div class="text-sm sm:text-lg font-bold text-warning">{carbs.toFixed(1)}g</div>
+      <div class="text-[10px] sm:text-xs text-gray-500 leading-none sm:leading-normal">carbs</div>
     </div>
   </div>
 {:else}

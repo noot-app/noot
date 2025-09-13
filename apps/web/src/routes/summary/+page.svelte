@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { goto } from "$app/navigation"
   import { apiClient } from "$lib/api/client"
   import { onMount } from "svelte"
   import NutritionStats from "$lib/components/NutritionStats.svelte"
   import Goals from "$lib/components/Goals.svelte"
   import ConsumptionCard from "$lib/components/ConsumptionCard.svelte"
+  import Label from "$lib/components/Label.svelte"
   import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
   import Bolt from "$lib/components/icons/Bolt.svelte"
   import Wheat from "$lib/components/icons/Wheat.svelte"
@@ -341,22 +343,84 @@
 
           <!-- Individual Consumptions -->
           <div class="card bg-base-200 shadow-xl">
-            <div class="card-body">
-              <h2 class="card-title mb-4">
+            <div class="card-body p-4 sm:p-6">
+              <h2 class="card-title mb-6">
                 Today's Consumptions
               </h2>
-              <div class="space-y-4">
+              <div class="space-y-3">
                 {#each consumptionsData.consumptions as consumption}
-                  <ConsumptionCard
-                    {consumption}
-                    mode="readonly"
-                    clickable={true}
-                    variant="compact"
-                    showNutrition={true}
-                    showLabels={true}
-                    showTimestamp={true}
-                    showNote={true}
-                  />
+                  <!-- svelte-ignore a11y-click-events-have-key-events -->
+                  <!-- svelte-ignore a11y-no-static-element-interactions -->
+                  <div 
+                    class="consumption-item group cursor-pointer"
+                    on:click={() => goto(`/consumptions/${consumption.id}`)}
+                  >
+                    <!-- Time indicator (desktop only) -->
+                    <div class="time-indicator desktop-only">
+                      <div class="time-text">
+                        {new Date(consumption.created_at).toLocaleTimeString('en-US', { 
+                          hour: 'numeric', 
+                          minute: '2-digit',
+                          hour12: true 
+                        })}
+                      </div>
+                    </div>
+                    
+                    <!-- Main content -->
+                    <div class="consumption-content">
+                      <!-- Header with title -->
+                      <div class="consumption-header">
+                        <h3 class="consumption-title">
+                          {consumption.title || consumption.transcript}
+                        </h3>
+                        <!-- Quick nutrition stats -->
+                        <div class="nutrition-quick">
+                          <span class="nutrition-stat calories">
+                            {consumption.summary?.totals?.calories || 0} cal
+                          </span>
+                          <span class="nutrition-stat protein">
+                            {(consumption.summary?.totals?.protein_g || 0).toFixed(1)}g protein
+                          </span>
+                          <span class="nutrition-stat carbs">
+                            {(consumption.summary?.totals?.total_carbs_g || 0).toFixed(1)}g carbs
+                          </span>
+                          <span class="nutrition-stat fat">
+                            {(consumption.summary?.totals?.total_fat_g || 0).toFixed(1)}g fat
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <!-- Labels and mobile timestamp -->
+                      <div class="bottom-section">
+                        <!-- Labels (always takes up left space, even if empty) -->
+                        <div class="consumption-labels">
+                          {#if consumption.labels && consumption.labels.length > 0}
+                            {#each consumption.labels.slice(0, 6) as label}
+                              <Label 
+                                name={label.name} 
+                                color={label.color} 
+                                size="xs"
+                              />
+                            {/each}
+                            {#if consumption.labels.length > 6}
+                              <span class="label-more">+{consumption.labels.length - 6}</span>
+                            {/if}
+                          {/if}
+                        </div>
+                        
+                        <!-- Time indicator (mobile only) - always on the right -->
+                        <div class="time-indicator mobile-only">
+                          <div class="time-text mobile-time">
+                            {new Date(consumption.created_at).toLocaleTimeString('en-US', { 
+                              hour: 'numeric', 
+                              minute: '2-digit',
+                              hour12: true 
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 {/each}
               </div>
             </div>
@@ -368,52 +432,183 @@
 </div>
 
 <style>
-  .stat-tile {
-    background: var(--color-base-100);
-    border: 2px solid transparent;
-    border-radius: 0.75rem;
-    padding: 0.8rem 0.6rem;
-    min-height: 92px;
+  /* === CONSUMPTION TIMELINE STYLES === */
+  .consumption-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 1rem;
+    transition: all 0.2s ease;
     position: relative;
+    overflow: hidden;
+  }
+
+  .consumption-item:hover {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+  }
+
+  /* === TIME INDICATOR STYLES === */
+  .time-indicator {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    gap: 0.25rem;
+    padding-top: 0.125rem;
+    min-width: 60px;
   }
-  .stat-tile.warning-border { 
-    border-color: var(--color-warning); 
-    border-color: color-mix(in srgb, var(--color-warning) 20%, transparent);
-  }
-  .stat-tile.accent-border { 
-    border-color: var(--color-accent); 
-    border-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
-  }
-  .stat-tile.secondary-border { 
-    border-color: var(--color-secondary); 
-    border-color: color-mix(in srgb, var(--color-secondary) 20%, transparent);
-  }
-  .stat-tile.honey-border { 
-    border-color: var(--color-honey); 
-    border-color: color-mix(in srgb, var(--color-honey) 20%, transparent);
-  }
-  .tile-label { 
-    font-size: 0.58rem; 
-    text-transform: uppercase; 
-    letter-spacing: 0.08em; 
-    font-weight: 600; 
-    color: var(--color-base-content-lighter); 
-  }
-  .tile-value { 
-    font-size: 1.35rem; 
-    font-weight: 600; 
-    line-height: 1.1; 
-    display: flex; 
-    align-items: baseline; 
+
+  .time-text {
+    font-size: 0.75rem;
+    font-weight: 600;
     color: var(--color-base-content);
+    text-align: center;
+    white-space: nowrap;
+    background: rgba(var(--color-primary-rgb), 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(var(--color-primary-rgb), 0.2);
   }
-  .tile-value .unit { font-size: 0.65rem; opacity: 0.65; font-weight: 500; }
+
+  /* === RESPONSIVE VISIBILITY === */
+  .mobile-only { display: none; }
+  .desktop-only { display: flex; }
+
+  /* === CONTENT LAYOUT === */
+  .consumption-content { min-width: 0; }
+  .consumption-header { margin-bottom: 0.75rem; }
+  .bottom-section { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 0.5rem; 
+  }
+
+  .consumption-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-base-content);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* === NUTRITION STATS === */
+  .nutrition-quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .nutrition-stat {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid;
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  .nutrition-stat.calories {
+    color: var(--color-honey);
+    border-color: rgba(var(--color-honey-rgb), 0.3);
+  }
+  .nutrition-stat.protein {
+    color: var(--color-secondary);
+    border-color: rgba(var(--color-secondary-rgb), 0.3);
+  }
+  .nutrition-stat.carbs {
+    color: var(--color-warning);
+    border-color: rgba(var(--color-warning-rgb), 0.3);
+  }
+  .nutrition-stat.fat {
+    color: var(--color-accent);
+    border-color: rgba(var(--color-accent-rgb), 0.3);
+  }
+
+  /* === LABELS === */
+  .consumption-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-top: 0.5rem;
+  }
+
+  .label-more {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-base-content-lighter);
+    padding: 0.1875rem 0.5rem;
+  }
+
+  /* === MOBILE RESPONSIVE === */
+  @media (max-width: 640px) {
+    .desktop-only { display: none; }
+    .mobile-only { display: flex; }
+    
+    .consumption-item {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+      padding: 0.75rem;
+    }
+    
+    .consumption-header { margin-bottom: 0.5rem; }
+    .consumption-title {
+      font-size: 1rem;
+      margin-bottom: 0.375rem;
+      -webkit-line-clamp: 1;
+      line-clamp: 1;
+    }
+    
+    .nutrition-quick {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.375rem;
+    }
+    
+    .nutrition-stat {
+      font-size: 0.6875rem;
+      padding: 0.1875rem 0.375rem;
+      text-align: center;
+    }
+    
+    .bottom-section {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    
+    .consumption-labels {
+      flex: 1;
+      margin-top: 0;
+    }
+    
+    .mobile-time {
+      font-size: 0.6875rem;
+      padding: 0.1875rem 0.375rem;
+      flex-shrink: 0;
+    }
+  }
+
   @media (max-width: 440px) {
-    .stat-tile { min-height: 82px; padding: 0.65rem 0.7rem; }
-    .tile-value { font-size: 1.2rem; }
+    .nutrition-stat {
+      font-size: 0.625rem;
+      padding: 0.125rem 0.25rem;
+    }
+    
+    .mobile-time {
+      font-size: 0.625rem;
+      padding: 0.125rem 0.25rem;
+    }
   }
 </style>
