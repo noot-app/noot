@@ -235,7 +235,6 @@
     width: 100%;
     max-width: 768px;
     margin: 0 auto;
-    padding: 0 1rem;
   }
 
   .chat-input-wrapper {

@@ -69,7 +69,7 @@
 
   $: spacingClass = variant === 'minimal' ? 'space-y-1.5' : variant === 'compact' ? 'space-y-2' : 'space-y-3'
   $: innerPaddingClass = variant === 'minimal' ? 'px-2' : variant === 'compact' ? 'px-3' : 'px-4'
-  $: nutritionSize = variant === 'minimal' ? 'minimal' as const : 'compact' as const
+  $: nutritionSize = variant === 'minimal' ? 'minimal' as const : variant === 'compact' ? 'minimal' as const : 'compact' as const
 </script>
 
 <div class="card bg-base-200 {className}">

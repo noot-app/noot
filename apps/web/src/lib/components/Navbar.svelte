@@ -1,26 +1,7 @@
 <script lang="ts">
   import { page } from "$app/stores"
 
-  import TagIcon from "$lib/components/icons/Tag.svelte"
-  import UserIcon from "$lib/components/icons/User.svelte"
-  import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
-  import SquaresTwoByTwo from "$lib/components/icons/SquaresTwoByTwo.svelte"
-  import MicrophoneIcon from "$lib/components/icons/Microphone.svelte"
-  import CalendarIcon from "$lib/components/icons/calendar-days.svelte"
-  import TimelineIcon from "$lib/components/icons/Timeline.svelte"
-  import CursorArrowRaysIcon from "./icons/CursorArrowRays.svelte"
-
-  // Navigation items
-  const navItems = [
-    { href: "/record", label: "Record", icon: "microphone" },
-    { href: "/quick", label: "Quick", icon: "cursor-arrow-rays" },
-    { href: "/summary", label: "Summary", icon: "chart-bar" },
-    { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
-    { href: "/log", label: "Log", icon: "timeline" },
-    { href: "/events", label: "Events", icon: "calendar" },
-    { href: "/labels", label: "Labels", icon: "tag" },
-    { href: "/profile", label: "Profile", icon: "user" },
-  ]
+  import { topNavItems, getIconComponent } from "$lib/navigation/navigation"
 
   $: currentPath = $page.url.pathname
 </script>
@@ -68,44 +49,14 @@
         tabindex="0"
         class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52"
       >
-        {#each navItems as item}
+        {#each topNavItems as item}
           <li>
             <a
               href={item.href}
               class="flex items-center gap-3 py-3 px-4 min-h-[44px]"
               class:active={currentPath === item.href}
             >
-              {#if item.icon === "tag"}
-                <TagIcon className="w-6 h-6" />
-              {:else if item.icon === "user"}
-                <UserIcon className="w-6 h-6" />
-              {:else if item.icon === "chart-bar"}
-                <ChartBarIcon className="w-6 h-6" />
-              {:else if item.icon === "dashboard"}
-                <SquaresTwoByTwo className="w-6 h-6" />
-              {:else if item.icon === "microphone"}
-                <MicrophoneIcon className="w-6 h-6" />
-              {:else if item.icon === "calendar"}
-                <CalendarIcon className="w-6 h-6" />
-              {:else if item.icon === "timeline"}
-                <TimelineIcon className="w-6 h-6" />
-              {:else if item.icon === "cursor-arrow-rays"}
-                <CursorArrowRaysIcon className="w-6 h-6" />
-              {:else}
-                <svg
-                  class="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d={item.icon}
-                  />
-                </svg>
-              {/if}
+              <svelte:component this={getIconComponent(item.icon)} className="w-6 h-6" />
               {item.label}
             </a>
           </li>
@@ -116,44 +67,14 @@
     <!-- Desktop navigation -->
     <div class="hidden lg:flex">
       <ul class="menu menu-horizontal px-1">
-        {#each navItems as item}
+        {#each topNavItems as item}
           <li>
             <a
               href={item.href}
               class="flex items-center gap-2"
               class:active={currentPath === item.href}
             >
-              {#if item.icon === "tag"}
-                <TagIcon className="w-4 h-4" />
-              {:else if item.icon === "user"}
-                <UserIcon className="w-4 h-4" />
-              {:else if item.icon === "chart-bar"}
-                <ChartBarIcon className="w-4 h-4" />
-              {:else if item.icon === "dashboard"}
-                <SquaresTwoByTwo className="w-4 h-4" />
-              {:else if item.icon === "microphone"}
-                <MicrophoneIcon className="w-4 h-4" />
-              {:else if item.icon === "calendar"}
-                <CalendarIcon className="w-4 h-4" />
-              {:else if item.icon === "timeline"}
-                <TimelineIcon className="w-4 h-4" />
-              {:else if item.icon === "cursor-arrow-rays"}
-                <CursorArrowRaysIcon className="w-4 h-4" />
-              {:else}
-                <svg
-                  class="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d={item.icon}
-                  />
-                </svg>
-              {/if}
+              <svelte:component this={getIconComponent(item.icon)} className="w-4 h-4" />
               {item.label}
             </a>
           </li>

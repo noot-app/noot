@@ -18,6 +18,7 @@
   export let title = "Nutrition Goals" // Customizable title
   export let hideGoalsMet = false // Hide the "Goals Met" section when true
   export let showAllCategories = false // Force show all categories (for summary page)
+  export let hideSummaryStats = false // New: hide final stats bar (Goals Met / Source) so parent can layout differently
   // Optional: preloaded goals for 'auto' and 'dri' sources; if provided, component will use them
   export let preloadGoalsAuto: Goals | null = null
   export let preloadGoalsDri: Goals | null = null
@@ -386,43 +387,46 @@
                     </div>
                   </div>
                 {/if}
+
+                <!-- Educational text -->
+                <div class="text-xs text-base-content/60 mt-3 pt-3 border-t border-base-300">
+                  <strong>Natural sugars</strong> come from whole foods (fruits, vegetables, dairy). 
+                  <strong>Added sugars</strong> are added during processing.
+                </div>
               </div>
             </div>
           {/if}
 
-          <div
-            class="stats stats-vertical lg:stats-horizontal bg-base-100 shadow-sm mt-6"
-          >
-            {#if !hideGoalsMet}
-              <div class="stat">
-                <div class="stat-title">Goals Met</div>
-                <div class="stat-value text-lg">
-                  {metGoals}
-                  <span class="text-sm">/{availableNutrients.length}</span>
+          {#if !hideSummaryStats}
+            <div class="goals-footer-stats mt-6">
+              {#if !hideGoalsMet}
+                <div class="stat-block">
+                  <div class="stat-title text-xs uppercase tracking-wide mb-1">Goals Met</div>
+                  <div class="stat-value text-lg font-semibold">
+                    {metGoals}<span class="text-sm opacity-70">/{availableNutrients.length}</span>
+                  </div>
+                  <div class="stat-desc text-xs opacity-70">≥80% of target</div>
                 </div>
-                <div class="stat-desc">≥80% of target</div>
-              </div>
-            {/if}
-            <div class="stat">
-              <div class="stat-title">Source</div>
-              <div class="stat-value text-lg flex items-center gap-2">
-                {goals.source === "custom"
-                  ? goals.custom_name || "Custom"
-                  : "DRI"}
-                <!-- Info button for modal -->
-                {#if goals.source === "custom"}
-                  <InfoButton modalId="custom-goals-info" />
-                {:else}
-                  <InfoButton modalId="dri-info" />
-                {/if}
-              </div>
-              <div class="stat-desc">
-                {goals.source === "custom"
-                  ? "Custom Nutrition Goal"
-                  : "Nutrition guidelines"}
+              {/if}
+              {#if !hideGoalsMet}
+                <div class="goals-footer-divider" aria-hidden="true"></div>
+              {/if}
+              <div class="stat-block">
+                <div class="stat-title text-xs uppercase tracking-wide mb-1">Source</div>
+                <div class="stat-value text-lg font-semibold flex items-center gap-2">
+                  {goals.source === "custom" ? goals.custom_name || "Custom" : "DRI"}
+                  {#if goals.source === "custom"}
+                    <InfoButton modalId="custom-goals-info" />
+                  {:else}
+                    <InfoButton modalId="dri-info" />
+                  {/if}
+                </div>
+                <div class="stat-desc text-xs opacity-70">
+                  {goals.source === "custom" ? "Custom Nutrition Goal" : "Nutrition guidelines"}
+                </div>
               </div>
             </div>
-          </div>
+          {/if}
         {/if}
       </div>
     {/if}
@@ -486,7 +490,7 @@
       </p>
     </div>
     <div class="modal-action">
-      <label for="sugar-info-modal" class="btn btn-primary">Got it!</label>
+      <label for="sugar-info-modal" class="btn btn-primary">Close</label>
     </div>
   </div>
   <label class="modal-backdrop" for="sugar-info-modal">Close</label>
@@ -556,7 +560,7 @@
           />
         </svg>
       </a>
-      <label for="dri-info" class="btn btn-primary">Got it!</label>
+      <label for="dri-info" class="btn btn-primary">Close</label>
     </div>
   </div>
   <label class="modal-backdrop" for="dri-info">Close</label>
@@ -640,7 +644,7 @@
       {/if}
     </div>
     <div class="modal-action">
-      <label for="custom-goals-info" class="btn btn-primary">Got it!</label>
+      <label for="custom-goals-info" class="btn btn-primary">Close</label>
     </div>
   </div>
   <label class="modal-backdrop" for="custom-goals-info">Close</label>
@@ -653,5 +657,31 @@
 
   .goals-subheader {
     color: var(--color-base-content);
+  }
+
+  .goals-footer-stats {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    background: var(--color-base-100);
+    border: 1px solid var(--color-base-300);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    position: relative;
+  }
+  .goals-footer-stats .stat-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 72px;
+  }
+  .goals-footer-divider {
+    width: 0;
+    border-left: 2px dotted var(--color-base-300);
+    margin: 0 1rem;
+  }
+  @media (min-width: 640px) {
+    .goals-footer-stats { padding: 1rem 1.25rem; }
   }
 </style>

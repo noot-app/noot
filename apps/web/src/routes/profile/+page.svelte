@@ -1384,17 +1384,18 @@
           <div class="card-body p-6">
             <div class="flex items-center justify-between mb-4">
               <h2 class="card-title flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Disabled Nutrients
-                <div class="badge badge-info badge-sm">Pro</div>
               </h2>
-              <button 
+              <button
                 class="btn btn-primary btn-sm"
                 on:click={openDisabledNutrientsModal}
+                aria-label="Manage disabled nutrients"
               >
-                Manage Disabled Nutrients
+                <span class="sm:hidden">Manage</span>
+                <span class="hidden sm:inline">Manage Disabled Nutrients</span>
               </button>
             </div>
 
@@ -1630,10 +1631,17 @@
         <div class="card-body p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="card-title flex items-center gap-2">
-              <TagIcon className="w-5 h-5" />
+              <TagIcon className="w-5 h-5 flex-shrink-0" />
               Your Labels
             </h2>
-            <a href="/labels" class="btn btn-primary btn-sm"> Manage Labels </a>
+            <a
+              href="/labels"
+              class="btn btn-primary btn-sm"
+              aria-label="Manage labels"
+            >
+              <span class="sm:hidden">Manage</span>
+              <span class="hidden sm:inline">Manage Labels</span>
+            </a>
           </div>
 
           {#if labelsLoading}
@@ -1697,10 +1705,17 @@
         <div class="card-body p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="card-title flex items-center gap-2">
-              <CalendarDaysIcon className="w-5 h-5" />
+              <CalendarDaysIcon className="w-5 h-5 flex-shrink-0" />
               Your Events
             </h2>
-            <a href="/events" class="btn btn-primary btn-sm"> Manage Events </a>
+            <a
+              href="/events"
+              class="btn btn-primary btn-sm"
+              aria-label="Manage events"
+            >
+              <span class="sm:hidden">Manage</span>
+              <span class="hidden sm:inline">Manage Events</span>
+            </a>
           </div>
 
           {#if eventTypesLoading}
@@ -1876,11 +1891,16 @@
       <span>This action cannot be undone.</span>
     </div>
     {#if goalSets.length === 1}
-      <div class="bg-info/10 p-3 rounded-lg">
-        <p class="text-sm text-info-content">
-          🧬 This is your last custom goal set. Deleting it will return you to
-          DRI (Dietary Reference Intakes) defaults.
-        </p>
+      <div class="alert alert-info">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div class="text-sm">
+          <div class="font-semibold mb-1">Last Custom Goal Set</div>
+          <div>
+            This is your last custom goal set. Deleting it will return you to DRI (Dietary Reference Intakes) defaults.
+          </div>
+        </div>
       </div>
     {/if}
   </div>
