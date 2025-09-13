@@ -4,6 +4,7 @@
   import { toast } from "$lib/stores/toast"
   import { formatErrorForUser, handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import TimelineIcon from "$lib/components/icons/Timeline.svelte"
+  import Label from "$lib/components/Label.svelte"
   import type { paths } from "$lib/api/schema"
 
   // Type definitions
@@ -392,9 +393,11 @@
                   {#if consumption.labels && consumption.labels.length > 0}
                     <div class="flex flex-wrap gap-2">
                       {#each consumption.labels as label}
-                        <span class="px-2 py-1 text-xs bg-base-200 text-base-content/80 rounded-md">
-                          {label.name}
-                        </span>
+                        <Label 
+                          name={label.name} 
+                          color={label.color} 
+                          size="xs"
+                        />
                       {/each}
                     </div>
                   {/if}
