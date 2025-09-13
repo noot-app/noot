@@ -1,12 +1,12 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte"
   import { apiClient } from "$lib/api/client"
-  import Label from "./Label.svelte"
+  import LabelComponent from "./Label.svelte"
   import TagIcon from "./icons/Tag.svelte"
   import Alert from "./Alert.svelte"
+  import type { Label } from '$lib/types/common'
 
   // Props
-  import type { Label } from '$lib/types/common'
   
   export let consumptionId: string
   export let initialLabels: Label[] = [] // Labels already on the consumption
@@ -236,7 +236,7 @@
             {#each currentLabels as labelName}
               {@const labelData = availableLabels.find((l) => l.name === labelName)}
               {#if labelData}
-                <Label name={labelData.name} color={labelData.color} />
+                <LabelComponent name={labelData.name} color={labelData.color} />
               {/if}
             {/each}
           </div>

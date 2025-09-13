@@ -9,7 +9,11 @@
   
   function handleBack() {
     if (showBack) {
-      goto(-1) || goto("/")
+      try {
+        history.back()
+      } catch {
+        goto("/")
+      }
     }
   }
 </script>

@@ -24,4 +24,3 @@
 >
   <slot />
 </svg>
-</script>

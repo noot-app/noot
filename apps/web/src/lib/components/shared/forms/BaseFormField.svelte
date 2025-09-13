@@ -1,7 +1,7 @@
 <script lang="ts">
   export let label: string
   export let id: string
-  export let type: "text" | "email" | "password" | "number" | "tel" | "url" | "textarea" | "select" = "text"
+  export let type: "text" | "email" | "password" | "number" | "tel" | "url" | "date" | "datetime-local" | "textarea" | "select" = "text"
   export let value: string | number = ""
   export let placeholder: string = ""
   export let required: boolean = false

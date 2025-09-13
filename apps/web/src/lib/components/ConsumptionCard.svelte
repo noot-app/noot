@@ -186,7 +186,7 @@
                 }
               }}
               role={isClickable ? 'button' : undefined}
-              tabindex={isClickable ? 0 : undefined}
+              tabindex={isClickable ? "0" : undefined}
             >
               <!-- Subtle hover gradient overlay -->
               {#if isClickable}
@@ -426,7 +426,7 @@
             }
           }}
           role={isClickable ? 'button' : undefined}
-          tabindex={isClickable ? 0 : undefined}
+          tabindex={isClickable ? "0" : undefined}
         >
           <!-- Subtle hover gradient overlay -->
           {#if isClickable}

@@ -614,7 +614,7 @@
                 </svg>
               {:else}
                 <!-- Microphone icon -->
-                <MicrophoneIcon className="w-20 h-20" strokeWidth={2.5} />
+                <Microphone className="w-20 h-20" strokeWidth={2.5} />
               {/if}
             </button>
           </div>
@@ -722,7 +722,7 @@
         aria-label="Switch to {isTextMode ? 'voice' : 'text'} mode"
       >
         {#if isTextMode}
-          <MicrophoneIcon className="w-5 h-5" />
+          <Microphone className="w-5 h-5" />
         {:else}
           <PencilSquareIcon className="w-5 h-5" />
         {/if}
