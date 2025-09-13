@@ -1423,12 +1423,6 @@
                 <p class="text-sm text-base-content/70 mb-3">
                   All nutrients are currently shown in charts and summaries.
                 </p>
-                <button 
-                  class="btn btn-primary btn-sm"
-                  on:click={openDisabledNutrientsModal}
-                >
-                  Disable Your First Nutrients
-                </button>
               </div>
             {/if}
           </div>
