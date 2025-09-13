@@ -8,6 +8,7 @@
   import Square2Stack from "$lib/components/icons/Square2Stack.svelte"
   import Lock from "$lib/components/icons/Lock.svelte"
   import Star from "$lib/components/icons/Star.svelte"
+  import Globe from "$lib/components/icons/Globe.svelte"
 
   export let data: PageData
 
@@ -243,8 +244,9 @@
       </div>
     {:else}
 
-    <div class="mb-4 flex items-center justify-between">
-      <div>
+    <div class="mb-4">
+      <!-- Header with title and metadata -->
+      <div class="mb-3">
         <h1 class="text-2xl font-bold">Consumption Details</h1>
         {#if data.consumption?.created_at}
           <p class="text-sm text-base-content/60">
@@ -256,66 +258,64 @@
         {/if}
       </div>
       
-      <div class="flex items-center gap-2">
-        <!-- Public/Private toggle and copy link (only for authenticated users) -->
-        {#if data.consumption?.id && !data.isUnauthenticated}
-          <!-- Copy link button (only shown if public) -->
-          {#if data.consumption.is_public}
+      <!-- Action buttons - stacked on mobile, row on larger screens -->
+      {#if data.consumption?.id && !data.isUnauthenticated}
+        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Copy link button (only shown if public) -->
+            {#if data.consumption.is_public}
+              <button
+                class="btn btn-outline btn-sm flex-shrink-0"
+                on:click={copyPublicLink}
+                title="Copy public link"
+              >
+                <Square2Stack className="w-4 h-4"/>
+                Copy Link
+              </button>
+            {/if}
+
+            <!-- Public/Private toggle -->
             <button
-              class="btn btn-outline btn-sm"
-              on:click={copyPublicLink}
-              title="Copy public link"
+              class="btn btn-outline btn-sm flex-shrink-0"
+              class:loading={isUpdatingPublic}
+              on:click={handlePublicToggle}
+              disabled={isUpdatingPublic}
+              title={data.consumption.is_public ? "Make private" : "Make public"}
             >
-              <Square2Stack className="w-4 h-4"/>
-              Copy Link
-            </button>
-          {/if}
-
-          <!-- Public/Private toggle -->
-          <button
-            class="btn btn-outline btn-sm"
-            class:loading={isUpdatingPublic}
-            on:click={handlePublicToggle}
-            disabled={isUpdatingPublic}
-            title={data.consumption.is_public ? "Make private" : "Make public"}
-          >
-            {#if isUpdatingPublic}
-              <span class="loading loading-spinner loading-sm"></span>
-            {:else}
-              {#if data.consumption.is_public}
-                <Lock className="w-4 h-4"/>
-                Make Private
+              {#if isUpdatingPublic}
+                <span class="loading loading-spinner loading-sm"></span>
               {:else}
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Make Public
+                {#if data.consumption.is_public}
+                  <Lock className="w-4 h-4"/>
+                  Make Private
+                {:else}
+                  <Globe className="w-4 h-4"/>
+                  Make Public
+                {/if}
               {/if}
-            {/if}
-          </button>
-        {/if}
+            </button>
 
-        <!-- Star button for favorites (only show for authenticated users) -->
-        {#if data.consumption?.id && !data.isUnauthenticated}
-          <button
-            class="btn btn-ghost"
-            class:loading={isUpdatingFavorite}
-            on:click={toggleFavorite}
-            disabled={isUpdatingFavorite}
-            title={isFavorited ? "Remove from favorites" : "Add to favorites"}
-          >
-            {#if isUpdatingFavorite}
-              <span class="loading loading-spinner loading-sm"></span>
-            {:else}
-              <Star 
-                className={isFavorited ? "w-6 h-6 text-honey" : "w-6 h-6"} 
-                filled={isFavorited}
-                title={isFavorited ? "Remove from favorites" : "Add to favorites"}
-              />
-            {/if}
-          </button>
-        {/if}
-      </div>
+            <!-- Star button for favorites -->
+            <button
+              class="btn btn-ghost btn-sm flex-shrink-0"
+              class:loading={isUpdatingFavorite}
+              on:click={toggleFavorite}
+              disabled={isUpdatingFavorite}
+              title={isFavorited ? "Remove from favorites" : "Add to favorites"}
+            >
+              {#if isUpdatingFavorite}
+                <span class="loading loading-spinner loading-sm"></span>
+              {:else}
+                <Star 
+                  className={isFavorited ? "w-5 h-5 text-honey" : "w-5 h-5"} 
+                  filled={isFavorited}
+                  title={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                />
+              {/if}
+            </button>
+          </div>
+        </div>
+      {/if}
     </div>
 
     <ConsumptionDisplay
