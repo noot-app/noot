@@ -100,11 +100,11 @@ export const handle: Handle = async ({ event, resolve }) => {
       if (!isDevelopment) {
         // Add nonce attribute to SvelteKit's hydration scripts and inline styles
         html = html.replace(
-          /<script(\s[^>]*)?(>)/g, 
+          /<script(\s[^>]*)?(>)/gi, 
           `<script$1 nonce="${cspNonce}"$2`
         )
         html = html.replace(
-          /<style(\s[^>]*)?(>)/g, 
+          /<style(\s[^>]*)?(>)/gi, 
           `<style$1 nonce="${cspNonce}"$2`
         )
       }
