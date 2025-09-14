@@ -12,6 +12,9 @@
 
   // Props
   import type { Consumption, Goals as GoalsType, Label, ConsumptionItem } from '$lib/types/common'
+  import type { components } from '$lib/api/schema'
+  
+  type ItemWithNutrition = components["schemas"]["ItemWithNutrition"]
   
   export let consumption: Consumption | null = null // The consumption data
   export let transcript = "" // Optional transcript display
@@ -100,12 +103,12 @@
 
       // Prepare the update request body
       const updateBody: {
-        items: ConsumptionItem[]
+        items: ItemWithNutrition[]
         note?: string | null
         title?: string | null
         consumed_at?: string | null
       } = { 
-        items: consumption.items,
+        items: consumption.items as ItemWithNutrition[],
         note: editableNote.trim() || null,
         title: editableTitle.trim() || null
       }
@@ -173,7 +176,7 @@
     consumption.items.forEach((item: ConsumptionItem) => {
       if (item.item?.nutrients) {
         Object.keys(item.item.nutrients).forEach((key) => {
-          const value = item.item.nutrients[key]
+          const value = item.item.nutrients![key]
           if (typeof value === "number") {
             aggregated[key] = (aggregated[key] || 0) + value
           }
@@ -483,7 +486,7 @@
                   </div>
 
                   <!-- Nutrient Composition Dropdown -->
-                  <NutrientComposition nutrients={item.item.nutrients} />
+                  <NutrientComposition nutrients={item.item.nutrients as any} />
                 {/if}
               </div>
             </div>
