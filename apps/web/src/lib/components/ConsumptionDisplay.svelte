@@ -99,7 +99,12 @@
       error = ""
 
       // Prepare the update request body
-      const updateBody: Partial<Consumption> = { 
+      const updateBody: {
+        items: ConsumptionItem[]
+        note?: string | null
+        title?: string | null
+        consumed_at?: string | null
+      } = { 
         items: consumption.items,
         note: editableNote.trim() || null,
         title: editableTitle.trim() || null
@@ -270,10 +275,10 @@
   {#if consumption?.summary}
     <Card title="Nutrition Summary">
       <NutritionStats
-        calories={consumption.summary.totals.calories}
-        protein={consumption.summary.totals.protein_g}
-        carbs={consumption.summary.totals.total_carbs_g}
-        fat={consumption.summary.totals.total_fat_g}
+        calories={consumption.summary.totals.calories || 0}
+        protein={consumption.summary.totals.protein_g || 0}
+        carbs={consumption.summary.totals.total_carbs_g || 0}
+        fat={consumption.summary.totals.total_fat_g || 0}
         size="compact"
         className="bg-transparent shadow-none"
       />
@@ -461,19 +466,19 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mt-3">
                     <div class="bg-base-200 rounded p-2">
                       <span class="font-medium">Calories:</span>
-                      {Math.round(item.item.nutrients.calories)}
+                      {Math.round(item.item.nutrients.calories || 0)}
                     </div>
                     <div class="bg-base-200 rounded p-2">
                       <span class="font-medium">Protein:</span>
-                      {item.item.nutrients.protein_g.toFixed(1)}g
+                      {(item.item.nutrients.protein_g || 0).toFixed(1)}g
                     </div>
                     <div class="bg-base-200 rounded p-2">
                       <span class="font-medium">Carbohydrates:</span>
-                      {item.item.nutrients.total_carbs_g.toFixed(1)}g
+                      {(item.item.nutrients.total_carbs_g || 0).toFixed(1)}g
                     </div>
                     <div class="bg-base-200 rounded p-2">
                       <span class="font-medium">Total Fat:</span>
-                      {item.item.nutrients.total_fat_g.toFixed(1)}g
+                      {(item.item.nutrients.total_fat_g || 0).toFixed(1)}g
                     </div>
                   </div>
 

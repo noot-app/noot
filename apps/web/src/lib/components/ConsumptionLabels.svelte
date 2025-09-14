@@ -131,7 +131,7 @@
           const label = availableLabels.find((l) => l.name === name)
           return label?.id
         })
-        .filter(Boolean)
+        .filter((id): id is string => Boolean(id))
 
       // Send complete desired state - like GitHub Issues does
       const response = await apiClient.POST("/consumption/{id}/labels", {

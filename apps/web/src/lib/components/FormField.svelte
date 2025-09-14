@@ -22,6 +22,7 @@
   export let labelClass: string = ""
   export let inputClass: string = ""
 
+  let fieldType: "text" | "email" | "password" | "number" | "tel" | "url" | "date" | "datetime-local" | "textarea" | "select"
   $: fieldType = multiline ? "textarea" : type
 </script>
 

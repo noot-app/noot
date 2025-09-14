@@ -56,6 +56,11 @@ export interface Label {
 
 export interface NutritionData {
   [key: string]: number | undefined
+  calories?: number
+  protein_g?: number
+  total_fat_g?: number
+  total_carbs_g?: number
+  // Add other common nutrients as needed
 }
 
 export interface NutritionSummary {
