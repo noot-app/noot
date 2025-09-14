@@ -449,9 +449,7 @@
     return new Date(dateStr).toLocaleString()
   }
 
-  function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString()
-  }
+
 
   function getEventTypeName(eventTypeId: string | null | undefined) {
     if (!eventTypeId) return null

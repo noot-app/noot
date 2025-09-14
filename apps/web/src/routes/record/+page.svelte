@@ -15,7 +15,6 @@
   import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
   import PlusIcon from "$lib/components/icons/Plus.svelte"
   import PencilSquareIcon from "$lib/components/icons/PencilSquare.svelte"
-  import MicrophoneIcon from "$lib/components/icons/Microphone.svelte"
   import Microphone from "$lib/components/icons/Microphone.svelte"
 
   // Get app name from runtime environment
@@ -615,7 +614,7 @@
                 </svg>
               {:else}
                 <!-- Microphone icon -->
-                <MicrophoneIcon className="w-20 h-20" strokeWidth={2.5} />
+                <Microphone className="w-20 h-20" strokeWidth={2.5} />
               {/if}
             </button>
           </div>
@@ -723,7 +722,7 @@
         aria-label="Switch to {isTextMode ? 'voice' : 'text'} mode"
       >
         {#if isTextMode}
-          <MicrophoneIcon className="w-5 h-5" />
+          <Microphone className="w-5 h-5" />
         {:else}
           <PencilSquareIcon className="w-5 h-5" />
         {/if}

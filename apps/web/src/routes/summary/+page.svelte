@@ -4,11 +4,10 @@
   import { onMount } from "svelte"
   import NutritionStats from "$lib/components/NutritionStats.svelte"
   import Goals from "$lib/components/Goals.svelte"
-  import ConsumptionCard from "$lib/components/ConsumptionCard.svelte"
+
   import Label from "$lib/components/Label.svelte"
   import ChartBarIcon from "$lib/components/icons/ChartBar.svelte"
-  import Bolt from "$lib/components/icons/Bolt.svelte"
-  import Wheat from "$lib/components/icons/Wheat.svelte"
+
   import Sprout from "$lib/components/icons/Sprout.svelte"
   import Scale from "$lib/components/icons/Scale.svelte"
   import Candy from "$lib/components/icons/Candy.svelte"

@@ -176,12 +176,16 @@
               </div>
             </a>
           {:else}
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
             <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
             <div 
               class={contentClasses}
               on:click={handleClick}
+              on:keydown={(e) => {
+                if (isClickable && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault()
+                  handleClick()
+                }
+              }}
               role={isClickable ? 'button' : undefined}
               tabindex={isClickable ? 0 : undefined}
             >
@@ -413,12 +417,16 @@
           </div>
         </a>
       {:else}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
         <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
         <div 
           class={contentClasses}
           on:click={handleClick}
+          on:keydown={(e) => {
+            if (isClickable && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault()
+              handleClick()
+            }
+          }}
           role={isClickable ? 'button' : undefined}
           tabindex={isClickable ? 0 : undefined}
         >
