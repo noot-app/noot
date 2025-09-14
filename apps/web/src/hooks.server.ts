@@ -9,6 +9,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   // Ensure environment variables are available
   const supabaseUrl = env.PUBLIC_SUPABASE_URL
   const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY
+  // Default to production unless explicitly set to development
+  const nodeEnv = (env.PUBLIC_NODE_ENV || "production").toLowerCase()
+  const isDevelopment = nodeEnv === "development"
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn("Supabase environment variables not configured")
@@ -79,14 +82,33 @@ export const handle: Handle = async ({ event, resolve }) => {
       return name === "content-range" || name === "x-supabase-api-version"
     },
     transformPageChunk({ html, done }) {
-      // Add security headers on final response
-      if (done) {
-        // Set security headers
+      // Add security headers on final response (only in production)
+      if (done && !isDevelopment) {
+        // Set comprehensive security headers
         event.setHeaders({
+          // Content Security Policy - allows your subdomains and Supabase
+          'Content-Security-Policy': [
+            "default-src 'self' https://*.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
+            "style-src 'self' 'unsafe-inline' https://*.nootapp.io",
+            "img-src 'self' data: https://*.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
+            "font-src 'self' https://*.nootapp.io",
+            "connect-src 'self' https://api.nootapp.io https://mcp.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
+            "frame-ancestors 'none'",
+            "base-uri 'self'",
+            "object-src 'none'",
+            "upgrade-insecure-requests"
+          ].join('; '),
+          // Legacy frame protection
           'X-Frame-Options': 'DENY',
+          // MIME type sniffing protection
           'X-Content-Type-Options': 'nosniff',
+          // Referrer policy for privacy
           'Referrer-Policy': 'strict-origin-when-cross-origin',
-          'X-XSS-Protection': '1; mode=block'
+          // Force HTTPS everywhere (adjust max-age as needed)
+          'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+          // Disable potentially dangerous browser features (allow microphone for voice logging and maybe future camera usage for labels/barcodes)
+          'Permissions-Policy': 'geolocation=(), camera=(self), microphone=(self)'
         })
       }
       return html
