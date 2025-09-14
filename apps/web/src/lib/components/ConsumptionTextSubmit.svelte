@@ -4,12 +4,13 @@
   import { browser } from "$app/environment"
   import { getStorageJSON, setStorageJSON, removeStorageItem } from "$lib/utils/secure-storage"
   import { createEventDispatcher, onMount, onDestroy } from "svelte"
+  import type { Consumption } from '$lib/types/common'
 
   // Event dispatcher for parent communication
   const dispatch = createEventDispatcher<{
     submit: { 
       transcript: string
-      result: any
+      result: Consumption | null
       consumptionId: string | null
       submissionText: string
     }

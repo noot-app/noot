@@ -11,13 +11,18 @@
   import Alert from "./Alert.svelte"
 
   // Props
-  export let consumption: any = null // The consumption data
+  import type { Consumption, Goals as GoalsType, Label, ConsumptionItem } from '$lib/types/common'
+  import type { components } from '$lib/api/schema'
+  
+  type ItemWithNutrition = components["schemas"]["ItemWithNutrition"]
+  
+  export let consumption: Consumption | null = null // The consumption data
   export let transcript = "" // Optional transcript display
   export let showRedoButton = false // Whether to show redo button (vs delete)
   export let autoShowLabelEdit = false // Whether to automatically show label editing
   export let editable = true // Whether the consumption can be edited
-  export let preloadGoalsAuto: any = null // Preloaded auto goals
-  export let preloadGoalsDri: any = null // Preloaded DRI goals
+  export let preloadGoalsAuto: GoalsType | null = null // Preloaded auto goals
+  export let preloadGoalsDri: GoalsType | null = null // Preloaded DRI goals
   export let buttonsAtBottom = false // Whether to show action buttons at bottom instead of top
   export let isUnauthenticated = false // Whether the user is not authenticated
 
@@ -54,7 +59,7 @@
   const dispatch = createEventDispatcher()
 
   // Handle label updates from ConsumptionLabels component
-  function handleLabelsUpdated(event: CustomEvent<{ labels: any[] }>) {
+  function handleLabelsUpdated(event: CustomEvent<{ labels: Label[] }>) {
     if (consumption) {
       consumption.labels = event.detail.labels
       consumption = { ...consumption } // Trigger reactivity
@@ -97,8 +102,13 @@
       error = ""
 
       // Prepare the update request body
-      const updateBody: any = { 
-        items: consumption.items,
+      const updateBody: {
+        items: ItemWithNutrition[]
+        note?: string | null
+        title?: string | null
+        consumed_at?: string | null
+      } = { 
+        items: consumption.items as ItemWithNutrition[],
         note: editableNote.trim() || null,
         title: editableTitle.trim() || null
       }
@@ -163,10 +173,10 @@
 
     const aggregated: Record<string, number> = {}
 
-    consumption.items.forEach((item: any) => {
+    consumption.items.forEach((item: ConsumptionItem) => {
       if (item.item?.nutrients) {
         Object.keys(item.item.nutrients).forEach((key) => {
-          const value = item.item.nutrients[key]
+          const value = item.item.nutrients![key]
           if (typeof value === "number") {
             aggregated[key] = (aggregated[key] || 0) + value
           }
@@ -268,10 +278,10 @@
   {#if consumption?.summary}
     <Card title="Nutrition Summary">
       <NutritionStats
-        calories={consumption.summary.totals.calories}
-        protein={consumption.summary.totals.protein_g}
-        carbs={consumption.summary.totals.total_carbs_g}
-        fat={consumption.summary.totals.total_fat_g}
+        calories={consumption.summary.totals.calories || 0}
+        protein={consumption.summary.totals.protein_g || 0}
+        carbs={consumption.summary.totals.total_carbs_g || 0}
+        fat={consumption.summary.totals.total_fat_g || 0}
         size="compact"
         className="bg-transparent shadow-none"
       />
@@ -459,24 +469,24 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mt-3">
                     <div class="bg-base-200 rounded p-2">
                       <span class="font-medium">Calories:</span>
-                      {Math.round(item.item.nutrients.calories)}
+                      {Math.round(item.item.nutrients.calories || 0)}
                     </div>
                     <div class="bg-base-200 rounded p-2">
                       <span class="font-medium">Protein:</span>
-                      {item.item.nutrients.protein_g.toFixed(1)}g
+                      {(item.item.nutrients.protein_g || 0).toFixed(1)}g
                     </div>
                     <div class="bg-base-200 rounded p-2">
                       <span class="font-medium">Carbohydrates:</span>
-                      {item.item.nutrients.total_carbs_g.toFixed(1)}g
+                      {(item.item.nutrients.total_carbs_g || 0).toFixed(1)}g
                     </div>
                     <div class="bg-base-200 rounded p-2">
                       <span class="font-medium">Total Fat:</span>
-                      {item.item.nutrients.total_fat_g.toFixed(1)}g
+                      {(item.item.nutrients.total_fat_g || 0).toFixed(1)}g
                     </div>
                   </div>
 
                   <!-- Nutrient Composition Dropdown -->
-                  <NutrientComposition nutrients={item.item.nutrients} />
+                  <NutrientComposition nutrients={item.item.nutrients as any} />
                 {/if}
               </div>
             </div>

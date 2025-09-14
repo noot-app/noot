@@ -22,8 +22,7 @@
   type APIKey = APIKeysResponse["api_keys"][0]
   type CreateAPIKeyRequest =
     paths["/api-keys"]["post"]["requestBody"]["content"]["application/json"]
-  type CreateAPIKeyResponse =
-    paths["/api-keys"]["post"]["responses"]["201"]["content"]["application/json"]
+
 
   let apiKeys: APIKey[] = []
   let loading = true

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte"
   import type { paths } from "$lib/api/schema"
-  import { isRestrictedNutrient, filterDisabledNutrientKeys } from "$lib/utils/nutrients"
+  import { isRestrictedNutrient } from "$lib/utils/nutrients"
   import {
     getNutrientValue,
     formatValue,
@@ -12,7 +12,7 @@
     getOverageText
   } from "$lib/utils/nutrition-display"
   import Scale from "$lib/components/icons/Scale.svelte"
-  import Candy from "$lib/components/icons/Candy.svelte"
+
   import Blocks from "$lib/components/icons/Blocks.svelte"
   import Pyramid from "$lib/components/icons/Pyramid.svelte"
   import Shapes from "$lib/components/icons/Shapes.svelte"
