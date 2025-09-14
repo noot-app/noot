@@ -191,4 +191,68 @@ describe("hooks.server handle", () => {
     expect(cspCall).not.toContain("'unsafe-inline'")
     expect(cspCall).toContain(`'nonce-${event.locals.cspNonce}'`)
   })
+
+  it("handles SvelteKit CSP nonce placeholder replacement", async () => {
+    // Mock production environment
+    vi.doMock("$env/dynamic/public", () => ({
+      env: {
+        PUBLIC_SUPABASE_URL: "http://localhost:54321",
+        PUBLIC_SUPABASE_ANON_KEY: "anon",
+        PUBLIC_NODE_ENV: "production",
+      },
+    }))
+
+    const { handle: productionHandle } = await import("./hooks.server")
+
+    mockGetValidatedSession.mockResolvedValueOnce(null)
+    const event = makeEvent("/")
+    
+    let transformPageChunk: any
+    const resolve = vi.fn().mockImplementation((_event: any, options?: any) => {
+      transformPageChunk = options?.transformPageChunk
+      return { ok: true }
+    })
+
+    await productionHandle({ event, resolve } as any)
+
+    // Test SvelteKit nonce placeholder replacement
+    const testHTML = '<style nonce="%sveltekit.csp.nonce%">body{}</style>'
+    const transformedHTML = transformPageChunk({ html: testHTML, done: false })
+    
+    expect(transformedHTML).toContain(`nonce="${event.locals.cspNonce}"`)
+    expect(transformedHTML).not.toContain("%sveltekit.csp.nonce%")
+  })
+
+  it("does not add nonce to elements that already have one", async () => {
+    // Mock production environment
+    vi.doMock("$env/dynamic/public", () => ({
+      env: {
+        PUBLIC_SUPABASE_URL: "http://localhost:54321",
+        PUBLIC_SUPABASE_ANON_KEY: "anon",
+        PUBLIC_NODE_ENV: "production",
+      },
+    }))
+
+    const { handle: productionHandle } = await import("./hooks.server")
+
+    mockGetValidatedSession.mockResolvedValueOnce(null)
+    const event = makeEvent("/")
+    
+    let transformPageChunk: any
+    const resolve = vi.fn().mockImplementation((_event: any, options?: any) => {
+      transformPageChunk = options?.transformPageChunk
+      return { ok: true }
+    })
+
+    await productionHandle({ event, resolve } as any)
+
+    // Test that existing nonces are preserved
+    const testHTML = '<script nonce="existing123">console.log("test")</script><script>console.log("test2")</script>'
+    const transformedHTML = transformPageChunk({ html: testHTML, done: false })
+    
+    // Should keep existing nonce and add nonce to script without one
+    expect(transformedHTML).toContain('nonce="existing123"')
+    expect(transformedHTML).toContain(`nonce="${event.locals.cspNonce}"`)
+    expect((transformedHTML.match(/nonce="/g) || []).length).toBe(2)
+  })
 })

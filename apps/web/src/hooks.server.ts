@@ -96,16 +96,27 @@ export const handle: Handle = async ({ event, resolve }) => {
       return name === "content-range" || name === "x-supabase-api-version"
     },
     transformPageChunk({ html, done }) {
-      // Inject nonce into scripts and styles during page generation
+      // Inject nonce into scripts and styles during page generation (production only)
       if (!isDevelopment) {
-        // Add nonce attribute to SvelteKit's hydration scripts and inline styles
+        // Replace SvelteKit's CSP nonce placeholder with our generated nonce
+        html = html.replace(/%sveltekit\.csp\.nonce%/g, cspNonce)
+        
+        // Add nonce attribute to scripts and styles that don't already have them
         html = html.replace(
           /<script(\s[^>]*)?(>)/gi, 
-          `<script$1 nonce="${cspNonce}"$2`
+          (match, attrs = '', closing) => {
+            // Skip if nonce already exists
+            if (attrs.includes('nonce=')) return match
+            return `<script${attrs} nonce="${cspNonce}"${closing}`
+          }
         )
         html = html.replace(
           /<style(\s[^>]*)?(>)/gi, 
-          `<style$1 nonce="${cspNonce}"$2`
+          (match, attrs = '', closing) => {
+            // Skip if nonce already exists  
+            if (attrs.includes('nonce=')) return match
+            return `<style${attrs} nonce="${cspNonce}"${closing}`
+          }
         )
       }
 

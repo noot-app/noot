@@ -12,6 +12,7 @@
   import AdaptiveFavicon from "$lib/components/AdaptiveFavicon.svelte"
   import { Platform } from "$lib/utils/platform"
   import { browser } from "$app/environment"
+  import { enableCSPDebugging } from "$lib/utils/csp"
 
   interface Props {
     children?: import("svelte").Snippet
@@ -71,6 +72,11 @@
     // Detect platform once
     if (browser) {
       isNativeApp = Platform.isNativeApp()
+      
+      // Enable CSP debugging in development
+      if (data?.isDevMode) {
+        enableCSPDebugging()
+      }
     }
 
     // Cleanup timeout on unmount

@@ -12,6 +12,8 @@ declare global {
     }
     interface PageData {
       session: Session | null
+      cspNonce?: string
+      isDevMode?: boolean
     }
     // interface Error {}
     // interface Platform {}

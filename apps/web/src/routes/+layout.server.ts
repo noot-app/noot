@@ -25,5 +25,8 @@ export async function load({ locals }) {
 
     // Pass SSR session data to client
     session,
+
+    // Make CSP nonce available to client-side components if needed
+    cspNonce: locals.cspNonce,
   }
 }
