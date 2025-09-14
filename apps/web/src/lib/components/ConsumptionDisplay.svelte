@@ -11,15 +11,15 @@
   import Alert from "./Alert.svelte"
 
   // Props
-  import type { Consumption, Goal } from '$lib/types/common'
+  import type { Consumption, Goals as GoalsType, Label, ConsumptionItem } from '$lib/types/common'
   
   export let consumption: Consumption | null = null // The consumption data
   export let transcript = "" // Optional transcript display
   export let showRedoButton = false // Whether to show redo button (vs delete)
   export let autoShowLabelEdit = false // Whether to automatically show label editing
   export let editable = true // Whether the consumption can be edited
-  export let preloadGoalsAuto: Goal[] | null = null // Preloaded auto goals
-  export let preloadGoalsDri: Goal[] | null = null // Preloaded DRI goals
+  export let preloadGoalsAuto: GoalsType | null = null // Preloaded auto goals
+  export let preloadGoalsDri: GoalsType | null = null // Preloaded DRI goals
   export let buttonsAtBottom = false // Whether to show action buttons at bottom instead of top
   export let isUnauthenticated = false // Whether the user is not authenticated
 

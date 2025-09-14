@@ -10,34 +10,75 @@ export interface ApiResponse<T> {
 // Consumption types
 export interface Consumption {
   id: string
-  title: string
-  note?: string
+  user_id: string
+  transcript: string
+  title?: string | null
+  note?: string | null
   created_at: string
-  updated_at: string
   labels?: Label[]
   items?: ConsumptionItem[]
-  nutrition?: NutritionData
+  summary?: NutritionSummary
+  is_public: boolean
 }
 
 export interface ConsumptionItem {
-  id: string
-  name: string
-  quantity: number
-  unit: string
-  nutrition?: NutritionData
+  item: {
+    name: string
+    grams: number
+    user_quantity?: number | null
+    user_unit?: string | null
+    brand?: string | null
+    note?: string | null
+    labels?: Label[]
+    nutrients?: NutritionData
+    ingredients?: OFFIngredient[]
+    url?: string | null
+  }
+  note?: string
+}
+
+export interface OFFIngredient {
+  id?: string
+  text?: string
+  percent_estimate?: number | null
+  percent_max?: number | null
+  percent_min?: number | null
 }
 
 export interface Label {
   id: string
   name: string
-  color?: string
+  description?: string | null
+  color: string
+  created_at: string
+  updated_at: string
 }
 
 export interface NutritionData {
   [key: string]: number | undefined
 }
 
-// Goal types
+export interface NutritionSummary {
+  totals: NutritionData
+}
+
+// Goal types - this matches the API Goals schema which is an object, not an array
+export interface Goals {
+  targets: { [key: string]: number }
+  upper_limits: { [key: string]: number }
+  units: { [key: string]: string }
+  source: "dri" | "custom"
+  custom_name?: string
+  disabled_nutrients?: string[]
+  life_stage: LifeStage
+}
+
+export interface LifeStage {
+  sex: "male" | "female" | "unspecified"
+  age_bracket: string
+}
+
+// Individual goal item (for backwards compatibility if needed)
 export interface Goal {
   id: string
   name: string

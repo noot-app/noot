@@ -176,6 +176,7 @@
               </div>
             </a>
           {:else}
+            <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
             <div 
               class={contentClasses}
               on:click={handleClick}
@@ -186,7 +187,7 @@
                 }
               }}
               role={isClickable ? 'button' : undefined}
-              tabindex={isClickable ? "0" : undefined}
+              tabindex={isClickable ? 0 : undefined}
             >
               <!-- Subtle hover gradient overlay -->
               {#if isClickable}
@@ -282,7 +283,6 @@
               </div>
             </div>
           {/if}
-        </div>
         
         <!-- Action buttons -->
         <div class="flex flex-col gap-2 ml-4">
