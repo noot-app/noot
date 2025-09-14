@@ -18,9 +18,8 @@ describe('Redirect Utilities', () => {
     it('should return fallback for external URLs', () => {
       expect(sanitizeRedirect('http://example.com')).toBe(DEFAULT_REDIRECT_PATH)
       expect(sanitizeRedirect('https://malicious.com')).toBe(DEFAULT_REDIRECT_PATH)
-      // Note: Current implementation treats //example.com as valid since it starts with /
-      // This could be a security issue that should be addressed
-      expect(sanitizeRedirect('//example.com')).toBe('//example.com')
+      // Fixed: Protocol-relative URLs now properly blocked for security
+      expect(sanitizeRedirect('//example.com')).toBe(DEFAULT_REDIRECT_PATH)
       expect(sanitizeRedirect('javascript:alert("xss")')).toBe(DEFAULT_REDIRECT_PATH)
     })
 
@@ -72,10 +71,10 @@ describe('Redirect Utilities', () => {
       expect(getRedirectParam(url)).toBe('/dashboard/profile?tab=settings')
     })
 
-    it('should handle protocol-relative URLs (current behavior)', () => {
+    it('should handle protocol-relative URLs (security fix)', () => {
       const url = new URL('http://localhost:3000/login?redirect=//evil.com')
-      // Note: Current implementation allows this - could be a security concern
-      expect(getRedirectParam(url)).toBe('//evil.com')
+      // Fixed: Protocol-relative URLs now properly blocked for security
+      expect(getRedirectParam(url)).toBe(DEFAULT_REDIRECT_PATH)
     })
 
     it('should handle multiple query parameters', () => {
