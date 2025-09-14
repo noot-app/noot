@@ -25,8 +25,8 @@ func TestConvertUser(t *testing.T) {
 				Email:            "john@example.com",
 				SubscriptionTier: storage.SubscriptionTierPro,
 
-				CreatedAt:        time.Date(2024, 1, 15, 12, 0, 0, 0, time.UTC),
-				AvatarURL:        stringPtr("https://example.com/avatar.jpg"),
+				CreatedAt: time.Date(2024, 1, 15, 12, 0, 0, 0, time.UTC),
+				AvatarURL: stringPtr("https://example.com/avatar.jpg"),
 			},
 			expectedAPI: api.User{
 				Id:               "user-123",
@@ -62,13 +62,13 @@ func TestConvertUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := convertUser(tt.storageUser)
-			
+
 			assert.Equal(t, tt.expectedAPI.Id, result.Id)
 			assert.Equal(t, tt.expectedAPI.Handle, result.Handle)
 			assert.Equal(t, tt.expectedAPI.Email, result.Email)
 			assert.Equal(t, tt.expectedAPI.SubscriptionTier, result.SubscriptionTier)
 			assert.Equal(t, tt.expectedAPI.CreatedAt.Unix(), result.CreatedAt.Unix())
-			
+
 			// Check optional fields
 			if tt.expectedAPI.FullName != nil {
 				assert.NotNil(t, result.FullName)
@@ -76,7 +76,7 @@ func TestConvertUser(t *testing.T) {
 			} else {
 				assert.Nil(t, result.FullName)
 			}
-			
+
 			if tt.expectedAPI.AvatarUrl != nil {
 				assert.NotNil(t, result.AvatarUrl)
 				assert.Equal(t, *tt.expectedAPI.AvatarUrl, *result.AvatarUrl)
@@ -91,10 +91,10 @@ func TestConvertUser(t *testing.T) {
 
 func TestConvertStorageAPIKeyToAPI(t *testing.T) {
 	tests := []struct {
-		name           string
-		storageAPIKey  storage.APIKey
-		expectedAPI    api.APIKey
-		description    string
+		name          string
+		storageAPIKey storage.APIKey
+		expectedAPI   api.APIKey
+		description   string
 	}{
 		{
 			name: "active_api_key_conversion",
@@ -120,13 +120,13 @@ func TestConvertStorageAPIKeyToAPI(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := convertStorageAPIKeyToAPI(&tt.storageAPIKey)
-			
+
 			assert.Equal(t, tt.expectedAPI.Id, result.Id)
 			assert.Equal(t, tt.expectedAPI.Name, result.Name)
 			assert.Equal(t, tt.expectedAPI.Prefix, result.Prefix)
 			assert.Equal(t, string(tt.expectedAPI.Scope), string(result.Scope))
 			assert.Equal(t, tt.expectedAPI.CreatedAt.Unix(), result.CreatedAt.Unix())
-			
+
 			// Check optional fields like LastUsedAt, RevokedAt based on what's available in the API
 		})
 	}
@@ -148,7 +148,7 @@ func TestSubscriptionTierConversion(t *testing.T) {
 		{
 			name:        "pro_tier_conversion",
 			storageTier: storage.SubscriptionTierPro,
-			expectedAPI: "pro", 
+			expectedAPI: "pro",
 			description: "Pro tier should convert to 'pro'",
 		},
 	}
@@ -165,7 +165,7 @@ func TestSubscriptionTierConversion(t *testing.T) {
 			default:
 				apiTier = "free" // Default fallback
 			}
-			
+
 			assert.Equal(t, tt.expectedAPI, apiTier, tt.description)
 		})
 	}

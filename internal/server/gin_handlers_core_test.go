@@ -27,7 +27,7 @@ func TestGetHealth(t *testing.T) {
 			setupEnv: func() {
 				os.Unsetenv("VERSION")
 			},
-			cleanupEnv: func() {},
+			cleanupEnv:     func() {},
 			expectedStatus: http.StatusOK,
 			expectedFields: []string{"status", "timestamp", "version"},
 		},
@@ -53,20 +53,20 @@ func TestGetHealth(t *testing.T) {
 			// Create test server - we can use a nil store for health check as it doesn't use storage
 			gin.SetMode(gin.TestMode)
 			router := gin.New()
-			
+
 			server := &APIServer{} // Health endpoint doesn't need store or goalResolver
 			router.GET("/health", server.GetHealth)
 
 			// Create request
 			req, err := http.NewRequest(http.MethodGet, "/health", nil)
 			require.NoError(t, err)
-			
+
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
 
 			// Assert response
 			assert.Equal(t, tt.expectedStatus, w.Code)
-			
+
 			var response api.HealthResponse
 			err = json.Unmarshal(w.Body.Bytes(), &response)
 			require.NoError(t, err)
@@ -74,13 +74,13 @@ func TestGetHealth(t *testing.T) {
 			// Check required fields are present
 			assert.Equal(t, "healthy", response.Status)
 			assert.NotZero(t, response.Timestamp)
-			
+
 			if os.Getenv("VERSION") != "" {
 				assert.Equal(t, os.Getenv("VERSION"), response.Version)
 			} else {
 				assert.Equal(t, "dev", response.Version)
 			}
-			
+
 			// Verify timestamp is recent (within last 5 seconds)
 			timeDiff := time.Since(response.Timestamp)
 			assert.True(t, timeDiff < 5*time.Second, "Timestamp should be recent")
@@ -91,6 +91,6 @@ func TestGetHealth(t *testing.T) {
 // TestExportData is commented out for now as it requires complex mocking
 // This would be better as an integration test with a test database
 // func TestExportData(t *testing.T) {
-//   // Complex handler requiring database, auth, and business logic 
+//   // Complex handler requiring database, auth, and business logic
 //   // Better to focus on unit testing individual components first
 // }

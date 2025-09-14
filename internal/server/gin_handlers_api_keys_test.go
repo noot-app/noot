@@ -28,7 +28,7 @@ func TestAPIServerCreation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server, err := NewAPIServer(tt.store)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, server)

@@ -39,11 +39,11 @@ func TestCheckStorageAvailable(t *testing.T) {
 
 func TestSubscriptionTierValidation(t *testing.T) {
 	tests := []struct {
-		name           string
-		user           *storage.User
-		requiredTier   string
-		expectAccess   bool
-		description    string
+		name         string
+		user         *storage.User
+		requiredTier string
+		expectAccess bool
+		description  string
 	}{
 		{
 			name: "free_user_denied_pro_feature",
@@ -58,7 +58,7 @@ func TestSubscriptionTierValidation(t *testing.T) {
 		{
 			name: "pro_user_allowed_pro_feature",
 			user: &storage.User{
-				ID:               "user2", 
+				ID:               "user2",
 				SubscriptionTier: storage.SubscriptionTierPro,
 			},
 			requiredTier: storage.SubscriptionTierPro,
@@ -80,9 +80,9 @@ func TestSubscriptionTierValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test the subscription tier validation logic
-			hasAccess := tt.user.SubscriptionTier == tt.requiredTier || 
-						(tt.user.SubscriptionTier == storage.SubscriptionTierPro && tt.requiredTier == storage.SubscriptionTierFree)
-			
+			hasAccess := tt.user.SubscriptionTier == tt.requiredTier ||
+				(tt.user.SubscriptionTier == storage.SubscriptionTierPro && tt.requiredTier == storage.SubscriptionTierFree)
+
 			assert.Equal(t, tt.expectAccess, hasAccess, tt.description)
 		})
 	}
@@ -97,23 +97,23 @@ func TestParseTimeRangeParamsLogic(t *testing.T) {
 		description string
 	}{
 		{
-			name:        "nil_parameters_use_defaults", 
+			name:        "nil_parameters_use_defaults",
 			startStr:    nil,
 			endStr:      nil,
 			expectError: false,
 			description: "Nil start/end should use reasonable defaults",
 		},
 		{
-			name: "valid_iso_dates",
-			startStr: testStringPtr("2024-01-01T00:00:00Z"),
-			endStr:   testStringPtr("2024-01-31T23:59:59Z"),
+			name:        "valid_iso_dates",
+			startStr:    testStringPtr("2024-01-01T00:00:00Z"),
+			endStr:      testStringPtr("2024-01-31T23:59:59Z"),
 			expectError: false,
 			description: "Valid ISO 8601 dates should parse successfully",
 		},
 		{
-			name: "invalid_start_date_format",
-			startStr: testStringPtr("invalid-date"),
-			endStr:   nil,
+			name:        "invalid_start_date_format",
+			startStr:    testStringPtr("invalid-date"),
+			endStr:      nil,
 			expectError: true,
 			description: "Invalid date format should return error",
 		},
@@ -170,15 +170,15 @@ func TestErrorResponseStructure(t *testing.T) {
 		expectedFields []string
 	}{
 		{
-			name:       "basic_error_structure",
-			message:    "Test error message",
-			statusCode: http.StatusBadRequest,
+			name:           "basic_error_structure",
+			message:        "Test error message",
+			statusCode:     http.StatusBadRequest,
 			expectedFields: []string{"message", "statusCode"},
 		},
 		{
-			name:       "internal_server_error",
-			message:    "Internal server error",
-			statusCode: http.StatusInternalServerError,
+			name:           "internal_server_error",
+			message:        "Internal server error",
+			statusCode:     http.StatusInternalServerError,
 			expectedFields: []string{"message", "statusCode"},
 		},
 	}
@@ -187,7 +187,7 @@ func TestErrorResponseStructure(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test error structure without gin context
 			appErr := NewAppError(tt.message, tt.statusCode, nil)
-			
+
 			assert.NotNil(t, appErr)
 			assert.Equal(t, tt.message, appErr.Message)
 			assert.Equal(t, tt.statusCode, appErr.StatusCode)

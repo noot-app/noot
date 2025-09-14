@@ -48,8 +48,8 @@ func TestLabelValidation(t *testing.T) {
 		{
 			name: "missing_user_id_invalid",
 			label: &storage.Label{
-				Name:  "Breakfast",
-				Color: "#FF5733",
+				Name:   "Breakfast",
+				Color:  "#FF5733",
 				UserID: "",
 			},
 			expectValid: false,
@@ -78,10 +78,10 @@ func TestLabelValidation(t *testing.T) {
 
 func TestColorNormalization(t *testing.T) {
 	tests := []struct {
-		name           string
-		inputColor     string
-		expectedColor  string
-		description    string
+		name          string
+		inputColor    string
+		expectedColor string
+		description   string
 	}{
 		{
 			name:          "hex_color_with_hash",
@@ -126,32 +126,32 @@ func TestColorNormalization(t *testing.T) {
 
 func TestLabelOwnership(t *testing.T) {
 	tests := []struct {
-		name        string
-		labelUserID string
+		name          string
+		labelUserID   string
 		requestUserID string
-		expectAccess bool
-		description string
+		expectAccess  bool
+		description   string
 	}{
 		{
-			name:         "owner_can_access_own_label",
-			labelUserID:  "user-123",
+			name:          "owner_can_access_own_label",
+			labelUserID:   "user-123",
 			requestUserID: "user-123",
-			expectAccess: true,
-			description:  "User should be able to access their own labels",
+			expectAccess:  true,
+			description:   "User should be able to access their own labels",
 		},
 		{
-			name:         "non_owner_cannot_access_label",
-			labelUserID:  "user-123", 
+			name:          "non_owner_cannot_access_label",
+			labelUserID:   "user-123",
 			requestUserID: "user-456",
-			expectAccess: false,
-			description:  "User should not access labels belonging to other users",
+			expectAccess:  false,
+			description:   "User should not access labels belonging to other users",
 		},
 		{
-			name:         "empty_user_id_denies_access",
-			labelUserID:  "user-123",
+			name:          "empty_user_id_denies_access",
+			labelUserID:   "user-123",
 			requestUserID: "",
-			expectAccess: false,
-			description:  "Empty user ID should deny access",
+			expectAccess:  false,
+			description:   "Empty user ID should deny access",
 		},
 	}
 
