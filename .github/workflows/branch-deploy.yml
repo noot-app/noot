@@ -3,7 +3,7 @@ name: branch deploy
 # The workflow to execute on is comments that are newly created
 on:
   issue_comment:
-    types: [ created ]
+    types: [created]
 
 # Permissions needed for reacting and adding comments for IssueOps commands
 permissions:
@@ -66,14 +66,14 @@ jobs:
       - name: setup go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
           cache: true
 
       - uses: actions/setup-node@v4.4.0
         with:
           node-version-file: apps/web/.node-version
-          cache: 'npm'
-          cache-dependency-path: 'apps/web/package-lock.json'
+          cache: "npm"
+          cache-dependency-path: "apps/web/package-lock.json"
 
       - name: bootstrap
         run: script/bootstrap --ci

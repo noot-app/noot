@@ -20,15 +20,15 @@ defaults:
   run:
     shell: bash
 
-permissions:
-  contents: read
-
 # set an environment variable for use in the jobs pointing to my site
 env:
   web_url: https://nootapp.io
 
 jobs:
   deployment-check:
+    permissions:
+      contents: read
+      deployments: read
     runs-on: ubuntu-latest
     outputs: # set outputs for use in downstream jobs
       continue: ${{ steps.deployment-check.outputs.continue }}
@@ -43,6 +43,8 @@ jobs:
           environment: production
 
   deploy:
+    permissions:
+      contents: read
     environment:
       name: production
       url: ${{ env.web_url }}
@@ -57,14 +59,14 @@ jobs:
       - name: setup go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
           cache: true
 
       - uses: actions/setup-node@v4.4.0
         with:
           node-version-file: apps/web/.node-version
-          cache: 'npm'
-          cache-dependency-path: 'apps/web/package-lock.json'
+          cache: "npm"
+          cache-dependency-path: "apps/web/package-lock.json"
 
       - name: bootstrap
         run: script/bootstrap --ci
