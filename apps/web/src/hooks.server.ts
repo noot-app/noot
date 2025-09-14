@@ -4,8 +4,19 @@ import { env } from "$env/dynamic/public"
 import type { Session } from "@supabase/supabase-js"
 import { getValidatedSession } from "$lib/utils.js"
 import { DEFAULT_REDIRECT_PATH, getRedirectParam } from "$lib/utils/redirect"
+import { randomBytes } from "crypto"
+
+/**
+ * Generate a cryptographically secure nonce for CSP
+ */
+function generateCSPNonce(): string {
+  return randomBytes(16).toString('base64')
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
+  // Generate CSP nonce for this request
+  const cspNonce = generateCSPNonce()
+  
   // Ensure environment variables are available
   const supabaseUrl = env.PUBLIC_SUPABASE_URL
   const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY
@@ -17,6 +28,9 @@ export const handle: Handle = async ({ event, resolve }) => {
     console.warn("Supabase environment variables not configured")
     return resolve(event)
   }
+
+  // Store CSP nonce in event.locals for access during page generation
+  event.locals.cspNonce = cspNonce
 
   event.locals.supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -82,15 +96,28 @@ export const handle: Handle = async ({ event, resolve }) => {
       return name === "content-range" || name === "x-supabase-api-version"
     },
     transformPageChunk({ html, done }) {
+      // Inject nonce into scripts and styles during page generation
+      if (!isDevelopment) {
+        // Add nonce attribute to SvelteKit's hydration scripts and inline styles
+        html = html.replace(
+          /<script(\s[^>]*)?(>)/g, 
+          `<script$1 nonce="${cspNonce}"$2`
+        )
+        html = html.replace(
+          /<style(\s[^>]*)?(>)/g, 
+          `<style$1 nonce="${cspNonce}"$2`
+        )
+      }
+
       // Add security headers on final response (only in production)
       if (done && !isDevelopment) {
-        // Set comprehensive security headers
+        // Set comprehensive security headers with nonce-based CSP
         event.setHeaders({
-          // Content Security Policy - allows your subdomains and Supabase
+          // Content Security Policy - hardened with nonces, removing 'unsafe-inline'
           'Content-Security-Policy': [
             "default-src 'self' https://*.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
-            "style-src 'self' 'unsafe-inline' https://*.nootapp.io",
+            `script-src 'self' 'nonce-${cspNonce}' 'unsafe-eval' https://*.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co`,
+            `style-src 'self' 'nonce-${cspNonce}' https://*.nootapp.io`,
             "img-src 'self' data: https://*.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
             "font-src 'self' https://*.nootapp.io",
             "connect-src 'self' https://api.nootapp.io https://mcp.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
