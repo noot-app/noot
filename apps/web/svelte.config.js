@@ -27,6 +27,7 @@ const config = {
         'img-src': ['self', 'data:', 'https://*.nootapp.io', 'https://uygqcgnmlzmuwkpsmixs.supabase.co'],
         'font-src': ['self', 'https://*.nootapp.io'],
         'connect-src': ['self', 'https://*.nootapp.io', 'https://uygqcgnmlzmuwkpsmixs.supabase.co', ...(!isProduction ? ['http://localhost:*', 'http://127.0.0.1:*', 'http://192.168.1.180:*'] : [])],
+        'form-action': ['self', 'https://*.nootapp.io', 'https://uygqcgnmlzmuwkpsmixs.supabase.co'],
         'frame-ancestors': ['none'],
         'base-uri': ['self'],
         'object-src': ['none'],
