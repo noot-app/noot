@@ -30,7 +30,6 @@ const config = {
         'frame-ancestors': ['none'],
         'base-uri': ['self'],
         'object-src': ['none'],
-        'require-trusted-types-for': ['script'],
         ...(isProduction ? { 'upgrade-insecure-requests': true } : {})
       }
     },
