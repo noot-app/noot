@@ -22,7 +22,7 @@ const config = {
       mode: 'auto',
       directives: {
         'default-src': ['self', 'https://*.nootapp.io', 'https://uygqcgnmlzmuwkpsmixs.supabase.co'],
-        'script-src': ['self', 'unsafe-inline', 'unsafe-eval', 'https://*.nootapp.io', 'https://uygqcgnmlzmuwkpsmixs.supabase.co'],
+        'script-src': ['self', 'https://*.nootapp.io', 'https://uygqcgnmlzmuwkpsmixs.supabase.co', ...(isProduction ? [] : ['unsafe-inline', 'unsafe-eval'])],
         'style-src': ['self', 'unsafe-inline', 'https://*.nootapp.io'],
         'img-src': ['self', 'data:', 'https://*.nootapp.io', 'https://uygqcgnmlzmuwkpsmixs.supabase.co'],
         'font-src': ['self', 'https://*.nootapp.io'],
@@ -30,6 +30,7 @@ const config = {
         'frame-ancestors': ['none'],
         'base-uri': ['self'],
         'object-src': ['none'],
+        'require-trusted-types-for': ['script'],
         ...(isProduction ? { 'upgrade-insecure-requests': true } : {})
       }
     },
