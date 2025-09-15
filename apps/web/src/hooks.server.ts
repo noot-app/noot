@@ -84,21 +84,8 @@ export const handle: Handle = async ({ event, resolve }) => {
     transformPageChunk({ html, done }) {
       // Add security headers on final response (only in production)
       if (done && !isDevelopment) {
-        // Set comprehensive security headers
+        // Set security headers (CSP is now handled by SvelteKit config)
         event.setHeaders({
-          // Content Security Policy - allows your subdomains and Supabase
-          'Content-Security-Policy': [
-            "default-src 'self' https://*.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
-            "style-src 'self' 'unsafe-inline' https://*.nootapp.io",
-            "img-src 'self' data: https://*.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
-            "font-src 'self' https://*.nootapp.io",
-            "connect-src 'self' https://api.nootapp.io https://mcp.nootapp.io https://uygqcgnmlzmuwkpsmixs.supabase.co",
-            "frame-ancestors 'none'",
-            "base-uri 'self'",
-            "object-src 'none'",
-            "upgrade-insecure-requests"
-          ].join('; '),
           // Legacy frame protection
           'X-Frame-Options': 'DENY',
           // MIME type sniffing protection

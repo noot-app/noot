@@ -25,7 +25,7 @@ const serverUrl = process.env.CAPACITOR_SERVER_URL || `http://${getLocalIP()}:30
 console.log(`🚀 Capacitor server URL: ${serverUrl}`);
 
 // Determine cleartext setting
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = (process.env.NODE_ENV || 'production') !== 'development';
 const allowCleartext = !isProduction;
 const isHttpsUrl = serverUrl.startsWith('https://');
 
