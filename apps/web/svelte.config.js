@@ -2,7 +2,7 @@ import adapter from "@sveltejs/adapter-cloudflare"
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte"
 import { mdsvex } from "mdsvex"
 
-const isProduction = process.env.NODE_ENV === 'production'
+const isProduction = (process.env.NODE_ENV || 'production') !== 'development'
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
