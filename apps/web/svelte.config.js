@@ -2,6 +2,8 @@ import adapter from "@sveltejs/adapter-cloudflare"
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte"
 import { mdsvex } from "mdsvex"
 
+const isProduction = process.env.NODE_ENV === 'production'
+
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   extensions: [".svelte", ".md"],
@@ -16,6 +18,24 @@ const config = {
 
   kit: {
     adapter: adapter(),
+    csp: {
+      mode: 'auto',
+      directives: {
+        'default-src': ['self', 'https://*.nootapp.io', 'https://uygqcgnmlzmuwkpsmixs.supabase.co'],
+        'script-src': ['self', 'unsafe-inline', 'unsafe-eval', 'https://*.nootapp.io', 'https://uygqcgnmlzmuwkpsmixs.supabase.co'],
+        'style-src': ['self', 'unsafe-inline', 'https://*.nootapp.io'],
+        'img-src': ['self', 'data:', 'https://*.nootapp.io', 'https://uygqcgnmlzmuwkpsmixs.supabase.co'],
+        'font-src': ['self', 'https://*.nootapp.io'],
+        'connect-src': ['self', 'https://*.nootapp.io', 'https://uygqcgnmlzmuwkpsmixs.supabase.co', ...(!isProduction ? ['http://localhost:*', 'http://127.0.0.1:*', 'http://192.168.1.180:*'] : [])],
+        'frame-ancestors': ['none'],
+        'base-uri': ['self'],
+        'object-src': ['none'],
+        ...(isProduction ? { 'upgrade-insecure-requests': true } : {})
+      }
+    },
+    csrf: {
+      trustedOrigins: ['https://uygqcgnmlzmuwkpsmixs.supabase.co']
+    }
   },
 }
 
