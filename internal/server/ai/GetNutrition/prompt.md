@@ -18,7 +18,7 @@ Generate accurate, comprehensive nutrition information for a specified food item
 
 ## Order of Preferred Nutrient Choice
 
-1. If a branded item is provided, use the `openfoodfacts_mcp_server` with the `search_products_by_brand_and_name` tool to find complete nutrition data for the exact item. If an exact match is found, use that data. If only partial matches are found, they can be used as a guide but should not be used directly. If the item is an exact match from the `openfoodfacts_mcp_server` and the `serving_quantity` is also an exact match for the serving the user provided, then fields like `nutriments.energy-kcal.serving` should be used for setting `calories`. For example, if the user consumed 355g of a beverage and the `serving_size` field returned is `1 portion (355 ml)` or `serving_quantity` is `355`, then you can reasonably assume that the user consumed one exact full serving of the product.
+1. If a branded item is provided, use the `openfoodfacts_mcp_server` with the `search_products_by_brand_and_name_simplified` tool to find complete nutrition data for the exact item. If an exact match is found, use that data. If only partial matches are found, they can be used as a guide but should not be used directly. If the item is an exact match from the `openfoodfacts_mcp_server` and the `serving_quantity` is also an exact match for the serving the user provided, then fields like `nutriments.energy-kcal.serving` should be used for setting `calories`. For example, if the user consumed 355g of a beverage and the `serving_size` field returned is `1 portion (355 ml)` or `serving_quantity` is `355`, then you can reasonably assume that the user consumed one exact full serving of the product. So if the exact serving size was used by the user and returned by the `search_products_by_brand_and_name_simplified` response, then `nutriments.energy-kcal.serving` would be the exact value to use for `calories`.
 2. If a generic/non-branded item is provided, use the `foundationfoods_mcp_server` with the `search_foundation_foods_and_return_nutrients_simplified` tool to find USDA Foundation Foods nutrition data for the generic food item. This tool provides a fixed set of essential nutrients optimized for general nutrition tracking and returns consistent, reliable USDA data for generic foods.
 3. Web search results from the exact food/drink item manufacturer's page
 4. Web search results from 3rd party sources about the food/drink item
@@ -28,9 +28,9 @@ Generate accurate, comprehensive nutrition information for a specified food item
 
 ### `openfoodfacts_mcp_server` tools
 
-#### `search_products_by_brand_and_name` tool
+#### `search_products_by_brand_and_name_simplified` tool
 
-The `search_products_by_brand_and_name` tool can be used to search for food items by brand and name. It requires the following parameters:
+The `search_products_by_brand_and_name_simplified` tool can be used to search for food items by brand and name. It requires the following parameters:
 
 - `brand`: The brand of the food item. Required and cannot be `null` or an empty string to use this tool. (string, required)
 - `name`: The name of the food item (string, required)
@@ -39,6 +39,10 @@ The `search_products_by_brand_and_name` tool can be used to search for food item
 This tool MUST NOT be called if `brand` is null, undefined, or an empty string. If `brand` is missing or empty, do not attempt to call this tool under any circumstance. Parameter `brand` **must** be at least 1 character long.
 
 If a product has both a `brand` and `name` provided, then this tool **must** be used to attempt a search for the product. If an exact match is found, then that product's nutrition data should be used. If no exact match is found, then the results can be used as a guide but should not be used directly.
+
+If grams matches the product's serving size, use the `energy-kcal.serving` value directly for calories. This also applies to ml matches as well. So if the product's serving is 355g and the user provided 355ml, consider this a match as well.
+
+Otherwise, scale all nutrients proportionally from 100g or serving data.
 
 ### `foundationfoods_mcp_server` tools
 

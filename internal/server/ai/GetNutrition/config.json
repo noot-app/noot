@@ -24,7 +24,7 @@
             "server_description": "Open Food Facts MCP server for branded item nutrition data",
             "authorization": "${OPENFOODFACTS_MCP_TOKEN}",
             "allowed_tools": [
-                "search_products_by_brand_and_name"
+                "search_products_by_brand_and_name_simplified"
             ],
             "require_approval": "never"
         },
