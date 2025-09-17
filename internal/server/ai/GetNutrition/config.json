@@ -27,6 +27,17 @@
                 "search_products_by_brand_and_name"
             ],
             "require_approval": "never"
+        },
+        {
+            "type": "mcp",
+            "server_label": "foundationfoods_mcp_server",
+            "server_url": "https://foundation-foods-mcp.nootapp.io/mcp",
+            "server_description": "MCP server to provide models context around the USDA's Foundation Foods database for generic food item nutrition data",
+            "authorization": "${FOUNDATIONFOODS_MCP_TOKEN}",
+            "allowed_tools": [
+                "search_foundation_foods_and_return_nutrients_simplified"
+            ],
+            "require_approval": "never"
         }
     ],
     "store": true,
