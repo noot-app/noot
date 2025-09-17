@@ -218,11 +218,40 @@ func (s *NutritionService) getAINutrition(ctx context.Context, item Item, provid
 	return aiResponse.Nutrients, ingredients, url, nil
 }
 
+// getAINutritionWithTranscript handles AI nutrition lookup with full transcript context
+func (s *NutritionService) getAINutritionWithTranscript(ctx context.Context, item Item, provider AIProvider, transcript string) (CompleteNutrient, []storage.OFFIngredient, *string, error) {
+	// Use the transcript-aware AI response to get more accurate nutrition data with full meal context
+	logHydrationDecision("ai_lookup_with_transcript", "item", item.Name, "brand", getBrandOrEmpty(item.Brand), "transcript_length", len(transcript))
+
+	aiResponse, err := provider.GetNutritionWithTranscriptContextComplete(ctx, item, transcript)
+	if err != nil {
+		return CompleteNutrient{}, nil, nil, err
+	}
+
+	logHydrationDecision("ai_transcript_response", "item", item.Name, "calories", aiResponse.Nutrients.Calories)
+
+	// Extract ingredients and URL from AI response for all items
+	var ingredients []storage.OFFIngredient
+	var url *string
+
+	if len(aiResponse.Ingredients) > 0 {
+		ingredients = aiResponse.Ingredients
+		logHydrationDecision("extracted_ingredients_with_transcript", "item", item.Name, "ingredient_count", len(ingredients))
+	}
+
+	if aiResponse.URL != nil && *aiResponse.URL != "" {
+		url = aiResponse.URL
+		logHydrationDecision("extracted_url_with_transcript", "item", item.Name, "url", *url)
+	}
+
+	return aiResponse.Nutrients, ingredients, url, nil
+}
+
 // fetchNutritionFromAI fetches nutrition data from AI provider
-func (s *NutritionService) fetchNutritionFromAI(ctx context.Context, item *Item, _ interface{}) (*CompleteNutrient, error) {
+func (s *NutritionService) fetchNutritionFromAI(ctx context.Context, item *Item, transcript string) (*CompleteNutrient, error) {
 	logHydrationDecision("ai_fetch_start", "name", item.Name)
 
-	nutrition, ingredients, url, err := s.getAINutrition(ctx, *item, s.aiProvider)
+	nutrition, ingredients, url, err := s.getAINutritionWithTranscript(ctx, *item, s.aiProvider, transcript)
 	if err != nil {
 		return nil, err
 	}
@@ -307,11 +336,17 @@ func (s *NutritionService) TranscribeAudio(ctx context.Context, filePath, mimeTy
 
 // ParseItems extracts food items from transcript
 func (s *NutritionService) ParseItems(ctx context.Context, transcriptText string) (ParsedItems, error) {
-	return s.aiProvider.ParseItems(ctx, transcriptText)
+	parsed, err := s.aiProvider.ParseItems(ctx, transcriptText)
+	if err != nil {
+		return ParsedItems{}, err
+	}
+	// Store the original transcript for later nutrition context
+	parsed.Transcript = transcriptText
+	return parsed, nil
 }
 
 // HydrateNutrition hydrates parsed items with nutrition data using cache when available
-func (s *NutritionService) HydrateNutrition(ctx context.Context, items []Item) ([]Item, error) {
+func (s *NutritionService) HydrateNutrition(ctx context.Context, items []Item, transcript string) ([]Item, error) {
 	logHydrationDecision("hydration_start", "item_count", len(items))
 
 	if len(items) == 0 {
@@ -340,7 +375,7 @@ func (s *NutritionService) HydrateNutrition(ctx context.Context, items []Item) (
 				return ctx.Err()
 			}
 
-			hydratedItem, err := s.hydrateItemNutrition(ctx, item)
+			hydratedItem, err := s.hydrateItemNutrition(ctx, item, transcript)
 			if err != nil {
 				logHydrationDecision("hydration_failed", "index", i, "name", item.Name, "error", err.Error())
 				// Use original item without nutrition data rather than failing entire request
@@ -363,7 +398,7 @@ func (s *NutritionService) HydrateNutrition(ctx context.Context, items []Item) (
 }
 
 // HydrateNutritionWithoutCache hydrates items without using cache (direct AI calls)
-func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, items []Item) ([]Item, error) {
+func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, items []Item, transcript string) ([]Item, error) {
 	logHydrationDecision("hydration_without_cache_start", "item_count", len(items))
 
 	if len(items) == 0 {
@@ -393,7 +428,7 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 			}
 
 			// Get nutrition from AI (using extracted helper)
-			nutrition, ingredients, url, err := s.getAINutrition(ctx, item, s.aiProvider)
+			nutrition, ingredients, url, err := s.getAINutritionWithTranscript(ctx, item, s.aiProvider, transcript)
 			if err != nil {
 				logHydrationDecision("ai_call_failed", "index", i, "name", item.Name, "error", err.Error())
 				// Use original item without nutrition data rather than failing entire request
@@ -425,7 +460,7 @@ func (s *NutritionService) HydrateNutritionWithoutCache(ctx context.Context, ite
 }
 
 // hydrateItemNutrition hydrates a single item with nutrition data from cache or AI
-func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) (Item, error) {
+func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item, transcript string) (Item, error) {
 	LogDebug("Starting nutrition hydration for item", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
 
 	// Step 1: Try to fetch from cache
@@ -438,7 +473,7 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item) 
 	}
 
 	// Step 2: Fetch nutrition from AI
-	nutrition, err := s.fetchNutritionFromAI(ctx, &item, nil)
+	nutrition, err := s.fetchNutritionFromAI(ctx, &item, transcript)
 	if err != nil {
 		return item, err
 	}

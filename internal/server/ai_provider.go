@@ -29,6 +29,12 @@ type AIProvider interface {
 
 	// GetNutritionWithContextComplete gets complete nutrition data including ingredients and URL
 	GetNutritionWithContextComplete(ctx context.Context, item Item) (NutritionResponse, error)
+
+	// GetNutritionWithTranscriptContext gets nutrition data with both item context and full transcript
+	GetNutritionWithTranscriptContext(ctx context.Context, item Item, transcript string) (CompleteNutrient, error)
+
+	// GetNutritionWithTranscriptContextComplete gets complete nutrition data with transcript context
+	GetNutritionWithTranscriptContextComplete(ctx context.Context, item Item, transcript string) (NutritionResponse, error)
 }
 
 // AIProviderConfig holds configuration for AI providers

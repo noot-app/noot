@@ -763,3 +763,97 @@ func (p *OpenAIProvider) GetNutritionWithContextComplete(ctx context.Context, it
 		URL:         result.URL,
 	}, nil
 }
+
+// GetNutritionWithTranscriptContext implements AIProvider.GetNutritionWithTranscriptContext
+func (p *OpenAIProvider) GetNutritionWithTranscriptContext(ctx context.Context, item Item, transcript string) (CompleteNutrient, error) {
+	response, err := p.GetNutritionWithTranscriptContextComplete(ctx, item, transcript)
+	if err != nil {
+		return CompleteNutrient{}, err
+	}
+	return response.Nutrients, nil
+}
+
+// GetNutritionWithTranscriptContextComplete implements AIProvider.GetNutritionWithTranscriptContextComplete
+func (p *OpenAIProvider) GetNutritionWithTranscriptContextComplete(ctx context.Context, item Item, transcript string) (NutritionResponse, error) {
+	// Security: Validate item input
+	if len(strings.TrimSpace(item.Name)) == 0 {
+		return NutritionResponse{}, NewAppError("Item name cannot be empty", http.StatusBadRequest,
+			fmt.Errorf("item name is required"))
+	}
+
+	if len(item.Name) > maxItemNameLength {
+		return NutritionResponse{}, NewAppError("Item name too long", http.StatusBadRequest,
+			fmt.Errorf("item name length %d exceeds maximum %d", len(item.Name), maxItemNameLength))
+	}
+
+	LogDebug("Starting OpenAI GetNutritionWithTranscript request", "item_name", truncateForLog(item.Name), "transcript_length", len(transcript))
+
+	// Build input message as JSON with transcript context
+	inputObj := map[string]any{
+		"name":       item.Name,
+		"grams":      item.Grams,
+		"brand":      item.Brand,
+		"context":    item.Context,
+		"transcript": transcript, // Add full transcript for better context
+	}
+	inputBytes, _ := json.Marshal(inputObj)
+	input := string(inputBytes)
+
+	LogDebug("Starting OpenAI GetNutritionWithTranscript request", "item", item.Name, "input_message", truncateForLog(input))
+
+	// Build request payload using pre-initialized AIRequestBuilder
+	builder, err := GetNutritionBuilder()
+	if err != nil {
+		return NutritionResponse{}, NewAppError("Failed to initialize AI request builder", http.StatusInternalServerError, err)
+	}
+
+	responseBody, err := p.makeOpenAIRequest(ctx, builder, input, "/responses")
+	if err != nil {
+		return NutritionResponse{}, err
+	}
+
+	LogDebug("OpenAI nutrition with transcript response received", "full_response", filterResponseForLogging(responseBody))
+
+	content, err := parseOpenAIResponse(responseBody)
+	if err != nil {
+		return NutritionResponse{}, err
+	}
+
+	LogDebug("Extracted content from OpenAI transcript response", "content_length", len(content), "content_preview", func() string {
+		if len(content) > 100 {
+			return content[:100] + "..."
+		}
+		return content
+	}())
+
+	// Parse the complete response structure including ingredients and URL
+	var result struct {
+		Success     bool                    `json:"success"`
+		Message     *string                 `json:"message"`
+		Nutrients   CompleteNutrient        `json:"nutrients"`
+		Ingredients []storage.OFFIngredient `json:"ingredients,omitempty"`
+		URL         *string                 `json:"url,omitempty"`
+	}
+	if err := json.Unmarshal([]byte(content), &result); err != nil {
+		LogWarn("Failed to parse nutrition JSON with transcript", "content", content, "error", err.Error(), "full_response", filterResponseForLogging(responseBody))
+		return NutritionResponse{}, NewAppError("Failed to parse nutrition data", http.StatusInternalServerError, err)
+	}
+
+	// Check if nutrition fetching was successful according to the schema
+	if !result.Success {
+		message := "Unknown nutrition fetching failure"
+		if result.Message != nil {
+			message = *result.Message
+		}
+		LogWarn("OpenAI nutrition with transcript fetching reported failure", "message", message)
+		return NutritionResponse{}, NewAppError("Failed to fetch nutrition: "+message, http.StatusBadRequest, fmt.Errorf("nutrition fetching failed: %s", message))
+	}
+
+	LogDebug("Complete nutrition with transcript resolved", "item", item.Name, "nutrients", result.Nutrients, "has_ingredients", len(result.Ingredients) > 0, "has_url", result.URL != nil)
+
+	return NutritionResponse{
+		Nutrients:   result.Nutrients,
+		Ingredients: result.Ingredients,
+		URL:         result.URL,
+	}, nil
+}
