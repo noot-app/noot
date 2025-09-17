@@ -10,14 +10,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockStore implements a simple in-memory store for testing deduplication
+// MockStore extends NullStore for testing deduplication with item storage
 type MockStore struct {
+	*NullStore
 	items map[string]*storage.Item
 }
 
 func NewMockStore() *MockStore {
 	return &MockStore{
-		items: make(map[string]*storage.Item),
+		NullStore: &NullStore{},
+		items:     make(map[string]*storage.Item),
 	}
 }
 
@@ -51,54 +53,7 @@ func (m *MockStore) UpdateItem(ctx context.Context, item *storage.Item) error {
 	return nil
 }
 
-// Implement other required Store methods as no-ops for testing
-func (m *MockStore) CreateUser(ctx context.Context, user *storage.User) error      { return nil }
-func (m *MockStore) GetUser(ctx context.Context, id string) (*storage.User, error) { return nil, nil }
-func (m *MockStore) GetUserByEmail(ctx context.Context, email string) (*storage.User, error) {
-	return nil, nil
-}
-func (m *MockStore) UpdateUser(ctx context.Context, user *storage.User) error { return nil }
-func (m *MockStore) CreateConsumption(ctx context.Context, consumption *storage.Consumption) (*storage.Consumption, error) {
-	return consumption, nil
-}
-func (m *MockStore) GetConsumption(ctx context.Context, id string) (*storage.Consumption, error) {
-	return nil, nil
-}
-func (m *MockStore) GetConsumptionForUser(ctx context.Context, userID, id string) (*storage.Consumption, error) {
-	return nil, nil
-}
-func (m *MockStore) GetPublicConsumption(ctx context.Context, id string) (*storage.Consumption, error) {
-	return nil, nil
-}
-func (m *MockStore) UpdateConsumption(ctx context.Context, consumption *storage.Consumption) error {
-	return nil
-}
-func (m *MockStore) DeleteConsumption(ctx context.Context, id string) error { return nil }
-func (m *MockStore) GetConsumptionsByUser(ctx context.Context, userID string, limit, offset int) ([]*storage.Consumption, error) {
-	return nil, nil
-}
-func (m *MockStore) GetConsumptionsByUserSince(ctx context.Context, userID string, since time.Time) ([]*storage.Consumption, error) {
-	return nil, nil
-}
-func (m *MockStore) GetConsumptionsByUserDateRange(ctx context.Context, userID string, start, end time.Time, limit, offset int) ([]*storage.Consumption, error) {
-	return nil, nil
-}
-func (m *MockStore) GetNutritionSummary(ctx context.Context, userID string, start, end time.Time) (*storage.NutritionSummary, error) {
-	return nil, nil
-}
-func (m *MockStore) CreateConsumptionItem(ctx context.Context, item *storage.ConsumptionItem) error {
-	return nil
-}
-func (m *MockStore) GetConsumptionItems(ctx context.Context, consumptionID string) ([]*storage.ConsumptionItem, error) {
-	return nil, nil
-}
-func (m *MockStore) UpdateConsumptionItem(ctx context.Context, item *storage.ConsumptionItem) error {
-	return nil
-}
-func (m *MockStore) DeleteConsumptionItem(ctx context.Context, id string) error { return nil }
-func (m *MockStore) DeleteConsumptionItemsByConsumption(ctx context.Context, consumptionID string) error {
-	return nil
-}
+
 func (m *MockStore) GetStaleItems(ctx context.Context, staleAfter time.Time) ([]*storage.Item, error) {
 	return nil, nil
 }
