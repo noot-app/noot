@@ -40,6 +40,10 @@ This tool MUST NOT be called if `brand` is null, undefined, or an empty string. 
 
 If a product has both a `brand` and `name` provided, then this tool **must** be used to attempt a search for the product. If an exact match is found, then that product's nutrition data should be used. If no exact match is found, then the results can be used as a guide but should not be used directly.
 
+If grams matches the product's serving size, use the `energy-kcal.serving` value directly for calories. This also applies to ml matches as well. So if the product's serving is 355g and the user provided 355ml, consider this a match as well.
+
+Otherwise, scale all nutrients proportionally from 100g or serving data.
+
 ### `foundationfoods_mcp_server` tools
 
 #### `search_foundation_foods_and_return_nutrients_simplified` tool
