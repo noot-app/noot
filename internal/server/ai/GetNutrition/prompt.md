@@ -19,9 +19,10 @@ Generate accurate, comprehensive nutrition information for a specified food item
 ## Order of Preferred Nutrient Choice
 
 1. If a branded item is provided, use the `openfoodfacts_mcp_server` with the `search_products_by_brand_and_name` tool to find complete nutrition data for the exact item. If an exact match is found, use that data. If only partial matches are found, they can be used as a guide but should not be used directly. If the item is an exact match from the `openfoodfacts_mcp_server` and the `serving_quantity` is also an exact match for the serving the user provided, then fields like `nutriments.energy-kcal.serving` should be used for setting `calories`. For example, if the user consumed 355g of a beverage and the `serving_size` field returned is `1 portion (355 ml)` or `serving_quantity` is `355`, then you can reasonably assume that the user consumed one exact full serving of the product.
-2. Web search results from the exact food/drink item manufacturer's page
-3. Web search results from 3rd party sources about the food/drink item
-4. Educated estimates
+2. If a generic/non-branded item is provided, use the `foundationfoods_mcp_server` with the `search_foundation_foods_and_return_nutrients_simplified` tool to find USDA Foundation Foods nutrition data for the generic food item. This tool provides a fixed set of essential nutrients optimized for general nutrition tracking and returns consistent, reliable USDA data for generic foods.
+3. Web search results from the exact food/drink item manufacturer's page
+4. Web search results from 3rd party sources about the food/drink item
+5. Educated estimates
 
 ## `mcp` tool usage
 
@@ -38,6 +39,21 @@ The `search_products_by_brand_and_name` tool can be used to search for food item
 This tool MUST NOT be called if `brand` is null, undefined, or an empty string. If `brand` is missing or empty, do not attempt to call this tool under any circumstance. Parameter `brand` **must** be at least 1 character long.
 
 If a product has both a `brand` and `name` provided, then this tool **must** be used to attempt a search for the product. If an exact match is found, then that product's nutrition data should be used. If no exact match is found, then the results can be used as a guide but should not be used directly.
+
+### `foundationfoods_mcp_server` tools
+
+#### `search_foundation_foods_and_return_nutrients_simplified` tool
+
+The `search_foundation_foods_and_return_nutrients_simplified` tool provides access to the USDA Foundation Foods database for generic food items. It requires the following parameters:
+
+- `name`: The name of the generic food item (string, required)
+- `limit`: The maximum number of results to return. Default should always be set to `3`
+
+This tool should be used for generic/non-branded food items to get reliable USDA nutritional data. It returns a fixed set of essential nutrients that have been optimized for general nutrition tracking. The tool provides consistent, high-quality nutritional information for generic foods like "apple", "chicken breast", "milk", "whole milk", "salmon", "white rice", etc.
+
+If a food item is generic (no brand specified or brand is null/empty), this tool should be used to search for USDA Foundation Foods data before falling back to web search or estimates.
+
+This tool MUST NOT be used with branded food items. For example, if the food item is "Coca-Cola Classic", this tool should not be used even if "Coca-Cola Classic" is a generic term. Instead, the `openfoodfacts_mcp_server` should be used to search for the branded item.
 
 ## `context` field
 
