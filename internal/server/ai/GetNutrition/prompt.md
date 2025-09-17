@@ -34,7 +34,7 @@ The `search_products_by_brand_and_name` tool can be used to search for food item
 
 - `brand`: The brand of the food item. Required and cannot be `null` or an empty string to use this tool. (string, required)
 - `name`: The name of the food item (string, required)
-- `limit`: The maximum number of results to return. Default should always be set to `3`
+- `limit`: The maximum number of results to return. Default should always be set to `1`. If the first result is not a good match, increase the limit to `3` or make additional tool calls with different search terms.
 
 This tool MUST NOT be called if `brand` is null, undefined, or an empty string. If `brand` is missing or empty, do not attempt to call this tool under any circumstance. Parameter `brand` **must** be at least 1 character long.
 
@@ -47,7 +47,7 @@ If a product has both a `brand` and `name` provided, then this tool **must** be 
 The `search_foundation_foods_and_return_nutrients_simplified` tool provides access to the USDA Foundation Foods database for generic food items. It requires the following parameters:
 
 - `name`: The name of the generic food item (string, required)
-- `limit`: The maximum number of results to return. Default should always be set to `3`
+- `limit`: The maximum number of results to return. Default should always be set to `1`. If the first result is not a good match, increase the limit to `3` or make additional tool calls with different search terms.
 
 This tool should be used for generic/non-branded food items to get reliable USDA nutritional data. It returns a fixed set of essential nutrients that have been optimized for general nutrition tracking. The tool provides consistent, high-quality nutritional information for generic foods like "apple", "chicken breast", "milk", "whole milk", "salmon", "white rice", etc.
 
