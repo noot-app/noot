@@ -220,7 +220,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	LogDebug("Starting nutrition hydration", "request_id", requestID)
 	var hydratedItems []Item
 	if s.store != nil {
-		hydratedItems, err = nutritionService.HydrateNutrition(ctx, parsed.Items)
+		hydratedItems, err = nutritionService.HydrateNutrition(ctx, parsed.Items, parsed.Transcript)
 		if err != nil {
 			appErr := NewAppError("Nutrition hydration failed", http.StatusInternalServerError, err)
 			s.handleAppError(c, appErr, requestID)
@@ -228,7 +228,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 		}
 	} else {
 		// No store available - hydrate without cache (direct AI calls)
-		hydratedItems, err = nutritionService.HydrateNutritionWithoutCache(ctx, parsed.Items)
+		hydratedItems, err = nutritionService.HydrateNutritionWithoutCache(ctx, parsed.Items, parsed.Transcript)
 		if err != nil {
 			appErr := NewAppError("Nutrition hydration failed", http.StatusInternalServerError, err)
 			s.handleAppError(c, appErr, requestID)

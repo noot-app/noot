@@ -5,7 +5,8 @@ import (
 )
 
 type ParsedItems struct {
-	Items []Item `json:"items"`
+	Items      []Item `json:"items"`
+	Transcript string `json:"transcript"` // Original transcript for context
 }
 
 type Item struct {
