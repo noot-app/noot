@@ -218,8 +218,12 @@
     :global(.modal-box-mobile) {
       width: 95vw;
       max-width: 95vw;
-      margin: 5vh auto;
+      margin: 2vh auto;
       min-height: fit-content;
+      max-height: 96vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
     
     :global(.modal-mobile-optimized) {
@@ -232,7 +236,8 @@
   @media (max-width: 480px) {
     :global(.modal-box-mobile) {
       width: 98vw;
-      margin: 2vh auto;
+      margin: 1vh auto;
+      max-height: 98vh;
     }
   }
 </style>

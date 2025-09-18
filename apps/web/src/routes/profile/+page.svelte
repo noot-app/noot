@@ -1521,7 +1521,7 @@
                 </div>
               </div>
 
-              <div class="space-y-6 max-h-80 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch">
+              <div class="space-y-6">
                 <!-- Single Nutrient List with Both Target and Upper Limit Options -->
                 {#if editableNutrients.length > 0}
                   <div class="space-y-4">
