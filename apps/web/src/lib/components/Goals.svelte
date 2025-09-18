@@ -455,7 +455,7 @@
 
 <!-- Sugar Info Modal -->
 <input type="checkbox" id="sugar-info-modal" class="modal-toggle" />
-<div class="modal">
+<div class="modal modal-mobile-optimized">
   <div class="modal-box">
     <label
       for="sugar-info-modal"
@@ -518,7 +518,7 @@
 
 <!-- DRI Info Modal -->
 <input type="checkbox" id="dri-info" class="modal-toggle" />
-<div class="modal">
+<div class="modal modal-mobile-optimized">
   <div class="modal-box">
     <label
       for="dri-info"
@@ -588,8 +588,8 @@
 
 <!-- Custom Goals Info Modal -->
 <input type="checkbox" id="custom-goals-info" class="modal-toggle" />
-<div class="modal">
-  <div class="modal-box max-w-lg max-h-[80vh] overflow-y-auto">
+<div class="modal modal-mobile-optimized">
+  <div class="modal-box max-w-lg max-h-[80vh] overflow-y-auto overscroll-contain">
     <label
       for="custom-goals-info"
       class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10"
