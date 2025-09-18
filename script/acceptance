@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source script/env "$@"
+
+echo "🧪 Running acceptance tests..."
+
+# Check if server is running
+if ! curl -s "http://localhost:3001/api/v1/health" > /dev/null; then
+    echo "❌ Server is not running at http://localhost:3001"
+    echo "   Please start the server first with: script/server"
+    exit 1
+fi
+
+echo "✅ Server is running"
+
+# Run the acceptance tests from project root using vendored dependencies
+echo "🏃 Running acceptance tests..."
+go test -mod=vendor -v -timeout=60s ./tests
+
+echo "✅ Acceptance tests completed successfully!"

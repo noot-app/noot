@@ -6,8 +6,8 @@ source script/env "$@"
 
 count=3
 
-# Run tests for all packages except supabase/tests (which contains integration tests) and tmp (which contains temporary files)
-go test -mod=vendor -race -count $count -v -cover -coverprofile=coverage.out $(go list ./... | grep -v -E 'supabase/tests|tmp')
+# Run tests for all packages except supabase/tests (which contains integration tests), tmp (which contains temporary files), and tests (which contains acceptance tests)
+go test -mod=vendor -race -count $count -v -cover -coverprofile=coverage.out $(go list ./... | grep -v -E 'supabase/tests|tmp|/tests$')
 
 # Run frontend tests in subshell to ensure we return to current directory
 (cd apps/web && npm run test_run)

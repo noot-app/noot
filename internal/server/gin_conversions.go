@@ -220,21 +220,6 @@ func convertAPICompleteNutrientToInternal(api api.CompleteNutrient) *CompleteNut
 	}
 }
 
-// convertInternalUserToAPI converts internal storage User to API User
-func convertInternalUserToAPI(internal *storage.User) api.User {
-	subscriptionTier := api.Free
-	if internal.SubscriptionTier == "pro" {
-		subscriptionTier = api.Pro
-	}
-
-	return api.User{
-		Id:               internal.ID,
-		Email:            internal.Email,
-		SubscriptionTier: subscriptionTier,
-		CreatedAt:        internal.CreatedAt,
-	}
-}
-
 // convertStorageLabelsToAPI converts storage label array to API label array
 func convertStorageLabelsToAPI(storageLabels []*storage.Label) *[]api.Label {
 	if storageLabels == nil {
