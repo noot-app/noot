@@ -53,7 +53,6 @@ func (m *MockStore) UpdateItem(ctx context.Context, item *storage.Item) error {
 	return nil
 }
 
-
 func (m *MockStore) GetStaleItems(ctx context.Context, staleAfter time.Time) ([]*storage.Item, error) {
 	return nil, nil
 }

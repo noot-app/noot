@@ -194,7 +194,7 @@ func TestConvertInternalItemToAPI_WithUserQuantity(t *testing.T) {
 	userQty := 2.5
 	userUnit := "cups"
 	brand := "King Arthur"
-	
+
 	internal := Item{
 		Name:         "Flour",
 		Brand:        &brand,
@@ -221,7 +221,7 @@ func TestConvertInternalItemToAPI_WithNutrients(t *testing.T) {
 		Protein:  5.2,
 		TotalFat: 0.3,
 	}
-	
+
 	brand := ""
 	internal := Item{
 		Name:      "Orange",
@@ -243,23 +243,23 @@ func TestConvertInternalItemToAPI_WithNutrients(t *testing.T) {
 
 func TestConvertInternalCompleteNutrientToAPI(t *testing.T) {
 	internal := CompleteNutrient{
-		Calories:           250.0,
-		Protein:            12.5,
-		TotalFat:           8.3,
-		SaturatedFat:       2.1,
-		TransFat:           0.0,
-		Cholesterol:        15.0,
-		Sodium:             420.0,
-		TotalCarbs:         35.0,
-		DietaryFiber:       3.2,
-		TotalSugars:        8.1,
-		AddedSugars:        2.0,
-		VitaminA:           150.0,
-		VitaminC:           25.5,
-		VitaminD:           2.1,
-		Calcium:            120.0,
-		Iron:               1.8,
-		Potassium:          350.0,
+		Calories:     250.0,
+		Protein:      12.5,
+		TotalFat:     8.3,
+		SaturatedFat: 2.1,
+		TransFat:     0.0,
+		Cholesterol:  15.0,
+		Sodium:       420.0,
+		TotalCarbs:   35.0,
+		DietaryFiber: 3.2,
+		TotalSugars:  8.1,
+		AddedSugars:  2.0,
+		VitaminA:     150.0,
+		VitaminC:     25.5,
+		VitaminD:     2.1,
+		Calcium:      120.0,
+		Iron:         1.8,
+		Potassium:    350.0,
 	}
 
 	result := convertInternalCompleteNutrientToAPI(internal)
@@ -292,11 +292,11 @@ func TestConvertInternalSummaryToAPI(t *testing.T) {
 			TotalFat: 20.0,
 		},
 		PercentOfDaily: map[string]int{
-			"protein": 50,
+			"protein":   50,
 			"vitamin_c": 75,
 		},
 		DailyValuesUsed: map[string]float64{
-			"protein": 50.0,
+			"protein":   50.0,
 			"vitamin_c": 90.0,
 		},
 	}
@@ -306,10 +306,10 @@ func TestConvertInternalSummaryToAPI(t *testing.T) {
 	assert.Equal(t, float32(500.0), result.Totals.Calories)
 	assert.Equal(t, float32(25.0), result.Totals.ProteinG)
 	assert.Equal(t, float32(20.0), result.Totals.TotalFatG)
-	
+
 	assert.Contains(t, result.PercentOfDaily, "protein")
 	assert.Contains(t, result.PercentOfDaily, "vitamin_c")
-	
+
 	assert.Contains(t, result.DailyValues, "protein")
 	assert.Equal(t, float32(50.0), result.DailyValues["protein"])
 	assert.Contains(t, result.DailyValues, "vitamin_c")
@@ -321,7 +321,7 @@ func TestConvertAPIItemsToInternal(t *testing.T) {
 	note2 := "Locally sourced"
 	brand1 := "Fresh Co"
 	brand2 := "Tropical"
-	
+
 	apiItems := []api.ItemWithNutrition{
 		{
 			Item: api.Item{
@@ -344,13 +344,13 @@ func TestConvertAPIItemsToInternal(t *testing.T) {
 	result := convertAPIItemsToInternal(apiItems)
 
 	assert.Len(t, result, 2)
-	
+
 	assert.Equal(t, "Apple", result[0].Item.Name)
 	assert.NotNil(t, result[0].Item.Brand)
 	assert.Equal(t, "Fresh Co", *result[0].Item.Brand)
 	assert.Equal(t, float64(150.0), result[0].Item.Grams)
 	assert.Equal(t, "Fresh and organic", result[0].Note)
-	
+
 	assert.Equal(t, "Banana", result[1].Item.Name)
 	assert.NotNil(t, result[1].Item.Brand)
 	assert.Equal(t, "Tropical", *result[1].Item.Brand)
@@ -362,7 +362,7 @@ func TestConvertAPIItemToInternal(t *testing.T) {
 	userQty := float32(2.0)
 	userUnit := "pieces"
 	brand := "Citrus Co"
-	
+
 	apiItem := api.Item{
 		Name:         "Orange",
 		Brand:        &brand,
@@ -394,22 +394,22 @@ func TestConvertAPIItemToInternal(t *testing.T) {
 
 func TestConvertAPICompleteNutrientToInternal(t *testing.T) {
 	apiNutrient := api.CompleteNutrient{
-		Calories:            300.0,
-		ProteinG:            15.0,
-		TotalFatG:           12.0,
-		SaturatedFatG:       4.0,
-		TransFatG:           0.5,
-		CholesterolMg:       25.0,
-		SodiumMg:            600.0,
-		TotalCarbsG:         45.0,
-		DietaryFiberG:       8.0,
-		TotalSugarsG:        12.0,
-		AddedSugarsG:        5.0,
-		VitaminAMcg:         200.0,
-		VitaminCMg:          30.0,
-		CalciumMg:           150.0,
-		IronMg:              3.0,
-		PotassiumMg:         400.0,
+		Calories:      300.0,
+		ProteinG:      15.0,
+		TotalFatG:     12.0,
+		SaturatedFatG: 4.0,
+		TransFatG:     0.5,
+		CholesterolMg: 25.0,
+		SodiumMg:      600.0,
+		TotalCarbsG:   45.0,
+		DietaryFiberG: 8.0,
+		TotalSugarsG:  12.0,
+		AddedSugarsG:  5.0,
+		VitaminAMcg:   200.0,
+		VitaminCMg:    30.0,
+		CalciumMg:     150.0,
+		IronMg:        3.0,
+		PotassiumMg:   400.0,
 	}
 
 	result := convertAPICompleteNutrientToInternal(apiNutrient)
@@ -436,9 +436,9 @@ func TestConvertAPICompleteNutrientToInternal(t *testing.T) {
 func TestConvertStorageLabelsToAPI(t *testing.T) {
 	createdAt := time.Now()
 	updatedAt := createdAt.Add(time.Hour)
-	
+
 	description1 := "Healthy snack"
-	
+
 	storageLabels := []*storage.Label{
 		{
 			ID:          "label-1",
@@ -449,7 +449,7 @@ func TestConvertStorageLabelsToAPI(t *testing.T) {
 			UpdatedAt:   updatedAt,
 		},
 		{
-			ID:          "label-2", 
+			ID:          "label-2",
 			Name:        "Quick",
 			Description: nil,
 			Color:       "#FF0000",
@@ -462,7 +462,7 @@ func TestConvertStorageLabelsToAPI(t *testing.T) {
 
 	assert.NotNil(t, result)
 	assert.Len(t, *result, 2)
-	
+
 	labels := *result
 	assert.Equal(t, "label-1", labels[0].Id)
 	assert.Equal(t, "Healthy", labels[0].Name)
@@ -471,7 +471,7 @@ func TestConvertStorageLabelsToAPI(t *testing.T) {
 	assert.Equal(t, "#00FF00", labels[0].Color)
 	assert.Equal(t, createdAt, labels[0].CreatedAt)
 	assert.Equal(t, updatedAt, labels[0].UpdatedAt)
-	
+
 	assert.Equal(t, "label-2", labels[1].Id)
 	assert.Equal(t, "Quick", labels[1].Name)
 	assert.Nil(t, labels[1].Description)
@@ -498,7 +498,7 @@ func TestConvertMapFloat64ToFloat32(t *testing.T) {
 	assert.Contains(t, result, "vitamin_c")
 	assert.Contains(t, result, "calcium")
 	assert.Contains(t, result, "iron")
-	
+
 	assert.Equal(t, float32(50.123456789), result["protein"])
 	assert.Equal(t, float32(75.987654321), result["vitamin_c"])
 	assert.Equal(t, float32(100.0), result["calcium"])

@@ -53,11 +53,11 @@ func TestGetAuthenticatedUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
-			
+
 			tt.setupUser(c)
-			
+
 			result := GetAuthenticatedUser(c)
-			
+
 			if tt.expectUser {
 				assert.NotNil(t, result, tt.description)
 				assert.Equal(t, "test-user-1", result.ID)

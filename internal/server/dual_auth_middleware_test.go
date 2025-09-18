@@ -61,7 +61,7 @@ func TestDualAuthMiddleware_Integration(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	// Initialize logger for tests
 	InitLogger()
-	
+
 	tests := []struct {
 		name           string
 		method         string
@@ -96,20 +96,20 @@ func TestDualAuthMiddleware_Integration(t *testing.T) {
 			setupStore: func(store *TestAPIKeyStore) string {
 				fullKey, prefix, hash, err := storage.GenerateAPIKey()
 				require.NoError(t, err)
-				
+
 				apiKey := &storage.APIKey{
 					ID:     "key-1",
 					UserID: "user-1",
 					Hash:   hash,
 					Scope:  "read_write",
 				}
-				
+
 				user := &storage.User{
 					ID:               "user-1",
-					Email:           "test@example.com",
+					Email:            "test@example.com",
 					SubscriptionTier: storage.SubscriptionTierPro,
 				}
-				
+
 				store.SetAPIKey(prefix, apiKey)
 				store.SetUser("user-1", user)
 				return fullKey
@@ -137,12 +137,12 @@ func TestDualAuthMiddleware_Integration(t *testing.T) {
 			expectAuth:     false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := NewTestAPIKeyStore()
 			apiKey := tt.setupStore(store)
-			
+
 			// Create router with middleware
 			router := gin.New()
 			router.Use(DualAuthMiddleware(store))
@@ -154,14 +154,14 @@ func TestDualAuthMiddleware_Integration(t *testing.T) {
 				}
 				c.Status(http.StatusOK)
 			})
-			
+
 			// Create request
 			req := httptest.NewRequest(tt.method, tt.path, nil)
 			tt.setupHeaders(req, apiKey)
-			
+
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, req)
-			
+
 			assert.Equal(t, tt.expectedStatus, w.Code)
 		})
 	}
@@ -182,7 +182,7 @@ func TestCheckAPIKeyScope(t *testing.T) {
 		},
 		{
 			name:        "GET request with read_write scope",
-			method:      "GET", 
+			method:      "GET",
 			scope:       "read_write",
 			shouldError: false,
 		},
@@ -236,13 +236,13 @@ func TestAPIKeyError(t *testing.T) {
 		Type:    "test_error",
 		Message: "Test error message",
 	}
-	
+
 	assert.Equal(t, "Test error message", err.Error())
 }
 
 func TestGetAuthenticatedMethod(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	
+
 	tests := []struct {
 		name           string
 		setMethod      string
@@ -255,7 +255,7 @@ func TestGetAuthenticatedMethod(t *testing.T) {
 		},
 		{
 			name:           "JWT authentication",
-			setMethod:      "jwt", 
+			setMethod:      "jwt",
 			expectedMethod: "jwt",
 		},
 		{
@@ -264,16 +264,16 @@ func TestGetAuthenticatedMethod(t *testing.T) {
 			expectedMethod: "jwt",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(w)
-			
+
 			if tt.setMethod != "" {
 				c.Set("auth_method", tt.setMethod)
 			}
-			
+
 			method := GetAuthenticatedMethod(c)
 			assert.Equal(t, tt.expectedMethod, method)
 		})
@@ -282,14 +282,14 @@ func TestGetAuthenticatedMethod(t *testing.T) {
 
 func TestGetAPIKeyScope(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	
+
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	// Test with no scope set
 	scope := GetAPIKeyScope(c)
 	assert.Equal(t, "", scope)
-	
+
 	// Test with scope set
 	c.Set("api_key_scope", "read_write")
 	scope = GetAPIKeyScope(c)
@@ -298,14 +298,14 @@ func TestGetAPIKeyScope(t *testing.T) {
 
 func TestGetAPIKeyID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	
+
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	
+
 	// Test with no ID set
 	id := GetAPIKeyID(c)
 	assert.Equal(t, "", id)
-	
+
 	// Test with ID set
 	c.Set("api_key_id", "key-123")
 	id = GetAPIKeyID(c)
@@ -317,15 +317,15 @@ func TestIsConsumptionEndpoint(t *testing.T) {
 		path     string
 		expected bool
 	}{
-		{"/api/v1/consumption/123", true}, // exactly 4 segments, starts with /api/v1/consumption/
-		{"/api/v1/consumption", false},   // only 3 segments
-		{"/api/v1/consumptions", false},  // different path 
+		{"/api/v1/consumption/123", true},   // exactly 4 segments, starts with /api/v1/consumption/
+		{"/api/v1/consumption", false},      // only 3 segments
+		{"/api/v1/consumptions", false},     // different path
 		{"/api/v1/consumptions/456", false}, // different path
 		{"/api/v1/health", false},
 		{"/api/v1/goals", false},
 		{"/other/consumption", false},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
 			result := isConsumptionEndpoint(tt.path)
