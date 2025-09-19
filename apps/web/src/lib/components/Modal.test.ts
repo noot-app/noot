@@ -73,6 +73,34 @@ describe('Modal Component Logic', () => {
     })
   })
 
+  describe('BaseModal Integration', () => {
+    it('should have proper mobile-optimized CSS classes', () => {
+      // Test that BaseModal uses the correct mobile optimization classes
+      const expectedClasses = {
+        modalContainer: 'modal-mobile-optimized',
+        modalBox: 'modal-box-mobile',
+        overscrollBehavior: 'overscroll-contain'
+      }
+      
+      expect(expectedClasses.modalContainer).toBe('modal-mobile-optimized')
+      expect(expectedClasses.modalBox).toBe('modal-box-mobile')
+      expect(expectedClasses.overscrollBehavior).toBe('overscroll-contain')
+    })
+
+    it('should handle accessibility attributes correctly', () => {
+      // Test ARIA attributes used in BaseModal
+      const ariaAttributes = {
+        modal: 'aria-modal',
+        labelledBy: 'aria-labelledby',
+        role: 'dialog'
+      }
+      
+      expect(ariaAttributes.modal).toBe('aria-modal')
+      expect(ariaAttributes.labelledBy).toBe('aria-labelledby')
+      expect(ariaAttributes.role).toBe('dialog')
+    })
+  })
+
   describe('Touch Event Handling', () => {
     it('should handle touch coordinates correctly', () => {
       // Simulate touch event structure

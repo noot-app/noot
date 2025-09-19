@@ -11,6 +11,7 @@
   import Label from "$lib/components/Label.svelte"
   import FormSelect from "$lib/components/FormSelect.svelte"
   import ConfirmModal from "$lib/components/ConfirmModal.svelte"
+  import BaseModal from "$lib/components/shared/ui/BaseModal.svelte"
   import TagIcon from "$lib/components/icons/Tag.svelte"
   import StarIcon from "$lib/components/icons/Star.svelte"
   import TrophyIcon from "$lib/components/icons/Trophy.svelte"
@@ -1430,14 +1431,12 @@
       {/if}
 
       <!-- Edit Goal Modal -->
-      {#if showEditModal}
-        <div class="modal modal-open">
-          <div class="modal-box max-w-2xl">
-            <h3 class="font-bold text-lg mb-4">
-              {editingGoalName === "New Goal"
-                ? "Create New Goal"
-                : `Edit ${editingGoalName}`}
-            </h3>
+      <BaseModal 
+        bind:show={showEditModal}
+        title={editingGoalName === "New Goal" ? "Create New Goal" : `Edit ${editingGoalName}`}
+        size="lg"
+        closable={!saving}
+      >
 
             <div class="alert alert-info mb-4">
               <InfoButton
@@ -1522,7 +1521,7 @@
                 </div>
               </div>
 
-              <div class="space-y-6 max-h-96 overflow-y-auto">
+              <div class="space-y-6">
                 <!-- Single Nutrient List with Both Target and Upper Limit Options -->
                 {#if editableNutrients.length > 0}
                   <div class="space-y-4">
@@ -1591,34 +1590,32 @@
               </div>
             </div>
 
-            <div class="modal-action">
-              <button
-                class="btn btn-outline"
-                on:click={resetToDefaults}
-                disabled={saving}
-              >
-                Reset All
-              </button>
-              <button
-                class="btn btn-primary"
-                on:click={saveCustomGoals}
-                disabled={saving || !customName.trim() || (Object.keys(customTargets).length === 0 && Object.keys(customUpperLimits).length === 0)}
-              >
-                {#if saving}
-                  <span class="loading loading-spinner loading-xs"></span>
-                  Saving...
-                {:else}
-                  Save Goals
-                {/if}
-              </button>
+        <div slot="actions" class="modal-action">
+          <button
+            class="btn btn-outline"
+            on:click={resetToDefaults}
+            disabled={saving}
+          >
+            Reset All
+          </button>
+          <button
+            class="btn btn-primary"
+            on:click={saveCustomGoals}
+            disabled={saving || !customName.trim() || (Object.keys(customTargets).length === 0 && Object.keys(customUpperLimits).length === 0)}
+          >
+            {#if saving}
+              <span class="loading loading-spinner loading-xs"></span>
+              Saving...
+            {:else}
+              Save Goals
+            {/if}
+          </button>
 
-              <button class="btn btn-outline" on:click={closeEditModal}>
-                Cancel
-              </button>
-            </div>
-          </div>
+          <button class="btn btn-outline" on:click={closeEditModal}>
+            Cancel
+          </button>
         </div>
-      {/if}
+      </BaseModal>
 
       <!-- Labels Section -->
       <div class="card bg-base-200 shadow-lg mt-8">

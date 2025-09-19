@@ -218,21 +218,33 @@
     :global(.modal-box-mobile) {
       width: 95vw;
       max-width: 95vw;
-      margin: 5vh auto;
+      margin: auto;
       min-height: fit-content;
+      max-height: 90vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
     
     :global(.modal-mobile-optimized) {
       -webkit-overflow-scrolling: touch;
       overflow-y: auto;
       overflow-x: hidden;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
     }
   }
 
   @media (max-width: 480px) {
     :global(.modal-box-mobile) {
       width: 98vw;
-      margin: 2vh auto;
+      margin: auto;
+      max-height: 95vh;
+    }
+    
+    :global(.modal-mobile-optimized) {
+      padding: 0.5rem;
     }
   }
 </style>
