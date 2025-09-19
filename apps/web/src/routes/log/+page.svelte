@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte"
+  import { goto } from "$app/navigation"
   import { apiClient } from "$lib/api/client"
   import { handleApiCallWithAuthRedirect } from "$lib/utils/error-handling"
   import TimelineIcon from "$lib/components/icons/Timeline.svelte"
@@ -317,7 +318,23 @@
                 {@const consumption = entry.data as Consumption}
                 {@const nutritionStats = getNutritionStats(consumption)}
                 
-                <div class="bg-base-100 border border-base-300 rounded-lg p-6 hover:border-base-content/20 transition-colors">
+                <!-- Clickable meal event card - navigates to consumption detail page -->
+                <a 
+                  href="/consumptions/{consumption.id}"
+                  class="block bg-base-100 border border-base-300 rounded-lg p-6 hover:border-base-content/20 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  tabindex="0"
+                  aria-label="View details for meal: {consumption.title || consumption.transcript}"
+                  on:click={(e) => {
+                    e.preventDefault()
+                    goto(`/consumptions/${consumption.id}`)
+                  }}
+                  on:keydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      goto(`/consumptions/${consumption.id}`)
+                    }
+                  }}
+                >
                   <!-- Header -->
                   <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
@@ -369,7 +386,7 @@
                       {/each}
                     </div>
                   {/if}
-                </div>
+                </a>
 
               {:else}
                 {@const event = entry.data as Event}
