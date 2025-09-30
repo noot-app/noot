@@ -24,6 +24,16 @@ func getCommonServingSizes() []float64 {
 	return []float64{100, 355, 250, 200, 500, 150, 300, 400, 50, 75, 125}
 }
 
+// itemTiming tracks timing metrics for individual item hydration
+type itemTiming struct {
+	index       int
+	itemName    string
+	cacheHit    bool
+	aiCallMs    int64
+	totalMs     int64
+	semaphoreMs int64
+}
+
 // NutritionService handles nutrition data processing with caching and unit conversions
 type NutritionService struct {
 	aiProvider AIProvider
@@ -347,6 +357,7 @@ func (s *NutritionService) ParseItems(ctx context.Context, transcriptText string
 
 // HydrateNutrition hydrates parsed items with nutrition data using cache when available
 func (s *NutritionService) HydrateNutrition(ctx context.Context, items []Item, transcript string) ([]Item, error) {
+	startTime := time.Now()
 	logHydrationDecision("hydration_start", "item_count", len(items))
 
 	if len(items) == 0 {
@@ -363,27 +374,42 @@ func (s *NutritionService) HydrateNutrition(ctx context.Context, items []Item, t
 	// Results channel to collect hydrated items
 	hydratedItems := make([]Item, len(items))
 
+	// Track timing metrics
+	timingsChan := make(chan itemTiming, len(items))
+
 	// Process each item with concurrency limiting
 	for i, item := range items {
 		i, item := i, item // Capture loop variables
 		g.Go(func() error {
+			itemStart := time.Now()
+			timing := itemTiming{
+				index:    i,
+				itemName: item.Name,
+			}
+
 			// Acquire semaphore for AI call limiting
+			semaphoreStart := time.Now()
 			select {
 			case semaphore <- struct{}{}:
+				timing.semaphoreMs = time.Since(semaphoreStart).Milliseconds()
 				defer func() { <-semaphore }()
 			case <-ctx.Done():
 				return ctx.Err()
 			}
 
-			hydratedItem, err := s.hydrateItemNutrition(ctx, item, transcript)
+			hydratedItem, err := s.hydrateItemNutritionWithTiming(ctx, item, transcript, &timing)
 			if err != nil {
 				logHydrationDecision("hydration_failed", "index", i, "name", item.Name, "error", err.Error())
 				// Use original item without nutrition data rather than failing entire request
 				hydratedItems[i] = item
+				timing.totalMs = time.Since(itemStart).Milliseconds()
+				timingsChan <- timing
 				return nil // Don't fail the entire batch for individual failures
 			}
 
 			hydratedItems[i] = hydratedItem
+			timing.totalMs = time.Since(itemStart).Milliseconds()
+			timingsChan <- timing
 			return nil
 		})
 	}
@@ -391,6 +417,59 @@ func (s *NutritionService) HydrateNutrition(ctx context.Context, items []Item, t
 	// Wait for all goroutines to complete
 	if err := g.Wait(); err != nil {
 		return nil, fmt.Errorf("nutrition hydration failed: %w", err)
+	}
+	close(timingsChan)
+
+	// Collect and log timing metrics
+	var totalAIMs, maxAIMs, totalWaitMs, maxWaitMs int64
+	cacheHits := 0
+	aiCalls := 0
+	timings := make([]itemTiming, 0, len(items))
+	for timing := range timingsChan {
+		timings = append(timings, timing)
+		if timing.cacheHit {
+			cacheHits++
+		} else {
+			aiCalls++
+			totalAIMs += timing.aiCallMs
+			if timing.aiCallMs > maxAIMs {
+				maxAIMs = timing.aiCallMs
+			}
+		}
+		totalWaitMs += timing.semaphoreMs
+		if timing.semaphoreMs > maxWaitMs {
+			maxWaitMs = timing.semaphoreMs
+		}
+	}
+
+	totalMs := time.Since(startTime).Milliseconds()
+	avgAIMs := int64(0)
+	if aiCalls > 0 {
+		avgAIMs = totalAIMs / int64(aiCalls)
+	}
+
+	// Log summary metrics
+	LogInfo("hydration_performance_summary",
+		"total_items", len(items),
+		"cache_hits", cacheHits,
+		"ai_calls", aiCalls,
+		"total_duration_ms", totalMs,
+		"avg_ai_call_ms", avgAIMs,
+		"max_ai_call_ms", maxAIMs,
+		"total_semaphore_wait_ms", totalWaitMs,
+		"max_semaphore_wait_ms", maxWaitMs,
+	)
+
+	// Log detailed per-item metrics
+	for _, t := range timings {
+		LogDebug("hydration_item_timing",
+			"index", t.index,
+			"name", t.itemName,
+			"cache_hit", t.cacheHit,
+			"ai_call_ms", t.aiCallMs,
+			"semaphore_wait_ms", t.semaphoreMs,
+			"total_ms", t.totalMs,
+		)
 	}
 
 	logHydrationDecision("hydration_completed", "hydrated_count", len(hydratedItems))
@@ -485,6 +564,41 @@ func (s *NutritionService) hydrateItemNutrition(ctx context.Context, item Item, 
 	}
 
 	// Step 5: Set nutrition on item and return
+	item.Nutrients = nutrition
+	return item, nil
+}
+
+// hydrateItemNutritionWithTiming is like hydrateItemNutrition but also tracks timing metrics
+func (s *NutritionService) hydrateItemNutritionWithTiming(ctx context.Context, item Item, transcript string, timing *itemTiming) (Item, error) {
+	LogDebug("Starting nutrition hydration for item", "name", item.Name, "brand", getBrandOrEmpty(item.Brand), "grams", item.Grams)
+
+	// Step 1: Try to fetch from cache
+	if cachedNutrition, err := s.fetchNutritionFromCache(ctx, item); err != nil {
+		LogWarn("Error fetching from cache", "error", err.Error())
+	} else if cachedNutrition != nil {
+		LogDebug("Using cached nutrition data", "name", item.Name)
+		item.Nutrients = cachedNutrition
+		timing.cacheHit = true
+		timing.aiCallMs = 0
+		return item, nil
+	}
+
+	// Step 2: Fetch nutrition from AI
+	aiStart := time.Now()
+	nutrition, err := s.fetchNutritionFromAI(ctx, &item, transcript)
+	if err != nil {
+		return item, err
+	}
+	timing.aiCallMs = time.Since(aiStart).Milliseconds()
+	timing.cacheHit = false
+
+	// Step 3: Cache the nutrition data
+	if err := s.cacheNutritionData(ctx, item, *nutrition); err != nil {
+		LogWarn("Failed to cache nutrition data", "error", err.Error())
+		// Don't fail the request if caching fails
+	}
+
+	// Step 4: Set nutrition on item and return
 	item.Nutrients = nutrition
 	return item, nil
 }
