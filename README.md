@@ -4,15 +4,13 @@
 
 An AI-powered nutrition logging web app. Just say what you ate!
 
-- Press and hold the mic button, speak your consumption.
-- Backend (Go) transcribes with OpenAI, parses items, fetches nutrients from an API based LLM.
-- Returns a complete nutrient profile summary with calories, protein, carbs, fiber, vitamins, minerals, etc.
-
-## Nutrients
+## Available Nutrients
 
 This project aims to track 48+ total nutrients using a **centralized definition system**:
 
 Adding nutrients is now super easy! See [Nutrient System Documentation](internal/nutrients/README.md)
+
+See the full list of defined [nutrients here](./config/nutrients.yml).
 
 **Quick Add Example:**
 
@@ -30,57 +28,6 @@ Adding nutrients is now super easy! See [Nutrient System Documentation](internal
 ```
 
 Then run: `script/generate-nutrients` → All 20+ files automatically updated!
-
-**Currently tracked nutrients:**
-
-- total_calories
-- total_protein_g
-- total_fat_g
-- total_carbs_g
-- dietary_fiber_g
-- total_sodium_mg
-- saturated_fat_g
-- trans_fat_g
-- cholesterol_mg
-- total_sugars_g
-- added_sugars_g
-- vitamin_a_mcg
-- vitamin_c_mg
-- vitamin_d_mcg
-- vitamin_e_mg
-- vitamin_k_mcg
-- thiamine_mg
-- riboflavin_mg
-- niacin_mg
-- vitamin_b6_mg
-- folate_mcg
-- vitamin_b12_mcg
-- biotin_mcg
-- pantothenic_acid_mg
-- choline_mg
-- calcium_mg
-- iron_mg
-- magnesium_mg
-- phosphorus_mg
-- potassium_mg
-- zinc_mg
-- copper_mg
-- manganese_mg
-- selenium_mcg
-- iodine_mcg
-- molybdenum_mcg
-- chromium_mcg
-- fluoride_mg
-- chloride_mg
-- omega3_ala_g
-- omega3_epa_g
-- omega3_dha_g
-- omega6_g
-- creatine_mg
-- caffeine_mg
-- alcohol_g
-- polyunsaturated_fat_g
-- monounsaturated_fat_g
 
 ## Consumption Flow Diagram
 
