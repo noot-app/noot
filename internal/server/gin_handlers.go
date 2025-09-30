@@ -43,6 +43,7 @@ func NewAPIServer(store storage.Store) (*APIServer, error) {
 // - User context enforced for data storage
 func (s *APIServer) CreateConsumption(c *gin.Context) {
 	requestID := c.GetString("request_id")
+	startTime := time.Now()
 
 	LogDebug("Processing consumption request", "request_id", requestID)
 
@@ -60,7 +61,11 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	}
 
 	// 1) Normalize input (either audio transcription or text)
+	inputStart := time.Now()
 	input, err := normalizeConsumptionInput(c, requestID, maxFormSize)
+	inputDuration := time.Since(inputStart).Milliseconds()
+	LogInfo("metric_timing", "component", "normalize_input", "duration_ms", inputDuration, "request_id", requestID)
+
 	if err != nil {
 		if appErr, ok := err.(*AppError); ok {
 			s.handleAppError(c, appErr, requestID)
@@ -207,8 +212,11 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	nutritionService := NewNutritionService(s.store)
 
 	// 2) Parse items (phase 1: extract items without nutrition)
-	LogDebug("Starting item parsing (items only)", "request_id", requestID)
+	parseStart := time.Now()
 	parsed, err := nutritionService.ParseItems(ctx, transcript)
+	parseDuration := time.Since(parseStart).Milliseconds()
+	LogInfo("metric_timing", "component", "parse_items", "duration_ms", parseDuration, "request_id", requestID)
+
 	if err != nil {
 		appErr := NewAppError("Item parsing failed", http.StatusInternalServerError, err)
 		s.handleAppError(c, appErr, requestID)
@@ -217,7 +225,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 	LogDebug("Item parsing completed", "item_count", len(parsed.Items), "request_id", requestID)
 
 	// 3) Hydrate nutrition (phase 2: add nutrition data using cache + AI)
-	LogDebug("Starting nutrition hydration", "request_id", requestID)
+	hydrateStart := time.Now()
 	var hydratedItems []Item
 	if s.store != nil {
 		hydratedItems, err = nutritionService.HydrateNutrition(ctx, parsed.Items, parsed.Transcript)
@@ -235,6 +243,9 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 			return
 		}
 	}
+	hydrateDuration := time.Since(hydrateStart).Milliseconds()
+	LogInfo("metric_timing", "component", "hydrate_nutrition", "duration_ms", hydrateDuration, "request_id", requestID)
+
 	LogDebug("Nutrition hydration completed", "hydrated_count", len(hydratedItems), "request_id", requestID)
 
 	// 4) Convert to API types
@@ -270,6 +281,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 			// Determine the source based on input and context
 			source := determineConsumptionSource(c, input)
 
+			dbStart := time.Now()
 			consumption := itemWithNutritionToConsumption(user.ID, transcript, summary, source)
 			createdConsumption, err := s.store.CreateConsumption(ctx, consumption)
 			if err != nil {
@@ -279,6 +291,7 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 				LogInfo("Consumption saved to database", "consumption_id", createdConsumption.ID, "user_id", user.ID, "request_id", requestID)
 
 				// Save individual consumption items for historic breakdown
+				itemsStart := time.Now()
 				for i, itemWithNutrition := range itemsWithNutrition {
 					// Try to find existing item in global cache for linking (optional)
 					var itemID *string
@@ -304,6 +317,11 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 						// Continue with other items even if one fails
 					}
 				}
+				itemsDuration := time.Since(itemsStart).Milliseconds()
+				LogInfo("metric_timing", "component", "db_save_items", "duration_ms", itemsDuration, "request_id", requestID)
+
+				dbDuration := time.Since(dbStart).Milliseconds()
+				LogInfo("metric_timing", "component", "db_save_total", "duration_ms", dbDuration, "request_id", requestID)
 
 				// Convert to API format for response using the created consumption directly
 				apiConsumption, err := storageConsumptionToAPI(ctx, s.store, createdConsumption)
@@ -312,6 +330,9 @@ func (s *APIServer) CreateConsumption(c *gin.Context) {
 					s.handleAppError(c, appErr, requestID)
 					return
 				}
+
+				totalDuration := time.Since(startTime).Milliseconds()
+				LogInfo("metric_timing", "component", "request_total", "duration_ms", totalDuration, "request_id", requestID)
 
 				LogInfo("Consumption request completed successfully",
 					"transcript_length", len(transcript),
