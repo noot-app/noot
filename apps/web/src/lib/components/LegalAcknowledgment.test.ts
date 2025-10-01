@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { LEGAL_SUMMARIES } from '$lib/constants/legal'
 
 describe('LegalAcknowledgment Component Logic', () => {
   
@@ -94,30 +95,29 @@ describe('LegalAcknowledgment Component Logic', () => {
 
   describe('Summary Content', () => {
     it('should have ToS summary content', () => {
-      const tosSummary = `By using Noot, you agree to: use the service for personal, non-commercial purposes; maintain accurate account information; not misuse or abuse the service; and understand that AI-generated content may contain inaccuracies. The service is provided "as is" with no warranties, and Noot limits its liability for damages. You also agree to resolve disputes through arbitration.`
+      const { termsOfService } = LEGAL_SUMMARIES
       
-      expect(tosSummary).toContain('personal, non-commercial purposes')
-      expect(tosSummary).toContain('AI-generated content may contain inaccuracies')
-      expect(tosSummary).toContain('arbitration')
+      expect(termsOfService.summary).toContain('personal, non-commercial purposes')
+      expect(termsOfService.summary).toContain('AI-generated content may contain inaccuracies')
+      expect(termsOfService.summary).toContain('arbitration')
     })
 
     it('should have Privacy Policy summary content', () => {
-      const privacySummary = `We collect your account information, audio recordings, and usage data to provide our nutrition tracking service. Your information is processed to generate nutrition analysis and improve our services. We share data with service providers like Stripe, Supabase, and AI transcription services, but we do not sell your personal information. You have rights to access, correct, or delete your data.`
+      const { privacyPolicy } = LEGAL_SUMMARIES
       
-      expect(privacySummary).toContain('account information')
-      expect(privacySummary).toContain('audio recordings')
-      expect(privacySummary).toContain('we do not sell your personal information')
-      expect(privacySummary).toContain('access, correct, or delete')
+      expect(privacyPolicy.summary).toContain('account information')
+      expect(privacyPolicy.summary).toContain('audio recordings')
+      expect(privacyPolicy.summary).toContain('we do not sell your personal information')
+      expect(privacyPolicy.summary).toContain('access, correct, or delete')
     })
   })
 
   describe('Link Functionality', () => {
     it('should have correct link targets', () => {
-      const tosLink = '/terms-of-service'
-      const privacyLink = '/privacy-policy'
+      const { termsOfService, privacyPolicy } = LEGAL_SUMMARIES
       
-      expect(tosLink).toBe('/terms-of-service')
-      expect(privacyLink).toBe('/privacy-policy')
+      expect(termsOfService.url).toBe('/terms-of-service')
+      expect(privacyPolicy.url).toBe('/privacy-policy')
     })
 
     it('should open links in new tab with security attributes', () => {
@@ -168,37 +168,21 @@ describe('LegalAcknowledgment Component Logic', () => {
 
   describe('Modal Content', () => {
     it('should have key points for ToS modal', () => {
-      const tosKeyPoints = [
-        'Use service for personal, non-commercial purposes only',
-        'Maintain accurate account information',
-        'AI-generated content may contain inaccuracies - verify information',
-        'Service provided "as is" without warranties',
-        'Not medical advice - consult healthcare professionals',
-        'Disputes resolved through arbitration',
-        'Limited liability for damages'
-      ]
+      const { termsOfService } = LEGAL_SUMMARIES
       
-      expect(tosKeyPoints).toHaveLength(7)
-      expect(tosKeyPoints[0]).toContain('personal, non-commercial')
-      expect(tosKeyPoints[2]).toContain('AI-generated')
-      expect(tosKeyPoints[4]).toContain('Not medical advice')
+      expect(termsOfService.keyPoints).toHaveLength(7)
+      expect(termsOfService.keyPoints[0]).toContain('personal, non-commercial')
+      expect(termsOfService.keyPoints[2]).toContain('AI-generated')
+      expect(termsOfService.keyPoints[4]).toContain('Not medical advice')
     })
 
     it('should have key points for Privacy modal', () => {
-      const privacyKeyPoints = [
-        'We collect account info, audio recordings, and usage data',
-        'Data used to provide nutrition tracking and improve services',
-        'Shared with service providers (Stripe, Supabase, AI services)',
-        'We do not sell your personal information',
-        'You can access, correct, or delete your data',
-        'Data encrypted in transit and at rest',
-        'Not HIPAA covered - not medical advice'
-      ]
+      const { privacyPolicy } = LEGAL_SUMMARIES
       
-      expect(privacyKeyPoints).toHaveLength(7)
-      expect(privacyKeyPoints[0]).toContain('account info')
-      expect(privacyKeyPoints[3]).toContain('do not sell')
-      expect(privacyKeyPoints[6]).toContain('Not HIPAA covered')
+      expect(privacyPolicy.keyPoints).toHaveLength(7)
+      expect(privacyPolicy.keyPoints[0]).toContain('account info')
+      expect(privacyPolicy.keyPoints[3]).toContain('do not sell')
+      expect(privacyPolicy.keyPoints[6]).toContain('Not HIPAA covered')
     })
   })
 

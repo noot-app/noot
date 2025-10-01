@@ -1,5 +1,6 @@
 <script lang="ts">
   import Modal from "$lib/components/Modal.svelte"
+  import { LEGAL_SUMMARIES } from "$lib/constants/legal"
   
   export let showCheckbox: boolean = false
   export let checked: boolean = false
@@ -21,10 +22,7 @@
     showPrivacyModal = true
   }
 
-  // Summary text for ToS and Privacy Policy
-  const tosSummary = `By using Noot, you agree to: use the service for personal, non-commercial purposes; maintain accurate account information; not misuse or abuse the service; and understand that AI-generated content may contain inaccuracies. The service is provided "as is" with no warranties, and Noot limits its liability for damages. You also agree to resolve disputes through arbitration.`
-
-  const privacySummary = `We collect your account information, audio recordings, and usage data to provide our nutrition tracking service. Your information is processed to generate nutrition analysis and improve our services. We share data with service providers like Stripe, Supabase, and AI transcription services, but we do not sell your personal information. You have rights to access, correct, or delete your data.`
+  const { termsOfService, privacyPolicy } = LEGAL_SUMMARIES
 </script>
 
 <div class="space-y-3">
@@ -67,30 +65,30 @@
       aria-label="Legal terms summary"
     >
       <div>
-        <h4 class="font-semibold text-base-content mb-1">Terms of Service Summary:</h4>
-        <p class="text-base-content/70">{tosSummary}</p>
+        <h4 class="font-semibold text-base-content mb-1">{termsOfService.title} Summary:</h4>
+        <p class="text-base-content/70">{termsOfService.summary}</p>
         <a
-          href="/terms-of-service"
+          href={termsOfService.url}
           target="_blank"
           rel="noopener noreferrer"
           class="link link-primary text-xs mt-1 inline-block"
         >
-          Read full Terms of Service →
+          Read full {termsOfService.title} →
         </a>
       </div>
       
       <div class="divider my-2"></div>
       
       <div>
-        <h4 class="font-semibold text-base-content mb-1">Privacy Policy Summary:</h4>
-        <p class="text-base-content/70">{privacySummary}</p>
+        <h4 class="font-semibold text-base-content mb-1">{privacyPolicy.title} Summary:</h4>
+        <p class="text-base-content/70">{privacyPolicy.summary}</p>
         <a
-          href="/privacy-policy"
+          href={privacyPolicy.url}
           target="_blank"
           rel="noopener noreferrer"
           class="link link-primary text-xs mt-1 inline-block"
         >
-          Read full Privacy Policy →
+          Read full {privacyPolicy.title} →
         </a>
       </div>
     </div>
@@ -118,27 +116,23 @@
 </div>
 
 <!-- Terms of Service Modal -->
-<Modal bind:show={showToSModal} title="Terms of Service" size="lg">
+<Modal bind:show={showToSModal} title={termsOfService.title} size="lg">
   <div class="prose prose-sm max-w-none overflow-y-auto max-h-[60vh]">
     <p class="text-sm text-base-content/70 mb-4">
-      Please review our full Terms of Service document for complete details.
+      Please review our full {termsOfService.title} document for complete details.
     </p>
     <div class="text-xs space-y-3">
       <h3 class="font-semibold text-base">Key Points:</h3>
       <ul class="list-disc list-inside space-y-2 text-base-content/80">
-        <li>Use service for personal, non-commercial purposes only</li>
-        <li>Maintain accurate account information</li>
-        <li>AI-generated content may contain inaccuracies - verify information</li>
-        <li>Service provided "as is" without warranties</li>
-        <li>Not medical advice - consult healthcare professionals</li>
-        <li>Disputes resolved through arbitration</li>
-        <li>Limited liability for damages</li>
+        {#each termsOfService.keyPoints as point}
+          <li>{point}</li>
+        {/each}
       </ul>
     </div>
   </div>
   <div slot="actions" class="flex gap-2 justify-end">
     <a
-      href="/terms-of-service"
+      href={termsOfService.url}
       target="_blank"
       rel="noopener noreferrer"
       class="btn btn-outline btn-sm"
@@ -152,27 +146,23 @@
 </Modal>
 
 <!-- Privacy Policy Modal -->
-<Modal bind:show={showPrivacyModal} title="Privacy Policy" size="lg">
+<Modal bind:show={showPrivacyModal} title={privacyPolicy.title} size="lg">
   <div class="prose prose-sm max-w-none overflow-y-auto max-h-[60vh]">
     <p class="text-sm text-base-content/70 mb-4">
-      Please review our full Privacy Policy document for complete details.
+      Please review our full {privacyPolicy.title} document for complete details.
     </p>
     <div class="text-xs space-y-3">
       <h3 class="font-semibold text-base">Key Points:</h3>
       <ul class="list-disc list-inside space-y-2 text-base-content/80">
-        <li>We collect account info, audio recordings, and usage data</li>
-        <li>Data used to provide nutrition tracking and improve services</li>
-        <li>Shared with service providers (Stripe, Supabase, AI services)</li>
-        <li>We do not sell your personal information</li>
-        <li>You can access, correct, or delete your data</li>
-        <li>Data encrypted in transit and at rest</li>
-        <li>Not HIPAA covered - not medical advice</li>
+        {#each privacyPolicy.keyPoints as point}
+          <li>{point}</li>
+        {/each}
       </ul>
     </div>
   </div>
   <div slot="actions" class="flex gap-2 justify-end">
     <a
-      href="/privacy-policy"
+      href={privacyPolicy.url}
       target="_blank"
       rel="noopener noreferrer"
       class="btn btn-outline btn-sm"
