@@ -619,17 +619,19 @@
           Company
         </h4>
         <div class="space-y-1 lg:space-y-2">
-          <span
-            class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed"
-            >About</span
+          <a
+            href="/about"
+            class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors"
+            >About</a
           >
           <span
             class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed"
             >Blog</span
           >
-          <span
-            class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed"
-            >Contact</span
+          <a
+            href="/contact"
+            class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors"
+            >Contact</a
           >
         </div>
       </div>
@@ -651,9 +653,10 @@
             class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors"
             >Terms of Service</a
           >
-          <span
-            class="block text-xs lg:text-sm text-base-content/40 cursor-not-allowed"
-            >Cookie Policy</span
+          <a
+            href="/cookie-policy"
+            class="block text-xs lg:text-sm text-base-content/70 hover:text-base-content transition-colors"
+            >Cookie Policy</a
           >
         </div>
       </div>
