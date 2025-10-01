@@ -4,6 +4,8 @@
 
 An AI-powered nutrition logging web app. Just say what you ate!
 
+![home](docs/assets/home.png)
+
 ## Available Nutrients
 
 This project aims to track 48+ total nutrients using a **centralized definition system**:
@@ -11,6 +13,8 @@ This project aims to track 48+ total nutrients using a **centralized definition 
 Adding nutrients is now super easy! See [Nutrient System Documentation](internal/nutrients/README.md)
 
 See the full list of defined [nutrients here](./config/nutrients.yml).
+
+![nutrition-summary](docs/assets/nutrition-summary.png)
 
 **Quick Add Example:**
 
