@@ -230,7 +230,7 @@
           </h3>
           <p class="text-sm">
             Advanced AI understands brands, portions, and preparation methods to
-            give you accurate nutrition data.
+            give you enhanced nutrition data.
           </p>
         </div>
       </div>
@@ -286,11 +286,10 @@
             </svg>
           </div>
           <h3 class="card-title justify-center text-base lg:text-lg">
-            Lightning Fast
+            Pretty Fast
           </h3>
           <p class="text-sm">
-            Get results in seconds. From voice to full nutrition breakdown
-            instantly.
+            From voice/text to full nutrition breakdown... pretty quick. The AI does need time to think but it is worth the wait.
           </p>
         </div>
       </div>

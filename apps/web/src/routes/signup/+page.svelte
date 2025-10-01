@@ -12,6 +12,7 @@
   import { DEFAULT_REDIRECT_PATH, getRedirectParam } from "$lib/utils/redirect"
   import Alert from "$lib/components/Alert.svelte"
   import DevModeAlert from "$lib/components/DevModeAlert.svelte"
+  import LegalAcknowledgment from "$lib/components/LegalAcknowledgment.svelte"
 
   let email = ""
   let password = ""
@@ -23,6 +24,7 @@
   let googleLoading = false
   let error: string | null = null
   let success = false
+  let agreedToTerms = false
 
   // Get return URL from query params
   const redirect = getRedirectParam($page.url, DEFAULT_REDIRECT_PATH)
@@ -58,6 +60,11 @@
   async function handleSignUp() {
     if (!email || !password || !confirmPassword || !username) {
       error = "Please fill in all required fields"
+      return
+    }
+
+    if (!agreedToTerms) {
+      error = "You must agree to the Terms of Service and Privacy Policy to create an account"
       return
     }
 
@@ -387,10 +394,16 @@
         </Alert>
       {/if}
 
+      <LegalAcknowledgment 
+        showCheckbox={true} 
+        bind:checked={agreedToTerms} 
+        disabled={loading}
+      />
+
       <div>
         <button
           type="submit"
-          disabled={loading || success}
+          disabled={loading || success || !agreedToTerms}
           class="btn btn-primary w-full"
           class:loading
         >
@@ -407,11 +420,6 @@
         >
           Forgot your password?
         </button>
-      </div>
-
-      <div class="text-xs text-base-content/60 text-center">
-        By creating an account, you agree to our terms of service and privacy
-        policy.
       </div>
     </form>
 
