@@ -6,6 +6,10 @@ An AI-powered nutrition logging web app. Just say what you ate!
 
 ![home](docs/assets/home.png)
 
+## Demo 📹
+
+https://github.com/user-attachments/assets/4ff9301f-64b4-4f1a-9798-3883028fa9ec
+
 ## Available Nutrients
 
 This project aims to track 48+ total nutrients using a **centralized definition system**:
