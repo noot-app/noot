@@ -48,7 +48,7 @@ jobs:
 
       - name: setup go
         if: ${{ steps.branch-deploy.outputs.continue }}
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: "go.mod"
           cache: true
