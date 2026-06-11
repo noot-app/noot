@@ -41,7 +41,7 @@ jobs:
 
       # checkout the project's repository based on the exact commit sha provided by the branch-deploy step
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6.0.2
         if: ${{ steps.branch-deploy.outputs.continue }}
         with:
           ref: ${{ steps.branch-deploy.outputs.sha }}
