@@ -176,8 +176,8 @@ github.com/mohae/deepcopy
 github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
 github.com/oapi-codegen/oapi-codegen/v2/pkg/codegen
 github.com/oapi-codegen/oapi-codegen/v2/pkg/util
-# github.com/oapi-codegen/runtime v1.1.2
-## explicit; go 1.20
+# github.com/oapi-codegen/runtime v1.4.0
+## explicit; go 1.24.0
 github.com/oapi-codegen/runtime
 github.com/oapi-codegen/runtime/types
 # github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037
@@ -208,7 +208,7 @@ github.com/speakeasy-api/jsonpath/pkg/jsonpath/token
 ## explicit; go 1.22
 github.com/speakeasy-api/openapi-overlay/pkg/loader
 github.com/speakeasy-api/openapi-overlay/pkg/overlay
-# github.com/stretchr/testify v1.10.0
+# github.com/stretchr/testify v1.11.1
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
@@ -241,19 +241,19 @@ github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath
 # golang.org/x/arch v0.21.0
 ## explicit; go 1.24.0
 golang.org/x/arch/x86/x86asm
-# golang.org/x/crypto v0.41.0
-## explicit; go 1.23.0
+# golang.org/x/crypto v0.46.0
+## explicit; go 1.24.0
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/sha3
-# golang.org/x/mod v0.27.0
-## explicit; go 1.23.0
+# golang.org/x/mod v0.30.0
+## explicit; go 1.24.0
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/modfile
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.43.0
-## explicit; go 1.23.0
+# golang.org/x/net v0.48.0
+## explicit; go 1.24.0
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/http/httpguts
@@ -262,15 +262,15 @@ golang.org/x/net/http2/h2c
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/httpcommon
-# golang.org/x/sync v0.17.0
+# golang.org/x/sync v0.19.0
 ## explicit; go 1.24.0
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.36.0
+# golang.org/x/sys v0.39.0
 ## explicit; go 1.24.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
-# golang.org/x/text v0.28.0
-## explicit; go 1.23.0
+# golang.org/x/text v0.32.0
+## explicit; go 1.24.0
 golang.org/x/text/cases
 golang.org/x/text/internal
 golang.org/x/text/internal/language
@@ -281,8 +281,8 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.36.0
-## explicit; go 1.23.0
+# golang.org/x/tools v0.39.0
+## explicit; go 1.24.0
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/imports
 golang.org/x/tools/internal/event
